@@ -1,7 +1,9 @@
 import * as monaco from 'monaco-editor';
+import { SyntaxTreeManager } from '../syntax-tree/syntax-tree-manager';
 
 var initialized = false;
 var editor: monaco.editor.IStandaloneCodeEditor;
+var ast: SyntaxTreeManager;
 
 function initEditor() {
 	if (!initialized) {
@@ -10,14 +12,22 @@ function initEditor() {
 			language: 'python',
 			minimap: { enabled: false }
 		});
+		ast = new SyntaxTreeManager();
 
 		initialized = true;
-	} else return editor;
+	}
 }
 
 function getEditor() {
 	if (!initialized) initEditor();
-	else return editor;
+
+	return editor;
 }
 
-export { initEditor, getEditor };
+function getSyntaxTree() {
+	if (!initialized) initEditor();
+
+	return ast;
+}
+
+export { initEditor, getEditor, getSyntaxTree };
