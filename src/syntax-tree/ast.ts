@@ -64,12 +64,18 @@ export interface CodeConstruct {
 	contains(pos: Position): boolean;
 }
 
+/**
+ * A node element inside a tree structure
+ */
 export interface Node {
 	nodeType: NodeType;
 	rootNode: Node;
 	indexInRoot: number;
 }
 
+/**
+ * A complete code statement such as: variable assignment, function call, conditional, loop, function definition, and other statements.
+ */
 export abstract class Statement implements CodeConstruct, Node {
 	nodeType = NodeType.Statement;
 	rootNode: Node = null;
@@ -82,6 +88,11 @@ export abstract class Statement implements CodeConstruct, Node {
 
 	tokens = new Array<Node>();
 
+	/**
+	 * Builds the left and right positions of this node and all of its children nodes recursively.
+	 * @param pos the left position to start building the nodes from
+	 * @returns the final right position of the whole node (calculated after building all of the children nodes)
+	 */
 	build(pos: Position): Position {
 		this.lineNumber = pos.lineNumber;
 		this.left = pos.column;
@@ -99,18 +110,16 @@ export abstract class Statement implements CodeConstruct, Node {
 		return curPos;
 	}
 
+	/**
+	 * Rebuilds the left and right positions of this node recursively. Optimized to not rebuild untouched nodes.
+	 * @param pos the left position to start building the nodes from
+	 * @param fromIndex the index of the node that was edited.
+	 */
 	rebuild(pos: Position, fromIndex: number) {
-		// recursively rebuild this starting with that switched node using its index (we have to build it anyway to find the new right of that node)
-		// build node @ fromIndex
-		// if next node's left == newPos (then it hasn't changed)
-		// else => the new right changes:
-		// rebuild all of its siblings (this.tokens)
-
-		// rebuild siblings:
-
 		let curPos = pos;
 		let propagateToRoot = true;
 
+		// rebuild siblings:
 		for (let i = fromIndex; i < this.tokens.length; i++) {
 			if (this.tokens[i].nodeType == NodeType.Token) curPos = (this.tokens[i] as Token).build(curPos);
 			else {
@@ -144,6 +153,11 @@ export abstract class Statement implements CodeConstruct, Node {
 		}
 	}
 
+	/**
+	 * Checks if this node contains the given position (as a 2D point)
+	 * @param pos the 2D point to check
+	 * @returns true: contains, false: does not contain
+	 */
 	contains(pos: Position): boolean {
 		if (pos.lineNumber != this.lineNumber) return false;
 
@@ -152,6 +166,11 @@ export abstract class Statement implements CodeConstruct, Node {
 		return false;
 	}
 
+	/**
+	 * Traverses the AST starting from this node to locate the smallest code construct that matches the given position
+	 * @param pos The 2D point to start searching for
+	 * @returns The located code construct (which includes its parents)
+	 */
 	locate(pos: Position): CodeConstruct {
 		if (this.contains(pos)) {
 			for (let node of this.tokens) {
@@ -171,6 +190,9 @@ export abstract class Statement implements CodeConstruct, Node {
 	}
 }
 
+/**
+ * A statement that returns a value such as: binary operators, unary operators, function calls that return a value, literal values, and variables.
+ */
 export abstract class Expression extends Statement implements CodeConstruct {
 	nodeType = NodeType.Expression;
 	// TODO: can change this to an Array to enable type checking when returning multiple items
@@ -183,6 +205,9 @@ export abstract class Expression extends Statement implements CodeConstruct {
 	}
 }
 
+/**
+ * The smallest code construct: identifiers, holes (for either identifiers or expressions), operators and characters, and etc.
+ */
 export abstract class Token implements CodeConstruct, Node {
 	nodeType = NodeType.Token;
 	rootNode: Node = null;
@@ -198,6 +223,11 @@ export abstract class Token implements CodeConstruct, Node {
 		this.text = text;
 	}
 
+	/**
+	 * Builds the left and right positions of this token based on its text length.
+	 * @param pos the left position to start building this node's right position.
+	 * @returns the final right position of this node: for tokens it equals to `this.left + this.text.length - 1`
+	 */
 	build(pos: Position): Position {
 		this.left = pos.column;
 		this.right = pos.column + this.text.length - 1;
@@ -205,21 +235,34 @@ export abstract class Token implements CodeConstruct, Node {
 		return new Position(pos.lineNumber, this.right + 1);
 	}
 
+	/**
+	 * Checks if this node contains the given position (as a 2D point)
+	 * @param pos the 2D point to check
+	 * @returns true: contains, false: does not contain
+	 */
 	contains(pos: Position): boolean {
 		if (pos.column >= this.left && pos.column <= this.right) return true;
 
 		return false;
 	}
 
+	/**
+	 * For this token element, it returns it self.
+	 * @param pos Not used
+	 * @returns This token
+	 */
 	locate(pos: Position): CodeConstruct {
 		return this;
 	}
 }
 
-export class Manager {
+/**
+ * The main body of the code which includes an array of statements.
+ */
+export class Module {
 	body = new Array<Statement>();
-	curNode: Node;
-	curPos: Position;
+	focusedNode: Node;
+	focusedPos: Position;
 }
 
 export class Argument {
