@@ -1,6 +1,5 @@
 import './index.css';
 import { initEditor } from './components/editor';
-import { initToolbox } from './components/toolbox';
 
 // @ts-ignore
 self.MonacoEnvironment = {
@@ -22,4 +21,3 @@ self.MonacoEnvironment = {
 };
 
 initEditor();
-initToolbox();
