@@ -52,7 +52,8 @@ export enum ComparatorOp {
 export enum NodeType {
 	Token,
 	Expression,
-	Statement
+	Statement,
+	Module
 }
 
 export interface CodeConstruct {
@@ -62,6 +63,7 @@ export interface CodeConstruct {
 	build(pos: Position): Position;
 	locate(pos: Position): CodeConstruct;
 	contains(pos: Position): boolean;
+	nextEmptyToken(): CodeConstruct;
 }
 
 /**
@@ -87,6 +89,8 @@ export abstract class Statement implements CodeConstruct, Node {
 	right: number;
 
 	tokens = new Array<Node>();
+
+	hasEmptyToken: boolean;
 
 	/**
 	 * Builds the left and right positions of this node and all of its children nodes recursively.
@@ -188,6 +192,41 @@ export abstract class Statement implements CodeConstruct, Node {
 
 		return null;
 	}
+
+	/**
+	 * Finds and returns the next empty hole (name or value) in this code construct
+	 * @returns The found empty token or null (if nothing it didn't include any empty tokens)
+	 */
+	nextEmptyToken(): CodeConstruct {
+		for (let node of this.tokens) {
+			if (node.nodeType == NodeType.Token) {
+				let token = node as Token;
+
+				if (token.isEmpty) {
+					return token;
+				}
+			} else {
+				let expr = node as Expression;
+
+				if (expr.hasEmptyToken) return expr.nextEmptyToken();
+
+				return null;
+			}
+		}
+	}
+
+	/**
+	 * This function should be called after replacing a token within this statement. it checks if the newly added token `isEmpty` or not, and if yes, it will set `hasEmptyToken = true`
+	 * @param node the newly added node within the replace function
+	 */
+	updateHasEmptyToken(node: Node) {
+		if (node.nodeType == NodeType.Token) {
+			let token = node as Token;
+
+			if (token.isEmpty) this.hasEmptyToken = true;
+			else this.hasEmptyToken = false;
+		}
+	}
 }
 
 /**
@@ -217,6 +256,7 @@ export abstract class Token implements CodeConstruct, Node {
 	right: number;
 
 	text: string;
+	isEmpty: boolean = false;
 
 	constructor(text: string, root?: Node) {
 		this.rootNode = root;
@@ -254,15 +294,41 @@ export abstract class Token implements CodeConstruct, Node {
 	locate(pos: Position): CodeConstruct {
 		return this;
 	}
+
+	/**
+	 * Finds and returns the next empty hole (name or value) in this code construct
+	 * @returns The found empty token or null (if nothing it didn't include any empty tokens)
+	 */
+	nextEmptyToken(): CodeConstruct {
+		if (this.isEmpty) return this;
+
+		return null;
+	}
 }
 
 /**
  * The main body of the code which includes an array of statements.
  */
-export class Module {
+export class Module extends Node {
+	nodeType = NodeType.Module;
+	rootNode = null;
+	indexInRoot = null;
+
 	body = new Array<Statement>();
+
+	focusedNodeIndex: number;
 	focusedNode: Node;
 	focusedPos: Position;
+
+	constructor() {
+		super();
+
+		this.body.push(new EmptyLineStmt(this, 0));
+
+		this.focusedNodeIndex = 0;
+		this.focusedNode = this.body[0];
+		this.focusedPos = new Position(1, 1);
+	}
 }
 
 export class Argument {
@@ -278,6 +344,8 @@ export class Argument {
 }
 
 export class EmptyLineStmt extends Statement {
+	hasEmptyToken = false;
+
 	constructor(root?: Node, indexInRoot?: number) {
 		super();
 
@@ -305,7 +373,9 @@ export class VarAssignmentStmt extends Statement {
 		this.tokens.push(new OperatorTkn('=', this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.valueIndex = this.tokens.length;
-		this.tokens.push(new EmptyExp(this, this.tokens.length));
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+
+		this.hasEmptyToken = true;
 	}
 
 	replaceIdentifier(node: Node) {
@@ -324,6 +394,8 @@ export class VarAssignmentStmt extends Statement {
 		this.tokens[this.identifierIndex] = node;
 
 		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.identifierIndex);
+
+		this.updateHasEmptyToken(node);
 	}
 
 	replaceValue(node: Node) {
@@ -342,6 +414,8 @@ export class VarAssignmentStmt extends Statement {
 		this.tokens[this.valueIndex] = node;
 
 		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.valueIndex);
+
+		this.updateHasEmptyToken(node);
 	}
 }
 
@@ -369,6 +443,7 @@ export class FunctionCallStmt extends Expression {
 		}
 
 		this.tokens.push(new ParenthesisTkn(')', this, this.tokens.length));
+		this.hasEmptyToken = true;
 	}
 
 	replaceArgument(index: number, to: Node) {
@@ -387,6 +462,8 @@ export class FunctionCallStmt extends Expression {
 		this.tokens[this.argumentsIndices[index]] = to;
 
 		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.argumentsIndices[index]);
+
+		this.updateHasEmptyToken(to);
 	}
 }
 
@@ -409,6 +486,8 @@ export class BinaryOperatorExpr extends Expression {
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.rightOperandIndex = this.tokens.length;
 		this.tokens.push(new TypedEmptyExpr(returns, this, this.tokens.length));
+
+		this.hasEmptyToken = true;
 	}
 
 	replaceLeftOperand(node: Node) {
@@ -427,6 +506,8 @@ export class BinaryOperatorExpr extends Expression {
 		this.tokens[this.leftOperandIndex] = node;
 
 		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.leftOperandIndex);
+
+		this.updateHasEmptyToken(node);
 	}
 
 	replaceRightOperand(node: Node) {
@@ -446,6 +527,8 @@ export class BinaryOperatorExpr extends Expression {
 
 		// rebuild
 		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.rightOperandIndex);
+
+		this.updateHasEmptyToken(node);
 	}
 }
 
@@ -474,6 +557,8 @@ export class LiteralValExpr extends Expression {
 }
 
 export class FunctionNameTkn extends Token {
+	isEmpty = false;
+
 	constructor(functionName: string, root?: Node, indexInRoot?: number) {
 		super(functionName);
 
@@ -483,6 +568,7 @@ export class FunctionNameTkn extends Token {
 }
 
 export class TypedEmptyExpr extends Token {
+	isEmpty = true;
 	type: DataType;
 
 	constructor(type: DataType, root?: Node, indexInRoot?: number) {
@@ -494,7 +580,9 @@ export class TypedEmptyExpr extends Token {
 	}
 }
 
-export class EmptyExp extends Token {
+export class EmptyExpr extends Token {
+	isEmpty = true;
+
 	constructor(root?: Node, indexInRoot?: number) {
 		super('---');
 
@@ -513,6 +601,8 @@ export class IdTkn extends Token {
 }
 
 export class EmptyIdTkn extends Token {
+	isEmpty = true;
+
 	constructor(root?: Node, indexInRoot?: number) {
 		super('---');
 
@@ -522,6 +612,8 @@ export class EmptyIdTkn extends Token {
 }
 
 export class EmptySpaceTkn extends Token {
+	isEmpty = false;
+
 	constructor(root?: Node, indexInRoot?: number) {
 		super(' ');
 
