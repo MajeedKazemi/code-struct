@@ -1,5 +1,19 @@
 import { Position } from 'monaco-editor';
 
+export enum EditFunctions {
+	InsertStatement,
+	InsertStatementBefore,
+	InsertStatementAfter,
+	RemoveStatement,
+	SetExpression,
+	SetTypedExpression,
+	SetLiteral,
+	ChangeLiteral,
+	RemoveExpression,
+	SetIdentifier,
+	ChangeIdentifier
+}
+
 export enum DataType {
 	Number,
 	Boolean,
@@ -73,6 +87,7 @@ export interface Node {
 	nodeType: NodeType;
 	rootNode: Node;
 	indexInRoot: number;
+	editFunctions: Array<EditFunctions>;
 }
 
 /**
@@ -82,6 +97,11 @@ export abstract class Statement implements CodeConstruct, Node {
 	nodeType = NodeType.Statement;
 	rootNode: Node = null;
 	indexInRoot: number;
+
+	/**
+	 * This list indicates the valid types of edits (as a list) for a selected/focused Statement, Expression, or Token.
+	 */
+	editFunctions = new Array<EditFunctions>();
 
 	// TODO: might want to change this to first, and last nodes? or a function that calculates left and right based on those two
 	lineNumber: number;
@@ -251,6 +271,7 @@ export abstract class Token implements CodeConstruct, Node {
 	nodeType = NodeType.Token;
 	rootNode: Node = null;
 	indexInRoot: number;
+	editFunctions = new Array<EditFunctions>();
 
 	left: number;
 	right: number;
@@ -313,6 +334,7 @@ export class Module extends Node {
 	nodeType = NodeType.Module;
 	rootNode = null;
 	indexInRoot = null;
+	editFunctions: Array<EditFunctions>;
 
 	body = new Array<Statement>();
 
@@ -349,9 +371,9 @@ export class EmptyLineStmt extends Statement {
 	constructor(root?: Node, indexInRoot?: number) {
 		super();
 
+		this.editFunctions.push(EditFunctions.InsertStatement);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
-		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 	}
 }
 
@@ -362,10 +384,12 @@ export class VarAssignmentStmt extends Statement {
 	constructor(id?: string, root?: Node, indexInRoot?: number) {
 		super();
 
+		this.editFunctions.push(EditFunctions.RemoveStatement);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 
 		this.identifierIndex = this.tokens.length;
+		this.tokens.push(new PrevLineTkn(this, this.tokens.length));
 		this.tokens.push(
 			id != null ? new IdTkn(id, this, this.tokens.length) : new EmptyIdTkn(this, this.tokens.length)
 		);
@@ -374,6 +398,7 @@ export class VarAssignmentStmt extends Statement {
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.valueIndex = this.tokens.length;
 		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new NextLineTkn(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
@@ -420,14 +445,28 @@ export class VarAssignmentStmt extends Statement {
 }
 
 export class FunctionCallStmt extends Expression {
+	/**
+	 * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
+	 */
+	private isStatement = false;
 	private argumentsIndices = new Array<number>();
 
-	constructor(functionName: string, args: Array<Argument>, returns: DataType, root?: Node, indexInRoot?: number) {
+	constructor(
+		functionName: string,
+		args: Array<Argument>,
+		returns: DataType,
+		isStatement: boolean,
+		root?: Node,
+		indexInRoot?: number
+	) {
 		super(returns);
 
+		this.editFunctions.push(EditFunctions.RemoveStatement);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+		this.isStatement = isStatement;
 
+		if (this.isStatement) this.tokens.push(new PrevLineTkn(this, this.tokens.length));
 		this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
 		this.tokens.push(new ParenthesisTkn('(', this, this.tokens.length));
 
@@ -443,6 +482,8 @@ export class FunctionCallStmt extends Expression {
 		}
 
 		this.tokens.push(new ParenthesisTkn(')', this, this.tokens.length));
+		if (this.isStatement) this.tokens.push(new NextLineTkn(this, this.tokens.length));
+
 		this.hasEmptyToken = true;
 	}
 
@@ -475,6 +516,7 @@ export class BinaryOperatorExpr extends Expression {
 	constructor(operator: BinaryOperator, returns: DataType, root?: Node, indexInRoot?: number) {
 		super(returns);
 
+		this.editFunctions.push(EditFunctions.RemoveExpression);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 		this.operator = operator;
@@ -538,6 +580,7 @@ export class LiteralValExpr extends Expression {
 	constructor(value: string, returns: DataType, root?: Node, indexInRoot?: number) {
 		super(returns);
 
+		this.editFunctions.push(EditFunctions.SetLiteral);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 		this.value = value;
@@ -574,6 +617,7 @@ export class TypedEmptyExpr extends Token {
 	constructor(type: DataType, root?: Node, indexInRoot?: number) {
 		super('---');
 
+		this.editFunctions.push(EditFunctions.SetTypedExpression);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 		this.type = type;
@@ -586,6 +630,7 @@ export class EmptyExpr extends Token {
 	constructor(root?: Node, indexInRoot?: number) {
 		super('---');
 
+		this.editFunctions.push(EditFunctions.SetExpression);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 	}
@@ -595,6 +640,7 @@ export class IdTkn extends Token {
 	constructor(name: string, root?: Node, indexInRoot?: number) {
 		super(name);
 
+		this.editFunctions.push(EditFunctions.SetIdentifier);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 	}
@@ -606,6 +652,31 @@ export class EmptyIdTkn extends Token {
 	constructor(root?: Node, indexInRoot?: number) {
 		super('---');
 
+		this.editFunctions.push(EditFunctions.ChangeIdentifier);
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+	}
+}
+
+export class NextLineTkn extends Token {
+	isEmpty = false;
+
+	constructor(root?: Node, indexInRoot?: number) {
+		super('');
+
+		this.editFunctions.push(EditFunctions.InsertStatementAfter);
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+	}
+}
+
+export class PrevLineTkn extends Token {
+	isEmpty = false;
+
+	constructor(root?: Node, indexInRoot?: number) {
+		super('');
+
+		this.editFunctions.push(EditFunctions.InsertStatementBefore);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 	}
@@ -662,7 +733,8 @@ export function test() {
 	var randFunCall = new FunctionCallStmt(
 		'randint',
 		[ new Argument(DataType.Number, 'start', false), new Argument(DataType.Number, 'stop', false) ],
-		DataType.Number
+		DataType.Number,
+		false
 	);
 
 	var subExpr = new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number);
@@ -676,7 +748,7 @@ export function test() {
 
 	varAssignStmt.replaceValue(sumExpr);
 	varAssignStmt.build(new Position(1, 1));
-	// variable = randint(10000 - 500, 99) + 1000
+
 	subExpr.replaceRightOperand(new LiteralValExpr('1', DataType.Number));
 	subExpr.replaceRightOperand(new LiteralValExpr('5', DataType.Number));
 	randFunCall.replaceArgument(0, new LiteralValExpr('10', DataType.Number));

@@ -22,6 +22,20 @@ Features of a scratch-like editor and its custom Abstract Syntax Tree (AST):
    - Editing a function/variable name
    - Editing an empty expression (which takes a particular data type)
    - Deleting things should convert them back to specific types of holes
+   - in summary, we have the following *edit* functions:
+     - literal values: `set-number`, `set-text`, `set-boolean`
+     - `add-stmt`
+     - `set-id`
+     - `change-id`
+     - `set-expr` can have a change-expr later
+     - `delete-expr`
+     - `delete-stmt`
+     - `set-literal`
+     - `change-literal`
+     - future work:
+       - add/remove **argument** in function call and function def
+       - add/remove **methods** and **parameters** in classes
+       - 
 
 4. Focusing the cursor:
    - When adding new statements, the cursor should jump to the next editable item
