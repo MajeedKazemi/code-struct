@@ -6,7 +6,6 @@ export enum EditFunctions {
 	InsertStatementAfter,
 	RemoveStatement,
 	SetExpression,
-	SetTypedExpression,
 	SetLiteral,
 	ChangeLiteral,
 	RemoveExpression,
@@ -71,62 +70,115 @@ export enum NodeType {
 }
 
 export interface CodeConstruct {
-	left: number;
-	right: number;
-
-	build(pos: Position): Position;
-	locate(pos: Position): CodeConstruct;
-	contains(pos: Position): boolean;
-	nextEmptyToken(): CodeConstruct;
-}
-
-/**
- * A node element inside a tree structure
- */
-export interface Node {
+	/**
+	 * Indicates if the code-construct is either a `Statement`, `Expression`, `Token`, or the `Module`
+	 */
 	nodeType: NodeType;
-	rootNode: Node;
-	indexInRoot: number;
-	editFunctions: Array<EditFunctions>;
-}
 
-/**
- * A complete code statement such as: variable assignment, function call, conditional, loop, function definition, and other statements.
- */
-export abstract class Statement implements CodeConstruct, Node {
-	nodeType = NodeType.Statement;
-	rootNode: Node = null;
+	/**
+	 * The parent/root node for this code-construct. Statements are the only code construct that could have the Module as their root node.
+	 */
+	rootNode: CodeConstruct | Module;
+
+	/**
+	 * The index this item has inside its root's body (if root is the Module), or its tokens array.
+	 */
 	indexInRoot: number;
 
 	/**
-	 * This list indicates the valid types of edits (as a list) for a selected/focused Statement, Expression, or Token.
+	 * Different types of valid edits (as a list) that could be received for a selected/focused Statement, Expression, or Token.
 	 */
-	editFunctions = new Array<EditFunctions>();
+	validEdits: Array<EditFunctions>;
 
-	// TODO: might want to change this to first, and last nodes? or a function that calculates left and right based on those two
-	lineNumber: number;
+	/**
+	 * Different types of edits when adding this statement/expression/token.
+	 */
+	receives: Array<AddableType>;
+
+	/**
+	 * The left column position of this code-construct.
+	 */
 	left: number;
+
+	/**
+	 * The right column position of this code-construct.
+	 */
 	right: number;
 
-	tokens = new Array<Node>();
-
-	hasEmptyToken: boolean;
+	/**
+	 * Determines if this code-construct could be added (either from the toolbox or the autocomplete or elsewhere) to the program, and the type it accepts.
+	 */
+	addableType: AddableType;
 
 	/**
 	 * Builds the left and right positions of this node and all of its children nodes recursively.
 	 * @param pos the left position to start building the nodes from
 	 * @returns the final right position of the whole node (calculated after building all of the children nodes)
 	 */
+	build(pos: Position): Position;
+
+	/**
+	 * Traverses the AST starting from this node to locate the smallest code construct that matches the given position
+	 * @param pos The 2D point to start searching for
+	 * @returns The located code construct (which includes its parents)
+	 */
+	locate(pos: Position): CodeConstruct;
+
+	/**
+	 * Checks if this node contains the given position (as a 2D point)
+	 * @param pos the 2D point to check
+	 * @returns true: contains, false: does not contain
+	 */
+	contains(pos: Position): boolean;
+
+	/**
+	 * Finds and returns the next empty hole (name or value) in this code construct
+	 * @returns The found empty token or null (if nothing it didn't include any empty tokens)
+	 */
+	nextEmptyToken(): CodeConstruct;
+}
+
+export enum AddableType {
+	NotAddable,
+
+	Statement,
+	Expression,
+	Identifier,
+	NumberLiteral,
+	StringLiteral
+}
+
+/**
+ * A complete code statement such as: variable assignment, function call, conditional, loop, function definition, and other statements.
+ */
+export abstract class Statement implements CodeConstruct {
+	addableType: AddableType;
+	nodeType = NodeType.Statement;
+	rootNode: CodeConstruct | Module = null;
+	indexInRoot: number;
+
+	validEdits = new Array<EditFunctions>();
+	receives = new Array<AddableType>();
+
+	// TODO: might want to change this to first, and last nodes? or a function that calculates left and right based on those two
+	lineNumber: number;
+	left: number;
+	right: number;
+
+	tokens = new Array<CodeConstruct>();
+
+	hasEmptyToken: boolean;
+
 	build(pos: Position): Position {
 		this.lineNumber = pos.lineNumber;
 		this.left = pos.column;
 		var curPos = pos;
 
 		for (let i = 0; i < this.tokens.length; i++) {
-			let node = this.tokens[i];
+			let code = this.tokens[i];
 
-			if (node.nodeType == NodeType.Token) curPos = (node as Token).build(curPos);
-			else curPos = (node as Expression).build(curPos);
+			if (code.nodeType == NodeType.Token) curPos = (code as Token).build(curPos);
+			else curPos = (code as Expression).build(curPos);
 		}
 
 		this.right = curPos.column - 1;
@@ -170,18 +222,14 @@ export abstract class Statement implements CodeConstruct, Node {
 			this.right = newRight;
 
 			// check if parent's siblings should be rebuilt
-			if (this.rootNode && this.indexInRoot)
+			if (this.rootNode && this.indexInRoot) {
 				if (this.rootNode.nodeType == NodeType.Expression) {
 					(this.rootNode as Expression).rebuild(curPos, this.indexInRoot + 1);
 				} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
+			}
 		}
 	}
 
-	/**
-	 * Checks if this node contains the given position (as a 2D point)
-	 * @param pos the 2D point to check
-	 * @returns true: contains, false: does not contain
-	 */
 	contains(pos: Position): boolean {
 		if (pos.lineNumber != this.lineNumber) return false;
 
@@ -190,20 +238,15 @@ export abstract class Statement implements CodeConstruct, Node {
 		return false;
 	}
 
-	/**
-	 * Traverses the AST starting from this node to locate the smallest code construct that matches the given position
-	 * @param pos The 2D point to start searching for
-	 * @returns The located code construct (which includes its parents)
-	 */
 	locate(pos: Position): CodeConstruct {
 		if (this.contains(pos)) {
-			for (let node of this.tokens) {
-				if (node.nodeType == NodeType.Token) {
-					var token = node as Token;
+			for (let code of this.tokens) {
+				if (code.nodeType == NodeType.Token) {
+					var token = code as Token;
 
 					if (token.contains(pos)) return token.locate(pos);
 				} else {
-					var expr = node as Expression;
+					var expr = code as Expression;
 
 					if (expr.contains(pos)) return expr.locate(pos);
 				}
@@ -213,20 +256,16 @@ export abstract class Statement implements CodeConstruct, Node {
 		return null;
 	}
 
-	/**
-	 * Finds and returns the next empty hole (name or value) in this code construct
-	 * @returns The found empty token or null (if nothing it didn't include any empty tokens)
-	 */
 	nextEmptyToken(): CodeConstruct {
-		for (let node of this.tokens) {
-			if (node.nodeType == NodeType.Token) {
-				let token = node as Token;
+		for (let code of this.tokens) {
+			if (code.nodeType == NodeType.Token) {
+				let token = code as Token;
 
 				if (token.isEmpty) {
 					return token;
 				}
 			} else {
-				let expr = node as Expression;
+				let expr = code as Expression;
 
 				if (expr.hasEmptyToken) return expr.nextEmptyToken();
 
@@ -237,22 +276,48 @@ export abstract class Statement implements CodeConstruct, Node {
 
 	/**
 	 * This function should be called after replacing a token within this statement. it checks if the newly added token `isEmpty` or not, and if yes, it will set `hasEmptyToken = true`
-	 * @param node the newly added node within the replace function
+	 * @param code the newly added node within the replace function
 	 */
-	updateHasEmptyToken(node: Node) {
-		if (node.nodeType == NodeType.Token) {
-			let token = node as Token;
+	updateHasEmptyToken(code: CodeConstruct) {
+		if (code.nodeType == NodeType.Token) {
+			let token = code as Token;
 
 			if (token.isEmpty) this.hasEmptyToken = true;
 			else this.hasEmptyToken = false;
 		}
 	}
+
+	/**
+	 * Replaces this node in its root, and then rebuilds the parent (recursively)
+	 * @param code the new code-construct to replace
+	 * @param index the index to replace at
+	 */
+	 replace(code: CodeConstruct, index: number) {
+		 // prepare the new Node
+		code.rootNode = this;
+		code.indexInRoot = index;
+
+		// prepare to rebuild siblings and root (recursively)
+		let rebuildColumn: number;
+
+		if (this.tokens[index].nodeType == NodeType.Token)
+			rebuildColumn = (this.tokens[index] as Token).left;
+		else rebuildColumn = (this.tokens[index] as Expression).left;
+
+		// replace
+		this.tokens[index] = code;
+
+		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), index);
+
+		this.updateHasEmptyToken(code);
+	 }
 }
 
 /**
  * A statement that returns a value such as: binary operators, unary operators, function calls that return a value, literal values, and variables.
  */
 export abstract class Expression extends Statement implements CodeConstruct {
+	addableType: AddableType;
 	nodeType = NodeType.Expression;
 	// TODO: can change this to an Array to enable type checking when returning multiple items
 	returns: DataType;
@@ -262,16 +327,23 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 		this.returns = returns;
 	}
+
+	isStatement(): boolean {
+		return this.returns == DataType.Void;
+	}
 }
 
 /**
  * The smallest code construct: identifiers, holes (for either identifiers or expressions), operators and characters, and etc.
  */
-export abstract class Token implements CodeConstruct, Node {
+export abstract class Token implements CodeConstruct {
+	addableType: AddableType;
 	nodeType = NodeType.Token;
-	rootNode: Node = null;
+	rootNode: CodeConstruct | Module = null;
 	indexInRoot: number;
-	editFunctions = new Array<EditFunctions>();
+
+	validEdits = new Array<EditFunctions>();
+	receives = new Array<AddableType>();
 
 	left: number;
 	right: number;
@@ -279,7 +351,7 @@ export abstract class Token implements CodeConstruct, Node {
 	text: string;
 	isEmpty: boolean = false;
 
-	constructor(text: string, root?: Node) {
+	constructor(text: string, root?: CodeConstruct) {
 		this.rootNode = root;
 		this.text = text;
 	}
@@ -330,27 +402,59 @@ export abstract class Token implements CodeConstruct, Node {
 /**
  * The main body of the code which includes an array of statements.
  */
-export class Module extends Node {
+export class Module {
 	nodeType = NodeType.Module;
-	rootNode = null;
-	indexInRoot = null;
-	editFunctions: Array<EditFunctions>;
 
 	body = new Array<Statement>();
 
 	focusedNodeIndex: number;
-	focusedNode: Node;
+	focusedNode: CodeConstruct;
 	focusedPos: Position;
 
 	constructor() {
-		super();
-
 		this.body.push(new EmptyLineStmt(this, 0));
 
 		this.focusedNodeIndex = 0;
 		this.focusedNode = this.body[0];
 		this.focusedPos = new Position(1, 1);
 	}
+
+	insert(code: CodeConstruct) {
+		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
+			
+			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
+				let statement = code as Statement;
+
+				if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementBefore) > -1) {
+					// insert stmt at prev line 
+					this.body.splice(this.focusedNodeIndex - 1, 0, statement);
+					this.focusedNodeIndex = this.focusedNodeIndex - 1;
+				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
+					// insert stmt at next line
+					this.body.splice(this.focusedNodeIndex + 1, 0, statement);
+					this.focusedNodeIndex = this.focusedNodeIndex + 1;
+				} else {
+					// insert stmt at cur line (replace)
+
+					this.body[this.focusedNodeIndex] = statement;
+					this.focusedNodeIndex = this.focusedNodeIndex;
+				}
+			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
+				let root = this.focusedNode.rootNode as Statement;
+				let expression = code as Expression;
+
+				root.replace(expression, this.focusedNode.indexInRoot)
+			}
+
+			this.focusedNode = code.nextEmptyToken();
+			// this.focusedPos = this.focusedNode.focusSelect(editor);
+
+		} else console.error('Cannot insert this code construct at focused location.');
+	}
+
+	// listen arrow-key presses -> navigate to different types of code positions
+
+	// listen to click positions in editor -> navigate and update focus
 }
 
 export class Argument {
@@ -366,27 +470,32 @@ export class Argument {
 }
 
 export class EmptyLineStmt extends Statement {
+	addableType = AddableType.Statement;
 	hasEmptyToken = false;
 
-	constructor(root?: Node, indexInRoot?: number) {
+	constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
 		super();
 
-		this.editFunctions.push(EditFunctions.InsertStatement);
+		this.validEdits.push(EditFunctions.InsertStatement, EditFunctions.RemoveStatement);
+		this.receives.push(AddableType.Statement);
+
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 	}
 }
 
 export class VarAssignmentStmt extends Statement {
+	addableType = AddableType.Statement;
 	private identifierIndex: number;
 	private valueIndex: number;
 
-	constructor(id?: string, root?: Node, indexInRoot?: number) {
+	constructor(id?: string, root?: CodeConstruct | Module, indexInRoot?: number) {
 		super();
 
-		this.editFunctions.push(EditFunctions.RemoveStatement);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+
+		this.validEdits.push(EditFunctions.RemoveStatement);
 
 		this.identifierIndex = this.tokens.length;
 		this.tokens.push(new PrevLineTkn(this, this.tokens.length));
@@ -403,44 +512,12 @@ export class VarAssignmentStmt extends Statement {
 		this.hasEmptyToken = true;
 	}
 
-	replaceIdentifier(node: Node) {
-		// prepare the new Node
-		node.rootNode = this;
-		node.indexInRoot = this.identifierIndex;
-
-		// prepare to rebuild siblings and root (recursively)
-		let rebuildColumn: number;
-
-		if (this.tokens[this.identifierIndex].nodeType == NodeType.Token)
-			rebuildColumn = (this.tokens[this.identifierIndex] as Token).left;
-		else rebuildColumn = (this.tokens[this.identifierIndex] as Expression).left;
-
-		// replace
-		this.tokens[this.identifierIndex] = node;
-
-		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.identifierIndex);
-
-		this.updateHasEmptyToken(node);
+	replaceIdentifier(code: CodeConstruct) {
+		this.replace(code, this.identifierIndex);
 	}
 
-	replaceValue(node: Node) {
-		// prepare the new Node
-		node.rootNode = this;
-		node.indexInRoot = this.valueIndex;
-
-		// prepare to rebuild siblings and root (recursively)
-		let rebuildColumn: number;
-
-		if (this.tokens[this.valueIndex].nodeType == NodeType.Token)
-			rebuildColumn = (this.tokens[this.valueIndex] as Token).left;
-		else rebuildColumn = (this.tokens[this.valueIndex] as Expression).left;
-
-		// replace
-		this.tokens[this.valueIndex] = node;
-
-		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.valueIndex);
-
-		this.updateHasEmptyToken(node);
+	replaceValue(code: CodeConstruct) {
+		this.replace(code, this.valueIndex);
 	}
 }
 
@@ -448,25 +525,30 @@ export class FunctionCallStmt extends Expression {
 	/**
 	 * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
 	 */
-	private isStatement = false;
 	private argumentsIndices = new Array<number>();
+	addableType: AddableType;
 
 	constructor(
 		functionName: string,
 		args: Array<Argument>,
 		returns: DataType,
-		isStatement: boolean,
-		root?: Node,
+		root?: CodeConstruct | Module,
 		indexInRoot?: number
 	) {
 		super(returns);
 
-		this.editFunctions.push(EditFunctions.RemoveStatement);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
-		this.isStatement = isStatement;
 
-		if (this.isStatement) this.tokens.push(new PrevLineTkn(this, this.tokens.length));
+		if (this.isStatement()) {
+			this.validEdits.push(EditFunctions.RemoveStatement);
+			this.addableType = AddableType.Statement;
+		} else {
+			this.validEdits.push(EditFunctions.RemoveExpression);
+			this.addableType = AddableType.Expression;
+		}
+
+		if (this.isStatement()) this.tokens.push(new PrevLineTkn(this, this.tokens.length));
 		this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
 		this.tokens.push(new ParenthesisTkn('(', this, this.tokens.length));
 
@@ -482,108 +564,64 @@ export class FunctionCallStmt extends Expression {
 		}
 
 		this.tokens.push(new ParenthesisTkn(')', this, this.tokens.length));
-		if (this.isStatement) this.tokens.push(new NextLineTkn(this, this.tokens.length));
+		if (this.isStatement()) this.tokens.push(new NextLineTkn(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
 
-	replaceArgument(index: number, to: Node) {
-		// prepare the new Node
-		to.rootNode = this;
-		to.indexInRoot = this.argumentsIndices[index];
-
-		// prepare to rebuild siblings and root (recursively)
-		let rebuildColumn: number;
-
-		if (this.tokens[this.argumentsIndices[index]].nodeType == NodeType.Token)
-			rebuildColumn = (this.tokens[this.argumentsIndices[index]] as Token).left;
-		else rebuildColumn = (this.tokens[this.argumentsIndices[index]] as Expression).left;
-
-		// replace
-		this.tokens[this.argumentsIndices[index]] = to;
-
-		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.argumentsIndices[index]);
-
-		this.updateHasEmptyToken(to);
+	replaceArgument(index: number, to: CodeConstruct) {
+		this.replace(to, this.argumentsIndices[index]);
 	}
 }
 
 export class BinaryOperatorExpr extends Expression {
+	addableType = AddableType.Expression;
 	operator: BinaryOperator;
 	private leftOperandIndex: number;
 	private rightOperandIndex: number;
 
-	constructor(operator: BinaryOperator, returns: DataType, root?: Node, indexInRoot?: number) {
+	constructor(operator: BinaryOperator, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
 
-		this.editFunctions.push(EditFunctions.RemoveExpression);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 		this.operator = operator;
 
+		this.addableType = AddableType.Expression;
+		this.validEdits.push(EditFunctions.RemoveExpression);
+
 		this.leftOperandIndex = this.tokens.length;
-		this.tokens.push(new TypedEmptyExpr(returns, this, this.tokens.length));
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.rightOperandIndex = this.tokens.length;
-		this.tokens.push(new TypedEmptyExpr(returns, this, this.tokens.length));
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
 
-	replaceLeftOperand(node: Node) {
-		// prepare the new Node
-		node.rootNode = this;
-		node.indexInRoot = this.leftOperandIndex;
-
-		// prepare to rebuild siblings and root (recursively)
-		let rebuildColumn: number;
-
-		if (this.tokens[this.leftOperandIndex].nodeType == NodeType.Token)
-			rebuildColumn = (this.tokens[this.leftOperandIndex] as Token).left;
-		else rebuildColumn = (this.tokens[this.leftOperandIndex] as Expression).left;
-
-		// replace
-		this.tokens[this.leftOperandIndex] = node;
-
-		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.leftOperandIndex);
-
-		this.updateHasEmptyToken(node);
+	replaceLeftOperand(code: CodeConstruct) {
+		this.replace(code, this.leftOperandIndex);
 	}
 
-	replaceRightOperand(node: Node) {
-		// prepare the new Node
-		node.rootNode = this;
-		node.indexInRoot = this.rightOperandIndex;
-
-		// prepare to rebuild siblings and root (recursively)
-		let rebuildColumn: number;
-
-		if (this.tokens[this.rightOperandIndex].nodeType == NodeType.Token)
-			rebuildColumn = (this.tokens[this.rightOperandIndex] as Token).left;
-		else rebuildColumn = (this.tokens[this.rightOperandIndex] as Expression).left;
-
-		// replace
-		this.tokens[this.rightOperandIndex] = node;
-
-		// rebuild
-		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), this.rightOperandIndex);
-
-		this.updateHasEmptyToken(node);
+	replaceRightOperand(code: CodeConstruct) {
+		this.replace(code, this.rightOperandIndex);
 	}
 }
 
 export class LiteralValExpr extends Expression {
+	addableType = AddableType.Expression;
 	value: string; // it holds the string information of the value (could be a number, float, or a string with quotes)
 
-	constructor(value: string, returns: DataType, root?: Node, indexInRoot?: number) {
+	constructor(value: string, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
 
-		this.editFunctions.push(EditFunctions.SetLiteral);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 		this.value = value;
+
+		this.validEdits.push(EditFunctions.ChangeLiteral);
 	}
 
 	build(pos: Position): Position {
@@ -602,7 +640,7 @@ export class LiteralValExpr extends Expression {
 export class FunctionNameTkn extends Token {
 	isEmpty = false;
 
-	constructor(functionName: string, root?: Node, indexInRoot?: number) {
+	constructor(functionName: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(functionName);
 
 		this.rootNode = root;
@@ -614,78 +652,91 @@ export class TypedEmptyExpr extends Token {
 	isEmpty = true;
 	type: DataType;
 
-	constructor(type: DataType, root?: Node, indexInRoot?: number) {
+	constructor(type: DataType, root?: CodeConstruct, indexInRoot?: number) {
 		super('---');
 
-		this.editFunctions.push(EditFunctions.SetTypedExpression);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 		this.type = type;
+
+		this.validEdits.push(EditFunctions.SetExpression);
+		this.receives.push(AddableType.Expression);
 	}
 }
 
 export class EmptyExpr extends Token {
 	isEmpty = true;
 
-	constructor(root?: Node, indexInRoot?: number) {
+	constructor(root?: CodeConstruct, indexInRoot?: number) {
 		super('---');
 
-		this.editFunctions.push(EditFunctions.SetExpression);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+
+		this.validEdits.push(EditFunctions.SetExpression);
+		this.receives.push(AddableType.Expression);
 	}
 }
 
 export class IdTkn extends Token {
-	constructor(name: string, root?: Node, indexInRoot?: number) {
+	addableType = AddableType.Identifier;
+
+	constructor(name: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(name);
 
-		this.editFunctions.push(EditFunctions.SetIdentifier);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+
+		this.validEdits.push(EditFunctions.ChangeIdentifier);
 	}
 }
 
 export class EmptyIdTkn extends Token {
 	isEmpty = true;
 
-	constructor(root?: Node, indexInRoot?: number) {
+	constructor(root?: CodeConstruct, indexInRoot?: number) {
 		super('---');
 
-		this.editFunctions.push(EditFunctions.ChangeIdentifier);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+
+		this.validEdits.push(EditFunctions.SetIdentifier);
+		this.receives.push(AddableType.Identifier);
 	}
 }
 
 export class NextLineTkn extends Token {
 	isEmpty = false;
 
-	constructor(root?: Node, indexInRoot?: number) {
+	constructor(root?: CodeConstruct, indexInRoot?: number) {
 		super('');
 
-		this.editFunctions.push(EditFunctions.InsertStatementAfter);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+
+		this.validEdits.push(EditFunctions.InsertStatementAfter);
+		this.receives.push(AddableType.Statement);
 	}
 }
 
 export class PrevLineTkn extends Token {
 	isEmpty = false;
 
-	constructor(root?: Node, indexInRoot?: number) {
+	constructor(root?: CodeConstruct, indexInRoot?: number) {
 		super('');
 
-		this.editFunctions.push(EditFunctions.InsertStatementBefore);
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+
+		this.validEdits.push(EditFunctions.InsertStatementBefore);
+		this.receives.push(AddableType.Statement);
 	}
 }
 
 export class EmptySpaceTkn extends Token {
 	isEmpty = false;
 
-	constructor(root?: Node, indexInRoot?: number) {
+	constructor(root?: CodeConstruct, indexInRoot?: number) {
 		super(' ');
 
 		this.rootNode = root;
@@ -696,7 +747,7 @@ export class EmptySpaceTkn extends Token {
 export class OperatorTkn extends Token {
 	operator: string = '';
 
-	constructor(text: string, root?: Node, indexInRoot?: number) {
+	constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(text);
 
 		this.rootNode = root;
@@ -706,7 +757,7 @@ export class OperatorTkn extends Token {
 }
 
 export class ParenthesisTkn extends Token {
-	constructor(text: string, root?: Node, indexInRoot?: number) {
+	constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(text);
 
 		this.rootNode = root;
@@ -715,7 +766,7 @@ export class ParenthesisTkn extends Token {
 }
 
 export class FunctionArgCommaTkn extends Token {
-	constructor(root?: Node, indexInRoot?: number) {
+	constructor(root?: CodeConstruct, indexInRoot?: number) {
 		super(', ');
 
 		this.rootNode = root;
@@ -733,8 +784,7 @@ export function test() {
 	var randFunCall = new FunctionCallStmt(
 		'randint',
 		[ new Argument(DataType.Number, 'start', false), new Argument(DataType.Number, 'stop', false) ],
-		DataType.Number,
-		false
+		DataType.Number
 	);
 
 	var subExpr = new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number);

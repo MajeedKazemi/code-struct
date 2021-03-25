@@ -59,3 +59,6 @@ Features of a scratch-like editor and its custom Abstract Syntax Tree (AST):
 
 9. Balanced parenthesis:
    - All binary operators should have parenthesis
+
+10. Infer data types:
+   - the user will first add a `+` expression, and then the two operands. Therefore, the return type of the binary add expression and the other operand could be inferred (and limited) after they have been populated: + is always two numbers, but * could have a number and a string (returns string)
