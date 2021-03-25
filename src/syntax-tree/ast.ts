@@ -1,4 +1,4 @@
-import { Position } from 'monaco-editor';
+import * as monaco from 'monaco-editor';
 
 export enum EditFunctions {
 	InsertStatement,
@@ -16,7 +16,7 @@ export enum EditFunctions {
 export enum DataType {
 	Number,
 	Boolean,
-	Text,
+	String,
 	Fractional,
 	Iterator,
 	List,
@@ -115,27 +115,37 @@ export interface CodeConstruct {
 	 * @param pos the left position to start building the nodes from
 	 * @returns the final right position of the whole node (calculated after building all of the children nodes)
 	 */
-	build(pos: Position): Position;
+	build(pos: monaco.Position): monaco.Position;
 
 	/**
 	 * Traverses the AST starting from this node to locate the smallest code construct that matches the given position
 	 * @param pos The 2D point to start searching for
 	 * @returns The located code construct (which includes its parents)
 	 */
-	locate(pos: Position): CodeConstruct;
+	locate(pos: monaco.Position): CodeConstruct;
 
 	/**
 	 * Checks if this node contains the given position (as a 2D point)
 	 * @param pos the 2D point to check
 	 * @returns true: contains, false: does not contain
 	 */
-	contains(pos: Position): boolean;
+	contains(pos: monaco.Position): boolean;
 
 	/**
 	 * Finds and returns the next empty hole (name or value) in this code construct
 	 * @returns The found empty token or null (if nothing it didn't include any empty tokens)
 	 */
 	nextEmptyToken(): CodeConstruct;
+
+	/**
+	 * Returns the textual value of the code construct (joining internal tokens for expressions and statements)
+	 */
+	getText(): string;
+
+	/**
+	 * Returns the line number of this code-construct in the rendered text.
+	 */
+	getLineNumber(): number;
 }
 
 export enum AddableType {
@@ -169,7 +179,7 @@ export abstract class Statement implements CodeConstruct {
 
 	hasEmptyToken: boolean;
 
-	build(pos: Position): Position {
+	build(pos: monaco.Position): monaco.Position {
 		this.lineNumber = pos.lineNumber;
 		this.left = pos.column;
 		var curPos = pos;
@@ -191,7 +201,7 @@ export abstract class Statement implements CodeConstruct {
 	 * @param pos the left position to start building the nodes from
 	 * @param fromIndex the index of the node that was edited.
 	 */
-	rebuild(pos: Position, fromIndex: number) {
+	rebuild(pos: monaco.Position, fromIndex: number) {
 		let curPos = pos;
 		let propagateToRoot = true;
 
@@ -230,7 +240,7 @@ export abstract class Statement implements CodeConstruct {
 		}
 	}
 
-	contains(pos: Position): boolean {
+	contains(pos: monaco.Position): boolean {
 		if (pos.lineNumber != this.lineNumber) return false;
 
 		if (pos.column >= this.left && pos.column <= this.right) return true;
@@ -238,7 +248,7 @@ export abstract class Statement implements CodeConstruct {
 		return false;
 	}
 
-	locate(pos: Position): CodeConstruct {
+	locate(pos: monaco.Position): CodeConstruct {
 		if (this.contains(pos)) {
 			for (let code of this.tokens) {
 				if (code.nodeType == NodeType.Token) {
@@ -292,25 +302,36 @@ export abstract class Statement implements CodeConstruct {
 	 * @param code the new code-construct to replace
 	 * @param index the index to replace at
 	 */
-	 replace(code: CodeConstruct, index: number) {
-		 // prepare the new Node
+	replace(code: CodeConstruct, index: number) {
+		// prepare the new Node
 		code.rootNode = this;
 		code.indexInRoot = index;
 
 		// prepare to rebuild siblings and root (recursively)
 		let rebuildColumn: number;
 
-		if (this.tokens[index].nodeType == NodeType.Token)
-			rebuildColumn = (this.tokens[index] as Token).left;
+		if (this.tokens[index].nodeType == NodeType.Token) rebuildColumn = (this.tokens[index] as Token).left;
 		else rebuildColumn = (this.tokens[index] as Expression).left;
 
 		// replace
 		this.tokens[index] = code;
 
-		if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), index);
+		if (rebuildColumn) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
 
 		this.updateHasEmptyToken(code);
-	 }
+	}
+
+	getText(): string {
+		let txt: string = '';
+
+		for (let token of this.tokens) txt += token.getText();
+
+		return txt;
+	}
+
+	getLineNumber(): number {
+		return this.lineNumber;
+	}
 }
 
 /**
@@ -330,6 +351,12 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 	isStatement(): boolean {
 		return this.returns == DataType.Void;
+	}
+
+	getLineNumber(): number {
+		if (this.isStatement()) return this.lineNumber;
+		else if (this.rootNode.nodeType == NodeType.Statement) return (this.rootNode as Statement).getLineNumber();
+		else return (this.rootNode as Expression).getLineNumber();
 	}
 }
 
@@ -361,11 +388,11 @@ export abstract class Token implements CodeConstruct {
 	 * @param pos the left position to start building this node's right position.
 	 * @returns the final right position of this node: for tokens it equals to `this.left + this.text.length - 1`
 	 */
-	build(pos: Position): Position {
+	build(pos: monaco.Position): monaco.Position {
 		this.left = pos.column;
 		this.right = pos.column + this.text.length - 1;
 
-		return new Position(pos.lineNumber, this.right + 1);
+		return new monaco.Position(pos.lineNumber, this.right + 1);
 	}
 
 	/**
@@ -373,7 +400,7 @@ export abstract class Token implements CodeConstruct {
 	 * @param pos the 2D point to check
 	 * @returns true: contains, false: does not contain
 	 */
-	contains(pos: Position): boolean {
+	contains(pos: monaco.Position): boolean {
 		if (pos.column >= this.left && pos.column <= this.right) return true;
 
 		return false;
@@ -384,7 +411,7 @@ export abstract class Token implements CodeConstruct {
 	 * @param pos Not used
 	 * @returns This token
 	 */
-	locate(pos: Position): CodeConstruct {
+	locate(pos: monaco.Position): CodeConstruct {
 		return this;
 	}
 
@@ -397,64 +424,15 @@ export abstract class Token implements CodeConstruct {
 
 		return null;
 	}
-}
 
-/**
- * The main body of the code which includes an array of statements.
- */
-export class Module {
-	nodeType = NodeType.Module;
-
-	body = new Array<Statement>();
-
-	focusedNodeIndex: number;
-	focusedNode: CodeConstruct;
-	focusedPos: Position;
-
-	constructor() {
-		this.body.push(new EmptyLineStmt(this, 0));
-
-		this.focusedNodeIndex = 0;
-		this.focusedNode = this.body[0];
-		this.focusedPos = new Position(1, 1);
+	getText(): string {
+		return this.text;
 	}
 
-	insert(code: CodeConstruct) {
-		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
-			
-			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
-				let statement = code as Statement;
-
-				if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementBefore) > -1) {
-					// insert stmt at prev line 
-					this.body.splice(this.focusedNodeIndex - 1, 0, statement);
-					this.focusedNodeIndex = this.focusedNodeIndex - 1;
-				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
-					// insert stmt at next line
-					this.body.splice(this.focusedNodeIndex + 1, 0, statement);
-					this.focusedNodeIndex = this.focusedNodeIndex + 1;
-				} else {
-					// insert stmt at cur line (replace)
-
-					this.body[this.focusedNodeIndex] = statement;
-					this.focusedNodeIndex = this.focusedNodeIndex;
-				}
-			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-				let root = this.focusedNode.rootNode as Statement;
-				let expression = code as Expression;
-
-				root.replace(expression, this.focusedNode.indexInRoot)
-			}
-
-			this.focusedNode = code.nextEmptyToken();
-			// this.focusedPos = this.focusedNode.focusSelect(editor);
-
-		} else console.error('Cannot insert this code construct at focused location.');
+	getLineNumber(): number {
+		if (this.rootNode.nodeType == NodeType.Statement) return (this.rootNode as Statement).getLineNumber();
+		else return (this.rootNode as Expression).getLineNumber();
 	}
-
-	// listen arrow-key presses -> navigate to different types of code positions
-
-	// listen to click positions in editor -> navigate and update focus
 }
 
 export class Argument {
@@ -591,12 +569,14 @@ export class BinaryOperatorExpr extends Expression {
 		this.validEdits.push(EditFunctions.RemoveExpression);
 
 		this.leftOperandIndex = this.tokens.length;
+		this.tokens.push(new ParenthesisTkn("(", this, this.tokens.length));
 		this.tokens.push(new EmptyExpr(this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.rightOperandIndex = this.tokens.length;
 		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new ParenthesisTkn(")", this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
@@ -624,15 +604,15 @@ export class LiteralValExpr extends Expression {
 		this.validEdits.push(EditFunctions.ChangeLiteral);
 	}
 
-	build(pos: Position): Position {
+	build(pos: monaco.Position): monaco.Position {
 		this.lineNumber = pos.lineNumber;
 		this.left = pos.column;
 		this.right = pos.column + this.value.length - 1;
 
-		return new Position(pos.lineNumber, this.right + 1);
+		return new monaco.Position(pos.lineNumber, this.right + 1);
 	}
 
-	locate(pos: Position) {
+	locate(pos: monaco.Position) {
 		return this;
 	}
 }
@@ -774,10 +754,109 @@ export class FunctionArgCommaTkn extends Token {
 	}
 }
 
+/**
+ * The main body of the code which includes an array of statements.
+ */
+export class Module {
+	nodeType = NodeType.Module;
+
+	body = new Array<Statement>();
+
+	focusedNodeIndex: number;
+	focusedNode: CodeConstruct;
+	focusedPos: monaco.Position;
+
+	editor: monaco.editor.IStandaloneCodeEditor;
+
+	constructor(editorId: string) {
+		this.editor = monaco.editor.create(document.getElementById(editorId), {
+			value: '',
+			language: 'python',
+			minimap: { enabled: false }
+		});
+
+		this.body.push(new EmptyLineStmt(this, 0));
+
+		this.focusedNodeIndex = 0;
+		this.focusedNode = this.body[0];
+		this.focusedPos = new monaco.Position(1, 1);
+
+		this.editor.onMouseDown((e) => {
+			for (let line of this.body) {
+				if (line.lineNumber == e.target.position.lineNumber) {
+					this.focusedNode = line.locate(e.target.position);
+					this.focusedNodeIndex = this.focusedNode.indexInRoot;
+				}
+			}
+		});
+	}
+
+	insert(code: CodeConstruct) {
+		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
+			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
+				let statement = code as Statement;
+
+				if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementBefore) > -1) {
+					// insert stmt at prev line
+					this.body.splice(this.focusedNodeIndex - 1, 0, statement);
+					this.focusedNodeIndex = this.focusedNodeIndex - 1;
+				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
+					// insert stmt at next line
+					this.body.splice(this.focusedNodeIndex + 1, 0, statement);
+					this.focusedNodeIndex = this.focusedNodeIndex + 1;
+				} else {
+					// insert stmt at cur line (replace)
+
+					this.body[this.focusedNodeIndex] = statement;
+
+					statement.rootNode = this.focusedNode.rootNode;
+					statement.indexInRoot = this.focusedNode.indexInRoot;
+					statement.build(this.focusedPos);
+
+					let line = this.focusedPos;
+					let range = new monaco.Range(line.lineNumber, statement.left, line.lineNumber, statement.right);
+
+					this.editor.executeEdits('module', [
+						{ range: range, text: statement.getText(), forceMoveMarkers: true }
+					]);
+				}
+			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
+				let range = new monaco.Range(this.focusedPos.lineNumber, this.focusedNode.left, this.focusedPos.lineNumber, this.focusedNode.right + 1);
+
+				let root = this.focusedNode.rootNode as Statement;
+				let expression = code as Expression;
+
+				root.replace(expression, this.focusedNode.indexInRoot);
+				expression.rootNode = this.focusedNode.rootNode;
+				expression.indexInRoot = this.focusedNode.indexInRoot;
+
+				let item = root.tokens[this.focusedNode.indexInRoot];
+
+				this.editor.executeEdits('module', [ { range: range, text: item.getText(), forceMoveMarkers: true } ]);
+			}
+
+			this.focusedNode = code.nextEmptyToken();
+			this.focusedPos = new monaco.Position(this.focusedNode.getLineNumber(), this.focusedNode.left);
+			this.editor.setSelection(
+				new monaco.Range(
+					this.focusedPos.lineNumber,
+					this.focusedNode.left,
+					this.focusedPos.lineNumber,
+					this.focusedNode.right + 1
+				)
+			);
+		} else alert('Cannot insert this code construct at focused location.');
+	}
+
+	// listen arrow-key presses -> navigate to different types of code positions
+
+	// listen to click positions in editor -> navigate and update focus
+}
+
 export function test() {
 	// TODO: write this in a TDD way
 	var varAssignStmt = new VarAssignmentStmt('variable');
-	varAssignStmt.build(new Position(1, 1));
+	varAssignStmt.build(new monaco.Position(1, 1));
 
 	var sumExpr = new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number);
 	sumExpr.replaceRightOperand(new LiteralValExpr('1000', DataType.Number));
@@ -797,7 +876,7 @@ export function test() {
 	sumExpr.replaceLeftOperand(randFunCall);
 
 	varAssignStmt.replaceValue(sumExpr);
-	varAssignStmt.build(new Position(1, 1));
+	varAssignStmt.build(new monaco.Position(1, 1));
 
 	subExpr.replaceRightOperand(new LiteralValExpr('1', DataType.Number));
 	subExpr.replaceRightOperand(new LiteralValExpr('5', DataType.Number));
