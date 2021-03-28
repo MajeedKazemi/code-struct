@@ -146,6 +146,16 @@ export interface CodeConstruct {
 	 * Returns the line number of this code-construct in the rendered text.
 	 */
 	getLineNumber(): number;
+
+	/**
+	 * Returns the left-position `(lineNumber, column)` of this code-construct in the rendered text.
+	 */
+	getLeftPosition(): monaco.Position;
+
+	/**
+	 * Returns a `Selection` object for this particular code-construct when it is selected
+	 */
+	getSelection(): monaco.Selection;
 }
 
 export enum AddableType {
@@ -332,6 +342,14 @@ export abstract class Statement implements CodeConstruct {
 	getLineNumber(): number {
 		return this.lineNumber;
 	}
+
+	getLeftPosition(): monaco.Position {
+		return new monaco.Position(this.getLineNumber(), this.left);
+	}
+
+	getSelection(): monaco.Selection {
+		return new monaco.Selection(this.lineNumber, this.right + 1, this.lineNumber, this.left);
+	}
 }
 
 /**
@@ -358,6 +376,12 @@ export abstract class Expression extends Statement implements CodeConstruct {
 		else if (this.rootNode.nodeType == NodeType.Statement) return (this.rootNode as Statement).getLineNumber();
 		else return (this.rootNode as Expression).getLineNumber();
 	}
+
+	getSelection(): monaco.Selection {
+		let line = this.getLineNumber();
+
+		return new monaco.Selection(line, this.right + 1, line, this.left);
+	}
 }
 
 /**
@@ -366,7 +390,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 export abstract class Token implements CodeConstruct {
 	addableType: AddableType;
 	nodeType = NodeType.Token;
-	rootNode: CodeConstruct | Module = null;
+	rootNode: CodeConstruct = null;
 	indexInRoot: number;
 
 	validEdits = new Array<EditFunctions>();
@@ -432,6 +456,15 @@ export abstract class Token implements CodeConstruct {
 	getLineNumber(): number {
 		if (this.rootNode.nodeType == NodeType.Statement) return (this.rootNode as Statement).getLineNumber();
 		else return (this.rootNode as Expression).getLineNumber();
+	}
+
+	getLeftPosition(): monaco.Position {
+		return new monaco.Position(this.getLineNumber(), this.left);
+	}
+
+	getSelection(): monaco.Selection {
+		let line = this.getLineNumber();
+		return new monaco.Selection(line, this.right + 1, line, this.left);
 	}
 }
 
@@ -569,14 +602,14 @@ export class BinaryOperatorExpr extends Expression {
 		this.validEdits.push(EditFunctions.RemoveExpression);
 
 		this.leftOperandIndex = this.tokens.length;
-		this.tokens.push(new ParenthesisTkn("(", this, this.tokens.length));
+		this.tokens.push(new ParenthesisTkn('(', this, this.tokens.length));
 		this.tokens.push(new EmptyExpr(this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.rightOperandIndex = this.tokens.length;
 		this.tokens.push(new EmptyExpr(this, this.tokens.length));
-		this.tokens.push(new ParenthesisTkn(")", this, this.tokens.length));
+		this.tokens.push(new ParenthesisTkn(')', this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
@@ -625,6 +658,14 @@ export class FunctionNameTkn extends Token {
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+	}
+
+	locate(pos: monaco.Position): CodeConstruct {
+		return this.rootNode;
+	}
+
+	getSelection(): monaco.Selection {
+		return this.rootNode.getSelection();
 	}
 }
 
@@ -722,6 +763,14 @@ export class EmptySpaceTkn extends Token {
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 	}
+
+	locate(pos: monaco.Position): CodeConstruct {
+		return this.rootNode;
+	}
+
+	getSelection(): monaco.Selection {
+		return this.rootNode.getSelection();
+	}
 }
 
 export class OperatorTkn extends Token {
@@ -734,6 +783,14 @@ export class OperatorTkn extends Token {
 		this.indexInRoot = indexInRoot;
 		this.operator = text;
 	}
+
+	locate(pos: monaco.Position): CodeConstruct {
+		return this.rootNode;
+	}
+
+	getSelection(): monaco.Selection {
+		return this.rootNode.getSelection();
+	}
 }
 
 export class ParenthesisTkn extends Token {
@@ -742,6 +799,14 @@ export class ParenthesisTkn extends Token {
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+	}
+
+	locate(pos: monaco.Position): CodeConstruct {
+		return this.rootNode;
+	}
+
+	getSelection(): monaco.Selection {
+		return this.rootNode.getSelection();
 	}
 }
 
@@ -752,6 +817,14 @@ export class FunctionArgCommaTkn extends Token {
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 	}
+
+	locate(pos: monaco.Position): CodeConstruct {
+		return this.rootNode;
+	}
+
+	getSelection(): monaco.Selection {
+		return this.rootNode.getSelection();
+	}
 }
 
 /**
@@ -761,10 +834,7 @@ export class Module {
 	nodeType = NodeType.Module;
 
 	body = new Array<Statement>();
-
-	focusedNodeIndex: number;
 	focusedNode: CodeConstruct;
-	focusedPos: monaco.Position;
 
 	editor: monaco.editor.IStandaloneCodeEditor;
 
@@ -776,16 +846,22 @@ export class Module {
 		});
 
 		this.body.push(new EmptyLineStmt(this, 0));
-
-		this.focusedNodeIndex = 0;
 		this.focusedNode = this.body[0];
-		this.focusedPos = new monaco.Position(1, 1);
+		this.focusedNode.build(new monaco.Position(1, 1));
 
+		this.attachOnClickListener();
+		// this.attachOnKeyPressListener();
+
+		this.editor.focus();
+	}
+
+	attachOnClickListener() {
 		this.editor.onMouseDown((e) => {
 			for (let line of this.body) {
 				if (line.lineNumber == e.target.position.lineNumber) {
 					this.focusedNode = line.locate(e.target.position);
-					this.focusedNodeIndex = this.focusedNode.indexInRoot;
+					this.editor.setSelection(this.focusedNode.getSelection());
+					this.editor.focus();
 				}
 			}
 		});
@@ -798,30 +874,43 @@ export class Module {
 
 				if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementBefore) > -1) {
 					// insert stmt at prev line
-					this.body.splice(this.focusedNodeIndex - 1, 0, statement);
-					this.focusedNodeIndex = this.focusedNodeIndex - 1;
+					this.body.splice(this.focusedNode.indexInRoot - 1, 0, statement);
+					// update focusedNode and set its indexInRoot and etc.
 				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
 					// insert stmt at next line
-					this.body.splice(this.focusedNodeIndex + 1, 0, statement);
-					this.focusedNodeIndex = this.focusedNodeIndex + 1;
+					this.body.splice(this.focusedNode.indexInRoot + 1, 0, statement);
 				} else {
 					// insert stmt at cur line (replace)
 
-					this.body[this.focusedNodeIndex] = statement;
+					this.body[this.focusedNode.indexInRoot] = statement;
 
 					statement.rootNode = this.focusedNode.rootNode;
 					statement.indexInRoot = this.focusedNode.indexInRoot;
-					statement.build(this.focusedPos);
 
-					let line = this.focusedPos;
-					let range = new monaco.Range(line.lineNumber, statement.left, line.lineNumber, statement.right);
+					let focusedPos = this.focusedNode.getLeftPosition();
+					statement.build(focusedPos);
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						statement.left,
+						focusedPos.lineNumber,
+						statement.right
+					);
 
 					this.editor.executeEdits('module', [
 						{ range: range, text: statement.getText(), forceMoveMarkers: true }
 					]);
 				}
 			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-				let range = new monaco.Range(this.focusedPos.lineNumber, this.focusedNode.left, this.focusedPos.lineNumber, this.focusedNode.right + 1);
+				// replaces expression with the newly inserted expression
+				let focusedPos = this.focusedNode.getLeftPosition();
+
+				let range = new monaco.Range(
+					focusedPos.lineNumber,
+					this.focusedNode.left,
+					focusedPos.lineNumber,
+					this.focusedNode.right + 1
+				);
 
 				let root = this.focusedNode.rootNode as Statement;
 				let expression = code as Expression;
@@ -836,21 +925,10 @@ export class Module {
 			}
 
 			this.focusedNode = code.nextEmptyToken();
-			this.focusedPos = new monaco.Position(this.focusedNode.getLineNumber(), this.focusedNode.left);
-			this.editor.setSelection(
-				new monaco.Range(
-					this.focusedPos.lineNumber,
-					this.focusedNode.left,
-					this.focusedPos.lineNumber,
-					this.focusedNode.right + 1
-				)
-			);
+			this.editor.setSelection(this.focusedNode.getSelection());
+			this.editor.focus();
 		} else alert('Cannot insert this code construct at focused location.');
 	}
-
-	// listen arrow-key presses -> navigate to different types of code positions
-
-	// listen to click positions in editor -> navigate and update focus
 }
 
 export function test() {
