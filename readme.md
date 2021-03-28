@@ -12,7 +12,8 @@ Features of a scratch-like editor and its custom Abstract Syntax Tree (AST):
    - Keywords select the whole block:
    - `def` (the whole function)
    - `for` and `while` (the whole loop)
-   - conditional statements (`if`, `elif`, `else` are selected separately):
+   - conditional statements (`if`, `elif`, `else` are selected separately)
+   - each token should have a `getSelection()` method that returns a `Selection` object corresponding to what needs to be selected for that particular item when selected.
 
 3. Editing (modifying, deleting) types:	
    - Strings (with double quotes “sample text”)
@@ -62,3 +63,8 @@ Features of a scratch-like editor and its custom Abstract Syntax Tree (AST):
 
 10. Infer data types:
    - the user will first add a `+` expression, and then the two operands. Therefore, the return type of the binary add expression and the other operand could be inferred (and limited) after they have been populated: + is always two numbers, but * could have a number and a string (returns string)
+
+11. Expression Editors:
+   - **beginner level**: if the argument type is Number, Text or Boolean => there could be a tiny plus button between the operands of the TypedExpression that when the user navigates there, it will allow the user to add binary/unary/literal expressions in between them.
+   - **advanced level**: when the user advances, the UI should allow for editing expressions with a simple parser (and no scaffolding). The cursor at this point is able to freely move inside the parsable text.
+
