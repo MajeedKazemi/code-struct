@@ -156,6 +156,19 @@ export interface CodeConstruct {
 	 * Returns a `Selection` object for this particular code-construct when it is selected
 	 */
 	getSelection(): monaco.Selection;
+
+	/**
+	 * Finds and returns the next editable code-construct to the right of this code-construct.
+	 */
+	getNextEditableToken(fromIndex?: number): CodeConstruct;
+
+	/**
+	 * Finds and returns the next editable code-construct to the left of this code-construct.
+	 */
+	getPrevEditableToken(fromIndex?: number): CodeConstruct;
+
+	// returns the parentmodule
+	// getModule(): Module
 }
 
 export enum AddableType {
@@ -350,6 +363,34 @@ export abstract class Statement implements CodeConstruct {
 	getSelection(): monaco.Selection {
 		return new monaco.Selection(this.lineNumber, this.right + 1, this.lineNumber, this.left);
 	}
+
+	getNextEditableToken(fromIndex?: number): CodeConstruct {
+		let startIndex = fromIndex != undefined ? fromIndex : 0;
+
+		for (let i = startIndex; i < this.tokens.length; i++) {
+			if (this.tokens[i].validEdits.length > 0) {
+				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
+
+				return this.tokens[i].getNextEditableToken();
+			}
+		}
+
+		console.error('getNextEditableToken() found nothing');
+	}
+
+	getPrevEditableToken(fromIndex?: number): CodeConstruct {
+		let startIndex = fromIndex != undefined ? fromIndex : this.tokens.length - 1;
+
+		for (let i = startIndex; i >= 0; i--) {
+			if (this.tokens[i].validEdits.length > 0) {
+				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
+
+				return this.tokens[i].getPrevEditableToken();
+			}
+		}
+
+		console.error('getPrevEditableToken() found nothing');
+	}
 }
 
 /**
@@ -381,6 +422,44 @@ export abstract class Expression extends Statement implements CodeConstruct {
 		let line = this.getLineNumber();
 
 		return new monaco.Selection(line, this.right + 1, line, this.left);
+	}
+
+	getNextEditableToken(fromIndex?: number): CodeConstruct {
+		let startIndex = fromIndex != undefined ? fromIndex : 0;
+
+		for (let i = startIndex; i < this.tokens.length; i++) {
+			if (this.tokens[i].validEdits.length > 0) {
+				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
+
+				return this.tokens[i].getNextEditableToken(0);
+			}
+		}
+
+		if (this.rootNode.nodeType == NodeType.Expression)
+			return (this.rootNode as Expression).getNextEditableToken(this.indexInRoot + 1);
+		else if (this.rootNode.nodeType == NodeType.Statement)
+			return (this.rootNode as Statement).getNextEditableToken(this.indexInRoot + 1);
+
+		console.error('getNextEditableToken() found nothing');
+	}
+
+	getPrevEditableToken(fromIndex?: number): CodeConstruct {
+		let startIndex = fromIndex != undefined ? fromIndex : this.tokens.length - 1;
+
+		for (let i = startIndex; i >= 0; i--) {
+			if (this.tokens[i].validEdits.length > 0) {
+				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
+
+				return this.tokens[i].getPrevEditableToken();
+			}
+		}
+
+		if (this.rootNode.nodeType == NodeType.Expression)
+			return (this.rootNode as Expression).getPrevEditableToken(this.indexInRoot - 1);
+		else if (this.rootNode.nodeType == NodeType.Statement)
+			return (this.rootNode as Statement).getPrevEditableToken(this.indexInRoot - 1);
+
+		console.error('getPrevEditableToken() found nothing');
 	}
 }
 
@@ -464,7 +543,16 @@ export abstract class Token implements CodeConstruct {
 
 	getSelection(): monaco.Selection {
 		let line = this.getLineNumber();
+
 		return new monaco.Selection(line, this.right + 1, line, this.left);
+	}
+
+	getNextEditableToken(fromIndex?: number): CodeConstruct {
+		return this.rootNode.getNextEditableToken(this.indexInRoot + 1);
+	}
+
+	getPrevEditableToken(): CodeConstruct {
+		return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
 	}
 }
 
@@ -738,6 +826,13 @@ export class NextLineTkn extends Token {
 		this.validEdits.push(EditFunctions.InsertStatementAfter);
 		this.receives.push(AddableType.Statement);
 	}
+
+	// getNextEditableToken(): CodeConstruct {
+
+	// 	if (this.getLineNumber()) {
+
+	// 	}
+	// }
 }
 
 export class PrevLineTkn extends Token {
@@ -850,9 +945,55 @@ export class Module {
 		this.focusedNode.build(new monaco.Position(1, 1));
 
 		this.attachOnClickListener();
-		// this.attachOnKeyPressListener();
+		this.attachOnKeyPressListener();
 
 		this.editor.focus();
+	}
+
+	attachOnKeyPressListener() {
+		// TODO: why are these different from the standards?
+		const LEFT_KEY_CODE = 15;
+		const UP_KEY_CODE = 16;
+		const RIGHT_KEY_CODE = 17;
+		const DOWN_KEY_CODE = 18;
+
+		this.editor.onKeyDown((e) => {
+			switch (e.keyCode) {
+				case UP_KEY_CODE:
+					console.log('UP');
+
+					e.preventDefault();
+					e.stopPropagation();
+					break;
+
+				case LEFT_KEY_CODE:
+					console.log('LEFT');
+
+					this.focusedNode = this.focusedNode.getPrevEditableToken();
+					this.editor.setSelection(this.focusedNode.getSelection());
+
+					e.preventDefault();
+					e.stopPropagation();
+					break;
+
+				case DOWN_KEY_CODE:
+					console.log('DOWN');
+
+					e.preventDefault();
+					e.stopPropagation();
+					break;
+
+				case RIGHT_KEY_CODE:
+					console.log('RIGHT');
+
+					this.focusedNode = this.focusedNode.getNextEditableToken();
+					this.editor.setSelection(this.focusedNode.getSelection());
+
+					e.preventDefault();
+					e.stopPropagation();
+					break;
+			}
+		});
 	}
 
 	attachOnClickListener() {
