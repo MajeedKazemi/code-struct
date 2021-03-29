@@ -166,9 +166,6 @@ export interface CodeConstruct {
 	 * Finds and returns the next editable code-construct to the left of this code-construct.
 	 */
 	getPrevEditableToken(fromIndex?: number): CodeConstruct;
-
-	// returns the parentmodule
-	// getModule(): Module
 }
 
 export enum AddableType {
@@ -272,6 +269,11 @@ export abstract class Statement implements CodeConstruct {
 	}
 
 	locate(pos: monaco.Position): CodeConstruct {
+		if (pos.lineNumber == this.lineNumber) {
+			if (pos.column == this.left) return this.tokens[0];
+			else if (pos.column == this.right + 1) return this.tokens[this.tokens.length - 1];
+		}
+
 		if (this.contains(pos)) {
 			for (let code of this.tokens) {
 				if (code.nodeType == NodeType.Token) {
@@ -1014,12 +1016,59 @@ export class Module {
 				let statement = code as Statement;
 
 				if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementBefore) > -1) {
+					let focusedStmt = this.focusedNode.rootNode as Statement;
+
 					// insert stmt at prev line
-					this.body.splice(this.focusedNode.indexInRoot - 1, 0, statement);
-					// update focusedNode and set its indexInRoot and etc.
+					this.body.splice(focusedStmt.indexInRoot, 0, statement);
+
+					statement.rootNode = focusedStmt.rootNode;
+					statement.indexInRoot = focusedStmt.indexInRoot;
+					statement.build(new monaco.Position(focusedStmt.lineNumber, 1));
+
+					for (let i = focusedStmt.indexInRoot + 1; i < this.body.length; i++) {
+						this.body[i].indexInRoot++;
+						this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
+					}
+
+					this.editor.executeEdits('module', [
+						{
+							range: new monaco.Range(focusedStmt.lineNumber -1, 1, focusedStmt.lineNumber -1 , 1),
+							text: '\n',
+							forceMoveMarkers: true
+						}
+					]);
+
+					let range = new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1);
+					this.editor.executeEdits('module', [
+						{ range: range, text: statement.getText(), forceMoveMarkers: true }
+					]);
 				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
+					let focusedStmt = this.focusedNode.rootNode as Statement;
+
 					// insert stmt at next line
-					this.body.splice(this.focusedNode.indexInRoot + 1, 0, statement);
+					this.body.splice(focusedStmt.indexInRoot + 1, 0, statement);
+
+					statement.rootNode = focusedStmt.rootNode;
+					statement.indexInRoot = focusedStmt.indexInRoot + 1;
+					statement.build(new monaco.Position(focusedStmt.lineNumber + 1, 1));
+
+					for (let i = focusedStmt.indexInRoot + 2; i < this.body.length; i++) {
+						this.body[i].indexInRoot++;
+						this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
+					}
+
+					this.editor.executeEdits('module', [
+						{
+							range: new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1),
+							text: '\n',
+							forceMoveMarkers: true
+						}
+					]);
+
+					let range = new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1);
+					this.editor.executeEdits('module', [
+						{ range: range, text: statement.getText(), forceMoveMarkers: true }
+					]);
 				} else {
 					// insert stmt at cur line (replace)
 
