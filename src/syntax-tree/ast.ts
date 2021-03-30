@@ -1163,37 +1163,3 @@ export class Module {
 		} else alert('Cannot insert this code construct at focused location.');
 	}
 }
-
-export function test() {
-	// TODO: write this in a TDD way
-	var varAssignStmt = new VarAssignmentStmt('variable');
-	varAssignStmt.build(new monaco.Position(1, 1));
-
-	var sumExpr = new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number);
-	sumExpr.replaceRightOperand(new LiteralValExpr('1000', DataType.Number));
-	var randFunCall = new FunctionCallStmt(
-		'randint',
-		[ new Argument(DataType.Number, 'start', false), new Argument(DataType.Number, 'stop', false) ],
-		DataType.Number
-	);
-
-	var subExpr = new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number);
-	subExpr.replaceLeftOperand(new LiteralValExpr('10000', DataType.Number));
-	subExpr.replaceRightOperand(new LiteralValExpr('500', DataType.Number));
-
-	randFunCall.replaceArgument(1, new LiteralValExpr('0', DataType.Number));
-	randFunCall.replaceArgument(0, subExpr);
-
-	sumExpr.replaceLeftOperand(randFunCall);
-
-	varAssignStmt.replaceValue(sumExpr);
-	varAssignStmt.build(new monaco.Position(1, 1));
-
-	subExpr.replaceRightOperand(new LiteralValExpr('1', DataType.Number));
-	subExpr.replaceRightOperand(new LiteralValExpr('5', DataType.Number));
-	randFunCall.replaceArgument(0, new LiteralValExpr('10', DataType.Number));
-	randFunCall.replaceArgument(0, new LiteralValExpr('25', DataType.Number));
-
-	varAssignStmt.replaceIdentifier(new IdTkn('vvarr'));
-	varAssignStmt.replaceIdentifier(new IdTkn('vv123'));
-}
