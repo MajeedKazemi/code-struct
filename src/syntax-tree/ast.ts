@@ -166,6 +166,9 @@ export interface CodeConstruct {
 	 * Finds and returns the next editable code-construct to the left of this code-construct.
 	 */
 	getPrevEditableToken(fromIndex?: number): CodeConstruct;
+
+	// returns the parent statement of this code-construct.
+	getParentStatement(): Statement
 }
 
 export enum AddableType {
@@ -255,8 +258,11 @@ export abstract class Statement implements CodeConstruct {
 			if (this.rootNode && this.indexInRoot) {
 				if (this.rootNode.nodeType == NodeType.Expression) {
 					(this.rootNode as Expression).rebuild(curPos, this.indexInRoot + 1);
-				} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
-			}
+				}
+				else if (this.rootNode.nodeType == NodeType.Statement) {
+					(this.rootNode as Statement).rebuild(curPos, this.indexInRoot + 1);
+				}
+			} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
 		}
 	}
 
@@ -393,6 +399,10 @@ export abstract class Statement implements CodeConstruct {
 
 		console.error('getPrevEditableToken() found nothing');
 	}
+
+	getParentStatement(): Statement {
+		return this;
+	}
 }
 
 /**
@@ -462,6 +472,11 @@ export abstract class Expression extends Statement implements CodeConstruct {
 			return (this.rootNode as Statement).getPrevEditableToken(this.indexInRoot - 1);
 
 		console.error('getPrevEditableToken() found nothing');
+	}
+
+	getParentStatement(): Statement {
+		if (this.rootNode.nodeType == NodeType.Statement) return this.rootNode as Statement;
+		else if (this.rootNode.nodeType == NodeType.Expression) return (this.rootNode as Expression).getParentStatement();
 	}
 }
 
@@ -555,6 +570,11 @@ export abstract class Token implements CodeConstruct {
 
 	getPrevEditableToken(): CodeConstruct {
 		return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
+	}
+	
+	getParentStatement(): Statement {
+		if (this.rootNode.nodeType == NodeType.Statement) return this.rootNode as Statement;
+		else if (this.rootNode.nodeType == NodeType.Expression) return this.rootNode.getParentStatement();
 	}
 }
 
