@@ -168,7 +168,7 @@ export interface CodeConstruct {
 	getPrevEditableToken(fromIndex?: number): CodeConstruct;
 
 	// returns the parent statement of this code-construct.
-	getParentStatement(): Statement
+	getParentStatement(): Statement;
 }
 
 export enum AddableType {
@@ -258,8 +258,7 @@ export abstract class Statement implements CodeConstruct {
 			if (this.rootNode && this.indexInRoot) {
 				if (this.rootNode.nodeType == NodeType.Expression) {
 					(this.rootNode as Expression).rebuild(curPos, this.indexInRoot + 1);
-				}
-				else if (this.rootNode.nodeType == NodeType.Statement) {
+				} else if (this.rootNode.nodeType == NodeType.Statement) {
 					(this.rootNode as Statement).rebuild(curPos, this.indexInRoot + 1);
 				}
 			} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
@@ -476,7 +475,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 	getParentStatement(): Statement {
 		if (this.rootNode.nodeType == NodeType.Statement) return this.rootNode as Statement;
-		else if (this.rootNode.nodeType == NodeType.Expression) return (this.rootNode as Expression).getParentStatement();
+		else if (this.rootNode.nodeType == NodeType.Expression)
+			return (this.rootNode as Expression).getParentStatement();
 	}
 }
 
@@ -571,7 +571,7 @@ export abstract class Token implements CodeConstruct {
 	getPrevEditableToken(): CodeConstruct {
 		return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
 	}
-	
+
 	getParentStatement(): Statement {
 		if (this.rootNode.nodeType == NodeType.Statement) return this.rootNode as Statement;
 		else if (this.rootNode.nodeType == NodeType.Expression) return this.rootNode.getParentStatement();
@@ -602,6 +602,21 @@ export class EmptyLineStmt extends Statement {
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+	}
+
+	build(pos: monaco.Position): monaco.Position {
+		this.lineNumber = pos.lineNumber;
+		this.left = this.right = pos.column;
+
+		return new monaco.Position(this.lineNumber, this.right + 1)
+	}
+
+	nextEmptyToken(): CodeConstruct {
+		return this;
+	}
+
+	getText(): string {
+		return '';
 	}
 }
 
@@ -974,6 +989,7 @@ export class Module {
 
 	attachOnKeyPressListener() {
 		// TODO: why are these different from the standards?
+		const ENTER_KEY_CODE = 3;
 		const LEFT_KEY_CODE = 15;
 		const UP_KEY_CODE = 16;
 		const RIGHT_KEY_CODE = 17;
@@ -981,6 +997,13 @@ export class Module {
 
 		this.editor.onKeyDown((e) => {
 			switch (e.keyCode) {
+				case ENTER_KEY_CODE:
+					this.insert(new EmptyLineStmt());
+
+					e.preventDefault();
+					e.stopPropagation();
+					break;
+
 				case UP_KEY_CODE:
 					console.log('UP');
 
@@ -1052,7 +1075,7 @@ export class Module {
 
 					this.editor.executeEdits('module', [
 						{
-							range: new monaco.Range(focusedStmt.lineNumber -1, 1, focusedStmt.lineNumber -1 , 1),
+							range: new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1),
 							text: '\n',
 							forceMoveMarkers: true
 						}
@@ -1063,7 +1086,7 @@ export class Module {
 						{ range: range, text: statement.getText(), forceMoveMarkers: true }
 					]);
 				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
-					let focusedStmt = this.focusedNode.rootNode as Statement;
+					let focusedStmt =	 this.focusedNode.rootNode as Statement;
 
 					// insert stmt at next line
 					this.body.splice(focusedStmt.indexInRoot + 1, 0, statement);
