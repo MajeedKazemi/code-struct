@@ -1,4 +1,5 @@
 import * as monaco from 'monaco-editor';
+import { EventHandler } from '../editor/events';
 
 export enum EditFunctions {
 	InsertStatement,
@@ -9,7 +10,6 @@ export enum EditFunctions {
 	SetLiteral,
 	ChangeLiteral,
 	RemoveExpression,
-	SetIdentifier,
 	ChangeIdentifier
 }
 
@@ -69,7 +69,41 @@ export enum NodeType {
 	Module
 }
 
+export enum CodeClass {
+	EmptyLineStatement,
+	VarAssignStatement,
+	FunctionCallStatement,
+	BinaryOperatorExpression,
+	LiteralValueExpression,
+	EmptyExpression,
+	IdentifierToken,
+	NextLineToken,
+	PrevLineToken,
+	OperatorToken
+}
+
+export enum TextualEditMode {
+	IsEmpty,
+	IsEditing,
+	IsValid
+}
+
+export enum AddableType {
+	NotAddable,
+
+	Statement,
+	Expression,
+	Identifier,
+	NumberLiteral,
+	StringLiteral
+}
+
 export interface CodeConstruct {
+	/**
+	 * Indicates the class-type of this code-construct.
+	 */
+	codeClass: CodeClass;
+
 	/**
 	 * Indicates if the code-construct is either a `Statement`, `Expression`, `Token`, or the `Module`
 	 */
@@ -167,24 +201,18 @@ export interface CodeConstruct {
 	 */
 	getPrevEditableToken(fromIndex?: number): CodeConstruct;
 
-	// returns the parent statement of this code-construct.
+	/**
+	 * Returns the parent statement of this code-construct (an element of the Module.body array).
+	 */
 	getParentStatement(): Statement;
-}
-
-export enum AddableType {
-	NotAddable,
-
-	Statement,
-	Expression,
-	Identifier,
-	NumberLiteral,
-	StringLiteral
 }
 
 /**
  * A complete code statement such as: variable assignment, function call, conditional, loop, function definition, and other statements.
  */
 export abstract class Statement implements CodeConstruct {
+	codeClass: CodeClass;
+
 	addableType: AddableType;
 	nodeType = NodeType.Statement;
 	rootNode: CodeConstruct | Module = null;
@@ -408,6 +436,7 @@ export abstract class Statement implements CodeConstruct {
  * A statement that returns a value such as: binary operators, unary operators, function calls that return a value, literal values, and variables.
  */
 export abstract class Expression extends Statement implements CodeConstruct {
+	codeClass: CodeClass;
 	addableType: AddableType;
 	nodeType = NodeType.Expression;
 	// TODO: can change this to an Array to enable type checking when returning multiple items
@@ -484,6 +513,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
  * The smallest code construct: identifiers, holes (for either identifiers or expressions), operators and characters, and etc.
  */
 export abstract class Token implements CodeConstruct {
+	codeClass: CodeClass;
 	addableType: AddableType;
 	nodeType = NodeType.Token;
 	rootNode: CodeConstruct = null;
@@ -591,6 +621,7 @@ export class Argument {
 }
 
 export class EmptyLineStmt extends Statement {
+	codeClass = CodeClass.EmptyLineStatement;
 	addableType = AddableType.Statement;
 	hasEmptyToken = false;
 
@@ -608,7 +639,7 @@ export class EmptyLineStmt extends Statement {
 		this.lineNumber = pos.lineNumber;
 		this.left = this.right = pos.column;
 
-		return new monaco.Position(this.lineNumber, this.right + 1)
+		return new monaco.Position(this.lineNumber, this.right + 1);
 	}
 
 	nextEmptyToken(): CodeConstruct {
@@ -618,9 +649,14 @@ export class EmptyLineStmt extends Statement {
 	getText(): string {
 		return '';
 	}
+
+	locate(pos: monaco.Position): CodeConstruct {
+		return this;
+	}
 }
 
 export class VarAssignmentStmt extends Statement {
+	codeClass = CodeClass.VarAssignStatement;
 	addableType = AddableType.Statement;
 	private identifierIndex: number;
 	private valueIndex: number;
@@ -635,9 +671,7 @@ export class VarAssignmentStmt extends Statement {
 
 		this.identifierIndex = this.tokens.length;
 		this.tokens.push(new PrevLineTkn(this, this.tokens.length));
-		this.tokens.push(
-			id != null ? new IdTkn(id, this, this.tokens.length) : new EmptyIdTkn(this, this.tokens.length)
-		);
+		this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
 		this.tokens.push(new OperatorTkn('=', this, this.tokens.length));
 		this.tokens.push(new EmptySpaceTkn(this, this.tokens.length));
@@ -658,6 +692,7 @@ export class VarAssignmentStmt extends Statement {
 }
 
 export class FunctionCallStmt extends Expression {
+	codeClass = CodeClass.FunctionCallStatement;
 	/**
 	 * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
 	 */
@@ -711,6 +746,7 @@ export class FunctionCallStmt extends Expression {
 }
 
 export class BinaryOperatorExpr extends Expression {
+	codeClass = CodeClass.BinaryOperatorExpression;
 	addableType = AddableType.Expression;
 	operator: BinaryOperator;
 	private leftOperandIndex: number;
@@ -749,8 +785,10 @@ export class BinaryOperatorExpr extends Expression {
 }
 
 export class LiteralValExpr extends Expression {
+	codeClass = CodeClass.LiteralValueExpression;
 	addableType = AddableType.Expression;
 	value: string; // it holds the string information of the value (could be a number, float, or a string with quotes)
+	textualEditMode: TextualEditMode;
 
 	constructor(value: string, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
@@ -811,6 +849,7 @@ export class TypedEmptyExpr extends Token {
 }
 
 export class EmptyExpr extends Token {
+	codeClass = CodeClass.EmptyExpression;
 	isEmpty = true;
 
 	constructor(root?: CodeConstruct, indexInRoot?: number) {
@@ -824,34 +863,37 @@ export class EmptyExpr extends Token {
 	}
 }
 
-export class IdTkn extends Token {
+export class IdentifierTkn extends Token {
+	codeClass = CodeClass.IdentifierToken;
 	addableType = AddableType.Identifier;
+	textualEditMode: TextualEditMode;
 
-	constructor(name: string, root?: CodeConstruct, indexInRoot?: number) {
-		super(name);
+	constructor(identifier?: string, root?: CodeConstruct, indexInRoot?: number) {
+		super(identifier == undefined ? '---' : identifier);
+
+		if (identifier == undefined) {
+			this.textualEditMode = TextualEditMode.IsEmpty;
+			this.isEmpty = true;
+		} else {
+			this.textualEditMode = TextualEditMode.IsValid;
+			this.isEmpty = false;
+		}
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 
 		this.validEdits.push(EditFunctions.ChangeIdentifier);
 	}
-}
 
-export class EmptyIdTkn extends Token {
-	isEmpty = true;
+	setIdentifierText(id: string) {
+		this.text = id;
 
-	constructor(root?: CodeConstruct, indexInRoot?: number) {
-		super('---');
-
-		this.rootNode = root;
-		this.indexInRoot = indexInRoot;
-
-		this.validEdits.push(EditFunctions.SetIdentifier);
-		this.receives.push(AddableType.Identifier);
+		(this.rootNode as Statement).rebuild(this.getLeftPosition(), this.indexInRoot);
 	}
 }
 
 export class NextLineTkn extends Token {
+	codeClass = CodeClass.NextLineToken;
 	isEmpty = false;
 
 	constructor(root?: CodeConstruct, indexInRoot?: number) {
@@ -863,16 +905,10 @@ export class NextLineTkn extends Token {
 		this.validEdits.push(EditFunctions.InsertStatementAfter);
 		this.receives.push(AddableType.Statement);
 	}
-
-	// getNextEditableToken(): CodeConstruct {
-
-	// 	if (this.getLineNumber()) {
-
-	// 	}
-	// }
 }
 
 export class PrevLineTkn extends Token {
+	codeClass = CodeClass.PrevLineToken;
 	isEmpty = false;
 
 	constructor(root?: CodeConstruct, indexInRoot?: number) {
@@ -906,6 +942,7 @@ export class EmptySpaceTkn extends Token {
 }
 
 export class OperatorTkn extends Token {
+	codeClass = CodeClass.OperatorToken;
 	operator: string = '';
 
 	constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
@@ -969,6 +1006,7 @@ export class Module {
 	focusedNode: CodeConstruct;
 
 	editor: monaco.editor.IStandaloneCodeEditor;
+	eventHandler: EventHandler;
 
 	constructor(editorId: string) {
 		this.editor = monaco.editor.create(document.getElementById(editorId), {
@@ -980,77 +1018,9 @@ export class Module {
 		this.body.push(new EmptyLineStmt(this, 0));
 		this.focusedNode = this.body[0];
 		this.focusedNode.build(new monaco.Position(1, 1));
-
-		this.attachOnClickListener();
-		this.attachOnKeyPressListener();
-
 		this.editor.focus();
-	}
 
-	attachOnKeyPressListener() {
-		// TODO: why are these different from the standards?
-		const ENTER_KEY_CODE = 3;
-		const LEFT_KEY_CODE = 15;
-		const UP_KEY_CODE = 16;
-		const RIGHT_KEY_CODE = 17;
-		const DOWN_KEY_CODE = 18;
-
-		this.editor.onKeyDown((e) => {
-			switch (e.keyCode) {
-				case ENTER_KEY_CODE:
-					this.insert(new EmptyLineStmt());
-
-					e.preventDefault();
-					e.stopPropagation();
-					break;
-
-				case UP_KEY_CODE:
-					console.log('UP');
-
-					e.preventDefault();
-					e.stopPropagation();
-					break;
-
-				case LEFT_KEY_CODE:
-					console.log('LEFT');
-
-					this.focusedNode = this.focusedNode.getPrevEditableToken();
-					this.editor.setSelection(this.focusedNode.getSelection());
-
-					e.preventDefault();
-					e.stopPropagation();
-					break;
-
-				case DOWN_KEY_CODE:
-					console.log('DOWN');
-
-					e.preventDefault();
-					e.stopPropagation();
-					break;
-
-				case RIGHT_KEY_CODE:
-					console.log('RIGHT');
-
-					this.focusedNode = this.focusedNode.getNextEditableToken();
-					this.editor.setSelection(this.focusedNode.getSelection());
-
-					e.preventDefault();
-					e.stopPropagation();
-					break;
-			}
-		});
-	}
-
-	attachOnClickListener() {
-		this.editor.onMouseDown((e) => {
-			for (let line of this.body) {
-				if (line.lineNumber == e.target.position.lineNumber) {
-					this.focusedNode = line.locate(e.target.position);
-					this.editor.setSelection(this.focusedNode.getSelection());
-					this.editor.focus();
-				}
-			}
-		});
+		this.eventHandler = new EventHandler(this);
 	}
 
 	insert(code: CodeConstruct) {
@@ -1086,7 +1056,7 @@ export class Module {
 						{ range: range, text: statement.getText(), forceMoveMarkers: true }
 					]);
 				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
-					let focusedStmt =	 this.focusedNode.rootNode as Statement;
+					let focusedStmt = this.focusedNode.rootNode as Statement;
 
 					// insert stmt at next line
 					this.body.splice(focusedStmt.indexInRoot + 1, 0, statement);
