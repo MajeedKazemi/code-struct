@@ -163,6 +163,10 @@ export class EventHandler {
 	}
 
 	attachOnKeyDownListener() {
+		this.module.editor.onDidPaste((e) => {
+			// TODO: if in edit-mode: check if it is a valid edit and then paste it o.w. prevent it
+		})
+
 		this.module.editor.onKeyDown((e) => {
 			if (this.module.focusedNode.codeClass == ast.CodeClass.IdentifierToken) this.inIdentifierEditMode = true;
 			let action = this.getKeyAction(e.browserEvent);
