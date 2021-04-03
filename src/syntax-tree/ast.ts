@@ -894,7 +894,7 @@ export class LiteralValExpr extends Expression {
 			}
 
 			case DataType.Boolean: {
-				this.tokens.push(new EditableTextTkn(value, RegExp('^(True|False)$'), this, this.tokens.length));
+				this.tokens.push(new NonEditableTextTkn(value, this, this.tokens.length));
 
 				break;
 			}
@@ -940,6 +940,17 @@ export class IdentifierTkn extends Token implements TextEditable {
 
 			return true;
 		} else return false;
+	}
+}
+
+export class NonEditableTextTkn extends Token {
+	isEmpty = false;
+
+	constructor(value: string, root?: CodeConstruct, indexInRoot?: number) {
+		super(value);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
 	}
 }
 
