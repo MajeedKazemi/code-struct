@@ -53,6 +53,10 @@ document.getElementById('add-num-btn').addEventListener('click', () => {
 	nova.insert(new AST.LiteralValExpr('123', AST.DataType.Number));
 });
 
+document.getElementById('add-boolean-btn').addEventListener('click', () => {
+	nova.insert(new AST.LiteralValExpr('True', AST.DataType.Boolean));
+});
+
 document.getElementById('add-bin-add-expr-btn').addEventListener('click', () => {
 	nova.insert(new AST.BinaryOperatorExpr(AST.BinaryOperator.Add, AST.DataType.Any));
 });
