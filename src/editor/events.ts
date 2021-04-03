@@ -58,15 +58,13 @@ export enum EditAction {
 	DeleteNextToken,
 	DeletePrevToken,
 
-	InsertIdentifierChar,
+	InsertChar,
 
 	None
 }
 
 export class EventHandler {
 	module: ast.Module;
-
-	inIdentifierEditMode = false;
 
 	constructor(module: ast.Module) {
 		this.module = module;
@@ -77,12 +75,12 @@ export class EventHandler {
 
 	setFocusedNode(code: ast.CodeConstruct) {
 		this.module.focusedNode = code;
-		this.module.editor.setSelection(this.module.focusedNode.getSelection());
-
-		if (code.codeClass == ast.CodeClass.IdentifierToken) this.inIdentifierEditMode = true;
+		this.module.focusSelection(this.module.focusedNode.getSelection());
 	}
 
 	getKeyAction(e: KeyboardEvent) {
+		let inTextEditMode = this.module.focusedNode.isTextEditable;
+
 		switch (e.key) {
 			case KeyPress.ArrowUp:
 				return EditAction.SelectTopToken;
@@ -91,7 +89,7 @@ export class EventHandler {
 				return EditAction.SelectBottomToken;
 
 			case KeyPress.ArrowLeft:
-				if (this.inIdentifierEditMode) {
+				if (inTextEditMode) {
 					if (e.shiftKey && e.ctrlKey) return EditAction.SelectToStart;
 					else if (e.shiftKey) return EditAction.SelectLeft;
 					else if (e.ctrlKey) return EditAction.MoveCursorStart;
@@ -99,7 +97,7 @@ export class EventHandler {
 				} else return EditAction.SelectPrevToken;
 
 			case KeyPress.ArrowRight:
-				if (this.inIdentifierEditMode) {
+				if (inTextEditMode) {
 					if (e.shiftKey && e.ctrlKey) return EditAction.SelectToEnd;
 					else if (e.shiftKey) return EditAction.SelectRight;
 					else if (e.ctrlKey) return EditAction.MoveCursorEnd;
@@ -107,27 +105,27 @@ export class EventHandler {
 				} else return EditAction.SelectNextToken;
 
 			case KeyPress.Home:
-				if (this.inIdentifierEditMode) {
+				if (inTextEditMode) {
 					if (e.shiftKey) return EditAction.SelectToStart;
 					else return EditAction.MoveCursorStart;
 				}
 				break;
 
 			case KeyPress.End:
-				if (this.inIdentifierEditMode) {
+				if (inTextEditMode) {
 					if (e.shiftKey) return EditAction.SelectToEnd;
 					else return EditAction.MoveCursorEnd;
 				}
 				break;
 
 			case KeyPress.Delete:
-				if (this.inIdentifierEditMode) {
+				if (inTextEditMode) {
 					if (e.ctrlKey) return EditAction.DeleteToEnd;
 					else return EditAction.DeleteNextChar;
 				} else return EditAction.DeleteNextToken;
 
 			case KeyPress.Backspace:
-				if (this.inIdentifierEditMode) {
+				if (inTextEditMode) {
 					if (e.ctrlKey) return EditAction.DeleteToStart;
 					else return EditAction.DeletePrevChar;
 				} else return EditAction.DeletePrevToken;
@@ -136,8 +134,8 @@ export class EventHandler {
 				return EditAction.InsertEmptyLine;
 
 			default:
-				if (this.inIdentifierEditMode) {
-					if (/^[a-zA-Z0-9_]$/g.test(e.key)) {
+				if (inTextEditMode) {
+					if (e.key.length == 1) {
 						switch (e.key) {
 							case KeyPress.C:
 								if (e.ctrlKey) return EditAction.Copy;
@@ -156,7 +154,7 @@ export class EventHandler {
 								break;
 						}
 
-						return EditAction.InsertIdentifierChar;
+						return EditAction.InsertChar;
 					}
 				} else return EditAction.None;
 		}
@@ -165,10 +163,9 @@ export class EventHandler {
 	attachOnKeyDownListener() {
 		this.module.editor.onDidPaste((e) => {
 			// TODO: if in edit-mode: check if it is a valid edit and then paste it o.w. prevent it
-		})
+		});
 
 		this.module.editor.onKeyDown((e) => {
-			if (this.module.focusedNode.codeClass == ast.CodeClass.IdentifierToken) this.inIdentifierEditMode = true;
 			let action = this.getKeyAction(e.browserEvent);
 
 			switch (action) {
@@ -196,19 +193,36 @@ export class EventHandler {
 					break;
 				}
 
-				case EditAction.InsertIdentifierChar: {
+				case EditAction.InsertChar: {
 					let cursorPos = this.module.editor.getPosition();
 					let selectedText = this.module.editor.getSelection();
-					let idToken = this.module.focusedNode as ast.IdentifierTkn;
+
+					let token: ast.TextEditable;
+
+					switch (this.module.focusedNode.codeClass) {
+						case ast.CodeClass.IdentifierToken:
+							token = this.module.focusedNode as ast.IdentifierTkn;
+							break;
+
+						case ast.CodeClass.EditableTextToken:
+							token = this.module.focusedNode as ast.EditableTextTkn;
+							break;
+
+						default:
+							throw new Error(
+								'Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.'
+							);
+					}
+
 					let newText = '';
 
-					if (idToken.text == '---') {
+					if (token.getEditableText() == '---') {
 						let curText = '';
 						newText = curText + e.browserEvent.key;
 					} else {
-						let curText = idToken.getText().split('');
+						let curText = token.getEditableText().split('');
 						curText.splice(
-							cursorPos.column - 1,
+							cursorPos.column - this.module.focusedNode.left,
 							Math.abs(selectedText.startColumn - selectedText.endColumn),
 							e.browserEvent.key
 						);
@@ -217,8 +231,7 @@ export class EventHandler {
 
 					// TODO: check if turns back into an empty hole
 
-					if (/^[^\d\W]\w*$/g.test(newText)) {
-						idToken.setIdentifierText(newText);
+					if (token.setEditedText(newText)) {
 						let editRange = new monaco.Range(
 							cursorPos.lineNumber,
 							cursorPos.column,
@@ -250,33 +263,49 @@ export class EventHandler {
 				case EditAction.DeleteNextChar: {
 					let cursorPos = this.module.editor.getPosition();
 					let selectedText = this.module.editor.getSelection();
-					let idToken = this.module.focusedNode as ast.IdentifierTkn;
+
+					let token: ast.TextEditable;
+
+					switch (this.module.focusedNode.codeClass) {
+						case ast.CodeClass.IdentifierToken:
+							token = this.module.focusedNode as ast.IdentifierTkn;
+							break;
+
+						case ast.CodeClass.EditableTextToken:
+							token = this.module.focusedNode as ast.EditableTextTkn;
+							break;
+
+						default:
+							throw new Error(
+								'Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.'
+							);
+					}
+
 					let newText = '';
 
-					if (idToken.text == '---') {
-						let curText = '';
-						newText = curText + e.browserEvent.key;
-					} else {
-						let curText = idToken.getText().split('');
-						let toDeleteItems =
-							selectedText.startColumn == selectedText.endColumn
-								? 1
-								: Math.abs(selectedText.startColumn - selectedText.endColumn);
+					// TODO: if it is equal to --- => just prevent default
 
-						let toDeletePos = action == EditAction.DeleteNextChar ? 1 : 2;
+					let curText = token.getEditableText().split('');
+					let toDeleteItems =
+						selectedText.startColumn == selectedText.endColumn
+							? 1
+							: Math.abs(selectedText.startColumn - selectedText.endColumn);
 
-						curText.splice(
-							Math.min(cursorPos.column - toDeletePos, selectedText.startColumn - toDeletePos),
-							toDeleteItems
-						);
+					let toDeletePos = action == EditAction.DeleteNextChar ? 0 : 1;
 
-						newText = curText.join('');
-					}
+					curText.splice(
+						Math.min(
+							cursorPos.column - this.module.focusedNode.left - toDeletePos,
+							selectedText.startColumn - this.module.focusedNode.left - toDeletePos
+						),
+						toDeleteItems
+					);
+
+					newText = curText.join('');
 
 					// TODO: check if turns back into an empty hole
 
-					if (/^[^\d\W]\w*$/g.test(newText)) {
-						idToken.setIdentifierText(newText);
+					if (token.setEditedText(newText)) {
 						let editRange = new monaco.Range(
 							cursorPos.lineNumber,
 							cursorPos.column,
