@@ -894,7 +894,7 @@ export class LiteralValExpr extends Expression {
 			}
 
 			case DataType.Boolean: {
-				this.tokens.push(new EditableTextTkn('', RegExp('^(True|False)$'), this, this.tokens.length));
+				this.tokens.push(new EditableTextTkn(value, RegExp('^(True|False)$'), this, this.tokens.length));
 
 				break;
 			}

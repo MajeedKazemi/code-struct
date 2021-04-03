@@ -53,8 +53,12 @@ document.getElementById('add-num-btn').addEventListener('click', () => {
 	nova.insert(new AST.LiteralValExpr('123', AST.DataType.Number));
 });
 
-document.getElementById('add-boolean-btn').addEventListener('click', () => {
+document.getElementById('add-true-btn').addEventListener('click', () => {
 	nova.insert(new AST.LiteralValExpr('True', AST.DataType.Boolean));
+});
+
+document.getElementById('add-false-btn').addEventListener('click', () => {
+	nova.insert(new AST.LiteralValExpr('False', AST.DataType.Boolean));
 });
 
 document.getElementById('add-bin-add-expr-btn').addEventListener('click', () => {
