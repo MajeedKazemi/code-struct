@@ -68,3 +68,45 @@ Features of a scratch-like editor and its custom Abstract Syntax Tree (AST):
    - **beginner level**: if the argument type is Number, Text or Boolean => there could be a tiny plus button between the operands of the TypedExpression that when the user navigates there, it will allow the user to add binary/unary/literal expressions in between them.
    - **advanced level**: when the user advances, the UI should allow for editing expressions with a simple parser (and no scaffolding). The cursor at this point is able to freely move inside the parsable text.
 
+
+# Navigation
+Design goals for the code navigation system:
+- be consistent
+- prevent errors
+- be similar to text-based editors
+- to be useful and have a meaning
+
+- **Start-of-line** token:
+  - next: the whole line (statement)
+  - prev: 
+    - if there is a line above, go to the end-of-line of the top line
+    - else stay here (return this)
+
+- **End-of-line** token:
+  - next: 
+    - if there is a line below, go to the star-of-line of the bottom line
+    - else, stay here (return this)
+  - prev:
+    - the previous editable item in the statement based: search for this.root.tokens => this.indexInRoot - 1 to 0
+      - if its an editable token or a literal-val-expr => go to the last index of it (so the user could continue editing the textual thing)
+      - else if its an expression => select the whole expression
+
+- **Editable-text** token:
+  - next: 
+    - if at the end => go to the next editable item
+    - o.w. => go to the next char in the text
+  - prev:
+    - if at the beginning => go to the prev editable item (maintain the above rule for going to prev item)
+    - o.w. => go to the prev char in the text
+
+- **Statement**:
+  - next: 
+    - go to the first editable item in stmt.tokens => and select the whole
+  - prev:
+    - go the start-of-line token
+
+- **Expression**:
+  - next: 
+    - search for the first next editable item in `expr.tokens` from `expr.indexInRoot + 1` to `expr.tokens.length` => and select the whole
+  - prev:
+    - go the the prev editable item in `expr.root.tokens` from `expr.indexInRoot - 1` to `0`
