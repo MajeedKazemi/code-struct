@@ -5,8 +5,6 @@ import { EventHandler } from '../editor/events';
 
 export enum EditFunctions {
 	InsertStatement,
-	InsertStatementBefore,
-	InsertStatementAfter,
 	RemoveStatement,
 	SetExpression,
 	SetLiteral,
@@ -80,8 +78,8 @@ export enum CodeClass {
 	EmptyExpression,
 	IdentifierToken,
 	EditableTextToken,
-	NextLineToken,
-	PrevLineToken,
+	EndOfLineToken,
+	StartOfLineToken,
 	OperatorToken
 }
 
@@ -224,7 +222,6 @@ export abstract class Statement implements CodeConstruct {
 	validEdits = new Array<EditFunctions>();
 	receives = new Array<AddableType>();
 
-	// TODO: might want to change this to first, and last nodes? or a function that calculates left and right based on those two
 	lineNumber: number;
 	left: number;
 	right: number;
@@ -299,7 +296,7 @@ export abstract class Statement implements CodeConstruct {
 	contains(pos: monaco.Position): boolean {
 		if (pos.lineNumber != this.lineNumber) return false;
 
-		if (pos.column >= this.left && pos.column <= this.right) return true;
+		if (pos.column >= this.left && pos.column <= this.right + 1) return true;
 
 		return false;
 	}
@@ -328,17 +325,15 @@ export abstract class Statement implements CodeConstruct {
 	}
 
 	nextEmptyToken(): CodeConstruct {
-		// TODO: should simply return next-token if nothing was found.
-
-		for (let code of this.tokens) {
-			if (code.nodeType == NodeType.Token) {
-				let token = code as Token;
+		for (let tk of this.tokens) {
+			if (tk.nodeType == NodeType.Token) {
+				let token = tk as Token;
 
 				if (token.isEmpty) {
 					return token;
 				}
 			} else {
-				let expr = code as Expression;
+				let expr = tk as Expression;
 
 				if (expr.hasEmptyToken) return expr.nextEmptyToken();
 
@@ -346,21 +341,24 @@ export abstract class Statement implements CodeConstruct {
 			}
 		}
 
-		for (let code of this.tokens) {
-			if (code.nodeType == NodeType.Token) {
-				let token = code as Token;
+		// next editable code-construct
+		for (let tk of this.tokens) {
+			if (tk.nodeType == NodeType.Token) {
+				let token = tk as Token;
 
 				if (token.validEdits.length > 0) {
 					return token;
 				}
 			} else {
-				let expr = code as Expression;
+				let expr = tk as Expression;
 
 				if (expr.validEdits.length > 0) return expr.nextEmptyToken();
 
 				return null;
 			}
 		}
+
+		// TODO: return next selectable code-construct
 	}
 
 	/**
@@ -425,31 +423,45 @@ export abstract class Statement implements CodeConstruct {
 
 		for (let i = startIndex; i < this.tokens.length; i++) {
 			if (this.tokens[i].validEdits.length > 0) {
+				// there is no statement that does not have any editable expression or token, so this should always return something
+				if (this.tokens[i].nodeType == NodeType.Expression) return this.tokens[i];
 				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
-
-				return this.tokens[i].getNextEditableToken();
 			}
 		}
 
-		console.error('getNextEditableToken() found nothing');
+		return this.getEndOfLineToken();
 	}
 
 	getPrevEditableToken(fromIndex?: number): CodeConstruct {
-		let startIndex = fromIndex != undefined ? fromIndex : this.tokens.length - 1;
+		// let startIndex = fromIndex != undefined ? fromIndex : this.tokens.length - 1;
 
-		for (let i = startIndex; i >= 0; i--) {
-			if (this.tokens[i].validEdits.length > 0) {
-				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
-
-				return this.tokens[i].getPrevEditableToken();
+		if (fromIndex != undefined)
+			for (let i = fromIndex; i >= 0; i--) {
+				if (this.tokens[i].validEdits.length > 0) {
+					if (this.tokens[i].nodeType == NodeType.Expression) return this.tokens[i];
+					if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
+				}
 			}
-		}
 
-		console.error('getPrevEditableToken() found nothing');
+		return this.getStartOfLineToken();
 	}
 
 	getParentStatement(): Statement {
 		return this;
+	}
+
+	/**
+	 * Get end-of-line token for this statement
+	 */
+	getEndOfLineToken(): Token {
+		return this.tokens[this.tokens.length - 1] as Token;
+	}
+
+	/**
+	 * Get start-of-line token for this statement
+	 */
+	getStartOfLineToken(): Token {
+		return this.tokens[0] as Token;
 	}
 }
 
@@ -491,9 +503,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 		for (let i = startIndex; i < this.tokens.length; i++) {
 			if (this.tokens[i].validEdits.length > 0) {
+				if (this.tokens[i].nodeType == NodeType.Expression) return this.tokens[i];
 				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
-
-				return this.tokens[i].getNextEditableToken(0);
 			}
 		}
 
@@ -502,26 +513,32 @@ export abstract class Expression extends Statement implements CodeConstruct {
 		else if (this.rootNode.nodeType == NodeType.Statement)
 			return (this.rootNode as Statement).getNextEditableToken(this.indexInRoot + 1);
 
-		console.error('getNextEditableToken() found nothing');
+		return this.getEndOfLineToken();
 	}
 
 	getPrevEditableToken(fromIndex?: number): CodeConstruct {
-		let startIndex = fromIndex != undefined ? fromIndex : this.tokens.length - 1;
-
-		for (let i = startIndex; i >= 0; i--) {
-			if (this.tokens[i].validEdits.length > 0) {
-				if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
-
-				return this.tokens[i].getPrevEditableToken();
+		if (fromIndex != undefined) {
+			for (let i = fromIndex; i >= 0; i--) {
+				if (this.tokens[i].validEdits.length > 0) {
+					if (this.tokens[i].nodeType == NodeType.Expression) return this.tokens[i];
+					if (this.tokens[i].nodeType == NodeType.Token) return this.tokens[i];
+				}
 			}
 		}
 
-		if (this.rootNode.nodeType == NodeType.Expression)
-			return (this.rootNode as Expression).getPrevEditableToken(this.indexInRoot - 1);
-		else if (this.rootNode.nodeType == NodeType.Statement)
-			return (this.rootNode as Statement).getPrevEditableToken(this.indexInRoot - 1);
+		let prevToken: CodeConstruct = null;
 
-		console.error('getPrevEditableToken() found nothing');
+		if (this.rootNode.nodeType == NodeType.Expression)
+			prevToken = (this.rootNode as Expression).getPrevEditableToken();
+		else if (this.rootNode.nodeType == NodeType.Statement)
+			prevToken = (this.rootNode as Statement).getPrevEditableToken();
+
+		if (this.rootNode.nodeType == NodeType.Expression) prevToken = this.rootNode as Expression;
+		else if (this.rootNode.nodeType == NodeType.Statement) prevToken = this.rootNode as Statement;
+
+		if (prevToken == null && this.isStatement()) prevToken = this.getStartOfLineToken();
+
+		return prevToken;
 	}
 
 	getParentStatement(): Statement {
@@ -623,15 +640,25 @@ export abstract class Token implements CodeConstruct {
 	}
 
 	getNextEditableToken(fromIndex?: number): CodeConstruct {
+		// should not be called when inside the characters of an editable token
+
 		return this.rootNode.getNextEditableToken(this.indexInRoot + 1);
 	}
 
 	getPrevEditableToken(): CodeConstruct {
-		return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
+		// should not be called when inside the characters of an editable token
+		if (this.rootNode.validEdits.length > 0) return this.rootNode;
+		else return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
+
+		// return this.rootNode;
 	}
 
 	getParentStatement(): Statement {
-		if (this.rootNode.nodeType == NodeType.Statement) return this.rootNode as Statement;
+		if (
+			this.rootNode.nodeType == NodeType.Statement ||
+			(this.rootNode.nodeType == NodeType.Expression && (this.rootNode as Expression).isStatement())
+		)
+			return this.rootNode as Statement;
 		else if (this.rootNode.nodeType == NodeType.Expression) return this.rootNode.getParentStatement();
 	}
 }
@@ -702,6 +729,36 @@ export class EmptyLineStmt extends Statement {
 	locate(pos: monaco.Position): CodeConstruct {
 		return this;
 	}
+
+	getNextEditableToken(): CodeConstruct {
+		// check if it is the last line => return itself
+
+		if (this.rootNode.nodeType == NodeType.Statement) {
+			// TODO: check next line correctly when parentStatement is inside the body of another compound statement
+			return this;
+		} else if (this.rootNode.nodeType == NodeType.Module) {
+			let module = this.rootNode as Module;
+
+			if (this.indexInRoot + 1 < module.body.length) {
+				return module.body[this.indexInRoot + 1].getStartOfLineToken();
+			} else return this;
+		}
+	}
+
+	getPrevEditableToken(): CodeConstruct {
+		// check if is in the first line => return itself
+
+		if (this.rootNode.nodeType == NodeType.Statement) {
+			// TODO: check prev line correctly when parentStatement is inside the body of another compound statement
+			return this;
+		} else if (this.rootNode.nodeType == NodeType.Module) {
+			let module = this.rootNode as Module;
+
+			if (this.indexInRoot > 0) {
+				return module.body[this.indexInRoot - 1].getEndOfLineToken();
+			} else return this;
+		}
+	}
 }
 
 export class VarAssignmentStmt extends Statement {
@@ -719,14 +776,15 @@ export class VarAssignmentStmt extends Statement {
 		this.validEdits.push(EditFunctions.RemoveStatement);
 
 		this.identifierIndex = this.tokens.length;
-		this.tokens.push(new PrevLineTkn(this, this.tokens.length));
+		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+
 		this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.tokens.push(new OperatorTkn('=', this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.valueIndex = this.tokens.length;
 		this.tokens.push(new EmptyExpr(this, this.tokens.length));
-		this.tokens.push(new NextLineTkn(this, this.tokens.length));
+		this.tokens.push(new EndOfLineToken(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
@@ -768,7 +826,8 @@ export class FunctionCallStmt extends Expression {
 			this.addableType = AddableType.Expression;
 		}
 
-		if (this.isStatement()) this.tokens.push(new PrevLineTkn(this, this.tokens.length));
+		if (this.isStatement()) this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+
 		this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn('(', this, this.tokens.length));
 
@@ -784,7 +843,7 @@ export class FunctionCallStmt extends Expression {
 		}
 
 		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
-		if (this.isStatement()) this.tokens.push(new NextLineTkn(this, this.tokens.length));
+		if (this.isStatement()) this.tokens.push(new EndOfLineToken(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
@@ -848,6 +907,17 @@ export class EditableTextTkn extends Token implements TextEditable {
 		this.validEdits.push(EditFunctions.ChangeIdentifier);
 	}
 
+	getSelection(): monaco.Selection {
+		let leftPos = this.getLeftPosition();
+		return new monaco.Selection(leftPos.lineNumber, leftPos.column, leftPos.lineNumber, leftPos.column);
+	}
+
+	contains(pos: monaco.Position): boolean {
+		if (pos.column >= this.left && pos.column <= this.right + 1) return true;
+
+		return false;
+	}
+
 	getEditableText(): string {
 		return this.text;
 	}
@@ -905,7 +975,7 @@ export class LiteralValExpr extends Expression {
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 
-		this.validEdits.push(EditFunctions.ChangeLiteral);
+		this.validEdits.push(EditFunctions.RemoveExpression);
 	}
 }
 
@@ -929,6 +999,12 @@ export class IdentifierTkn extends Token implements TextEditable {
 		this.validatorRegex = RegExp('^[^\\d\\W]\\w*$');
 
 		this.validEdits.push(EditFunctions.ChangeIdentifier);
+	}
+
+	contains(pos: monaco.Position): boolean {
+		if (pos.column >= this.left && pos.column <= this.right + 1) return true;
+
+		return false;
 	}
 
 	getEditableText(): string {
@@ -1007,8 +1083,8 @@ export class EmptyExpr extends Token {
 	}
 }
 
-export class NextLineTkn extends Token {
-	codeClass = CodeClass.NextLineToken;
+export class EndOfLineToken extends Token {
+	codeClass = CodeClass.EndOfLineToken;
 	isEmpty = false;
 
 	constructor(root?: CodeConstruct, indexInRoot?: number) {
@@ -1016,14 +1092,37 @@ export class NextLineTkn extends Token {
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+	}
 
-		this.validEdits.push(EditFunctions.InsertStatementAfter);
-		this.receives.push(AddableType.Statement);
+	getPrevEditableToken(): CodeConstruct {
+		return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
+	}
+
+	getNextEditableToken(): CodeConstruct {
+		let parentStatement = this.getParentStatement();
+
+		// if (parentStatement.rootNode.nodeType == NodeType.Statement) {
+		// 	// TODO: check next line correctly when parentStatement is inside the body of another compound statement
+		// 	return this;
+		// } else if (parentStatement.rootNode.nodeType == NodeType.Module) {
+		let parentStmt = this.getParentStatement();
+		let module = parentStmt.rootNode as Module;
+
+		if (parentStmt.indexInRoot + 1 < module.body.length) {
+			return module.body[parentStmt.indexInRoot + 1].getStartOfLineToken();
+		} else return this;
+		// }
+	}
+
+	getSelection(): monaco.Selection {
+		let line = this.getLineNumber();
+
+		return new monaco.Selection(line, this.right + 1, line, this.right + 1);
 	}
 }
 
-export class PrevLineTkn extends Token {
-	codeClass = CodeClass.PrevLineToken;
+export class StartOfLineTkn extends Token {
+	codeClass = CodeClass.StartOfLineToken;
 	isEmpty = false;
 
 	constructor(root?: CodeConstruct, indexInRoot?: number) {
@@ -1031,9 +1130,35 @@ export class PrevLineTkn extends Token {
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
+	}
 
-		this.validEdits.push(EditFunctions.InsertStatementBefore);
-		this.receives.push(AddableType.Statement);
+	getNextEditableToken(): CodeConstruct {
+		// should select the whole statement
+		return this.rootNode;
+	}
+
+	getPrevEditableToken(): CodeConstruct {
+		let parentStatement = this.getParentStatement();
+		// if (parentStatement.rootNode.nodeType == NodeType.Statement) {
+		// 	// TODO: check prev line correctly when parentStatement is inside the body of another compound statement
+		// 	return this;
+		// } else if (parentStatement.rootNode.nodeType == NodeType.Module) {
+		let parentStmt = this.getParentStatement();
+		let module = parentStmt.rootNode as Module;
+
+		if (parentStmt.indexInRoot > 0) {
+			let lineAbove = module.body[parentStmt.indexInRoot - 1];
+
+			if (lineAbove.codeClass == CodeClass.EmptyLineStatement) return lineAbove;
+			else return lineAbove.getEndOfLineToken();
+		} else return this;
+		// }
+	}
+
+	getSelection(): monaco.Selection {
+		let line = this.getLineNumber();
+
+		return new monaco.Selection(line, 1, line, 1);
 	}
 }
 
@@ -1102,14 +1227,139 @@ export class Module {
 		this.eventHandler = new EventHandler(this);
 	}
 
+	addStatement(code: Statement, index: number) {
+		this.body.splice(index, 0, code);
+
+		for (let i = index + 1; i < this.body.length; i++) {
+			this.body[i].indexInRoot++;
+			this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
+		}
+	}
+
+	replaceStatement(code: Statement, index: number) {}
+
 	focusSelection(selection: monaco.Selection) {
 		this.editor.focusSelection(selection)
+	}
+
+	locateStatement(pos: monaco.Position): Statement {
+		for (let line of this.body) {
+			if (line.contains(pos)) {
+				return line;
+			}
+		}
+
+		throw new Error('The clicked position did not match any of the statements in the module.');
+	}
+
+	insertEmptyLine() {
+		let curPos = this.editor.monaco.getPosition();
+		let curStatement = this.locateStatement(curPos);
+
+		if (curPos.column == 1) {
+			// insert emptyStatement at this line, move other statements down
+			let emptyLine = new EmptyLineStmt(this, curStatement.indexInRoot);
+			emptyLine.build(curStatement.getLeftPosition());
+			this.addStatement(emptyLine, curStatement.indexInRoot);
+
+			this.editor.monaco.executeEdits('module', [
+				{
+					range: {
+						endColumn: 1,
+						endLineNumber: curStatement.lineNumber - 1,
+						startColumn: 1,
+						startLineNumber: curStatement.lineNumber - 1
+					},
+					text: '\n',
+					forceMoveMarkers: true
+				}
+			]);
+		} else {
+			// insert emptyStatement on next line, move other statements down
+			let emptyLine = new EmptyLineStmt(this, curStatement.indexInRoot + 1);
+			emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, 1));
+			this.addStatement(emptyLine, curStatement.indexInRoot + 1);
+
+			this.editor.monaco.executeEdits('module', [
+				{
+					range: {
+						endColumn: this.focusedNode.right + 1,
+						endLineNumber: curStatement.lineNumber,
+						startColumn: this.focusedNode.right + 1,
+						startLineNumber: curStatement.lineNumber
+					},
+					text: '\n',
+					forceMoveMarkers: true
+				}
+			]);
+
+			this.focusedNode = emptyLine;
+		}
 	}
 
 	insert(code: CodeConstruct) {
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
 				let statement = code as Statement;
+				this.body[this.focusedNode.indexInRoot] = statement;
+
+				// if () {
+				// 	let focusedStmt = this.focusedNode.rootNode as Statement;
+
+				// 	// insert stmt at prev line
+				// 	this.body.splice(focusedStmt.indexInRoot, 0, statement);
+
+				// 	statement.rootNode = focusedStmt.rootNode;
+				// 	statement.indexInRoot = focusedStmt.indexInRoot;
+				// 	statement.build(new monaco.Position(focusedStmt.lineNumber, 1));
+
+				// 	for (let i = focusedStmt.indexInRoot + 1; i < this.body.length; i++) {
+				// 		this.body[i].indexInRoot++;
+				// 		this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
+				// 	}
+
+				// 	this.editor.executeEdits('module', [
+				// 		{
+				// 			range: new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1),
+				// 			text: '\n',
+				// 			forceMoveMarkers: true
+				// 		}
+				// 	]);
+
+				// 	let range = new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1);
+				// 	this.editor.executeEdits('module', [
+				// 		{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
+				// 	]);
+				// } else if () {
+				// 	let focusedStmt = this.focusedNode.rootNode as Statement;
+
+				// 	// insert stmt at next line
+				// 	this.body.splice(focusedStmt.indexInRoot + 1, 0, statement);
+
+				// statement.rootNode = focusedStmt.rootNode;
+				// statement.indexInRoot = focusedStmt.indexInRoot + 1;
+				// statement.build(new monaco.Position(focusedStmt.lineNumber + 1, 1));
+
+				// for (let i = focusedStmt.indexInRoot + 2; i < this.body.length; i++) {
+				// 	this.body[i].indexInRoot++;
+				// 	this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
+				// }
+
+				// 	this.editor.executeEdits('module', [
+				// 		{
+				// 			range: new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1),
+				// 			text: '\n',
+				// 			forceMoveMarkers: true
+				// 		}
+				// 	]);
+
+				// 	let range = new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1);
+				// 	this.editor.executeEdits('module', [
+				// 		{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
+				// 	]);
+				// } else {
+				// insert stmt at cur line (replace)
+
 				this.body[this.focusedNode.indexInRoot] = statement;
 
 				statement.rootNode = this.focusedNode.rootNode;
@@ -1126,6 +1376,7 @@ export class Module {
 				);
 
 				this.editor.executeEdits(range, statement);
+
 			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
 				// replaces expression with the newly inserted expression
 				let focusedPos = this.focusedNode.getLeftPosition();
@@ -1152,6 +1403,8 @@ export class Module {
 			}
 
 			this.focusedNode = code.nextEmptyToken();
+			// TODO: should simply return next-token if nothing was found.
+
 			this.focusSelection(this.focusedNode.getSelection());
 			this.editor.monaco.focus();
 		} else console.warn('Cannot insert this code construct at focused location.');

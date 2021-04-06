@@ -79,6 +79,11 @@ export class EventHandler {
 	}
 
 	getKeyAction(e: KeyboardEvent) {
+		let curPos = this.module.editor.monaco.getPosition();
+		
+		// if (this.module.focusedNode == null)
+		// 	this.module.focusedNode = this.locate(curPos);
+
 		let inTextEditMode = this.module.focusedNode.isTextEditable;
 
 		switch (e.key) {
@@ -90,6 +95,8 @@ export class EventHandler {
 
 			case KeyPress.ArrowLeft:
 				if (inTextEditMode) {
+					if (curPos.column == (this.module.focusedNode as ast.Token).left) return EditAction.SelectPrevToken;
+
 					if (e.shiftKey && e.ctrlKey) return EditAction.SelectToStart;
 					else if (e.shiftKey) return EditAction.SelectLeft;
 					else if (e.ctrlKey) return EditAction.MoveCursorStart;
@@ -98,6 +105,9 @@ export class EventHandler {
 
 			case KeyPress.ArrowRight:
 				if (inTextEditMode) {
+					if (curPos.column == (this.module.focusedNode as ast.Token).right + 1)
+						return EditAction.SelectNextToken;
+
 					if (e.shiftKey && e.ctrlKey) return EditAction.SelectToEnd;
 					else if (e.shiftKey) return EditAction.SelectRight;
 					else if (e.ctrlKey) return EditAction.MoveCursorEnd;
@@ -131,7 +141,13 @@ export class EventHandler {
 				} else return EditAction.DeletePrevToken;
 
 			case KeyPress.Enter:
-				return EditAction.InsertEmptyLine;
+				let curLine = this.module.locateStatement(curPos);
+				let curSelection = this.module.editor.monaco.getSelection();
+
+				if (curSelection.startColumn == curSelection.endColumn)
+					if (curPos.column == 1 || curPos.column == curLine.right + 1) return EditAction.InsertEmptyLine;
+
+				break;
 
 			default:
 				if (inTextEditMode) {
@@ -170,7 +186,7 @@ export class EventHandler {
 
 			switch (action) {
 				case EditAction.InsertEmptyLine: {
-					this.module.insert(new ast.EmptyLineStmt());
+					this.module.insertEmptyLine();
 
 					e.preventDefault();
 					e.stopPropagation();
@@ -334,9 +350,13 @@ export class EventHandler {
 				}
 
 				case EditAction.MoveCursorLeft:
+					// this.module.focusedNode = this.locate(this.module.editor.getPosition());
+
 					break;
 
 				case EditAction.MoveCursorRight:
+					// this.module.focusedNode = this.locate(this.module.editor.getPosition());
+
 					break;
 
 				case EditAction.SelectLeft:
