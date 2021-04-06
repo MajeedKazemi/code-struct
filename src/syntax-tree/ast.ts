@@ -47,6 +47,11 @@ export enum UnaryOp {
 	USub = '-'
 }
 
+export enum BoolOperator {
+	And = 'and',
+	Or = 'or'
+}
+
 export enum ComparatorOp {
 	Equal = '==',
 	NotEqual = '!=',
@@ -72,6 +77,9 @@ export enum CodeClass {
 	VarAssignStatement,
 	FunctionCallStatement,
 	BinaryOperatorExpression,
+	BinaryBoolExpression,
+	UnaryExpression,
+	ComparatorExpression,
 	LiteralValueExpression,
 	EmptyExpression,
 	IdentifierToken,
@@ -861,6 +869,115 @@ export class BinaryOperatorExpr extends Expression {
 
 	constructor(operator: BinaryOperator, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+		this.operator = operator;
+
+		this.addableType = AddableType.Expression;
+		this.validEdits.push(EditFunctions.RemoveExpression);
+
+		this.leftOperandIndex = this.tokens.length;
+		this.tokens.push(new PunctuationTkn('(', this, this.tokens.length));
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.rightOperandIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
+
+		this.hasEmptyToken = true;
+	}
+
+	replaceLeftOperand(code: CodeConstruct) {
+		this.replace(code, this.leftOperandIndex);
+	}
+
+	replaceRightOperand(code: CodeConstruct) {
+		this.replace(code, this.rightOperandIndex);
+	}
+}
+
+export class UnaryOperatorExpr extends Expression {
+	codeClass = CodeClass.UnaryExpression;
+	addableType = AddableType.Expression;
+	operator: UnaryOp;
+	private operandIndex: number;
+
+	constructor(operator: UnaryOp, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+		super(returns);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+		this.operator = operator;
+
+		this.addableType = AddableType.Expression;
+		this.validEdits.push(EditFunctions.RemoveExpression);
+
+		this.tokens.push(new PunctuationTkn('(', this, this.tokens.length));
+		this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.operandIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
+
+		this.hasEmptyToken = true;
+	}
+
+	replaceOperand(code: CodeConstruct) {
+		this.replace(code, this.operandIndex);
+	}
+}
+
+export class BinaryBoolOperatorExpr extends Expression {
+	codeClass = CodeClass.BinaryBoolExpression;
+	addableType = AddableType.Expression;
+	operator: BoolOperator;
+	private leftOperandIndex: number;
+	private rightOperandIndex: number;
+
+	constructor(operator: BoolOperator, root?: CodeConstruct, indexInRoot?: number) {
+		super(DataType.Boolean);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+		this.operator = operator;
+
+		this.addableType = AddableType.Expression;
+		this.validEdits.push(EditFunctions.RemoveExpression);
+
+		this.leftOperandIndex = this.tokens.length;
+		this.tokens.push(new PunctuationTkn('(', this, this.tokens.length));
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.rightOperandIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
+
+		this.hasEmptyToken = true;
+	}
+
+	replaceLeftOperand(code: CodeConstruct) {
+		this.replace(code, this.leftOperandIndex);
+	}
+
+	replaceRightOperand(code: CodeConstruct) {
+		this.replace(code, this.rightOperandIndex);
+	}
+}
+
+export class ComparatorExpr extends Expression {
+	codeClass = CodeClass.ComparatorExpression;
+	addableType = AddableType.Expression;
+	operator: ComparatorOp;
+	private leftOperandIndex: number;
+	private rightOperandIndex: number;
+
+	constructor(operator: ComparatorOp, root?: CodeConstruct, indexInRoot?: number) {
+		super(DataType.Boolean);
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;

@@ -1,5 +1,5 @@
 #editor {
-	width: 800px;
+	width: 600px;
 	height: 500px;
 
 	float: left;
@@ -9,7 +9,9 @@
 }
 
 #editor-toolbox {
-	width: 110px;
+	width: 150px;
+	height: 500px;
+	overflow-y: scroll;
 	float: left;
 }
 
