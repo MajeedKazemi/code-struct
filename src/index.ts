@@ -1,4 +1,4 @@
-import './index.css';
+import './css/index.css';
 import * as AST from './syntax-tree/ast';
 
 // @ts-ignore
@@ -76,3 +76,4 @@ document.getElementById('add-bin-mul-expr-btn').addEventListener('click', () => 
 document.getElementById('add-bin-div-expr-btn').addEventListener('click', () => {
 	nova.insert(new AST.BinaryOperatorExpr(AST.BinaryOperator.Divide, AST.DataType.Any));
 });
+

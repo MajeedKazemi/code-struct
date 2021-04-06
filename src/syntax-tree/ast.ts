@@ -1,4 +1,6 @@
 import * as monaco from 'monaco-editor';
+import Cursor from '../editor/cursor';
+import Editor from '../editor/editor';
 import { EventHandler } from '../editor/events';
 
 export enum EditFunctions {
@@ -290,7 +292,7 @@ export abstract class Statement implements CodeConstruct {
 				} else if (this.rootNode.nodeType == NodeType.Statement) {
 					(this.rootNode as Statement).rebuild(curPos, this.indexInRoot + 1);
 				}
-			} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
+			} else console.warn('Node did not have rootNode or indexInRoot: ', this.tokens);
 		}
 	}
 
@@ -1001,6 +1003,7 @@ export class EmptyExpr extends Token {
 
 		this.validEdits.push(EditFunctions.SetExpression);
 		this.receives.push(AddableType.Expression);
+		
 	}
 }
 
@@ -1081,111 +1084,48 @@ export class Module {
 	body = new Array<Statement>();
 	focusedNode: CodeConstruct;
 
-	editor: monaco.editor.IStandaloneCodeEditor;
+	editor: Editor;
 	eventHandler: EventHandler;
+	cursor: Cursor;
 
 	constructor(editorId: string) {
-		this.editor = monaco.editor.create(document.getElementById(editorId), {
-			value: '',
-			language: 'python',
-			minimap: { enabled: false }
-		});
+		// Editor
+		this.editor = new Editor(document.getElementById(editorId));
 
+		// AST
 		this.body.push(new EmptyLineStmt(this, 0));
 		this.focusedNode = this.body[0];
 		this.focusedNode.build(new monaco.Position(1, 1));
-		this.editor.focus();
+
+		this.editor.monaco.focus();
 
 		this.eventHandler = new EventHandler(this);
 	}
 
 	focusSelection(selection: monaco.Selection) {
-		if (selection.startColumn == selection.endColumn)
-			this.editor.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
-		else this.editor.setSelection(selection);
+		this.editor.focusSelection(selection)
 	}
 
 	insert(code: CodeConstruct) {
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
 				let statement = code as Statement;
+				this.body[this.focusedNode.indexInRoot] = statement;
 
-				if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementBefore) > -1) {
-					let focusedStmt = this.focusedNode.rootNode as Statement;
+				statement.rootNode = this.focusedNode.rootNode;
+				statement.indexInRoot = this.focusedNode.indexInRoot;
 
-					// insert stmt at prev line
-					this.body.splice(focusedStmt.indexInRoot, 0, statement);
+				let focusedPos = this.focusedNode.getLeftPosition();
+				statement.build(focusedPos);
 
-					statement.rootNode = focusedStmt.rootNode;
-					statement.indexInRoot = focusedStmt.indexInRoot;
-					statement.build(new monaco.Position(focusedStmt.lineNumber, 1));
+				let range = new monaco.Range(
+					focusedPos.lineNumber,
+					statement.left,
+					focusedPos.lineNumber,
+					statement.right
+				);
 
-					for (let i = focusedStmt.indexInRoot + 1; i < this.body.length; i++) {
-						this.body[i].indexInRoot++;
-						this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
-					}
-
-					this.editor.executeEdits('module', [
-						{
-							range: new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1),
-							text: '\n',
-							forceMoveMarkers: true
-						}
-					]);
-
-					let range = new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1);
-					this.editor.executeEdits('module', [
-						{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
-					]);
-				} else if (this.focusedNode.validEdits.indexOf(EditFunctions.InsertStatementAfter) > -1) {
-					let focusedStmt = this.focusedNode.rootNode as Statement;
-
-					// insert stmt at next line
-					this.body.splice(focusedStmt.indexInRoot + 1, 0, statement);
-
-					statement.rootNode = focusedStmt.rootNode;
-					statement.indexInRoot = focusedStmt.indexInRoot + 1;
-					statement.build(new monaco.Position(focusedStmt.lineNumber + 1, 1));
-
-					for (let i = focusedStmt.indexInRoot + 2; i < this.body.length; i++) {
-						this.body[i].indexInRoot++;
-						this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
-					}
-
-					this.editor.executeEdits('module', [
-						{
-							range: new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1),
-							text: '\n',
-							forceMoveMarkers: true
-						}
-					]);
-
-					let range = new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1);
-					this.editor.executeEdits('module', [
-						{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
-					]);
-				} else {
-					// insert stmt at cur line (replace)
-
-					this.body[this.focusedNode.indexInRoot] = statement;
-
-					statement.rootNode = this.focusedNode.rootNode;
-					statement.indexInRoot = this.focusedNode.indexInRoot;
-
-					let focusedPos = this.focusedNode.getLeftPosition();
-					statement.build(focusedPos);
-
-					let range = new monaco.Range(
-						focusedPos.lineNumber,
-						statement.left,
-						focusedPos.lineNumber,
-						statement.right
-					);
-
-					this.editor.executeEdits('module', [
-						{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
-					]);
-				}
+				this.editor.executeEdits(range, statement);
 			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
 				// replaces expression with the newly inserted expression
 				let focusedPos = this.focusedNode.getLeftPosition();
@@ -1206,14 +1146,14 @@ export class Module {
 
 				let item = root.tokens[this.focusedNode.indexInRoot];
 
-				this.editor.executeEdits('module', [
-					{ range: range, text: item.getRenderText(), forceMoveMarkers: true }
-				]);
+				this.focusedNode.rootNode = null;
+
+				this.editor.executeEdits(range, item);
 			}
 
 			this.focusedNode = code.nextEmptyToken();
 			this.focusSelection(this.focusedNode.getSelection());
-			this.editor.focus();
+			this.editor.monaco.focus();
 		} else console.warn('Cannot insert this code construct at focused location.');
 	}
 }

@@ -1,0 +1,39 @@
+#editor-toolbox {
+  padding: 0rem 4rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  border-right: 1px solid #00000018;
+}
+
+#editor-toolbox .button {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 16px;
+  margin: 10px 0px;
+  padding: 7px 8px;
+}
+
+#editor-toolbox .group:not(:last-child) {
+  margin-bottom: 3rem;
+}
+
+#editor-toolbox .group > p {
+  white-space: pre;
+}
+
+.hole-toolbox {
+  min-width: 18px;
+  height: 18px;
+  background: rgb(0 0 0 / 5%);
+  border-radius: 2px;
+  box-shadow: 0px 0px 0px 1px #0000005e inset;
+}
+
+.hole-toolbox:first-child {
+  margin-right: 8px;
+}
+
+.hole-toolbox:last-child {
+  margin-left: 8px;
+}

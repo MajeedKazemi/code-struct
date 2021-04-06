@@ -161,11 +161,11 @@ export class EventHandler {
 	}
 
 	attachOnKeyDownListener() {
-		this.module.editor.onDidPaste((e) => {
+		this.module.editor.monaco.onDidPaste((e) => {
 			// TODO: if in edit-mode: check if it is a valid edit and then paste it o.w. prevent it
 		});
 
-		this.module.editor.onKeyDown((e) => {
+		this.module.editor.monaco.onKeyDown((e) => {
 			let action = this.getKeyAction(e.browserEvent);
 
 			switch (action) {
@@ -194,8 +194,8 @@ export class EventHandler {
 				}
 
 				case EditAction.InsertChar: {
-					let cursorPos = this.module.editor.getPosition();
-					let selectedText = this.module.editor.getSelection();
+					let cursorPos = this.module.editor.monaco.getPosition();
+					let selectedText = this.module.editor.monaco.getSelection();
 
 					let token: ast.TextEditable;
 
@@ -248,7 +248,7 @@ export class EventHandler {
 							);
 						}
 
-						this.module.editor.executeEdits('module', [
+						this.module.editor.monaco.executeEdits('module', [
 							{ range: editRange, text: e.browserEvent.key, forceMoveMarkers: true }
 						]);
 					}
@@ -261,8 +261,8 @@ export class EventHandler {
 
 				case EditAction.DeletePrevChar:
 				case EditAction.DeleteNextChar: {
-					let cursorPos = this.module.editor.getPosition();
-					let selectedText = this.module.editor.getSelection();
+					let cursorPos = this.module.editor.monaco.getPosition();
+					let selectedText = this.module.editor.monaco.getSelection();
 
 					let token: ast.TextEditable;
 
@@ -322,7 +322,7 @@ export class EventHandler {
 							);
 						}
 
-						this.module.editor.executeEdits('module', [
+						this.module.editor.monaco.executeEdits('module', [
 							{ range: editRange, text: '', forceMoveMarkers: true }
 						]);
 					} else {
@@ -362,7 +362,7 @@ export class EventHandler {
 	}
 
 	attachOnMouseDownListener() {
-		this.module.editor.onMouseDown((e) => {
+		this.module.editor.monaco.onMouseDown((e) => {
 			// if (this.editingIdentifier) {
 			//     // if inside the editing identifier's edit text => update editIndex
 			//     // else -> exit editMode
