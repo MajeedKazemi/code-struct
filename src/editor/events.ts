@@ -50,8 +50,8 @@ export enum EditAction {
 
 	SelectNextToken,
 	SelectPrevToken,
-	SelectTopToken,
-	SelectBottomToken,
+	SelectClosestTokenAbove,
+	SelectClosestTokenBelow,
 
 	InsertEmptyLine,
 
@@ -80,7 +80,7 @@ export class EventHandler {
 
 	getKeyAction(e: KeyboardEvent) {
 		let curPos = this.module.editor.getPosition();
-		
+
 		// if (this.module.focusedNode == null)
 		// 	this.module.focusedNode = this.locate(curPos);
 
@@ -88,10 +88,10 @@ export class EventHandler {
 
 		switch (e.key) {
 			case KeyPress.ArrowUp:
-				return EditAction.SelectTopToken;
+				return EditAction.SelectClosestTokenAbove;
 
 			case KeyPress.ArrowDown:
-				return EditAction.SelectBottomToken;
+				return EditAction.SelectClosestTokenBelow;
 
 			case KeyPress.ArrowLeft:
 				if (inTextEditMode) {
@@ -345,6 +345,54 @@ export class EventHandler {
 						e.stopPropagation();
 						e.preventDefault();
 					}
+
+					break;
+				}
+
+				case EditAction.SelectClosestTokenAbove: {
+					let curPos = this.module.editor.getPosition();
+					// TODO: if parentStatement is compound check in its own body's structure as well.
+					let parentStmt = this.module.focusedNode.getParentStatement();
+
+					if (parentStmt.indexInRoot > 0) {
+						let aboveStmt = this.module.body[parentStmt.indexInRoot - 1];
+
+						if (aboveStmt.right <= curPos.column) {
+							// go to the end of above stmt
+							if (aboveStmt instanceof ast.EmptyLineStmt) this.setFocusedNode(aboveStmt);
+							else this.setFocusedNode(aboveStmt.getEndOfLineToken());
+						} else {
+							let aboveNode = aboveStmt.locate(new monaco.Position(curPos.lineNumber - 1, curPos.column));
+							this.setFocusedNode(aboveNode);
+						}
+					} else this.setFocusedNode(parentStmt.getStartOfLineToken());
+
+					e.stopPropagation();
+					e.preventDefault();
+
+					break;
+				}
+
+				case EditAction.SelectClosestTokenBelow: {
+					let curPos = this.module.editor.getPosition();
+					// TODO: if parentStatement is compound check in its own body's structure as well.
+					let parentStmt = this.module.focusedNode.getParentStatement();
+
+					if (parentStmt.indexInRoot + 1 < this.module.body.length) {
+						let belowStmt = this.module.body[parentStmt.indexInRoot + 1];
+
+						if (belowStmt.right <= curPos.column) {
+							// go to the end of below stmt
+							if (belowStmt instanceof ast.EmptyLineStmt) this.setFocusedNode(belowStmt);
+							else this.setFocusedNode(belowStmt.getEndOfLineToken());
+						} else {
+							let aboveNode = belowStmt.locate(new monaco.Position(curPos.lineNumber + 1, curPos.column));
+							this.setFocusedNode(aboveNode);
+						}
+					} else this.setFocusedNode(parentStmt.getEndOfLineToken());
+
+					e.stopPropagation();
+					e.preventDefault();
 
 					break;
 				}

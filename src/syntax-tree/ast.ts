@@ -540,7 +540,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
 	}
 
 	getParentStatement(): Statement {
-		if (this.rootNode.nodeType == NodeType.Statement) return this.rootNode as Statement;
+		if (this.isStatement()) return this as Statement;
+		else if (this.rootNode.nodeType == NodeType.Statement) return this.rootNode as Statement;
 		else if (this.rootNode.nodeType == NodeType.Expression)
 			return (this.rootNode as Expression).getParentStatement();
 	}
@@ -1233,8 +1234,6 @@ export class Module {
 		}
 	}
 
-	replaceStatement(code: Statement, index: number) {}
-
 	focusSelection(selection: monaco.Selection) {
 		if (selection.startColumn == selection.endColumn)
 			this.editor.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
@@ -1296,75 +1295,30 @@ export class Module {
 		}
 	}
 
+	replaceFocusedStatement(stmt: Statement) {
+		this.body[this.focusedNode.indexInRoot] = stmt;
+		stmt.rootNode = this.focusedNode.rootNode;
+		stmt.indexInRoot = this.focusedNode.indexInRoot;
+		stmt.build(this.focusedNode.getLeftPosition());
+	}
+
+	replaceFocusedExpression(expr: Expression) {
+		let root = this.focusedNode.rootNode as Statement;
+
+		root.replace(expr, this.focusedNode.indexInRoot);
+		expr.rootNode = this.focusedNode.rootNode;
+		expr.indexInRoot = this.focusedNode.indexInRoot;
+	}
+
 	insert(code: CodeConstruct) {
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
+			let focusedPos = this.focusedNode.getLeftPosition();
+
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
+				// replaces statement with the newly inserted statement
 				let statement = code as Statement;
 
-				// if () {
-				// 	let focusedStmt = this.focusedNode.rootNode as Statement;
-
-				// 	// insert stmt at prev line
-				// 	this.body.splice(focusedStmt.indexInRoot, 0, statement);
-
-				// 	statement.rootNode = focusedStmt.rootNode;
-				// 	statement.indexInRoot = focusedStmt.indexInRoot;
-				// 	statement.build(new monaco.Position(focusedStmt.lineNumber, 1));
-
-				// 	for (let i = focusedStmt.indexInRoot + 1; i < this.body.length; i++) {
-				// 		this.body[i].indexInRoot++;
-				// 		this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
-				// 	}
-
-				// 	this.editor.executeEdits('module', [
-				// 		{
-				// 			range: new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1),
-				// 			text: '\n',
-				// 			forceMoveMarkers: true
-				// 		}
-				// 	]);
-
-				// 	let range = new monaco.Range(focusedStmt.lineNumber - 1, 1, focusedStmt.lineNumber - 1, 1);
-				// 	this.editor.executeEdits('module', [
-				// 		{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
-				// 	]);
-				// } else if () {
-				// 	let focusedStmt = this.focusedNode.rootNode as Statement;
-
-				// 	// insert stmt at next line
-				// 	this.body.splice(focusedStmt.indexInRoot + 1, 0, statement);
-
-				// statement.rootNode = focusedStmt.rootNode;
-				// statement.indexInRoot = focusedStmt.indexInRoot + 1;
-				// statement.build(new monaco.Position(focusedStmt.lineNumber + 1, 1));
-
-				// for (let i = focusedStmt.indexInRoot + 2; i < this.body.length; i++) {
-				// 	this.body[i].indexInRoot++;
-				// 	this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
-				// }
-
-				// 	this.editor.executeEdits('module', [
-				// 		{
-				// 			range: new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1),
-				// 			text: '\n',
-				// 			forceMoveMarkers: true
-				// 		}
-				// 	]);
-
-				// 	let range = new monaco.Range(focusedStmt.lineNumber + 1, 1, focusedStmt.lineNumber + 1, 1);
-				// 	this.editor.executeEdits('module', [
-				// 		{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
-				// 	]);
-				// } else {
-				// insert stmt at cur line (replace)
-
-				this.body[this.focusedNode.indexInRoot] = statement;
-
-				statement.rootNode = this.focusedNode.rootNode;
-				statement.indexInRoot = this.focusedNode.indexInRoot;
-
-				let focusedPos = this.focusedNode.getLeftPosition();
-				statement.build(focusedPos);
+				this.replaceFocusedStatement(statement);
 
 				let range = new monaco.Range(
 					focusedPos.lineNumber,
@@ -1376,10 +1330,11 @@ export class Module {
 				this.editor.executeEdits('module', [
 					{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
 				]);
-				// }
 			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
 				// replaces expression with the newly inserted expression
-				let focusedPos = this.focusedNode.getLeftPosition();
+				let expr = code as Expression;
+
+				this.replaceFocusedExpression(expr);
 
 				let range = new monaco.Range(
 					focusedPos.lineNumber,
@@ -1388,22 +1343,12 @@ export class Module {
 					this.focusedNode.right + 1
 				);
 
-				let root = this.focusedNode.rootNode as Statement;
-				let expression = code as Expression;
-
-				root.replace(expression, this.focusedNode.indexInRoot);
-				expression.rootNode = this.focusedNode.rootNode;
-				expression.indexInRoot = this.focusedNode.indexInRoot;
-
-				let item = root.tokens[this.focusedNode.indexInRoot];
-
 				this.editor.executeEdits('module', [
-					{ range: range, text: item.getRenderText(), forceMoveMarkers: true }
+					{ range: range, text: expr.getRenderText(), forceMoveMarkers: true }
 				]);
 			}
 
 			this.focusedNode = code.nextEmptyToken();
-			// TODO: should simply return next-token if nothing was found.
 
 			this.focusSelection(this.focusedNode.getSelection());
 			this.editor.focus();
