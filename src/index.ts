@@ -112,3 +112,15 @@ document.getElementById('add-comp-gt-expr-btn').addEventListener('click', () => 
 document.getElementById('add-comp-gte-expr-btn').addEventListener('click', () => {
 	nova.insert(new AST.ComparatorExpr(AST.ComparatorOp.GreaterThanEqual));
 });
+
+document.getElementById('add-while-expr-btn').addEventListener('click', () => {
+	nova.insert(new AST.WhileStatement());
+});
+
+document.getElementById('add-if-expr-btn').addEventListener('click', () => {
+	nova.insert(new AST.IfStatement());
+});
+
+document.getElementById('add-for-expr-btn').addEventListener('click', () => {
+	nova.insert(new AST.ForStatement());
+});

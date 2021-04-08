@@ -1,5 +1,6 @@
 import * as ast from '../syntax-tree/ast';
 import * as monaco from 'monaco-editor';
+import { TAB_SPACES } from '../syntax-tree/keywords';
 
 export enum KeyPress {
 	// navigation:
@@ -144,8 +145,15 @@ export class EventHandler {
 				let curLine = this.module.locateStatement(curPos);
 				let curSelection = this.module.editor.getSelection();
 
+				let leftPosToCheck = 1
+				let parent = this.module.focusedNode.getParentStatement().rootNode
+
+				if (parent instanceof ast.Statement && parent.body.length > 0)
+					// is inside the body of another statement
+					leftPosToCheck = parent.left + TAB_SPACES;
+		
 				if (curSelection.startColumn == curSelection.endColumn)
-					if (curPos.column == 1 || curPos.column == curLine.right + 1) return EditAction.InsertEmptyLine;
+					if (curPos.column == leftPosToCheck || curPos.column == curLine.right + 1) return EditAction.InsertEmptyLine;
 
 				break;
 

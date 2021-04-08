@@ -1,5 +1,6 @@
 import * as monaco from 'monaco-editor';
 import { EventHandler } from '../editor/events';
+import { TAB_SPACES } from './keywords';
 
 export enum EditFunctions {
 	InsertStatement,
@@ -75,6 +76,9 @@ export enum NodeType {
 export enum CodeClass {
 	EmptyLineStatement,
 	VarAssignStatement,
+	WhileStatement,
+	ForStatement,
+	IfStatement,
 	FunctionCallStatement,
 	BinaryOperatorExpression,
 	BinaryBoolExpression,
@@ -144,6 +148,11 @@ export interface CodeConstruct {
 	 * The right column position of this code-construct.
 	 */
 	right: number;
+
+	/**
+	 * The boundary of a code-construct.
+	 */
+	boundary: Boundary;
 
 	/**
 	 * Determines if this code-construct could be added (either from the toolbox or the autocomplete or elsewhere) to the program, and the type it accepts.
@@ -231,7 +240,14 @@ export abstract class Statement implements CodeConstruct {
 	lineNumber: number;
 	left: number;
 	right: number;
+	boundary: Boundary;
 
+	/**
+	 * The boundary containing the body of a code-construct.
+	 */
+	bodyBoundary: Boundary;
+
+	body = new Array<Statement>(); // will only initialize it inside multi-line statements that have bodies
 	tokens = new Array<CodeConstruct>();
 
 	hasEmptyToken: boolean;
@@ -249,6 +265,21 @@ export abstract class Statement implements CodeConstruct {
 		}
 
 		this.right = curPos.column - 1;
+
+		this.boundary = new Boundary(this.lineNumber, this.lineNumber, this.left, this.right);
+
+		if (this.body.length > 0) {
+			// build body:
+			this.bodyBoundary = new Boundary(this.lineNumber + 1, 0, this.left + TAB_SPACES, 0);
+
+			for (let i = 0; i < this.body.length; i++) {
+				this.body[i].build(new monaco.Position(pos.lineNumber + (i + 1), pos.column + TAB_SPACES));
+
+				if (this.body[i].right > this.bodyBoundary.right) this.bodyBoundary.right = this.body[i].right;
+			}
+
+			this.bodyBoundary.bottomLine = this.body[this.body.length - 1].lineNumber;
+		}
 
 		return curPos;
 	}
@@ -297,14 +328,30 @@ export abstract class Statement implements CodeConstruct {
 				}
 			} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
 		}
+
+		this.boundary = new Boundary(this.lineNumber, this.lineNumber, this.left, this.right);
+
+		// TODO: rebuild body
 	}
 
 	contains(pos: monaco.Position): boolean {
-		if (pos.lineNumber != this.lineNumber) return false;
+		return this.boundary.contains(pos);
+	}
 
-		if (pos.column >= this.left && pos.column <= this.right + 1) return true;
+	getContainingStatement(pos: monaco.Position): Statement {
+		if (this.contains(pos)) {
+			return this;
+		} else if (this.containsInBody(pos)) {
+			for (let line of this.body) {
+				if (line.contains(pos)) return line;
+				else if (line.containsInBody(pos)) return line.getContainingStatement(pos);
+			}
+		}
+	}
 
-		return false;
+	containsInBody(pos: monaco.Position): boolean {
+		if (this.body.length > 0) return this.bodyBoundary.contains(pos);
+		else return false;
 	}
 
 	locate(pos: monaco.Position): CodeConstruct {
@@ -326,6 +373,12 @@ export abstract class Statement implements CodeConstruct {
 				}
 			}
 		}
+
+		// search into body
+		if (this.containsInBody(pos))
+			for (let stmt of this.body) {
+				if (stmt.contains(pos)) return stmt.locate(pos);
+			}
 
 		return null;
 	}
@@ -404,10 +457,54 @@ export abstract class Statement implements CodeConstruct {
 		this.updateHasEmptyToken(code);
 	}
 
+	/**
+	 * Replaced the given item with the item in `this.body[index]`
+	 */
+	replaceInBody(index: number, statement: Statement) {
+		statement.rootNode = this.body[index].rootNode;
+		statement.indexInRoot = index;
+		this.body[index] = statement;
+
+		this.build(this.getLeftPosition());
+	}
+
+	/**
+	 * Adds `code` to the body at the given index
+	 * @param code the statement to be added
+	 * @param index the index to add the `code` statement
+	 */
+	addStatement(code: Statement, index: number) {
+		this.body.splice(index, 0, code);
+
+		for (let i = index + 1; i < this.body.length; i++) {
+			this.body[i].indexInRoot++;
+			this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, this.body[i].left));
+
+			if (this.bodyBoundary.right < this.body[i].right) this.bodyBoundary.right = this.body[i].right;
+		}
+
+		// update the boundaries:
+		this.bodyBoundary.bottomLine = this.body[this.body.length - 1].lineNumber;
+	}
+
 	getRenderText(): string {
 		let txt: string = '';
 
 		for (let token of this.tokens) txt += token.getRenderText();
+
+		let leftPosToCheck = 1;
+		let textToAdd = '\n';
+
+		if (this.body.length > 0) {
+			leftPosToCheck = this.left + TAB_SPACES - 1;
+			if (leftPosToCheck != 1) {
+				for (let i = 0; i < leftPosToCheck; i++) textToAdd += ' ';
+			}
+		}
+
+		for (let stmt of this.body) {
+			txt += textToAdd + stmt.getRenderText();
+		}
 
 		return txt;
 	}
@@ -459,15 +556,19 @@ export abstract class Statement implements CodeConstruct {
 	/**
 	 * Get end-of-line token for this statement
 	 */
-	getEndOfLineToken(): Token {
-		return this.tokens[this.tokens.length - 1] as Token;
+	getEndOfLineToken(): CodeConstruct {
+		if (this instanceof EmptyLineStmt) return this;
+
+		return this.tokens[this.tokens.length - 1];
 	}
 
 	/**
 	 * Get start-of-line token for this statement
 	 */
-	getStartOfLineToken(): Token {
-		return this.tokens[0] as Token;
+	getStartOfLineToken(): CodeConstruct {
+		if (this instanceof EmptyLineStmt) return this;
+
+		return this.tokens[0];
 	}
 }
 
@@ -514,9 +615,11 @@ export abstract class Expression extends Statement implements CodeConstruct {
 			}
 		}
 
-		if (this.rootNode.nodeType == NodeType.Expression)
-			return (this.rootNode as Expression).getNextEditableToken(this.indexInRoot + 1);
-		else if (this.rootNode.nodeType == NodeType.Statement)
+		if (this.rootNode instanceof Expression && !this.rootNode.isStatement())
+			return this.rootNode.getNextEditableToken(this.indexInRoot + 1);
+		else if (this.rootNode instanceof Expression && this.rootNode.isStatement())
+			return (this.rootNode as Statement).getNextEditableToken(this.indexInRoot + 1);
+		else if (this.rootNode instanceof Statement && this.rootNode.body.length == 0)
 			return (this.rootNode as Statement).getNextEditableToken(this.indexInRoot + 1);
 
 		return this.getEndOfLineToken();
@@ -534,13 +637,15 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 		let prevToken: CodeConstruct = null;
 
-		if (this.rootNode.nodeType == NodeType.Expression)
-			prevToken = (this.rootNode as Expression).getPrevEditableToken();
-		else if (this.rootNode.nodeType == NodeType.Statement)
+		if (this.rootNode instanceof Expression) prevToken = this.rootNode.getPrevEditableToken();
+		else if (this.rootNode instanceof Expression && this.rootNode.isStatement())
+			prevToken = (this.rootNode as Statement).getPrevEditableToken();
+		else if (this.rootNode instanceof Statement && this.rootNode.body.length == 0)
 			prevToken = (this.rootNode as Statement).getPrevEditableToken();
 
-		if (this.rootNode.nodeType == NodeType.Expression) prevToken = this.rootNode as Expression;
-		else if (this.rootNode.nodeType == NodeType.Statement) prevToken = this.rootNode as Statement;
+		if (this.rootNode instanceof Expression) prevToken = this.rootNode as Expression;
+		else if (this.rootNode instanceof Statement && this.rootNode.body.length == 0)
+			prevToken = this.rootNode as Statement;
 
 		if (prevToken == null && this.isStatement()) prevToken = this.getStartOfLineToken();
 
@@ -571,6 +676,7 @@ export abstract class Token implements CodeConstruct {
 
 	left: number;
 	right: number;
+	boundary: Boundary;
 
 	text: string;
 	isEmpty: boolean = false;
@@ -589,6 +695,8 @@ export abstract class Token implements CodeConstruct {
 		this.left = pos.column;
 		this.right = pos.column + this.text.length - 1;
 
+		this.boundary = new Boundary(pos.lineNumber, pos.lineNumber, this.left, this.right);
+
 		return new monaco.Position(pos.lineNumber, this.right + 1);
 
 		// this.right = this.left + this.text.length - (this.text.length > 1 ? 1 : 0);
@@ -602,9 +710,7 @@ export abstract class Token implements CodeConstruct {
 	 * @returns true: contains, false: does not contain
 	 */
 	contains(pos: monaco.Position): boolean {
-		if (pos.column >= this.left && pos.column <= this.right) return true;
-
-		return false;
+		return this.boundary.contains(pos);
 	}
 
 	/**
@@ -691,6 +797,128 @@ export interface TextEditable {
 	setEditedText(text: string): boolean;
 }
 
+export class Boundary {
+	topLine: number;
+	bottomLine: number;
+	left: number;
+	right: number;
+
+	constructor(topLine: number, bottomLine: number, left: number, right: number) {
+		this.topLine = topLine;
+		this.bottomLine = bottomLine;
+		this.left = left;
+		this.right = right;
+	}
+
+	contains(pos: monaco.Position): boolean {
+		if (
+			pos.lineNumber >= this.topLine &&
+			pos.lineNumber <= this.bottomLine &&
+			pos.column >= this.left &&
+			pos.column <= this.right + 1
+		)
+			return true;
+
+		return false;
+	}
+}
+
+export class WhileStatement extends Statement {
+	codeClass = CodeClass.WhileStatement;
+	addableType = AddableType.Statement;
+	private conditionIndex: number;
+
+	constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
+		super();
+
+		this.validEdits.push(EditFunctions.RemoveStatement);
+
+		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+		this.tokens.push(new KeywordTkn('while', this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.conditionIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(':', this, this.tokens.length));
+		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+
+		this.body.push(new EmptyLineStmt(this, 0));
+
+		this.hasEmptyToken = true;
+	}
+
+	replaceCondition(expr: Expression) {
+		this.replace(expr, this.conditionIndex);
+	}
+}
+export class IfStatement extends Statement {
+	codeClass = CodeClass.IfStatement;
+	addableType = AddableType.Statement;
+	private conditionIndex: number;
+
+	constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
+		super();
+
+		this.validEdits.push(EditFunctions.RemoveStatement);
+
+		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+		this.tokens.push(new KeywordTkn('if', this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.conditionIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(':', this, this.tokens.length));
+		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+
+		this.body.push(new EmptyLineStmt(this, 0));
+
+		this.hasEmptyToken = true;
+	}
+
+	replaceCondition(expr: Expression) {
+		this.replace(expr, this.conditionIndex);
+	}
+}
+
+export class ForStatement extends Statement {
+	codeClass = CodeClass.ForStatement;
+	addableType = AddableType.Statement;
+	private counterIndex: number;
+	private rangeIndex: number;
+
+	constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
+		super();
+
+		this.validEdits.push(EditFunctions.RemoveStatement);
+
+		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+		this.tokens.push(new KeywordTkn('for', this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.counterIndex = this.tokens.length;
+		this.tokens.push(new IdentifierTkn("---", this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.tokens.push(new KeywordTkn('in', this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.rangeIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(':', this, this.tokens.length));
+		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+
+		this.body.push(new EmptyLineStmt(this, 0));
+
+		this.hasEmptyToken = true;
+	}
+
+	replaceCounter(expr: Expression) {
+		this.replace(expr, this.counterIndex);
+	}
+
+	replaceRange(expr: Expression) {
+		this.replace(expr, this.rangeIndex);
+	}
+}
+
 export class Argument {
 	type: DataType;
 	name: string;
@@ -722,6 +950,8 @@ export class EmptyLineStmt extends Statement {
 		this.lineNumber = pos.lineNumber;
 		this.left = this.right = pos.column;
 
+		this.boundary = new Boundary(pos.lineNumber, pos.lineNumber, this.left, this.right);
+
 		return new monaco.Position(this.lineNumber, this.right + 1);
 	}
 
@@ -738,12 +968,28 @@ export class EmptyLineStmt extends Statement {
 	}
 
 	getNextEditableToken(): CodeConstruct {
-		// check if it is the last line => return itself
+		if (this.rootNode instanceof Statement && this.rootNode.body.length > 0) {
+			if (this.indexInRoot + 1 < this.rootNode.body.length)
+				return this.rootNode.body[this.indexInRoot + 1].getStartOfLineToken();
+			else {
+				// find if there is another statement below this compound statement that we should jump to the first token of it
 
-		if (this.rootNode.nodeType == NodeType.Statement) {
-			// TODO: check next line correctly when parentStatement is inside the body of another compound statement
-			return this;
-		} else if (this.rootNode.nodeType == NodeType.Module) {
+				let compoundStmt = this.rootNode;
+
+				if (
+					compoundStmt.rootNode instanceof Module &&
+					compoundStmt.indexInRoot + 1 < compoundStmt.rootNode.body.length
+				)
+					return compoundStmt.rootNode.body[compoundStmt.indexInRoot + 1].getStartOfLineToken();
+				else if (
+					compoundStmt.rootNode instanceof Statement &&
+					compoundStmt.rootNode.body.length > 0 &&
+					compoundStmt.indexInRoot + 1 < compoundStmt.rootNode.body.length
+				)
+					return compoundStmt.rootNode.body[compoundStmt.indexInRoot + 1].getStartOfLineToken();
+				else return this;
+			}
+		} else if (this.rootNode instanceof Module) {
 			let module = this.rootNode as Module;
 
 			if (this.indexInRoot + 1 < module.body.length) {
@@ -753,17 +999,12 @@ export class EmptyLineStmt extends Statement {
 	}
 
 	getPrevEditableToken(): CodeConstruct {
-		// check if is in the first line => return itself
-
-		if (this.rootNode.nodeType == NodeType.Statement) {
-			// TODO: check prev line correctly when parentStatement is inside the body of another compound statement
-			return this;
-		} else if (this.rootNode.nodeType == NodeType.Module) {
-			let module = this.rootNode as Module;
-
-			if (this.indexInRoot > 0) {
-				return module.body[this.indexInRoot - 1].getEndOfLineToken();
-			} else return this;
+		if (this.rootNode instanceof Statement && this.rootNode.body.length > 0) {
+			if (this.indexInRoot == 0) return this.rootNode.getEndOfLineToken();
+			else return this.rootNode.body[this.indexInRoot - 1].getEndOfLineToken();
+		} else if (this.rootNode instanceof Module) {
+			if (this.indexInRoot == 0) return this;
+			else return this.rootNode.body[this.indexInRoot - 1].getStartOfLineToken();
 		}
 	}
 }
@@ -784,14 +1025,13 @@ export class VarAssignmentStmt extends Statement {
 
 		this.identifierIndex = this.tokens.length;
 		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
-
 		this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.tokens.push(new OperatorTkn('=', this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.valueIndex = this.tokens.length;
 		this.tokens.push(new EmptyExpr(this, this.tokens.length));
-		this.tokens.push(new EndOfLineToken(this, this.tokens.length));
+		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
@@ -850,7 +1090,7 @@ export class FunctionCallStmt extends Expression {
 		}
 
 		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
-		if (this.isStatement()) this.tokens.push(new EndOfLineToken(this, this.tokens.length));
+		if (this.isStatement()) this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
 	}
@@ -1028,12 +1268,6 @@ export class EditableTextTkn extends Token implements TextEditable {
 		return new monaco.Selection(leftPos.lineNumber, leftPos.column, leftPos.lineNumber, leftPos.column);
 	}
 
-	contains(pos: monaco.Position): boolean {
-		if (pos.column >= this.left && pos.column <= this.right + 1) return true;
-
-		return false;
-	}
-
 	getEditableText(): string {
 		return this.text;
 	}
@@ -1052,6 +1286,8 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 		if (this.text.length == 0) this.right = pos.column + this.text.length;
 		else this.right = pos.column + this.text.length - 1;
+
+		this.boundary = new Boundary(pos.lineNumber, pos.lineNumber, this.left, this.right + 1);
 
 		return new monaco.Position(pos.lineNumber, this.right + 1);
 	}
@@ -1198,7 +1434,7 @@ export class EmptyExpr extends Token {
 	}
 }
 
-export class EndOfLineToken extends Token {
+export class EndOfLineTkn extends Token {
 	codeClass = CodeClass.EndOfLineToken;
 	isEmpty = false;
 
@@ -1214,19 +1450,36 @@ export class EndOfLineToken extends Token {
 	}
 
 	getNextEditableToken(): CodeConstruct {
-		let parentStatement = this.getParentStatement();
-
-		// if (parentStatement.rootNode.nodeType == NodeType.Statement) {
-		// 	// TODO: check next line correctly when parentStatement is inside the body of another compound statement
-		// 	return this;
-		// } else if (parentStatement.rootNode.nodeType == NodeType.Module) {
 		let parentStmt = this.getParentStatement();
-		let module = parentStmt.rootNode as Module;
 
-		if (parentStmt.indexInRoot + 1 < module.body.length) {
-			return module.body[parentStmt.indexInRoot + 1].getStartOfLineToken();
-		} else return this;
-		// }
+		if (parentStmt instanceof Statement && parentStmt.body.length > 0)
+			// we're at the header of this compound statement:
+			return parentStmt.body[0].getStartOfLineToken();
+
+		if (parentStmt.rootNode instanceof Statement && parentStmt.rootNode.body.length > 0) {
+			if (parentStmt.indexInRoot + 1 < parentStmt.rootNode.body.length)
+				return parentStmt.rootNode.body[parentStmt.indexInRoot + 1].getStartOfLineToken();
+			else {
+				// at the end of a compound statement: move to the parent's root's next statement
+				let compoundParentsRoot = parentStmt.rootNode.rootNode;
+
+				if (compoundParentsRoot instanceof Module)
+					if (parentStmt.rootNode.indexInRoot + 1 < compoundParentsRoot.body.length)
+						return compoundParentsRoot.body[parentStmt.rootNode.indexInRoot + 1].getStartOfLineToken();
+					else if (compoundParentsRoot instanceof Statement && compoundParentsRoot.body.length > 0)
+						if (parentStmt.rootNode.indexInRoot + 1 < compoundParentsRoot.body.length)
+							return compoundParentsRoot.body[parentStmt.rootNode.indexInRoot + 1].getStartOfLineToken();
+
+				return this;
+			}
+		} else if (parentStmt.rootNode instanceof Module) {
+			if (parentStmt.indexInRoot + 1 < parentStmt.rootNode.body.length) {
+				let lineBelow = parentStmt.rootNode.body[parentStmt.indexInRoot + 1];
+
+				if (lineBelow instanceof EmptyLineStmt) return lineBelow;
+				else return lineBelow.getStartOfLineToken();
+			} else return this;
+		}
 	}
 
 	getSelection(): monaco.Selection {
@@ -1253,27 +1506,25 @@ export class StartOfLineTkn extends Token {
 	}
 
 	getPrevEditableToken(): CodeConstruct {
-		let parentStatement = this.getParentStatement();
-		// if (parentStatement.rootNode.nodeType == NodeType.Statement) {
-		// 	// TODO: check prev line correctly when parentStatement is inside the body of another compound statement
-		// 	return this;
-		// } else if (parentStatement.rootNode.nodeType == NodeType.Module) {
 		let parentStmt = this.getParentStatement();
-		let module = parentStmt.rootNode as Module;
 
-		if (parentStmt.indexInRoot > 0) {
-			let lineAbove = module.body[parentStmt.indexInRoot - 1];
+		if (parentStmt.rootNode instanceof Statement && parentStmt.rootNode.body.length > 0) {
+			if (parentStmt.indexInRoot == 0) return parentStmt.rootNode.getEndOfLineToken();
+			else return parentStmt.rootNode.body[parentStmt.indexInRoot - 1].getEndOfLineToken();
+		} else if (parentStmt.rootNode instanceof Module) {
+			if (parentStmt.indexInRoot > 0) {
+				let lineAbove = parentStmt.rootNode.body[parentStmt.indexInRoot - 1];
 
-			if (lineAbove.codeClass == CodeClass.EmptyLineStatement) return lineAbove;
-			else return lineAbove.getEndOfLineToken();
-		} else return this;
-		// }
+				if (lineAbove instanceof EmptyLineStmt) return lineAbove;
+				else return lineAbove.getEndOfLineToken();
+			} else return this;
+		}
 	}
 
 	getSelection(): monaco.Selection {
 		let line = this.getLineNumber();
 
-		return new monaco.Selection(line, 1, line, 1);
+		return new monaco.Selection(line, this.left, line, this.left);
 	}
 }
 
@@ -1299,6 +1550,23 @@ export class OperatorTkn extends Token {
 }
 
 export class PunctuationTkn extends Token {
+	constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
+		super(text);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+	}
+
+	locate(pos: monaco.Position): CodeConstruct {
+		return this.rootNode;
+	}
+
+	getSelection(): monaco.Selection {
+		return this.rootNode.getSelection();
+	}
+}
+
+export class KeywordTkn extends Token {
 	constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(text);
 
@@ -1358,10 +1626,12 @@ export class Module {
 	}
 
 	locateStatement(pos: monaco.Position): Statement {
+		let stmt: Statement = null;
+
 		for (let line of this.body) {
-			if (line.contains(pos)) {
-				return line;
-			}
+			stmt = line.getContainingStatement(pos);
+
+			if (stmt != null) return stmt;
 		}
 
 		throw new Error('The clicked position did not match any of the statements in the module.');
@@ -1371,11 +1641,30 @@ export class Module {
 		let curPos = this.editor.getPosition();
 		let curStatement = this.locateStatement(curPos);
 
-		if (curPos.column == 1) {
+		let parentRoot = this.focusedNode.getParentStatement().rootNode;
+		let leftPosToCheck = 1;
+		let parentStmtHasBody = false;
+		let textToAdd = '\n';
+		let spaces = '';
+
+		if (parentRoot instanceof Statement && parentRoot.body.length > 0) {
+			// is inside the body of another statement
+			leftPosToCheck = parentRoot.left + TAB_SPACES;
+			parentStmtHasBody = true;
+
+			if (leftPosToCheck != 1) {
+				for (let i = 0; i < parentRoot.left + TAB_SPACES - 1; i++) spaces += ' ';
+			}
+		}
+
+		if (curPos.column == leftPosToCheck) {
 			// insert emptyStatement at this line, move other statements down
-			let emptyLine = new EmptyLineStmt(this, curStatement.indexInRoot);
+			let emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot);
+
 			emptyLine.build(curStatement.getLeftPosition());
-			this.addStatement(emptyLine, curStatement.indexInRoot);
+
+			if (parentStmtHasBody) (parentRoot as Statement).addStatement(emptyLine, curStatement.indexInRoot);
+			else this.addStatement(emptyLine, curStatement.indexInRoot);
 
 			this.editor.executeEdits('module', [
 				{
@@ -1385,15 +1674,17 @@ export class Module {
 						startColumn: 1,
 						startLineNumber: curStatement.lineNumber - 1
 					},
-					text: '\n',
+					text: spaces + textToAdd,
 					forceMoveMarkers: true
 				}
 			]);
 		} else {
 			// insert emptyStatement on next line, move other statements down
-			let emptyLine = new EmptyLineStmt(this, curStatement.indexInRoot + 1);
-			emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, 1));
-			this.addStatement(emptyLine, curStatement.indexInRoot + 1);
+			let emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot + 1);
+			emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
+
+			if (parentStmtHasBody) (parentRoot as Statement).addStatement(emptyLine, curStatement.indexInRoot + 1);
+			else this.addStatement(emptyLine, curStatement.indexInRoot + 1);
 
 			this.editor.executeEdits('module', [
 				{
@@ -1403,7 +1694,7 @@ export class Module {
 						startColumn: this.focusedNode.right + 1,
 						startLineNumber: curStatement.lineNumber
 					},
-					text: '\n',
+					text: textToAdd + spaces,
 					forceMoveMarkers: true
 				}
 			]);
@@ -1417,6 +1708,8 @@ export class Module {
 		stmt.rootNode = this.focusedNode.rootNode;
 		stmt.indexInRoot = this.focusedNode.indexInRoot;
 		stmt.build(this.focusedNode.getLeftPosition());
+
+		// if stmt is compound, then rebuild all of the bottom statements as well.
 	}
 
 	replaceFocusedExpression(expr: Expression) {
@@ -1430,12 +1723,17 @@ export class Module {
 	insert(code: CodeConstruct) {
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
 			let focusedPos = this.focusedNode.getLeftPosition();
+			let parentRoot = this.focusedNode.getParentStatement().rootNode;
 
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
 				// replaces statement with the newly inserted statement
 				let statement = code as Statement;
 
-				this.replaceFocusedStatement(statement);
+				if (parentRoot instanceof Statement && parentRoot.body.length > 0) {
+					// has body:
+
+					parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
+				} else this.replaceFocusedStatement(statement);
 
 				let range = new monaco.Range(
 					focusedPos.lineNumber,
