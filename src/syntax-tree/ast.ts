@@ -90,7 +90,8 @@ export enum CodeClass {
 	EditableTextToken,
 	EndOfLineToken,
 	StartOfLineToken,
-	OperatorToken
+	OperatorToken,
+	VariableReferenceExpr
 }
 
 export enum AddableType {
@@ -248,6 +249,7 @@ export abstract class Statement implements CodeConstruct {
 	bodyBoundary: Boundary;
 
 	body = new Array<Statement>(); // will only initialize it inside multi-line statements that have bodies
+	scope: Scope = null;
 	tokens = new Array<CodeConstruct>();
 
 	hasEmptyToken: boolean;
@@ -332,6 +334,12 @@ export abstract class Statement implements CodeConstruct {
 		this.boundary = new Boundary(this.lineNumber, this.lineNumber, this.left, this.right);
 
 		// TODO: rebuild body
+
+		if (this.rootNode instanceof Statement && this.rootNode.body.length > 0) {
+			// inside a body => update its bodyBoundary as well.
+
+			if (this.rootNode.bodyBoundary.right < this.right) this.rootNode.bodyBoundary.right = this.right;
+		}
 	}
 
 	contains(pos: monaco.Position): boolean {
@@ -466,6 +474,31 @@ export abstract class Statement implements CodeConstruct {
 		this.body[index] = statement;
 
 		this.build(this.getLeftPosition());
+
+		if (statement.scope != null) statement.scope.parentScope = this.scope;
+
+		if (statement instanceof VarAssignmentStmt) {
+			this.getModule().addVariableButtonToToolbox(statement);
+			this.scope.references.push(new Reference(statement, this.scope));
+		}
+
+		if (statement.body.length > 0) {
+			// have to add another line as well: rebuild
+
+			for (let i = index + 1; i < this.body.length; i++) {
+				this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, this.body[i].left));
+	
+				if (this.bodyBoundary.right < this.body[i].right) this.bodyBoundary.right = this.body[i].right;
+			}	
+
+			// update the boundaries:
+			this.bodyBoundary.bottomLine = this.body[this.body.length - 1].lineNumber;
+
+
+			if (this.rootNode instanceof Statement && this.rootNode.body.length > 0)
+				this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
+			else if (this.rootNode instanceof Module) this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
+		}
 	}
 
 	/**
@@ -485,6 +518,26 @@ export abstract class Statement implements CodeConstruct {
 
 		// update the boundaries:
 		this.bodyBoundary.bottomLine = this.body[this.body.length - 1].lineNumber;
+
+		// rebuild all parents until Module:
+		if (this.rootNode instanceof Statement && this.rootNode.body.length > 0)
+			this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
+		else if (this.rootNode instanceof Module) this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
+	}
+
+	incrementLineNumbers(fromIndex: number) {
+		for (let i = fromIndex; i < this.body.length; i++) {
+			this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, this.body[i].left));
+
+			if (this.bodyBoundary.right < this.body[i].right) this.bodyBoundary.right = this.body[i].right;
+		}
+
+		this.bodyBoundary.bottomLine = this.body[this.body.length - 1].lineNumber;
+
+		// rebuild all parents until Module:
+		if (this.rootNode instanceof Statement && this.rootNode.body.length > 0)
+			this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
+		else if (this.rootNode instanceof Module) this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
 	}
 
 	getRenderText(): string {
@@ -569,6 +622,15 @@ export abstract class Statement implements CodeConstruct {
 		if (this instanceof EmptyLineStmt) return this;
 
 		return this.tokens[0];
+	}
+
+	/**
+	 * Returns the Module
+	 * @returns the parent module of the whole system
+	 */
+	getModule(): Module {
+		if (this.rootNode instanceof Module) return this.rootNode
+		else return (this.rootNode as Statement).getModule()
 	}
 }
 
@@ -827,6 +889,7 @@ export class WhileStatement extends Statement {
 	codeClass = CodeClass.WhileStatement;
 	addableType = AddableType.Statement;
 	private conditionIndex: number;
+	scope: Scope;
 
 	constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
 		super();
@@ -843,6 +906,7 @@ export class WhileStatement extends Statement {
 		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
 		this.body.push(new EmptyLineStmt(this, 0));
+		this.scope = new Scope();
 
 		this.hasEmptyToken = true;
 	}
@@ -871,6 +935,7 @@ export class IfStatement extends Statement {
 		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
 		this.body.push(new EmptyLineStmt(this, 0));
+		this.scope = new Scope();
 
 		this.hasEmptyToken = true;
 	}
@@ -895,7 +960,7 @@ export class ForStatement extends Statement {
 		this.tokens.push(new KeywordTkn('for', this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.counterIndex = this.tokens.length;
-		this.tokens.push(new IdentifierTkn("---", this, this.tokens.length));
+		this.tokens.push(new IdentifierTkn('---', this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.tokens.push(new KeywordTkn('in', this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
@@ -906,6 +971,7 @@ export class ForStatement extends Statement {
 		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
 		this.body.push(new EmptyLineStmt(this, 0));
+		this.scope = new Scope();
 
 		this.hasEmptyToken = true;
 	}
@@ -1010,21 +1076,27 @@ export class EmptyLineStmt extends Statement {
 }
 
 export class VarAssignmentStmt extends Statement {
+	static uniqueId: number = 0;
+	buttonId: string;
 	codeClass = CodeClass.VarAssignStatement;
 	addableType = AddableType.Statement;
 	private identifierIndex: number;
 	private valueIndex: number;
+	dataType = DataType.Any;
 
 	constructor(id?: string, root?: CodeConstruct | Module, indexInRoot?: number) {
 		super();
+
+		this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
+		VarAssignmentStmt.uniqueId++
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 
 		this.validEdits.push(EditFunctions.RemoveStatement);
 
-		this.identifierIndex = this.tokens.length;
 		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+		this.identifierIndex = this.tokens.length;
 		this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.tokens.push(new OperatorTkn('=', this, this.tokens.length));
@@ -1042,6 +1114,37 @@ export class VarAssignmentStmt extends Statement {
 
 	replaceValue(code: CodeConstruct) {
 		this.replace(code, this.valueIndex);
+	}
+
+	rebuild(pos: monaco.Position, fromIndex: number) {
+		super.rebuild(pos, fromIndex);
+
+		this.updateButton();
+	}
+
+	getIdentifier(): string {
+		return this.tokens[this.identifierIndex].getRenderText()
+	}
+
+	updateButton() {
+		document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
+	}
+}
+
+export class VariableReferenceExpr extends Expression {
+	codeClass = CodeClass.VariableReferenceExpr;
+	isEmpty = false;
+	addableType = AddableType.Expression;
+	identifier: string;
+
+	constructor(id: string, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+		super(returns);
+
+		this.tokens.push(new NonEditableTextTkn(id))
+
+		this.identifier = id;
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
 	}
 }
 
@@ -1592,6 +1695,7 @@ export class Module {
 	body = new Array<Statement>();
 	focusedNode: CodeConstruct;
 
+	scope: Scope;
 	editor: monaco.editor.IStandaloneCodeEditor;
 	eventHandler: EventHandler;
 
@@ -1603,11 +1707,29 @@ export class Module {
 		});
 
 		this.body.push(new EmptyLineStmt(this, 0));
+		this.scope = new Scope();
 		this.focusedNode = this.body[0];
 		this.focusedNode.build(new monaco.Position(1, 1));
 		this.editor.focus();
 
 		this.eventHandler = new EventHandler(this);
+	}
+
+	addVariableButtonToToolbox(ref: VarAssignmentStmt) {
+		let button = document.createElement("div")
+		button.id = ref.buttonId;
+		button.className = "toolbox-btn"
+
+		document.getElementById("variables").appendChild(button)
+		
+		button.addEventListener("click", () => {
+			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType))
+		})
+	}
+
+	incrementLineNumbers(fromIndex: number) {
+		for (let i = fromIndex; i < this.body.length; i++)
+			this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, this.body[i].left));
 	}
 
 	addStatement(code: Statement, index: number) {
@@ -1616,6 +1738,11 @@ export class Module {
 		for (let i = index + 1; i < this.body.length; i++) {
 			this.body[i].indexInRoot++;
 			this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
+		}
+
+		if (code instanceof VarAssignmentStmt) { 
+			this.addVariableButtonToToolbox(code);
+			this.scope.references.push(new Reference(code, this.scope));
 		}
 	}
 
@@ -1709,7 +1836,17 @@ export class Module {
 		stmt.indexInRoot = this.focusedNode.indexInRoot;
 		stmt.build(this.focusedNode.getLeftPosition());
 
-		// if stmt is compound, then rebuild all of the bottom statements as well.
+		if (stmt.scope != null) stmt.scope.parentScope = this.scope;
+
+		if (stmt instanceof VarAssignmentStmt) {
+			this.addVariableButtonToToolbox(stmt);
+			this.scope.references.push(new Reference(stmt, this.scope));
+		}
+
+		if (stmt.body.length > 0) {
+			// if stmt is compound, then rebuild all of the bottom statements as well.
+			this.incrementLineNumbers(stmt.indexInRoot + 1);
+		}
 	}
 
 	replaceFocusedExpression(expr: Expression) {
@@ -1719,6 +1856,8 @@ export class Module {
 		expr.rootNode = this.focusedNode.rootNode;
 		expr.indexInRoot = this.focusedNode.indexInRoot;
 	}
+
+	referenceTable = new Array<Reference>();
 
 	insert(code: CodeConstruct) {
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
@@ -1731,9 +1870,12 @@ export class Module {
 
 				if (parentRoot instanceof Statement && parentRoot.body.length > 0) {
 					// has body:
-
+					console.log(parentRoot.scope.getValidReferences(focusedPos.lineNumber));
 					parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
-				} else this.replaceFocusedStatement(statement);
+				} else {
+					console.log(this.scope.getValidReferences(focusedPos.lineNumber));
+					this.replaceFocusedStatement(statement);
+				}
 
 				let range = new monaco.Range(
 					focusedPos.lineNumber,
@@ -1768,5 +1910,46 @@ export class Module {
 			this.focusSelection(this.focusedNode.getSelection());
 			this.editor.focus();
 		} else console.warn('Cannot insert this code construct at focused location.');
+	}
+}
+
+/**
+ * These scopes are created by multi-line statements
+ */
+export class Scope {
+	startLineNumber: number;
+	endLineNumber: number;
+	parentScope: Scope = null;
+
+	references = new Array<Reference>();
+
+	getValidReferences(line: number): Array<Reference> {
+		let validReferences = this.references.filter((ref) => ref.line() < line);
+
+		if (this.parentScope != null)
+			validReferences = validReferences.concat(this.parentScope.getValidReferences(line));
+
+		return validReferences;
+	}
+}
+
+export class Reference {
+	/**
+	 * Currently, either a variable or a function declaration. Could later be a class declaration.
+	 */
+	statement: Statement;
+
+	/**
+	 * The valid scope in which this item could be referenced.
+	 */
+	scope: Scope;
+
+	constructor(statement: Statement, scope: Scope) {
+		this.statement = statement;
+		this.scope = scope;
+	}
+
+	line(): number {
+		return this.statement.lineNumber;
 	}
 }
