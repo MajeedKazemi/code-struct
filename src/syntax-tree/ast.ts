@@ -104,6 +104,12 @@ export enum AddableType {
 	StringLiteral
 }
 
+export enum CallbackType {
+	change,
+	replace,
+	delete
+}
+
 export interface CodeConstruct {
 	/** 
 	 * Indicates whether this code-construct implements the TextEditable interface or not.
@@ -221,6 +227,11 @@ export interface CodeConstruct {
 	 * Returns the parent statement of this code-construct (an element of the Module.body array).
 	 */
 	getParentStatement(): Statement;
+
+	/**
+	 * Subscribes a callback to be fired when the this code-construct is changed (could be a change in its children tokens or the body)
+	 */
+	subscribe(type: CallbackType, callback: () => {});
 }
 
 /**
@@ -254,6 +265,20 @@ export abstract class Statement implements CodeConstruct {
 
 	hasEmptyToken: boolean;
 
+	callbacks = new Map<string, Array<() => {}>>();
+
+	constructor() {
+		for (let type in CallbackType) this.callbacks[type] = new Array<() => {}>();
+	}
+
+	subscribe(type: CallbackType, callback: () => {}) {
+		this.callbacks[type].push(callback);
+	}
+
+	notify(type: CallbackType) {
+		for (let callback of this.callbacks[type]) callback();
+	}
+
 	build(pos: monaco.Position): monaco.Position {
 		this.lineNumber = pos.lineNumber;
 		this.left = pos.column;
@@ -282,6 +307,8 @@ export abstract class Statement implements CodeConstruct {
 
 			this.bodyBoundary.bottomLine = this.body[this.body.length - 1].lineNumber;
 		}
+
+		this.notify(CallbackType.change);
 
 		return curPos;
 	}
@@ -340,6 +367,8 @@ export abstract class Statement implements CodeConstruct {
 
 			if (this.rootNode.bodyBoundary.right < this.right) this.rootNode.bodyBoundary.right = this.right;
 		}
+
+		this.notify(CallbackType.change);
 	}
 
 	contains(pos: monaco.Position): boolean {
@@ -463,6 +492,8 @@ export abstract class Statement implements CodeConstruct {
 		if (rebuildColumn) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
 
 		this.updateHasEmptyToken(code);
+
+		this.notify(CallbackType.replace);
 	}
 
 	/**
@@ -487,18 +518,19 @@ export abstract class Statement implements CodeConstruct {
 
 			for (let i = index + 1; i < this.body.length; i++) {
 				this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, this.body[i].left));
-	
+
 				if (this.bodyBoundary.right < this.body[i].right) this.bodyBoundary.right = this.body[i].right;
-			}	
+			}
 
 			// update the boundaries:
 			this.bodyBoundary.bottomLine = this.body[this.body.length - 1].lineNumber;
-
 
 			if (this.rootNode instanceof Statement && this.rootNode.body.length > 0)
 				this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
 			else if (this.rootNode instanceof Module) this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
 		}
+
+		this.notify(CallbackType.replace);
 	}
 
 	/**
@@ -523,6 +555,8 @@ export abstract class Statement implements CodeConstruct {
 		if (this.rootNode instanceof Statement && this.rootNode.body.length > 0)
 			this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
 		else if (this.rootNode instanceof Module) this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
+
+		this.notify(CallbackType.change);
 	}
 
 	incrementLineNumbers(fromIndex: number) {
@@ -538,6 +572,8 @@ export abstract class Statement implements CodeConstruct {
 		if (this.rootNode instanceof Statement && this.rootNode.body.length > 0)
 			this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
 		else if (this.rootNode instanceof Module) this.rootNode.incrementLineNumbers(this.indexInRoot + 1);
+
+		this.notify(CallbackType.change);
 	}
 
 	getRenderText(): string {
@@ -629,8 +665,8 @@ export abstract class Statement implements CodeConstruct {
 	 * @returns the parent module of the whole system
 	 */
 	getModule(): Module {
-		if (this.rootNode instanceof Module) return this.rootNode
-		else return (this.rootNode as Statement).getModule()
+		if (this.rootNode instanceof Module) return this.rootNode;
+		else return (this.rootNode as Statement).getModule();
 	}
 }
 
@@ -743,7 +779,19 @@ export abstract class Token implements CodeConstruct {
 	text: string;
 	isEmpty: boolean = false;
 
+	callbacks = new Map<string, Array<() => {}>>();
+
+	subscribe(type: CallbackType, callback: () => {}) {
+		this.callbacks[type].push(callback);
+	}
+
+	notify(type: CallbackType) {
+		for (let callback of this.callbacks[type]) callback();
+	}
+
 	constructor(text: string, root?: CodeConstruct) {
+		for (let type in CallbackType) this.callbacks[type] = new Array<() => {}>();
+
 		this.rootNode = root;
 		this.text = text;
 	}
@@ -758,6 +806,8 @@ export abstract class Token implements CodeConstruct {
 		this.right = pos.column + this.text.length - 1;
 
 		this.boundary = new Boundary(pos.lineNumber, pos.lineNumber, this.left, this.right);
+
+		this.notify(CallbackType.change);
 
 		return new monaco.Position(pos.lineNumber, this.right + 1);
 
@@ -1087,8 +1137,8 @@ export class VarAssignmentStmt extends Statement {
 	constructor(id?: string, root?: CodeConstruct | Module, indexInRoot?: number) {
 		super();
 
-		this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
-		VarAssignmentStmt.uniqueId++
+		this.buttonId = 'add-var-ref-' + VarAssignmentStmt.uniqueId;
+		VarAssignmentStmt.uniqueId++;
 
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
@@ -1123,7 +1173,7 @@ export class VarAssignmentStmt extends Statement {
 	}
 
 	getIdentifier(): string {
-		return this.tokens[this.identifierIndex].getRenderText()
+		return this.tokens[this.identifierIndex].getRenderText();
 	}
 
 	updateButton() {
@@ -1140,7 +1190,7 @@ export class VariableReferenceExpr extends Expression {
 	constructor(id: string, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
 
-		this.tokens.push(new NonEditableTextTkn(id))
+		this.tokens.push(new NonEditableTextTkn(id));
 
 		this.identifier = id;
 		this.rootNode = root;
@@ -1716,15 +1766,15 @@ export class Module {
 	}
 
 	addVariableButtonToToolbox(ref: VarAssignmentStmt) {
-		let button = document.createElement("div")
+		let button = document.createElement('div');
 		button.id = ref.buttonId;
-		button.className = "toolbox-btn"
+		button.className = 'toolbox-btn';
 
-		document.getElementById("variables").appendChild(button)
-		
-		button.addEventListener("click", () => {
-			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType))
-		})
+		document.getElementById('variables').appendChild(button);
+
+		button.addEventListener('click', () => {
+			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType));
+		});
 	}
 
 	incrementLineNumbers(fromIndex: number) {
@@ -1740,7 +1790,7 @@ export class Module {
 			this.body[i].build(new monaco.Position(this.body[i].lineNumber + 1, 1));
 		}
 
-		if (code instanceof VarAssignmentStmt) { 
+		if (code instanceof VarAssignmentStmt) {
 			this.addVariableButtonToToolbox(code);
 			this.scope.references.push(new Reference(code, this.scope));
 		}
