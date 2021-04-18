@@ -2,9 +2,13 @@
   padding: 0rem 4rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;
 
   border-right: 1px solid #00000018;
+
+  overflow-y: scroll;
+  overflow-x: hidden;
+  padding-top: 4rem;
+  min-width: fit-content;
 }
 
 #editor-toolbox .button {
@@ -12,6 +16,8 @@
   font-size: 16px;
   margin: 10px 0px;
   padding: 7px 8px;
+
+  white-space: nowrap;
 }
 
 #editor-toolbox .group:not(:last-child) {
@@ -36,4 +42,18 @@
 
 .hole-toolbox:last-child {
   margin-left: 8px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: white;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #d1d3d6;
+  border-radius: 6px;
+  border: 3px solid white;
 }

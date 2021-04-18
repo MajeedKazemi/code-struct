@@ -59,9 +59,19 @@ export default class Editor {
         return <HTMLElement> line?.children[0];
     }
 
-    computeCharWidth(ln = 1) {
-        let line = this.getLineEl(ln);
-        return line.getBoundingClientRect().width / line.innerText.length;
+    computeCharSize(ln = 1) {
+        const lines = document.body.getElementsByClassName("view-lines")[0];
+
+        const temp = document.createElement("span");
+        temp.innerText = 'CALC_WIDTH';
+        lines.append(temp);
+
+        let {width, height} = temp.getBoundingClientRect();
+        width /= temp.innerText.length
+
+        temp.remove();
+
+        return {width, height};
     }
 
     addHoles(code: CodeConstruct) {
@@ -83,17 +93,18 @@ export default class Editor {
 
     computeBoundingBox(selection: monaco.Selection) {
         // Get entire line bbox
-        let bbox = this.getLineEl(selection.startLineNumber).getBoundingClientRect();
-        let charWidth = this.computeCharWidth();
+        let {x, y} = this.getLineEl(selection.startLineNumber).getBoundingClientRect();
+        y = Math.max(71.77, y);
+        let {width, height} = this.computeCharSize();
 
         // Set x,y based on column
-        bbox.x += (selection.startColumn - 1) * charWidth;
-        bbox.width = (selection.endColumn - selection.startColumn) * charWidth
+        x += (selection.startColumn - 1) * width;
+        width = (selection.endColumn - selection.startColumn) * width;
 
         // Add vertical padding
-        bbox.y -= 5;
-        bbox.height += 10;
+        // y -= 5;
+        // height += 10;
 
-        return bbox;
+        return {x, y, width, height};
     }
 }

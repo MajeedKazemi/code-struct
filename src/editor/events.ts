@@ -370,7 +370,7 @@ export class EventHandler {
 				}
 
 				case EditAction.SelectClosestTokenBelow: {
-					let curPos = this.module.editor.getPosition();
+					let curPos = this.module.editor.monaco.getPosition();
 					let parentStmt = this.module.focusedNode.getParentStatement();
 					let belowStmt = this.module.locateStatementAtLine(curPos.lineNumber + 1);
 

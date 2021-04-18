@@ -1,4 +1,4 @@
-import { CodeConstruct } from "../syntax-tree/ast";
+import { CallbackType, CodeConstruct } from "../syntax-tree/ast";
 import Editor from "./editor";
 
 export default class Hole {
@@ -18,29 +18,27 @@ export default class Hole {
         document.body.append(element);
         this.element = element;
 
-        // TODO: Remove this, use callbacks instead
         const hole = this;
-        function step(t: number) {
-            // If code has been replaced
-            if (code.rootNode == null) {
-                hole.setTransform({x: 0, y: 0, width: 0, height: 0});
-                return;
-            }
-
-            // If its for a hole then overlay a white background on top
-            if (code.getRenderText() == '---') {
-                element.style.background = 'white'
-            } else {
-                element.style.background = 'none'
-            }
-
-            // Set the correct transform based on code's selection
-            const bbox = hole.editor.computeBoundingBox(code.getSelection());
+        
+        code.subscribe(CallbackType.change, () => {
+            const bbox = editor.computeBoundingBox(code.getSelection());
             hole.setTransform(bbox);
+        });
 
-            requestAnimationFrame(step.bind(this));
-        }
-        requestAnimationFrame(step.bind(this));
+        code.subscribe(CallbackType.delete, () => {
+            console.log("Deleted")
+            hole.setTransform({x: 0, y: 0, width: 0, height: 0});
+        });
+        
+        code.subscribe(CallbackType.replace, () => {
+            console.log("Replaced")
+            hole.setTransform({x: 0, y: 0, width: 0, height: 0});
+        });
+
+        const bbox = editor.computeBoundingBox(code.getSelection());
+        hole.setTransform(bbox);
+
+        console.log(bbox);
     }
 
     setTransform(transform: { x: number; width: number; y: number; height: number; }) {

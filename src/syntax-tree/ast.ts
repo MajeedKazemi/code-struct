@@ -190,7 +190,7 @@ export interface CodeConstruct {
 	/**
 	 * Subscribes a callback to be fired when the this code-construct is changed (could be a change in its children tokens or the body)
 	 */
-	subscribe(type: CallbackType, callback: () => {});
+	subscribe(type: CallbackType, callback: () => any);
 }
 
 /**
