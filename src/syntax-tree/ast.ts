@@ -283,8 +283,7 @@ export abstract class Statement implements CodeConstruct {
 			}
 
 			if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
-			else
-				this.body[i].setLineNumber(lineNumber);
+			else this.body[i].setLineNumber(lineNumber);
 
 			lineNumber += this.body[i].getHeight();
 		}
@@ -507,7 +506,7 @@ export abstract class Statement implements CodeConstruct {
 	 * @param index the index to add the `code` statement
 	 */
 	addStatement(statement: Statement, index: number, lineNumber: number) {
-		// TODO: merge these two in to another function that would take care of the indexInRoot itself.
+		// TODO: update-body-index -> merge these two in to another function that would take care of the indexInRoot itself.
 		// support delete, add, and etc.
 		this.body.splice(index, 0, statement);
 		for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
@@ -911,6 +910,79 @@ export class IfStatement extends Statement {
 
 	replaceCondition(expr: Expression) {
 		this.replace(expr, this.conditionIndex);
+	}
+
+	isValidElseInsertion(index: number, statement: ElseStatement): boolean {
+		if (statement.hasCondition)
+			// if there is an else before this elif => invalid
+			for (let i = 0; i < index; i++) {
+				let stmt = this.body[i];
+
+				if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
+			}
+		else {
+			// if there is another else => invalid
+			for (let stmt of this.body) if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
+
+			// if the else is before an elif => invalid
+			for (let i = index + 1; i < this.body.length; i++) {
+				let stmt = this.body[i];
+
+				if (stmt instanceof ElseStatement && stmt.hasCondition) return false;
+			}
+		}
+
+		return true;
+	}
+
+	insertElseStatement(index: number, statement: ElseStatement) {
+		let prevPos = this.body[index].getLeftPosition();
+
+		// insert and shift other statements down
+		// TODO: update-body-index ->
+		this.body.splice(index, 0, statement);
+		for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
+
+		// rebuild else statement, and body
+		statement.init(new monaco.Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
+		statement.rootNode = this;
+		statement.indexInRoot = index;
+
+		this.rebuildBody(index + 1, prevPos.lineNumber + 1);
+	}
+}
+
+export class ElseStatement extends Statement {
+	rootNode: IfStatement;
+	addableType = AddableType.Statement;
+	private conditionIndex: number;
+	hasCondition: boolean = false;
+
+	constructor(hasCondition: boolean, root?: IfStatement, indexInRoot?: number) {
+		super();
+		this.hasCondition = hasCondition;
+
+		this.validEdits.push(EditFunctions.RemoveStatement);
+
+		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+		if (hasCondition) {
+			this.tokens.push(new KeywordTkn('elif', this, this.tokens.length));
+			this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+			this.conditionIndex = this.tokens.length;
+			this.tokens.push(new EmptyExpr(this, this.tokens.length));
+			this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		} else this.tokens.push(new KeywordTkn('else', this, this.tokens.length));
+
+		this.tokens.push(new PunctuationTkn(':', this, this.tokens.length));
+		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+
+		this.scope = new Scope();
+
+		if (this.hasCondition) this.hasEmptyToken = true;
+	}
+
+	replaceCondition(expr: Expression) {
+		if (this.hasCondition) this.replace(expr, this.conditionIndex);
 	}
 }
 
@@ -1847,24 +1919,49 @@ export class Module {
 				let statement = code as Statement;
 
 				if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-					// has body:
-					// console.log(parentRoot.scope.getValidReferences(focusedPos.lineNumber));
-					parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
+					if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
+						if (parentRoot.isValidElseInsertion(this.focusedNode.indexInRoot, code)) {
+							parentRoot.insertElseStatement(this.focusedNode.indexInRoot, code);
+
+							let range = new monaco.Range(
+								focusedPos.lineNumber,
+								focusedPos.column - TAB_SPACES,
+								focusedPos.lineNumber,
+								focusedPos.column
+							);
+
+							this.editor.executeEdits('module', [
+								{ range: range, text: code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1), forceMoveMarkers: true }
+							]);
+						}
+					} else {
+						parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
+
+						var range = new monaco.Range(
+							focusedPos.lineNumber,
+							code.left,
+							focusedPos.lineNumber,
+							code.right
+						);
+
+						this.editor.executeEdits('module', [
+							{ range: range, text: code.getRenderText(), forceMoveMarkers: true }
+						]);
+					}
 				} else {
-					// console.log(this.scope.getValidReferences(focusedPos.lineNumber));
 					this.replaceFocusedStatement(statement);
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						statement.left,
+						focusedPos.lineNumber,
+						statement.right
+					);
+
+					this.editor.executeEdits('module', [
+						{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
+					]);
 				}
-
-				let range = new monaco.Range(
-					focusedPos.lineNumber,
-					statement.left,
-					focusedPos.lineNumber,
-					statement.right
-				);
-
-				this.editor.executeEdits('module', [
-					{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
-				]);
 			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
 				// replaces expression with the newly inserted expression
 				let expr = code as Expression;
@@ -1895,10 +1992,7 @@ export class Module {
  * These scopes are created by multi-line statements
  */
 export class Scope {
-	startLineNumber: number;
-	endLineNumber: number;
 	parentScope: Scope = null;
-
 	references = new Array<Reference>();
 
 	getValidReferences(line: number): Array<Reference> {
@@ -1930,4 +2024,13 @@ export class Reference {
 	line(): number {
 		return this.statement.lineNumber;
 	}
+}
+
+function emptySpaces(count: number) {
+	let spaces = ''
+
+	for (let i = 0; i < count; i++)
+		spaces += ' ';
+	
+		return spaces;
 }
