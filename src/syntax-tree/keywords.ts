@@ -1,4 +1,6 @@
-enum PythonKeywords {
+export const TAB_SPACES = 4;
+
+export enum PythonKeywords {
 	and = 'and',
 	as = 'as',
 	assert = 'assert',

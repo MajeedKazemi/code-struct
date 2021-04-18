@@ -1,5 +1,6 @@
 import * as ast from '../syntax-tree/ast';
 import * as monaco from 'monaco-editor';
+import { TAB_SPACES } from '../syntax-tree/keywords';
 
 export enum KeyPress {
 	// navigation:
@@ -143,8 +144,16 @@ export class EventHandler {
 				let curLine = this.module.locateStatement(curPos);
 				let curSelection = this.module.editor.monaco.getSelection();
 
+				let leftPosToCheck = 1;
+				let parent = this.module.focusedNode.getParentStatement().rootNode;
+
+				if (parent instanceof ast.Statement && parent.body.length > 0)
+					// is inside the body of another statement
+					leftPosToCheck = parent.left + TAB_SPACES;
+
 				if (curSelection.startColumn == curSelection.endColumn)
-					if (curPos.column == 1 || curPos.column == curLine.right + 1) return EditAction.InsertEmptyLine;
+					if (curPos.column == leftPosToCheck || curPos.column == curLine.right + 1)
+						return EditAction.InsertEmptyLine;
 
 				break;
 
@@ -214,20 +223,15 @@ export class EventHandler {
 
 					let token: ast.TextEditable;
 
-					switch (this.module.focusedNode.codeClass) {
-						case ast.CodeClass.IdentifierToken:
-							token = this.module.focusedNode as ast.IdentifierTkn;
-							break;
-
-						case ast.CodeClass.EditableTextToken:
-							token = this.module.focusedNode as ast.EditableTextTkn;
-							break;
-
-						default:
-							throw new Error(
-								'Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.'
-							);
-					}
+					if (
+						this.module.focusedNode instanceof ast.IdentifierTkn ||
+						this.module.focusedNode instanceof ast.EditableTextTkn
+					)
+						token = this.module.focusedNode;
+					else
+						throw new Error(
+							'Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.'
+						);
 
 					let newText = '';
 
@@ -281,20 +285,15 @@ export class EventHandler {
 
 					let token: ast.TextEditable;
 
-					switch (this.module.focusedNode.codeClass) {
-						case ast.CodeClass.IdentifierToken:
-							token = this.module.focusedNode as ast.IdentifierTkn;
-							break;
-
-						case ast.CodeClass.EditableTextToken:
-							token = this.module.focusedNode as ast.EditableTextTkn;
-							break;
-
-						default:
-							throw new Error(
-								'Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.'
-							);
-					}
+					if (
+						this.module.focusedNode instanceof ast.IdentifierTkn ||
+						this.module.focusedNode instanceof ast.EditableTextTkn
+					)
+						token = this.module.focusedNode;
+					else
+						throw new Error(
+							'Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.'
+						);
 
 					let newText = '';
 
@@ -350,13 +349,11 @@ export class EventHandler {
 
 				case EditAction.SelectClosestTokenAbove: {
 					let curPos = this.module.editor.monaco.getPosition();
-					// TODO: if parentStatement is compound check in its own body's structure as well.
 					let parentStmt = this.module.focusedNode.getParentStatement();
+					let aboveStmt = this.module.locateStatementAtLine(curPos.lineNumber - 1);
 
-					if (parentStmt.indexInRoot > 0) {
-						let aboveStmt = this.module.body[parentStmt.indexInRoot - 1];
-
-						if (aboveStmt.right <= curPos.column) {
+					if (aboveStmt != null) {
+						if (curPos.column >= aboveStmt.right) {
 							// go to the end of above stmt
 							if (aboveStmt instanceof ast.EmptyLineStmt) this.setFocusedNode(aboveStmt);
 							else this.setFocusedNode(aboveStmt.getEndOfLineToken());
@@ -373,14 +370,12 @@ export class EventHandler {
 				}
 
 				case EditAction.SelectClosestTokenBelow: {
-					let curPos = this.module.editor.monaco.getPosition();
-					// TODO: if parentStatement is compound check in its own body's structure as well.
+					let curPos = this.module.editor.getPosition();
 					let parentStmt = this.module.focusedNode.getParentStatement();
+					let belowStmt = this.module.locateStatementAtLine(curPos.lineNumber + 1);
 
-					if (parentStmt.indexInRoot + 1 < this.module.body.length) {
-						let belowStmt = this.module.body[parentStmt.indexInRoot + 1];
-
-						if (belowStmt.right <= curPos.column) {
+					if (belowStmt != null) {
+						if (curPos.column >= belowStmt.right) {
 							// go to the end of below stmt
 							if (belowStmt instanceof ast.EmptyLineStmt) this.setFocusedNode(belowStmt);
 							else this.setFocusedNode(belowStmt.getEndOfLineToken());
