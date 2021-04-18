@@ -354,12 +354,13 @@ export abstract class Statement implements CodeConstruct {
 
 			// check if parent's siblings should be rebuilt
 			if (this.rootNode != undefined && this.indexInRoot != undefined) {
-				if (this.rootNode instanceof Expression) this.rootNode.rebuild(curPos, this.indexInRoot + 1);
-				else if (this.rootNode instanceof Statement) this.rootNode.rebuild(curPos, this.indexInRoot + 1);
+				if (
+					(this.rootNode instanceof Expression || this.rootNode instanceof Statement) &&
+					this.rootNode.lineNumber == this.lineNumber
+				)
+					this.rootNode.rebuild(curPos, this.indexInRoot + 1);
 			} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
 		}
-
-		// TODO: rebuild body
 
 		this.notify(CallbackType.change);
 	}
@@ -912,6 +913,23 @@ export class IfStatement extends Statement {
 		this.replace(expr, this.conditionIndex);
 	}
 
+	isValidReference(uniqueId: string, lineNumber: number, indexInRoot: number): boolean {
+		if (!(this.indexInRoot[indexInRoot] instanceof ElseStatement) && indexInRoot - 1 > 0) {
+			for (let i = indexInRoot - 1; i >= 0; i--) {
+				let stmt = this.body[i];
+
+				if (stmt instanceof ElseStatement) break;
+
+				if (stmt instanceof VarAssignmentStmt && uniqueId == stmt.buttonId) return true;
+			}
+		}
+
+		for (let stmt of this.scope.getValidReferences(this.getLineNumber()))
+			if (stmt.statement instanceof VarAssignmentStmt && uniqueId == stmt.statement.buttonId) return true;
+
+		return false;
+	}
+
 	isValidElseInsertion(index: number, statement: ElseStatement): boolean {
 		if (statement.hasCondition)
 			// if there is an else before this elif => invalid
@@ -1175,8 +1193,9 @@ export class VariableReferenceExpr extends Expression {
 	isEmpty = false;
 	addableType = AddableType.Expression;
 	identifier: string;
+	uniqueId: string;
 
-	constructor(id: string, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+	constructor(id: string, returns: DataType, uniqueId: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
 
 		let idToken = new NonEditableTextTkn(id);
@@ -1184,6 +1203,7 @@ export class VariableReferenceExpr extends Expression {
 		idToken.indexInRoot = this.tokens.length;
 		this.tokens.push(idToken);
 
+		this.uniqueId = uniqueId;
 		this.identifier = id;
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
@@ -1749,7 +1769,7 @@ export class Module {
 		document.getElementById('variables').appendChild(button);
 
 		button.addEventListener('click', () => {
-			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType));
+			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
 		});
 	}
 
@@ -1912,7 +1932,8 @@ export class Module {
 	insert(code: CodeConstruct) {
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
 			let focusedPos = this.focusedNode.getLeftPosition();
-			let parentRoot = this.focusedNode.getParentStatement().rootNode;
+			let parentStatement = this.focusedNode.getParentStatement();
+			let parentRoot = parentStatement.rootNode;
 
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
 				// replaces statement with the newly inserted statement
@@ -1931,7 +1952,11 @@ export class Module {
 							);
 
 							this.editor.executeEdits('module', [
-								{ range: range, text: code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1), forceMoveMarkers: true }
+								{
+									range: range,
+									text: code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1),
+									forceMoveMarkers: true
+								}
 							]);
 						}
 					} else {
@@ -1963,21 +1988,36 @@ export class Module {
 					]);
 				}
 			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-				// replaces expression with the newly inserted expression
-				let expr = code as Expression;
+				let isValid = true;
 
-				this.replaceFocusedExpression(expr);
+				if (code instanceof VariableReferenceExpr) {
+					if (parentRoot instanceof IfStatement)
+						isValid = parentRoot.isValidReference(
+							code.uniqueId,
+							focusedPos.lineNumber,
+							parentStatement.indexInRoot
+						);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement)
+						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+				}
 
-				let range = new monaco.Range(
-					focusedPos.lineNumber,
-					this.focusedNode.left,
-					focusedPos.lineNumber,
-					this.focusedNode.right + 1
-				);
+				if (isValid) {
+					// replaces expression with the newly inserted expression
+					let expr = code as Expression;
 
-				this.editor.executeEdits('module', [
-					{ range: range, text: expr.getRenderText(), forceMoveMarkers: true }
-				]);
+					this.replaceFocusedExpression(expr);
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						this.focusedNode.left,
+						focusedPos.lineNumber,
+						this.focusedNode.right + 1
+					);
+
+					this.editor.executeEdits('module', [
+						{ range: range, text: expr.getRenderText(), forceMoveMarkers: true }
+					]);
+				}
 			}
 
 			this.focusedNode = code.nextEmptyToken();
@@ -1994,6 +2034,15 @@ export class Module {
 export class Scope {
 	parentScope: Scope = null;
 	references = new Array<Reference>();
+
+	isValidReference(uniqueId: string, line: number): boolean {
+		let validReferences = this.getValidReferences(line);
+
+		for (let ref of validReferences)
+			if (ref.statement instanceof VarAssignmentStmt && ref.statement.buttonId == uniqueId) return true;
+
+		return false;
+	}
 
 	getValidReferences(line: number): Array<Reference> {
 		let validReferences = this.references.filter((ref) => ref.line() < line);
@@ -2027,10 +2076,9 @@ export class Reference {
 }
 
 function emptySpaces(count: number) {
-	let spaces = ''
+	let spaces = '';
 
-	for (let i = 0; i < count; i++)
-		spaces += ' ';
-	
-		return spaces;
+	for (let i = 0; i < count; i++) spaces += ' ';
+
+	return spaces;
 }
