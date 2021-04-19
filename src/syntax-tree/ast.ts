@@ -1,5 +1,4 @@
 import * as monaco from 'monaco-editor';
-import Cursor from '../editor/cursor';
 import Editor from '../editor/editor';
 import { EventHandler } from '../editor/events';
 import { TAB_SPACES } from './keywords';
@@ -285,8 +284,7 @@ export abstract class Statement implements CodeConstruct {
 			}
 
 			if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
-			else
-				this.body[i].setLineNumber(lineNumber);
+			else this.body[i].setLineNumber(lineNumber);
 
 			lineNumber += this.body[i].getHeight();
 		}
@@ -333,8 +331,9 @@ export abstract class Statement implements CodeConstruct {
 
 		// rebuild siblings:
 		for (let i = fromIndex; i < this.tokens.length; i++) {
-			if (this.tokens[i] instanceof Token) curPos = this.tokens[i].build(curPos);
-			else curPos = (this.tokens[i] as Expression).build(curPos);
+			if (this.tokens[i] instanceof Token || this.tokens[i] as Expression) {
+				curPos = this.tokens[i].build(curPos);
+			}
 
 			if (i == fromIndex && i + 1 < this.tokens.length) {
 				// has siblings
@@ -357,12 +356,13 @@ export abstract class Statement implements CodeConstruct {
 
 			// check if parent's siblings should be rebuilt
 			if (this.rootNode != undefined && this.indexInRoot != undefined) {
-				if (this.rootNode instanceof Expression) this.rootNode.rebuild(curPos, this.indexInRoot + 1);
-				else if (this.rootNode instanceof Statement) this.rootNode.rebuild(curPos, this.indexInRoot + 1);
+				if (
+					(this.rootNode instanceof Expression || this.rootNode instanceof Statement) &&
+					this.rootNode.lineNumber == this.lineNumber
+				)
+					this.rootNode.rebuild(curPos, this.indexInRoot + 1);
 			} else console.warn('node did not have rootNode or indexInRoot: ', this.tokens);
 		}
-
-		// TODO: rebuild body
 
 		this.notify(CallbackType.change);
 	}
@@ -458,6 +458,13 @@ export abstract class Statement implements CodeConstruct {
 	 * @param index the index to replace at
 	 */
 	replace(code: CodeConstruct, index: number) {
+
+		const toReplace = this.tokens[index]
+
+		if (toReplace instanceof Statement || toReplace instanceof Expression || toReplace instanceof Token) {
+			toReplace.notify(CallbackType.delete);
+		}
+
 		// prepare the new Node
 		code.rootNode = this;
 		code.indexInRoot = index;
@@ -509,7 +516,7 @@ export abstract class Statement implements CodeConstruct {
 	 * @param index the index to add the `code` statement
 	 */
 	addStatement(statement: Statement, index: number, lineNumber: number) {
-		// TODO: merge these two in to another function that would take care of the indexInRoot itself.
+		// TODO: update-body-index -> merge these two in to another function that would take care of the indexInRoot itself.
 		// support delete, add, and etc.
 		this.body.splice(index, 0, statement);
 		for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
@@ -914,6 +921,96 @@ export class IfStatement extends Statement {
 	replaceCondition(expr: Expression) {
 		this.replace(expr, this.conditionIndex);
 	}
+
+	isValidReference(uniqueId: string, lineNumber: number, indexInRoot: number): boolean {
+		if (!(this.indexInRoot[indexInRoot] instanceof ElseStatement) && indexInRoot - 1 > 0) {
+			for (let i = indexInRoot - 1; i >= 0; i--) {
+				let stmt = this.body[i];
+
+				if (stmt instanceof ElseStatement) break;
+
+				if (stmt instanceof VarAssignmentStmt && uniqueId == stmt.buttonId) return true;
+			}
+		}
+
+		for (let stmt of this.scope.getValidReferences(this.getLineNumber()))
+			if (stmt.statement instanceof VarAssignmentStmt && uniqueId == stmt.statement.buttonId) return true;
+
+		return false;
+	}
+
+	isValidElseInsertion(index: number, statement: ElseStatement): boolean {
+		if (statement.hasCondition)
+			// if there is an else before this elif => invalid
+			for (let i = 0; i < index; i++) {
+				let stmt = this.body[i];
+
+				if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
+			}
+		else {
+			// if there is another else => invalid
+			for (let stmt of this.body) if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
+
+			// if the else is before an elif => invalid
+			for (let i = index + 1; i < this.body.length; i++) {
+				let stmt = this.body[i];
+
+				if (stmt instanceof ElseStatement && stmt.hasCondition) return false;
+			}
+		}
+
+		return true;
+	}
+
+	insertElseStatement(index: number, statement: ElseStatement) {
+		let prevPos = this.body[index].getLeftPosition();
+
+		// insert and shift other statements down
+		// TODO: update-body-index ->
+		this.body.splice(index, 0, statement);
+		for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
+
+		// rebuild else statement, and body
+		statement.init(new monaco.Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
+		statement.rootNode = this;
+		statement.indexInRoot = index;
+
+		this.rebuildBody(index + 1, prevPos.lineNumber + 1);
+	}
+}
+
+export class ElseStatement extends Statement {
+	rootNode: IfStatement;
+	addableType = AddableType.Statement;
+	private conditionIndex: number;
+	hasCondition: boolean = false;
+
+	constructor(hasCondition: boolean, root?: IfStatement, indexInRoot?: number) {
+		super();
+		this.hasCondition = hasCondition;
+
+		this.validEdits.push(EditFunctions.RemoveStatement);
+
+		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+		if (hasCondition) {
+			this.tokens.push(new KeywordTkn('elif', this, this.tokens.length));
+			this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+			this.conditionIndex = this.tokens.length;
+			this.tokens.push(new EmptyExpr(this, this.tokens.length));
+			this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
+		} else this.tokens.push(new KeywordTkn('else', this, this.tokens.length));
+
+		this.tokens.push(new PunctuationTkn(':', this, this.tokens.length));
+		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+
+		this.scope = new Scope();
+
+		if (this.hasCondition) this.hasEmptyToken = true;
+	}
+
+	replaceCondition(expr: Expression) {
+		if (this.hasCondition) this.replace(expr, this.conditionIndex);
+	}
 }
 
 export class ForStatement extends Statement {
@@ -1105,8 +1202,9 @@ export class VariableReferenceExpr extends Expression {
 	isEmpty = false;
 	addableType = AddableType.Expression;
 	identifier: string;
+	uniqueId: string;
 
-	constructor(id: string, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+	constructor(id: string, returns: DataType, uniqueId: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
 
 		let idToken = new NonEditableTextTkn(id);
@@ -1114,6 +1212,7 @@ export class VariableReferenceExpr extends Expression {
 		idToken.indexInRoot = this.tokens.length;
 		this.tokens.push(idToken);
 
+		this.uniqueId = uniqueId;
 		this.identifier = id;
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
@@ -1334,7 +1433,7 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 	getSelection(): monaco.Selection {
 		let leftPos = this.getLeftPosition();
-		return new monaco.Selection(leftPos.lineNumber, leftPos.column, leftPos.lineNumber, leftPos.column);
+		return new monaco.Selection(leftPos.lineNumber, leftPos.column, leftPos.lineNumber, leftPos.column + this.text.length);
 	}
 
 	getEditableText(): string {
@@ -1355,6 +1454,8 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 		if (this.text.length == 0) this.right = pos.column + this.text.length;
 		else this.right = pos.column + this.text.length - 1;
+
+		this.notify(CallbackType.change);
 
 		return new monaco.Position(pos.lineNumber, this.right + 1);
 	}
@@ -1495,7 +1596,6 @@ export class EmptyExpr extends Token {
 
 		this.validEdits.push(EditFunctions.SetExpression);
 		this.receives.push(AddableType.Expression);
-		
 	}
 }
 
@@ -1655,18 +1755,14 @@ export class Module {
 	scope: Scope;
 	editor: Editor;
 	eventHandler: EventHandler;
-	cursor: Cursor;
 
 	constructor(editorId: string) {
-		// Editor
 		this.editor = new Editor(document.getElementById(editorId));
 
-		// AST
 		this.body.push(new EmptyLineStmt(this, 0));
 		this.scope = new Scope();
 		this.focusedNode = this.body[0];
 		this.focusedNode.build(new monaco.Position(1, 1));
-
 		this.editor.monaco.focus();
 
 		this.eventHandler = new EventHandler(this);
@@ -1680,7 +1776,7 @@ export class Module {
 		document.getElementById('variables').appendChild(button);
 
 		button.addEventListener('click', () => {
-			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType));
+			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
 		});
 	}
 
@@ -1697,7 +1793,9 @@ export class Module {
 	}
 
 	focusSelection(selection: monaco.Selection) {
-		this.editor.focusSelection(selection)
+		if (selection.startColumn == selection.endColumn)
+			this.editor.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
+		else this.editor.monaco.setSelection(selection);
 	}
 
 	locateStatement(pos: monaco.Position): Statement {
@@ -1756,18 +1854,8 @@ export class Module {
 				(parentRoot as Statement).addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 			else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 
-			this.editor.monaco.executeEdits('module', [
-				{
-					range: {
-						endColumn: 1,
-						endLineNumber: curStatement.lineNumber - 1,
-						startColumn: 1,
-						startLineNumber: curStatement.lineNumber - 1
-					},
-					text: spaces + textToAdd,
-					forceMoveMarkers: true
-				}
-			]);
+			const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
+			this.editor.executeEdits(range, emptyLine, spaces + textToAdd)
 		} else {
 			// insert emptyStatement on next line, move other statements down
 			let emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot + 1);
@@ -1781,18 +1869,8 @@ export class Module {
 				);
 			else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
 
-			this.editor.monaco.executeEdits('module', [
-				{
-					range: {
-						endColumn: this.focusedNode.right + 1,
-						endLineNumber: curStatement.lineNumber,
-						startColumn: this.focusedNode.right + 1,
-						startLineNumber: curStatement.lineNumber
-					},
-					text: textToAdd + spaces,
-					forceMoveMarkers: true
-				}
-			]);
+			const range = new monaco.Range(curStatement.lineNumber, this.focusedNode.right + 1, curStatement.lineNumber, this.focusedNode.right + 1);
+			this.editor.executeEdits(range, emptyLine, spaces + textToAdd);
 
 			this.focusedNode = emptyLine;
 		}
@@ -1841,48 +1919,81 @@ export class Module {
 	insert(code: CodeConstruct) {
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
 			let focusedPos = this.focusedNode.getLeftPosition();
-			let parentRoot = this.focusedNode.getParentStatement().rootNode;
+			let parentStatement = this.focusedNode.getParentStatement();
+			let parentRoot = parentStatement.rootNode;
 
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
 				// replaces statement with the newly inserted statement
 				let statement = code as Statement;
-				this.body[this.focusedNode.indexInRoot] = statement;
 
 				if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-					// has body:
-					// console.log(parentRoot.scope.getValidReferences(focusedPos.lineNumber));
-					parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
+					if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
+						if (parentRoot.isValidElseInsertion(this.focusedNode.indexInRoot, code)) {
+							parentRoot.insertElseStatement(this.focusedNode.indexInRoot, code);
+
+							let range = new monaco.Range(
+								focusedPos.lineNumber,
+								focusedPos.column - TAB_SPACES,
+								focusedPos.lineNumber,
+								focusedPos.column
+							);
+
+							this.editor.executeEdits(range, code, code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1));
+						}
+					} else {
+						parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
+
+						var range = new monaco.Range(
+							focusedPos.lineNumber,
+							code.left,
+							focusedPos.lineNumber,
+							code.right
+						);
+
+						this.editor.executeEdits(range, code);
+					}
 				} else {
-					// console.log(this.scope.getValidReferences(focusedPos.lineNumber));
 					this.replaceFocusedStatement(statement);
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						statement.left,
+						focusedPos.lineNumber,
+						statement.right
+					);
+
+					this.editor.executeEdits(range, statement);
+				}
+			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
+
+				let isValid = true;
+
+				if (code instanceof VariableReferenceExpr) {
+					if (parentRoot instanceof IfStatement)
+						isValid = parentRoot.isValidReference(
+							code.uniqueId,
+							focusedPos.lineNumber,
+							parentStatement.indexInRoot
+						);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement)
+						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
 				}
 
-				let range = new monaco.Range(
-					focusedPos.lineNumber,
-					statement.left,
-					focusedPos.lineNumber,
-					statement.right
-				);
+				if (isValid) {
+					// replaces expression with the newly inserted expression
+					let expr = code as Expression;
 
-				this.editor.executeEdits(range, statement);
+					this.replaceFocusedExpression(expr);
 
-			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-				// replaces expression with the newly inserted expression
-				let expr = code as Expression;
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						this.focusedNode.left,
+						focusedPos.lineNumber,
+						this.focusedNode.right + 1
+					);
 
-				this.replaceFocusedExpression(expr);
-
-				let range = new monaco.Range(
-					focusedPos.lineNumber,
-					this.focusedNode.left,
-					focusedPos.lineNumber,
-					this.focusedNode.right + 1
-				);
-
-				this.focusedNode.rootNode = null;
-
-				this.editor.executeEdits(range, expr);
-
+					this.editor.executeEdits(range, expr);
+				}
 			}
 
 			this.focusedNode = code.nextEmptyToken();
@@ -1897,11 +2008,17 @@ export class Module {
  * These scopes are created by multi-line statements
  */
 export class Scope {
-	startLineNumber: number;
-	endLineNumber: number;
 	parentScope: Scope = null;
-
 	references = new Array<Reference>();
+
+	isValidReference(uniqueId: string, line: number): boolean {
+		let validReferences = this.getValidReferences(line);
+
+		for (let ref of validReferences)
+			if (ref.statement instanceof VarAssignmentStmt && ref.statement.buttonId == uniqueId) return true;
+
+		return false;
+	}
 
 	getValidReferences(line: number): Array<Reference> {
 		let validReferences = this.references.filter((ref) => ref.line() < line);
@@ -1932,4 +2049,12 @@ export class Reference {
 	line(): number {
 		return this.statement.lineNumber;
 	}
+}
+
+function emptySpaces(count: number) {
+	let spaces = '';
+
+	for (let i = 0; i < count; i++) spaces += ' ';
+
+	return spaces;
 }

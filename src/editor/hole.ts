@@ -22,23 +22,31 @@ export default class Hole {
         
         code.subscribe(CallbackType.change, () => {
             const bbox = editor.computeBoundingBox(code.getSelection());
+            if (bbox.width == 0) {
+                bbox.x -= 4;
+                bbox.width = 8;
+            }
             hole.setTransform(bbox);
         });
 
         code.subscribe(CallbackType.delete, () => {
-            console.log("Deleted")
+            console.log("Deleted");
             hole.setTransform({x: 0, y: 0, width: 0, height: 0});
         });
         
         code.subscribe(CallbackType.replace, () => {
-            console.log("Replaced")
+            console.log("Replaced");
             hole.setTransform({x: 0, y: 0, width: 0, height: 0});
         });
 
         const bbox = editor.computeBoundingBox(code.getSelection());
+        if (bbox.width == 0) {
+            bbox.x -= 4;
+            bbox.width = 8;
+        }
         hole.setTransform(bbox);
 
-        console.log(bbox);
+        console.log(code);
     }
 
     setTransform(transform: { x: number; width: number; y: number; height: number; }) {

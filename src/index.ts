@@ -121,6 +121,14 @@ document.getElementById('add-if-expr-btn').addEventListener('click', () => {
 	nova.insert(new AST.IfStatement());
 });
 
+document.getElementById('add-elif-expr-btn').addEventListener('click', () => {
+	nova.insert(new AST.ElseStatement(true));
+});
+
+document.getElementById('add-else-expr-btn').addEventListener('click', () => {
+	nova.insert(new AST.ElseStatement(false));
+});
+
 document.getElementById('add-for-expr-btn').addEventListener('click', () => {
 	nova.insert(new AST.ForStatement());
 });

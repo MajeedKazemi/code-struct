@@ -83,9 +83,12 @@ export default class Editor {
         }
     }
     
-    executeEdits(range: monaco.Range, code: CodeConstruct) {
+    executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
+
+        let text = overwrite || code.getRenderText();
+
         this.monaco.executeEdits('module', [
-            { range: range, text: code.getRenderText(), forceMoveMarkers: true }
+            { range: range, text, forceMoveMarkers: true }
         ]);
 
         this.addHoles(code);
