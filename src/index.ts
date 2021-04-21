@@ -140,3 +140,7 @@ document.getElementById('add-list-literal-btn').addEventListener('click', () => 
 document.getElementById('add-list-item-btn').addEventListener('click', () => {
 	nova.insertListItem();
 });
+
+document.getElementById('add-list-append-stmt-btn').addEventListener('click', () => {
+	nova.insert(new AST.MethodCallStmt('append', [ new AST.Argument(AST.DataType.Any, 'object', false) ]));
+});

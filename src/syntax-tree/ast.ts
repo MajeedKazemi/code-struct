@@ -72,6 +72,7 @@ export enum AddableType {
 
 	Statement,
 	Expression,
+	ExpressionModifier,
 	Identifier,
 	NumberLiteral,
 	StringLiteral
@@ -1261,6 +1262,90 @@ export class FunctionCallStmt extends Expression {
 		if (this.isStatement()) this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
 		this.hasEmptyToken = true;
+	}
+
+	replaceArgument(index: number, to: CodeConstruct) {
+		this.replace(to, this.argumentsIndices[index]);
+	}
+}
+
+export class MethodCallExpr extends Expression {
+	// onInsert => just check if focusedPos - 1 is an expression and has a correct returns data type
+	// it will be added inside the prev expression
+
+	private argumentsIndices = new Array<number>();
+	addableType: AddableType;
+
+	constructor(
+		functionName: string,
+		args: Array<Argument>,
+		returns: DataType,
+		root?: Expression,
+		indexInRoot?: number
+	) {
+		super(returns);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+
+		if (args.length > 0) this.hasEmptyToken = false;
+
+		this.addableType = AddableType.ExpressionModifier;
+
+		this.tokens.push(new PunctuationTkn('.', this, this.tokens.length));
+		this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn('(', this, this.tokens.length));
+
+		for (let i = 0; i < args.length; i++) {
+			let arg = args[i];
+
+			this.argumentsIndices.push(this.tokens.length);
+			this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
+
+			if (i + 1 < args.length) this.tokens.push(new PunctuationTkn(', ', this, this.tokens.length));
+		}
+
+		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
+	}
+
+	replaceArgument(index: number, to: CodeConstruct) {
+		this.replace(to, this.argumentsIndices[index]);
+	}
+}
+
+export class MethodCallStmt extends Statement {
+	// it has an empty left expression
+
+	private argumentsIndices = new Array<number>();
+	addableType: AddableType;
+
+	constructor(functionName: string, args: Array<Argument>, root?: Expression, indexInRoot?: number) {
+		super();
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+
+		if (args.length > 0) this.hasEmptyToken = false;
+
+		this.addableType = AddableType.Statement;
+
+		this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn('.', this, this.tokens.length));
+		this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn('(', this, this.tokens.length));
+
+		for (let i = 0; i < args.length; i++) {
+			let arg = args[i];
+
+			this.argumentsIndices.push(this.tokens.length);
+			this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
+
+			if (i + 1 < args.length) this.tokens.push(new PunctuationTkn(', ', this, this.tokens.length));
+		}
+
+		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
+		this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 	}
 
 	replaceArgument(index: number, to: CodeConstruct) {
