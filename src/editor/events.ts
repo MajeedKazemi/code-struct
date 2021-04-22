@@ -76,7 +76,7 @@ export class EventHandler {
 
 	setFocusedNode(code: ast.CodeConstruct) {
 		this.module.focusedNode = code;
-		this.module.focusSelection(this.module.focusedNode.getSelection());
+		this.module.editor.focusSelection(this.module.focusedNode.getSelection());
 	}
 
 	getKeyAction(e: KeyboardEvent) {

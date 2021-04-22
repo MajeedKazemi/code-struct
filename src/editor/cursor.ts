@@ -15,11 +15,13 @@ export default class Cursor {
     }
 
      setTransform(transform: { x: number; width: number; y: number; height: number; }) {
-        this.element.style.top = `${transform.y}px`;
+        const padding = 5;
+    
+        this.element.style.top = `${transform.y - padding}px`;
         this.element.style.left = `${transform.x}px`;
 
         this.element.style.width = `${transform.width}px`;
-        this.element.style.height = `${transform.height}px`;
+        this.element.style.height = `${transform.height + padding * 2}px`;
     }
 
     setSelection(selection: Selection) {

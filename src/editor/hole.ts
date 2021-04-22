@@ -39,6 +39,13 @@ export default class Hole {
             hole.setTransform({x: 0, y: 0, width: 0, height: 0});
         });
 
+        code.subscribe(CallbackType.fail, () => {
+            hole.element.style.background = `rgba(255, 0, 0, 0.06)`;
+            setTimeout(() => {
+                hole.element.style.background = `rgba(255, 0, 0, 0)`;
+            }, 1000);
+        });
+
         const bbox = editor.computeBoundingBox(code.getSelection());
         if (bbox.width == 0) {
             bbox.x -= 4;
@@ -50,10 +57,12 @@ export default class Hole {
     }
 
     setTransform(transform: { x: number; width: number; y: number; height: number; }) {
-        this.element.style.top = `${transform.y}px`;
-        this.element.style.left = `${transform.x}px`;
+        const padding = 5;
+    
+        this.element.style.top = `${transform.y - padding}px`;
+        this.element.style.left = `${transform.x - padding}px`;
 
-        this.element.style.width = `${transform.width}px`;
-        this.element.style.height = `${transform.height}px`;
+        this.element.style.width = `${transform.width + padding * 2}px`;
+        this.element.style.height = `${transform.height + padding * 2}px`;
     }
 }

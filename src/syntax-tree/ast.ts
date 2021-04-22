@@ -80,7 +80,8 @@ export enum AddableType {
 export enum CallbackType {
 	change,
 	replace,
-	delete
+	delete,
+	fail,
 }
 
 export interface CodeConstruct {
@@ -1446,7 +1447,10 @@ export class EditableTextTkn extends Token implements TextEditable {
 			(this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
 
 			return true;
-		} else return false;
+		} else {
+			this.notify(CallbackType.fail);
+			return false;
+		}
 	}
 
 	build(pos: monaco.Position): monaco.Position {
@@ -1535,7 +1539,10 @@ export class IdentifierTkn extends Token implements TextEditable {
 			(this.rootNode as Statement).rebuild(this.getLeftPosition(), this.indexInRoot);
 
 			return true;
-		} else return false;
+		} else {
+			this.notify(CallbackType.fail);
+			return false;
+		}
 	}
 }
 
@@ -1998,7 +2005,7 @@ export class Module {
 
 			this.focusedNode = code.nextEmptyToken();
 
-			this.focusSelection(this.focusedNode.getSelection());
+			this.editor.focusSelection(this.focusedNode.getSelection());
 			this.editor.monaco.focus();
 		} else console.warn('Cannot insert this code construct at focused location.');
 	}
