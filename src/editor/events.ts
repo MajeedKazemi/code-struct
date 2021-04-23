@@ -425,20 +425,7 @@ export class EventHandler {
 
 	attachOnMouseDownListener() {
 		this.module.editor.monaco.onMouseDown((e) => {
-			// if (this.editingIdentifier) {
-			//     // if inside the editing identifier's edit text => update editIndex
-			//     // else -> exit editMode
-			// } else
-
-			for (let line of this.module.body) {
-				if (line.contains(e.target.position)) {
-					this.setFocusedNode(line.locate(e.target.position));
-
-					return;
-				}
-			}
-
-			throw new Error('The clicked position did not match any of the statements in the module.');
+			this.setFocusedNode(this.module.locateStatement(e.target.position).locate(e.target.position));
 		});
 	}
 }

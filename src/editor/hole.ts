@@ -30,8 +30,8 @@ export default class Hole {
         });
 
         code.subscribe(CallbackType.delete, () => {
-            console.log("Deleted");
             hole.setTransform({x: 0, y: 0, width: 0, height: 0});
+            hole.element.remove();
         });
         
         code.subscribe(CallbackType.replace, () => {
@@ -52,8 +52,6 @@ export default class Hole {
             bbox.width = 8;
         }
         hole.setTransform(bbox);
-
-        console.log(code);
     }
 
     setTransform(transform: { x: number; width: number; y: number; height: number; }) {

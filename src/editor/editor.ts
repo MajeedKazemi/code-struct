@@ -49,8 +49,12 @@ export default class Editor {
     }
 
     focusSelection(selection: monaco.Selection) {
-        this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
-		this.cursor.setSelection(selection);
+        if (selection.startColumn == selection.endColumn) {
+            this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
+        } else {
+            this.cursor.setSelection(selection);
+            this.monaco.setSelection(selection);
+        }
     }
 
     getLineEl(ln: number) {
