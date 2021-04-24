@@ -3,6 +3,18 @@ import { EventHandler } from '../editor/events';
 import { TAB_SPACES } from './keywords';
 import Editor from '../editor/editor';
 
+export class Callback {
+	static counter: number;
+	callback: () => any;
+	callerId: string;
+
+	constructor(callback: () => any) {
+		this.callback = callback;
+		this.callerId = 'caller-id-' + Callback.counter;
+		Callback.counter++;
+	}
+}
+
 export enum EditFunctions {
 	InsertStatement,
 	RemoveStatement,
@@ -192,7 +204,12 @@ export interface CodeConstruct {
 	/**
 	 * Subscribes a callback to be fired when the this code-construct is changed (could be a change in its children tokens or the body)
 	 */
-	subscribe(type: CallbackType, callback: () => any);
+	subscribe(type: CallbackType, callback: Callback);
+
+	/**
+	 * Removes all subscribes of the given type for this code construct
+	 */
+	unsubscribe(type: CallbackType, callerId: string);
 }
 
 /**
@@ -230,10 +247,10 @@ export abstract class Statement implements CodeConstruct {
 
 	hasEmptyToken: boolean;
 
-	callbacks = new Map<string, Array<() => {}>>();
+	callbacks = new Map<string, Array<Callback>>();
 
 	constructor() {
-		for (let type in CallbackType) this.callbacks[type] = new Array<() => {}>();
+		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
 	}
 
 	/**
@@ -269,12 +286,25 @@ export abstract class Statement implements CodeConstruct {
 		}
 	}
 
-	subscribe(type: CallbackType, callback: () => {}) {
+	subscribe(type: CallbackType, callback: Callback) {
 		this.callbacks[type].push(callback);
 	}
 
+	unsubscribe(type: CallbackType, callerId: string) {
+		let index = -1;
+
+		for (let i = 0; i < this.callbacks[type].length; i++) {
+			if (this.callbacks[type].callerId == callerId) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index > 0) this.callbacks[type].splice(index, 1);
+	}
+
 	notify(type: CallbackType) {
-		for (let callback of this.callbacks[type]) callback();
+		for (let callback of this.callbacks[type]) callback.callback();
 	}
 
 	rebuildBody(fromIndex: number, startLineNumber: number) {
@@ -460,7 +490,6 @@ export abstract class Statement implements CodeConstruct {
 	 * @param index the index to replace at
 	 */
 	replace(code: CodeConstruct, index: number) {
-
 		// Notify the token being replaced
 		const toReplace = this.tokens[index];
 		if (toReplace instanceof Statement || toReplace instanceof Expression || toReplace instanceof Token) {
@@ -718,18 +747,31 @@ export abstract class Token implements CodeConstruct {
 	text: string;
 	isEmpty: boolean = false;
 
-	callbacks = new Map<string, Array<() => {}>>();
+	callbacks = new Map<string, Array<Callback>>();
 
-	subscribe(type: CallbackType, callback: () => {}) {
+	subscribe(type: CallbackType, callback: Callback) {
 		this.callbacks[type].push(callback);
 	}
 
+	unsubscribe(type: CallbackType, callerId: string) {
+		let index = -1;
+
+		for (let i = 0; i < this.callbacks[type].length; i++) {
+			if (this.callbacks[type].callerId == callerId) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index > 0) this.callbacks[type].splice(index, 1);
+	}
+
 	notify(type: CallbackType) {
-		for (let callback of this.callbacks[type]) callback();
+		for (let callback of this.callbacks[type]) callback.callback();
 	}
 
 	constructor(text: string, root?: CodeConstruct) {
-		for (let type in CallbackType) this.callbacks[type] = new Array<() => {}>();
+		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
 
 		this.rootNode = root;
 		this.text = text;
@@ -1522,7 +1564,12 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 	getSelection(): monaco.Selection {
 		let leftPos = this.getLeftPosition();
-		return new monaco.Selection(leftPos.lineNumber, leftPos.column, leftPos.lineNumber, leftPos.column + this.text.length);
+		return new monaco.Selection(
+			leftPos.lineNumber,
+			leftPos.column,
+			leftPos.lineNumber,
+			leftPos.column + this.text.length
+		);
 	}
 
 	getEditableText(): string {
@@ -2072,7 +2119,12 @@ export class Module {
 				);
 			else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
 
-			const range = new monaco.Range(curStatement.lineNumber, this.focusedNode.right + 1, curStatement.lineNumber, this.focusedNode.right + 1);
+			const range = new monaco.Range(
+				curStatement.lineNumber,
+				this.focusedNode.right + 1,
+				curStatement.lineNumber,
+				this.focusedNode.right + 1
+			);
 			this.editor.executeEdits(range, emptyLine, spaces + textToAdd);
 
 			this.focusedNode = emptyLine;
@@ -2139,7 +2191,11 @@ export class Module {
 								focusedPos.column
 							);
 
-							this.editor.executeEdits(range, code, code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1));
+							this.editor.executeEdits(
+								range,
+								code,
+								code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1)
+							);
 						}
 					} else {
 						parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
