@@ -5,6 +5,7 @@ export default class Hole {
     element: HTMLDivElement;
     editor: Editor;
     code: CodeConstruct;
+    interval: number;
 
     constructor(editor: Editor, code: CodeConstruct) {
         this.editor = editor;
@@ -32,11 +33,14 @@ export default class Hole {
         code.subscribe(CallbackType.delete, () => {
             hole.setTransform({x: 0, y: 0, width: 0, height: 0});
             hole.element.remove();
+
+            clearInterval(this.interval);
         });
         
         code.subscribe(CallbackType.replace, () => {
-            console.log("Replaced");
             hole.setTransform({x: 0, y: 0, width: 0, height: 0});
+
+            clearInterval(this.interval);
         });
 
         code.subscribe(CallbackType.fail, () => {
@@ -52,10 +56,26 @@ export default class Hole {
             bbox.width = 8;
         }
         hole.setTransform(bbox);
+
+        function loop() {
+            const bbox = editor.computeBoundingBox(code.getSelection());
+            if (bbox.width == 0) {
+                bbox.x -= 4;
+                bbox.width = 8;
+            }
+            hole.setTransform(bbox);
+            requestAnimationFrame(loop);
+        }
+
+        loop();
+
+        this.interval = setInterval(() => {
+            
+        }, 1000);
     }
 
     setTransform(transform: { x: number; width: number; y: number; height: number; }) {
-        const padding = 5;
+        const padding = 0;
     
         this.element.style.top = `${transform.y - padding}px`;
         this.element.style.left = `${transform.x - padding}px`;

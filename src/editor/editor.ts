@@ -48,11 +48,11 @@ export default class Editor {
         this.holes = [];
     }
 
-    focusSelection(selection: monaco.Selection) {
+    focusSelection(selection: monaco.Selection, code: CodeConstruct = null) {
         if (selection.startColumn == selection.endColumn) {
             this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
         } else {
-            this.cursor.setSelection(selection);
+            this.cursor.setSelection(selection, code);
             this.monaco.setSelection(selection);
         }
     }
@@ -61,21 +61,6 @@ export default class Editor {
         const lines = document.body.getElementsByClassName("view-lines")[0];
         const line = lines.children[ln - 1];
         return <HTMLElement> line?.children[0];
-    }
-
-    computeCharSize(ln = 1) {
-        const lines = document.body.getElementsByClassName("view-lines")[0];
-
-        const temp = document.createElement("span");
-        temp.innerText = 'CALC_WIDTH';
-        lines.append(temp);
-
-        let {width, height} = temp.getBoundingClientRect();
-        width /= temp.innerText.length
-
-        temp.remove();
-
-        return {width, height};
     }
 
     addHoles(code: CodeConstruct) {
@@ -98,20 +83,56 @@ export default class Editor {
         this.addHoles(code);
     }
 
+    // computeCharSize(ln = 1) {
+    //     const lines = document.body.getElementsByClassName("view-lines")[0];
+
+    //     const temp = document.createElement("span");
+    //     temp.innerText = 'CALC_WIDTH';
+    //     lines.append(temp);
+
+    //     let {width, height} = temp.getBoundingClientRect();
+    //     width /= temp.innerText.length
+
+    //     temp.remove();
+
+    //     return {width, height};
+    // }
+
+    // computeBoundingBox(selection: monaco.Selection) {
+    //     // Get entire line bbox
+    //     let {x, y} = this.getLineEl(selection.startLineNumber).getBoundingClientRect();
+    //     // y = Math.max(71.77, y);
+    //     let {width, height} = this.computeCharSize();
+
+    //     // Set x,y based on column
+    //     x += (selection.startColumn - 1) * width;
+    //     width = (selection.endColumn - selection.startColumn) * width;
+
+    //     // Add vertical padding
+    //     // y -= 5;
+    //     // height += 10;
+
+    //     return {x, y, width, height};
+    // }
+
     computeBoundingBox(selection: monaco.Selection) {
-        // Get entire line bbox
-        let {x, y} = this.getLineEl(selection.startLineNumber).getBoundingClientRect();
-        y = Math.max(71.77, y);
-        let {width, height} = this.computeCharSize();
+        const lines = document.getElementsByClassName("view-lines")[0];
+        const line = lines.children[selection.startLineNumber - 1];
+        const bbox = line?.children[0]?.getBoundingClientRect();
+        if (bbox == null) return {x: 0, y: 0, width: 0, height: 0};
 
-        // Set x,y based on column
-        x += (selection.startColumn - 1) * width;
-        width = (selection.endColumn - selection.startColumn) * width;
+        bbox.x += this.computeCharWidth() * (selection.startColumn - 1);
+        bbox.width = this.computeCharWidth() * (selection.endColumn - selection.startColumn);
 
-        // Add vertical padding
-        // y -= 5;
-        // height += 10;
+        return bbox;
+    }
 
-        return {x, y, width, height};
+    computeCharWidth(ln = 1) {
+        const lines = document.getElementsByClassName("view-lines")[0];
+
+        let line = <HTMLElement> lines.children[ln - 1]?.children[0];
+        if (line == null) return 0;
+
+        return line.getBoundingClientRect().width / line.innerText.length;
     }
 }
