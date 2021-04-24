@@ -1274,17 +1274,21 @@ export class MethodCallExpr extends Expression {
 	// it will be added inside the prev expression
 
 	private argumentsIndices = new Array<number>();
+	private expressionIndex: number;
 	addableType: AddableType;
+	calledOn: DataType;
 
 	constructor(
 		functionName: string,
 		args: Array<Argument>,
 		returns: DataType,
+		calledOn: DataType,
 		root?: Expression,
 		indexInRoot?: number
 	) {
 		super(returns);
 
+		this.calledOn = calledOn;
 		this.rootNode = root;
 		this.indexInRoot = indexInRoot;
 
@@ -1292,6 +1296,8 @@ export class MethodCallExpr extends Expression {
 
 		this.addableType = AddableType.ExpressionModifier;
 
+		this.expressionIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn('.', this, this.tokens.length));
 		this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn('(', this, this.tokens.length));
@@ -1306,6 +1312,10 @@ export class MethodCallExpr extends Expression {
 		}
 
 		this.tokens.push(new PunctuationTkn(')', this, this.tokens.length));
+	}
+
+	setExpression(prevItem: Expression) {
+		this.replace(prevItem, this.expressionIndex);
 	}
 
 	replaceArgument(index: number, to: CodeConstruct) {
@@ -2131,6 +2141,39 @@ export class Module {
 	referenceTable = new Array<Reference>();
 
 	insert(code: CodeConstruct) {
+		if (code instanceof MethodCallExpr) {
+			let focusedPos = this.editor.getPosition();
+			let prevItem = this.focusedNode
+				.getParentStatement()
+				.locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
+
+			if (prevItem instanceof Expression /* TODO: and check calledOn */) {
+				// will replace the expression with this
+				// and will have the expression as the first element inside the code
+				code.indexInRoot = prevItem.indexInRoot;
+				code.rootNode = prevItem.rootNode;
+
+				if (code.rootNode instanceof Expression || code.rootNode instanceof Statement) {
+					code.rootNode.replace(code, code.indexInRoot);
+				}
+
+				code.setExpression(prevItem);
+
+				let range = new monaco.Range(
+					focusedPos.lineNumber,
+					code.left,
+					focusedPos.lineNumber,
+					focusedPos.column
+				);
+
+				this.editor.executeEdits('module', [
+					{ range: range, text: code.getRenderText(), forceMoveMarkers: true }
+				]);
+
+				prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
+			}
+		}
+
 		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
 			let focusedPos = this.focusedNode.getLeftPosition();
 			let parentStatement = this.focusedNode.getParentStatement();
