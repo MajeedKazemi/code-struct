@@ -20,7 +20,7 @@ export default class Cursor {
         const cursor = this;
 
         function loop() {
-            const selection = editor.monaco.getSelection();
+            const selection = cursor.code != null ? cursor.code.getSelection() : editor.monaco.getSelection();
             let bbox = cursor.editor.computeBoundingBox(selection);
 
             cursor.setTransform(bbox);

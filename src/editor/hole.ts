@@ -11,8 +11,6 @@ export default class Hole {
 		this.editor = editor;
 		this.code = code;
 
-		// Add monaco padding
-
 		// Dom element
 		const element = document.createElement('div');
 		element.classList.add('hole');
@@ -21,7 +19,6 @@ export default class Hole {
         this.container.append(element);
 
 		this.element = element;
-
 		const hole = this;
 
         code.subscribe(CallbackType.delete, new Callback(() => {
@@ -37,8 +34,8 @@ export default class Hole {
         function loop() {
             const bbox = editor.computeBoundingBox(code.getSelection());
             if (bbox.width == 0) {
-                bbox.x -= 4;
-                bbox.width = 8;
+                bbox.x -= 7;
+                bbox.width = 14;
             }
             hole.setTransform(bbox);
             requestAnimationFrame(loop);
