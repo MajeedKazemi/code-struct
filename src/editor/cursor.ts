@@ -6,23 +6,30 @@ export default class Cursor {
     editor: Editor;
     element: HTMLElement;
     code: CodeConstruct;
+    container: HTMLElement;
 
     constructor(editor: Editor) {
         this.editor = editor;
 
         this.element = document.createElement("div");
         this.element.classList.add('cursor');
-        document.body.append(this.element);
+       
+        this.container = document.querySelector('.monaco-scrollable-element.editor-scrollable.vs')
+        this.container.append(this.element);
 
         const cursor = this;
 
         function loop() {
-            const bbox = cursor.editor.computeBoundingBox(editor.monaco.getSelection());
+            const selection = editor.monaco.getSelection();
+            let bbox = cursor.editor.computeBoundingBox(selection);
+
             cursor.setTransform(bbox);
             requestAnimationFrame(loop);
         }
 
         loop();
+
+        console.log(editor);
     }
 
      setTransform(transform: { x: number; width: number; y: number; height: number; }) {

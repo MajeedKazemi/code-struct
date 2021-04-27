@@ -5,6 +5,7 @@ export default class Hole {
 	element: HTMLDivElement;
 	editor: Editor;
 	code: CodeConstruct;
+	container: HTMLElement;
 
 	constructor(editor: Editor, code: CodeConstruct) {
 		this.editor = editor;
@@ -15,7 +16,10 @@ export default class Hole {
 		// Dom element
 		const element = document.createElement('div');
 		element.classList.add('hole');
-		document.body.append(element);
+		
+        this.container = document.querySelector('.monaco-scrollable-element.editor-scrollable.vs')
+        this.container.append(element);
+
 		this.element = element;
 
 		const hole = this;

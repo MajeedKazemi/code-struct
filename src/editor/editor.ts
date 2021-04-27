@@ -83,48 +83,22 @@ export default class Editor {
         this.addHoles(code);
     }
 
-    // computeCharSize(ln = 1) {
-    //     const lines = document.body.getElementsByClassName("view-lines")[0];
-
-    //     const temp = document.createElement("span");
-    //     temp.innerText = 'CALC_WIDTH';
-    //     lines.append(temp);
-
-    //     let {width, height} = temp.getBoundingClientRect();
-    //     width /= temp.innerText.length
-
-    //     temp.remove();
-
-    //     return {width, height};
-    // }
-
-    // computeBoundingBox(selection: monaco.Selection) {
-    //     // Get entire line bbox
-    //     let {x, y} = this.getLineEl(selection.startLineNumber).getBoundingClientRect();
-    //     // y = Math.max(71.77, y);
-    //     let {width, height} = this.computeCharSize();
-
-    //     // Set x,y based on column
-    //     x += (selection.startColumn - 1) * width;
-    //     width = (selection.endColumn - selection.startColumn) * width;
-
-    //     // Add vertical padding
-    //     // y -= 5;
-    //     // height += 10;
-
-    //     return {x, y, width, height};
-    // }
-
     computeBoundingBox(selection: monaco.Selection) {
+        const x = this.monaco.getOffsetForColumn(selection.startLineNumber, selection.startColumn);
+        const y = this.monaco.getTopForLineNumber(selection.startLineNumber);
+
+        const width =  this.monaco.getOffsetForColumn(selection.startLineNumber, selection.endColumn) - x;
+        const height = this.computeCharHeight();
+
+        return {x, y, width, height};
+    }
+
+    computeCharHeight() {
         const lines = document.getElementsByClassName("view-lines")[0];
-        const line = lines.children[selection.startLineNumber - 1];
-        const bbox = line?.children[0]?.getBoundingClientRect();
-        if (bbox == null) return {x: 0, y: 0, width: 0, height: 0};
+        const line = lines.children[0];
+        const bbox = line?.getBoundingClientRect();
 
-        bbox.x += this.computeCharWidth() * (selection.startColumn - 1);
-        bbox.width = this.computeCharWidth() * (selection.endColumn - selection.startColumn);
-
-        return bbox;
+        return bbox?.height || 0;
     }
 
     computeCharWidth(ln = 1) {
