@@ -144,3 +144,50 @@ document.getElementById('add-list-item-btn').addEventListener('click', () => {
 document.getElementById('add-list-append-stmt-btn').addEventListener('click', () => {
 	nova.insert(new AST.MethodCallStmt('append', [ new AST.Argument(AST.DataType.Any, 'object', false) ]));
 });
+
+document.getElementById('add-split-method-call-btn').addEventListener('click', () => {
+	nova.insert(
+		new AST.MethodCallExpr(
+			'split',
+			[ new AST.Argument(AST.DataType.String, 'sep', false) ],
+			AST.DataType.List,
+			AST.DataType.String
+		)
+	);
+});
+
+document.getElementById('add-join-method-call-btn').addEventListener('click', () => {
+	nova.insert(
+		new AST.MethodCallExpr(
+			'join',
+			[ new AST.Argument(AST.DataType.List, 'items', false) ],
+			AST.DataType.String,
+			AST.DataType.String
+		)
+	);
+});
+
+document.getElementById('add-replace-method-call-btn').addEventListener('click', () => {
+	nova.insert(
+		new AST.MethodCallExpr(
+			'replace',
+			[
+				new AST.Argument(AST.DataType.String, 'old', false),
+				new AST.Argument(AST.DataType.String, 'new', false)
+			],
+			AST.DataType.String,
+			AST.DataType.String
+		)
+	);
+});
+
+document.getElementById('add-find-method-call-btn').addEventListener('click', () => {
+	nova.insert(
+		new AST.MethodCallExpr(
+			'find',
+			[ new AST.Argument(AST.DataType.String, 'item', false) ],
+			AST.DataType.Number,
+			AST.DataType.String
+		)
+	);
+});
