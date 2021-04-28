@@ -110,3 +110,53 @@ Design goals for the code navigation system:
     - search for the first next editable item in `expr.tokens` from `expr.indexInRoot + 1` to `expr.tokens.length` => and select the whole
   - prev:
     - go the the prev editable item in `expr.root.tokens` from `expr.indexInRoot - 1` to `0`
+
+**Meeting notes (4/27/2021)**:
+   - Integrate ability to type, and update with the input
+	- Simple autocomplete system
+	- What are the space of possible statements given some context of where the user is at
+		- Code constructs (while, if, for, def, class) not (elif, else) 
+		- Built-in functions that do not return anything and do not update state of anything
+			- e.g. print(...), len(...), 
+		- Defining a variable
+		- Updating the value of variable
+		   - Member assignment (like 'list[2] = 5')
+		   - Update statement
+		      - +=, -=  
+		- Calling a method on that variable
+		- Return statement
+   - What are the space of expressions
+      - Literals
+         - Number
+            - [0-9]
+         - String
+            - "['a->z']"
+         - Boolean
+            -  True, False
+      - Identifier
+         - Variable
+         - Member / index into list
+      - List [] 
+      - Call expression
+         - f(x) -> y
+         - range(2)
+         - range(1, 5, 1)
+      - Unary Operator
+         - +, -
+      - Binary Operations (constraint: needs a left expression to exist)
+         - a + b, a * b
+         - a < b, a <= b
+         - if (5 > 2+):
+      - A ( ,+,-, ...) close off text editable nodes (i.e. Literal or Identifier)
+         - [If within array] ',' closes it off
+         - [If within arguments] ',' closes it off
+
+- Modify parent of an expression
+	- e.g. from 'x = array' -> 'x = len(array)'
+
+
+- Show user alternative paths to teach them concepts  
+   - (a + b) / 2
+   - a, b are both strings => user can type 'b.__' 
+   - Suggestion button that shows an alternative
+      - Tiny notification of the suggestion that the user clicks
