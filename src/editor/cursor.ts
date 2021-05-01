@@ -12,9 +12,9 @@ export default class Cursor {
         this.editor = editor;
 
         this.element = document.createElement("div");
-        this.element.classList.add('cursor');
-       
-        this.container = document.querySelector('.monaco-scrollable-element.editor-scrollable.vs')
+        this.element.classList.add("cursor");
+
+        this.container = document.querySelector(".monaco-scrollable-element.editor-scrollable.vs");
         this.container.append(this.element);
 
         const cursor = this;
@@ -32,14 +32,12 @@ export default class Cursor {
         console.log(editor);
     }
 
-     setTransform(transform: { x: number; width: number; y: number; height: number; }) {
-        const padding = 0;
-    
-        this.element.style.top = `${transform.y - padding}px`;
+    setTransform(transform: { x: number; width: number; y: number; height: number }) {
+        this.element.style.top = `${transform.y + 5}px`;
         this.element.style.left = `${transform.x}px`;
 
         this.element.style.width = `${transform.width}px`;
-        this.element.style.height = `${transform.height + padding * 2}px`;
+        this.element.style.height = `${transform.height - 5 * 2}px`;
     }
 
     setSelection(selection: Selection, code: CodeConstruct = null) {

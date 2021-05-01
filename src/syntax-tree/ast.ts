@@ -1062,11 +1062,17 @@ export class ElseStatement extends Statement {
 
 export class ForStatement extends Statement {
 	addableType = AddableType.Statement;
+
+	buttonId: string;
 	private counterIndex: number;
 	private rangeIndex: number;
+	dataType = DataType.Any;
 
 	constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
 		super();
+
+		this.buttonId = 'add-var-ref-' + VarAssignmentStmt.uniqueId;
+		VarAssignmentStmt.uniqueId++;
 
 		this.validEdits.push(EditFunctions.RemoveStatement);
 
@@ -1090,12 +1096,25 @@ export class ForStatement extends Statement {
 		this.hasEmptyToken = true;
 	}
 
+	rebuild(pos: monaco.Position, fromIndex: number) {
+		super.rebuild(pos, fromIndex);
+		this.updateButton();
+	}
+
 	replaceCounter(expr: Expression) {
 		this.replace(expr, this.counterIndex);
 	}
 
 	replaceRange(expr: Expression) {
 		this.replace(expr, this.rangeIndex);
+	}
+
+	getIdentifier(): string {
+		return this.tokens[3].getRenderText();
+	}
+
+	updateButton() {
+		document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
 	}
 }
 
@@ -1374,6 +1393,12 @@ export class MethodCallExpr extends Expression {
 	}
 }
 
+// Statement
+//   ExpressionStatement
+//       print()
+// Expressions
+//    let y = x.length
+
 export class MethodCallStmt extends Statement {
 	// it has an empty left expression
 
@@ -1411,6 +1436,29 @@ export class MethodCallStmt extends Statement {
 
 	replaceArgument(index: number, to: CodeConstruct) {
 		this.replace(to, this.argumentsIndices[index]);
+	}
+}
+
+export class MemberCallStmt extends Expression {
+	addableType = AddableType.Expression;
+	operator: BinaryOperator;
+	private rightOperandIndex: number;
+
+	constructor(returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+		super(returns);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+
+		this.addableType = AddableType.Expression;
+		this.validEdits.push(EditFunctions.RemoveExpression);
+
+		this.tokens.push(new PunctuationTkn('[', this, this.tokens.length));
+		this.rightOperandIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(']', this, this.tokens.length));
+
+		this.hasEmptyToken = true;
 	}
 }
 
@@ -2036,8 +2084,20 @@ export class Module {
 
 	addVariableButtonToToolbox(ref: VarAssignmentStmt) {
 		let button = document.createElement('div');
+		button.classList.add('button');
 		button.id = ref.buttonId;
-		button.className = 'toolbox-btn';
+
+		document.getElementById('variables').appendChild(button);
+
+		button.addEventListener('click', () => {
+			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
+		});
+	}
+
+	addLoopVariableButtonToToolbox(ref: ForStatement) {
+		let button = document.createElement('div');
+		button.classList.add('button');
+		button.id = ref.buttonId;
 
 		document.getElementById('variables').appendChild(button);
 
@@ -2142,7 +2202,6 @@ export class Module {
 	}
 
 	replaceFocusedStatement(newStmt: Statement) {
-		console.log('replaceFocusedStatement() : ' + newStmt.toString());
 		let curLineNumber = this.body[this.focusedNode.indexInRoot].lineNumber;
 
 		this.body[this.focusedNode.indexInRoot] = newStmt;
@@ -2154,6 +2213,11 @@ export class Module {
 
 		if (newStmt instanceof VarAssignmentStmt) {
 			this.addVariableButtonToToolbox(newStmt);
+			this.scope.references.push(new Reference(newStmt, this.scope));
+		}
+
+		if (newStmt instanceof ForStatement) {
+			this.addLoopVariableButtonToToolbox(newStmt);
 			this.scope.references.push(new Reference(newStmt, this.scope));
 		}
 
@@ -2214,6 +2278,7 @@ export class Module {
 			let focusedPos = this.focusedNode.getLeftPosition();
 			let parentStatement = this.focusedNode.getParentStatement();
 			let parentRoot = parentStatement.rootNode;
+			
 
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
 				// replaces statement with the newly inserted statement
@@ -2272,8 +2337,18 @@ export class Module {
 							focusedPos.lineNumber,
 							parentStatement.indexInRoot
 						);
-					else if (parentRoot instanceof Module || parentRoot instanceof Statement)
-						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
+
+						// Find module scope
+						let block = parentStatement;
+						// console.log(parentStatement.getParentStatement().rootNode instanceof Module);
+						// console.log(parentStatement.getParentStatement().getParentStatement().rootNode instanceof Module);
+						while (!(block.rootNode instanceof Module)) {
+							block = block.getParentStatement();
+						}
+
+						isValid = block.rootNode.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+					}
 				}
 
 				if (isValid) {

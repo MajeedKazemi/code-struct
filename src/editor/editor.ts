@@ -1,17 +1,23 @@
-import * as monaco from 'monaco-editor';
-import { CodeConstruct, EditableTextTkn, EmptyExpr, IdentifierTkn, Statement, TypedEmptyExpr } from '../syntax-tree/ast';
-import Cursor from './cursor';
-import Hole from './hole';
+import * as monaco from "monaco-editor";
+import {
+    CodeConstruct,
+    EditableTextTkn,
+    EmptyExpr,
+    IdentifierTkn,
+    Statement,
+    TypedEmptyExpr,
+} from "../syntax-tree/ast";
+import Cursor from "./cursor";
+import Hole from "./hole";
 
 export default class Editor {
-
     monaco: monaco.editor.IStandaloneCodeEditor;
     cursor: Cursor;
-    holes: any[];
+    holes: Hole[];
 
     constructor(parentEl: HTMLElement) {
         this.monaco = monaco.editor.create(parentEl, {
-			value: "",
+            value: "",
             language: "python",
             minimap: {
                 enabled: false,
@@ -41,10 +47,10 @@ export default class Editor {
             acceptSuggestionOnEnter: "off",
             tabCompletion: "off",
             wordBasedSuggestions: false,
-		});
+        });
 
-		// Visual
-		this.cursor = new Cursor(this);
+        // Visual
+        this.cursor = new Cursor(this);
         this.holes = [];
     }
 
@@ -60,25 +66,33 @@ export default class Editor {
     getLineEl(ln: number) {
         const lines = document.body.getElementsByClassName("view-lines")[0];
         const line = lines.children[ln - 1];
-        return <HTMLElement> line?.children[0];
+        return <HTMLElement>line?.children[0];
     }
 
     addHoles(code: CodeConstruct) {
-        if (code instanceof EditableTextTkn || code instanceof TypedEmptyExpr || code instanceof EmptyExpr || code instanceof IdentifierTkn) {
+        for (const hole of this.holes) {
+            if (hole.code == code) {
+                return;
+            }
+        }
+
+        if (
+            code instanceof EditableTextTkn ||
+            code instanceof TypedEmptyExpr ||
+            code instanceof EmptyExpr ||
+            code instanceof IdentifierTkn
+        ) {
             this.holes.push(new Hole(this, code));
         } else if (code instanceof Statement) {
-            const statement = <Statement> code;
-            statement.tokens.forEach(token => this.addHoles(token));
+            const statement = <Statement>code;
+            statement.tokens.forEach((token) => this.addHoles(token));
         }
     }
-    
-    executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
 
+    executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
         let text = overwrite || code.getRenderText();
 
-        this.monaco.executeEdits('module', [
-            { range: range, text, forceMoveMarkers: true }
-        ]);
+        this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
         this.addHoles(code);
     }
@@ -87,10 +101,10 @@ export default class Editor {
         const x = this.monaco.getOffsetForColumn(selection.startLineNumber, selection.startColumn);
         const y = this.monaco.getTopForLineNumber(selection.startLineNumber);
 
-        const width =  this.monaco.getOffsetForColumn(selection.startLineNumber, selection.endColumn) - x;
+        const width = this.monaco.getOffsetForColumn(selection.startLineNumber, selection.endColumn) - x;
         const height = this.computeCharHeight();
 
-        return {x, y, width, height};
+        return { x, y, width, height };
     }
 
     computeCharHeight() {
@@ -104,7 +118,7 @@ export default class Editor {
     computeCharWidth(ln = 1) {
         const lines = document.getElementsByClassName("view-lines")[0];
 
-        let line = <HTMLElement> lines.children[ln - 1]?.children[0];
+        let line = <HTMLElement>lines.children[ln - 1]?.children[0];
         if (line == null) return 0;
 
         return line.getBoundingClientRect().width / line.innerText.length;

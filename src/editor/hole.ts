@@ -47,10 +47,10 @@ export default class Hole {
 	setTransform(transform: { x: number; width: number; y: number; height: number }) {
 		const padding = 0;
 
-		this.element.style.top = `${transform.y - padding}px`;
+		this.element.style.top = `${transform.y + 5}px`;
 		this.element.style.left = `${transform.x - padding}px`;
 
 		this.element.style.width = `${transform.width + padding * 2}px`;
-		this.element.style.height = `${transform.height + padding * 2}px`;
+		this.element.style.height = `${transform.height - 5 * 2}px`;
 	}
 }

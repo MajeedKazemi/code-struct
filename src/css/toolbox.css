@@ -28,7 +28,7 @@
   white-space: pre;
 }
 
-.hole-toolbox {
+#editor-toolbox hole {
   min-width: 18px;
   height: 18px;
   background: rgb(0 0 0 / 5%);
