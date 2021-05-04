@@ -1,0 +1,54 @@
+#editor-toolbox {
+  padding: 0rem 4rem;
+  display: flex;
+  flex-direction: column;
+
+  border-right: 1px solid #00000018;
+
+  overflow-y: scroll;
+  overflow-x: hidden;
+  padding-top: 4rem;
+  min-width: -webkit-fit-content;
+  min-width: -moz-fit-content;
+  min-width: fit-content;
+}
+
+#editor-toolbox .button {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 16px;
+  margin: 10px 0px;
+  padding: 7px 8px;
+
+  white-space: nowrap;
+}
+
+#editor-toolbox .group:not(:last-child) {
+  margin-bottom: 3rem;
+}
+
+#editor-toolbox .group > p {
+  white-space: pre;
+}
+
+#editor-toolbox hole {
+  min-width: 18px;
+  height: 18px;
+  background: rgb(0 0 0 / 5%);
+  border-radius: 2px;
+  box-shadow: 0px 0px 0px 1px #0000005e inset;
+  margin: 0px 8px;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: white;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #d1d3d6;
+  border-radius: 6px;
+  border: 3px solid white;
+}

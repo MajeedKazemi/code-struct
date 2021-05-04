@@ -2,67 +2,136 @@
 <html>
 
 <head>
-    <meta charset="UTF-8">
-    <title>Nova: text-based programming for beginners</title>
+        <meta charset="UTF-8">
+        <title>Nova: text-based programming for beginners</title>
 </head>
 
 <body>
-    <div id="editor-container">
-        <div id="editor-toolbox">
-            <div id="add-print-btn" class="toolbox-btn">print()</div>
-            <div id="add-randint-btn" class="toolbox-btn">randint()</div>
+        <div id="editor-container">
+                <div id="editor-toolbox">
+                        <div class="group">
+                                <p>Function calls</p>
+                                <div id="add-print-btn" class="button">print(<hole></hole>)</div>
+                                <div id="add-randint-btn" class="button">randint(<hole></hole>,
+                                        <hole></hole>)
+                                </div>
+                                <div id="add-range-btn" class="button">range(<hole></hole>,
+                                        <hole></hole>)
+                                </div>
+                                <div id="add-len-btn" class="button">len(<hole></hole>)
+                                </div>
+                        </div>
 
-            </br>
-            <div id="add-while-expr-btn" class="toolbox-btn">while --- :</div>
-            <div id="add-if-expr-btn" class="toolbox-btn">if --- :</div>
-            <div id="add-elif-expr-btn" class="toolbox-btn">elif --- :</div>
-            <div id="add-else-expr-btn" class="toolbox-btn">else:</div>
-            <div id="add-for-expr-btn" class="toolbox-btn">for --- in --- :</div>
+                        <div class="group">
+                                <p>Control flow</p>
+                                <div id="add-while-expr-btn" class="button">while <hole></hole> :
+                                </div>
+                                <div id="add-if-expr-btn" class="button">if <hole></hole> :</div>
+                                <div id="add-elif-expr-btn" class="button">elif <hole></hole> :
+                                </div>
+                                <div id="add-else-expr-btn" class="button">else:</div>
+                                <div id="add-for-expr-btn" class="button">for <hole></hole> in
+                                        <hole></hole> :
+                                </div>
+                        </div>
 
-            </br>
+                        <div class="group">
+                                <p>Methods</p>
+                                <div id="add-split-method-call-btn" class="button">.split(---)</div>
+                                <div id="add-join-method-call-btn" class="button">.join(---)</div>
+                                <div id="add-find-method-call-btn" class="button">.find(---)</div>
+                                <div id="add-replace-method-call-btn" class="button">.replace(---)</div>
+                        </div>
 
-            <div id="variables">
-                <div id="add-var-btn" class="toolbox-btn">--- = ---</div>
-            </div>
+                        <div class="group" id="variables">
+                                <p>Variables</p>
+                                <div id="add-var-btn" class="button">
+                                        <hole></hole> = <span class="hole-toolbox"></span>
+                                </div>
+                        </div>
 
-            <br />
-            <div id="add-str-btn" class="toolbox-btn">"txt"</div>
-            <div id="add-num-btn" class="toolbox-btn">123</div>
-            <div id="add-true-btn" class="toolbox-btn">True</div>
-            <div id="add-false-btn" class="toolbox-btn">False</div>
-            
-            <br/>
-            <div id="add-split-method-call-btn" class="toolbox-btn">.split(---)</div>
-            <div id="add-join-method-call-btn" class="toolbox-btn">.join(---)</div>
-            <div id="add-find-method-call-btn" class="toolbox-btn">.find(---)</div>
-            <div id="add-replace-method-call-btn" class="toolbox-btn">.replace(---)</div>
+                        <div class="group">
+                                <p>List</p>
 
-            <br/>
-            <div id="add-list-literal-btn" class="toolbox-btn">[]</div>
-            <div id="add-list-item-btn" class="toolbox-btn">---</div>
-            <div id="add-list-append-stmt-btn" class="toolbox-btn">---.append(---)</div>
+                                <div id="add-list-literal-btn" class="button">[]</div>
+                                <div id="add-list-item-btn" class="button">
+                                        <hole></hole>
+                                </div>
+                                <div id="add-list-append-stmt-btn" class="button"><span
+                                                class="hole-toolbox"></span>.append(<hole></hole>)
+                                </div>
+                                <div id="add-list-index-btn" class="button"><hole></hole>[<hole></hole>]
+                                </div>
+                        </div>
 
-            </br>
-            <div id="add-bin-add-expr-btn" class="toolbox-btn">--- + ---</div>
-            <div id="add-bin-sub-expr-btn" class="toolbox-btn">--- - ---</div>
-            <div id="add-bin-mul-expr-btn" class="toolbox-btn">--- * ---</div>
-            <div id="add-bin-div-expr-btn" class="toolbox-btn">--- / ---</div>
+                        <div class="group">
+                                <p>Literals</p>
+                                <div id="add-str-btn" class="button">"txt"</div>
+                                <div id="add-num-btn" class="button">123</div>
+                                <div id="add-true-btn" class="button">True</div>
+                                <div id="add-false-btn" class="button">False</div>
+                        </div>
 
-            </br>
-            <div id="add-bin-and-expr-btn" class="toolbox-btn">--- and ---</div>
-            <div id="add-bin-or-expr-btn" class="toolbox-btn">--- or ---</div>
-            <div id="add-unary-not-expr-btn" class="toolbox-btn">not ---</div>
 
-            </br>
-            <div id="add-comp-eq-expr-btn" class="toolbox-btn">--- == ---</div>
-            <div id="add-comp-neq-expr-btn" class="toolbox-btn">--- != ---</div>
-            <div id="add-comp-lt-expr-btn" class="toolbox-btn">--- &lt; ---</div>
-            <div id="add-comp-lte-expr-btn" class="toolbox-btn">--- &lt;= ---</div>
-            <div id="add-comp-gt-expr-btn" class="toolbox-btn">--- &gt; ---</div>
-            <div id="add-comp-gte-expr-btn" class="toolbox-btn">--- &gt;= ---</div>
+                        <div class="group">
+                                <p>Operations</p>
+                                <div id="add-bin-add-expr-btn" class="button">
+                                        <hole></hole> + <span class="hole-toolbox"></span>
+                                </div>
+                                <div id="add-bin-sub-expr-btn" class="button">
+                                        <hole></hole> - <span class="hole-toolbox"></span>
+                                </div>
+                                <div id="add-bin-mul-expr-btn" class="button">
+                                        <hole></hole> * <span class="hole-toolbox"></span>
+                                </div>
+                                <div id="add-bin-div-expr-btn" class="button">
+                                        <hole></hole> / <span class="hole-toolbox"></span>
+                                </div>
+                        </div>
+
+                        <div class="group">
+                                <p>Booleans</p>
+                                <div id="add-bin-and-expr-btn" class="button">
+                                        <hole></hole> and
+                                        <hole></hole>
+                                </div>
+                                <div id="add-bin-or-expr-btn" class="button">
+                                        <hole></hole> or <span class="hole-toolbox"></span>
+                                </div>
+                                <div id="add-unary-not-expr-btn" class="button">not <hole></hole>
+                                </div>
+                        </div>
+
+                        <div class="group">
+                                <p>Comparisons</p>
+                                <div id="add-comp-eq-expr-btn" class="button">
+                                        <hole></hole> ==
+                                        <hole></hole>
+                                </div>
+                                <div id="add-comp-neq-expr-btn" class="button">
+                                        <hole></hole> !=
+                                        <hole></hole>
+                                </div>
+                                <div id="add-comp-lt-expr-btn" class="button">
+                                        <hole></hole> &lt;
+                                        <hole></hole>
+                                </div>
+                                <div id="add-comp-lte-expr-btn" class="button">
+                                        <hole></hole> &lt;=
+                                        <hole></hole>
+                                </div>
+                                <div id="add-comp-gt-expr-btn" class="button">
+                                        <hole></hole> &gt;
+                                        <hole></hole>
+                                </div>
+                                <div id="add-comp-gte-expr-btn" class="button">
+                                        <hole></hole> &gt;=
+                                        <hole></hole>
+                                </div>
+                        </div>
+                </div>
+                <div id="editor"></div>
         </div>
-        <div id="editor"></div>
-    </div>
 </body>
 
 </html>

@@ -2,8 +2,11 @@ export interface TreeNode<T> {
 	index: number;
 	root: any;
 	value: T;
+
+
 }
 
+/** Every single item knows their own index, updated with every operation (e.g. splice, insert) */ 
 export class TreeArray<T> {
 	private array: Array<TreeNode<T>>;
 	private root: any;
@@ -11,6 +14,8 @@ export class TreeArray<T> {
 	constructor(root: any) {
 		this.array = new Array();
 	}
+
+
 
 	private reIndex(from: number) {
 		for (let i = from; i < this.array.length; i++) this.array[i].index = i;

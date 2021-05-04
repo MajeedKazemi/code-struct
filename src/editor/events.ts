@@ -76,11 +76,11 @@ export class EventHandler {
 
 	setFocusedNode(code: ast.CodeConstruct) {
 		this.module.focusedNode = code;
-		this.module.focusSelection(this.module.focusedNode.getSelection());
+		this.module.editor.focusSelection(this.module.focusedNode.getSelection());
 	}
 
 	getKeyAction(e: KeyboardEvent) {
-		let curPos = this.module.editor.getPosition();
+		let curPos = this.module.editor.monaco.getPosition();
 
 		// if (this.module.focusedNode == null)
 		// 	this.module.focusedNode = this.locate(curPos);
@@ -143,7 +143,7 @@ export class EventHandler {
 
 			case KeyPress.Enter:
 				let curLine = this.module.locateStatement(curPos);
-				let curSelection = this.module.editor.getSelection();
+				let curSelection = this.module.editor.monaco.getSelection();
 
 				let leftPosToCheck = 1;
 				let parent = this.module.focusedNode.getParentStatement().rootNode;
@@ -186,11 +186,11 @@ export class EventHandler {
 	}
 
 	attachOnKeyDownListener() {
-		this.module.editor.onDidPaste((e) => {
+		this.module.editor.monaco.onDidPaste((e) => {
 			// TODO: if in edit-mode: check if it is a valid edit and then paste it o.w. prevent it
 		});
 
-		this.module.editor.onKeyDown((e) => {
+		this.module.editor.monaco.onKeyDown((e) => {
 			let action = this.getKeyAction(e.browserEvent);
 
 			switch (action) {
@@ -219,8 +219,8 @@ export class EventHandler {
 				}
 
 				case EditAction.InsertChar: {
-					let cursorPos = this.module.editor.getPosition();
-					let selectedText = this.module.editor.getSelection();
+					let cursorPos = this.module.editor.monaco.getPosition();
+					let selectedText = this.module.editor.monaco.getSelection();
 
 					let token: ast.TextEditable;
 
@@ -268,9 +268,7 @@ export class EventHandler {
 							);
 						}
 
-						this.module.editor.executeEdits('module', [
-							{ range: editRange, text: e.browserEvent.key, forceMoveMarkers: true }
-						]);
+						this.module.editor.executeEdits(editRange, null, e.browserEvent.key);
 					}
 
 					e.preventDefault();
@@ -281,8 +279,8 @@ export class EventHandler {
 
 				case EditAction.DeletePrevChar:
 				case EditAction.DeleteNextChar: {
-					let cursorPos = this.module.editor.getPosition();
-					let selectedText = this.module.editor.getSelection();
+					let cursorPos = this.module.editor.monaco.getPosition();
+					let selectedText = this.module.editor.monaco.getSelection();
 
 					let token: ast.TextEditable;
 
@@ -337,9 +335,7 @@ export class EventHandler {
 							);
 						}
 
-						this.module.editor.executeEdits('module', [
-							{ range: editRange, text: '', forceMoveMarkers: true }
-						]);
+						this.module.editor.executeEdits(editRange, null, '');
 					} else {
 						e.stopPropagation();
 						e.preventDefault();
@@ -349,7 +345,7 @@ export class EventHandler {
 				}
 
 				case EditAction.SelectClosestTokenAbove: {
-					let curPos = this.module.editor.getPosition();
+					let curPos = this.module.editor.monaco.getPosition();
 					let parentStmt = this.module.focusedNode.getParentStatement();
 					let aboveStmt = this.module.locateStatementAtLine(curPos.lineNumber - 1);
 
@@ -371,7 +367,7 @@ export class EventHandler {
 				}
 
 				case EditAction.SelectClosestTokenBelow: {
-					let curPos = this.module.editor.getPosition();
+					let curPos = this.module.editor.monaco.getPosition();
 					let parentStmt = this.module.focusedNode.getParentStatement();
 					let belowStmt = this.module.locateStatementAtLine(curPos.lineNumber + 1);
 
@@ -425,7 +421,7 @@ export class EventHandler {
 	}
 
 	attachOnMouseDownListener() {
-		this.module.editor.onMouseDown((e) => {
+		this.module.editor.monaco.onMouseDown((e) => {
 			this.setFocusedNode(this.module.locateStatement(e.target.position).locate(e.target.position));
 		});
 	}

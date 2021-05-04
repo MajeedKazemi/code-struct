@@ -1,4 +1,4 @@
-import './index.css';
+import './css/index.css';
 import * as AST from './syntax-tree/ast';
 
 // @ts-ignore
@@ -32,6 +32,7 @@ document.getElementById('add-print-btn').addEventListener('click', () => {
 	);
 });
 
+
 document.getElementById('add-randint-btn').addEventListener('click', () => {
 	nova.insert(
 		new AST.FunctionCallStmt(
@@ -44,6 +45,26 @@ document.getElementById('add-randint-btn').addEventListener('click', () => {
 		)
 	);
 });
+
+document.getElementById('add-range-btn').addEventListener('click', () => {
+	nova.insert(
+		new AST.FunctionCallStmt(
+			'range',
+			[
+				new AST.Argument(AST.DataType.Number, 'start', false),
+				new AST.Argument(AST.DataType.Number, 'end', false)
+			],
+			AST.DataType.List
+		)
+	);
+});
+
+document.getElementById('add-len-btn').addEventListener('click', () => {
+	nova.insert(
+		new AST.FunctionCallStmt('len', [ new AST.Argument(AST.DataType.List, 'list', false) ], AST.DataType.Number)
+	);
+});
+
 
 document.getElementById('add-str-btn').addEventListener('click', () => {
 	nova.insert(new AST.LiteralValExpr('"txt"', AST.DataType.String));
@@ -143,6 +164,10 @@ document.getElementById('add-list-item-btn').addEventListener('click', () => {
 
 document.getElementById('add-list-append-stmt-btn').addEventListener('click', () => {
 	nova.insert(new AST.MethodCallStmt('append', [ new AST.Argument(AST.DataType.Any, 'object', false) ]));
+});
+
+document.getElementById('add-list-index-btn').addEventListener('click', () => {
+	nova.insert(new AST.MemberCallStmt(AST.DataType.Any));
 });
 
 document.getElementById('add-split-method-call-btn').addEventListener('click', () => {

@@ -1,6 +1,19 @@
 import * as monaco from 'monaco-editor';
 import { EventHandler } from '../editor/events';
 import { TAB_SPACES } from './keywords';
+import Editor from '../editor/editor';
+
+export class Callback {
+	static counter: number;
+	callback: () => any;
+	callerId: string;
+
+	constructor(callback: () => any) {
+		this.callback = callback;
+		this.callerId = 'caller-id-' + Callback.counter;
+		Callback.counter++;
+	}
+}
 
 export enum EditFunctions {
 	InsertStatement,
@@ -81,7 +94,8 @@ export enum AddableType {
 export enum CallbackType {
 	change,
 	replace,
-	delete
+	delete,
+	fail
 }
 
 export interface CodeConstruct {
@@ -190,7 +204,12 @@ export interface CodeConstruct {
 	/**
 	 * Subscribes a callback to be fired when the this code-construct is changed (could be a change in its children tokens or the body)
 	 */
-	subscribe(type: CallbackType, callback: () => {});
+	subscribe(type: CallbackType, callback: Callback);
+
+	/**
+	 * Removes all subscribes of the given type for this code construct
+	 */
+	unsubscribe(type: CallbackType, callerId: string);
 }
 
 /**
@@ -228,10 +247,10 @@ export abstract class Statement implements CodeConstruct {
 
 	hasEmptyToken: boolean;
 
-	callbacks = new Map<string, Array<() => {}>>();
+	callbacks = new Map<string, Array<Callback>>();
 
 	constructor() {
-		for (let type in CallbackType) this.callbacks[type] = new Array<() => {}>();
+		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
 	}
 
 	/**
@@ -267,12 +286,25 @@ export abstract class Statement implements CodeConstruct {
 		}
 	}
 
-	subscribe(type: CallbackType, callback: () => {}) {
+	subscribe(type: CallbackType, callback: Callback) {
 		this.callbacks[type].push(callback);
 	}
 
+	unsubscribe(type: CallbackType, callerId: string) {
+		let index = -1;
+
+		for (let i = 0; i < this.callbacks[type].length; i++) {
+			if (this.callbacks[type].callerId == callerId) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index > 0) this.callbacks[type].splice(index, 1);
+	}
+
 	notify(type: CallbackType) {
-		for (let callback of this.callbacks[type]) callback();
+		for (let callback of this.callbacks[type]) callback.callback();
 	}
 
 	rebuildBody(fromIndex: number, startLineNumber: number) {
@@ -458,6 +490,12 @@ export abstract class Statement implements CodeConstruct {
 	 * @param index the index to replace at
 	 */
 	replace(code: CodeConstruct, index: number) {
+		// Notify the token being replaced
+		const toReplace = this.tokens[index];
+		if (toReplace instanceof Statement || toReplace instanceof Expression || toReplace instanceof Token) {
+			toReplace.notify(CallbackType.delete);
+		}
+
 		// prepare the new Node
 		code.rootNode = this;
 		code.indexInRoot = index;
@@ -482,8 +520,6 @@ export abstract class Statement implements CodeConstruct {
 	 * Replaced the given item with the item in `this.body[index]`
 	 */
 	replaceInBody(index: number, newStmt: Statement) {
-		console.log('replaceInBody() : ' + newStmt.toString());
-
 		let curLeftPos = this.body[index].getLeftPosition();
 		newStmt.init(curLeftPos);
 
@@ -709,18 +745,31 @@ export abstract class Token implements CodeConstruct {
 	text: string;
 	isEmpty: boolean = false;
 
-	callbacks = new Map<string, Array<() => {}>>();
+	callbacks = new Map<string, Array<Callback>>();
 
-	subscribe(type: CallbackType, callback: () => {}) {
+	subscribe(type: CallbackType, callback: Callback) {
 		this.callbacks[type].push(callback);
 	}
 
+	unsubscribe(type: CallbackType, callerId: string) {
+		let index = -1;
+
+		for (let i = 0; i < this.callbacks[type].length; i++) {
+			if (this.callbacks[type].callerId == callerId) {
+				index = i;
+				break;
+			}
+		}
+
+		if (index > 0) this.callbacks[type].splice(index, 1);
+	}
+
 	notify(type: CallbackType) {
-		for (let callback of this.callbacks[type]) callback();
+		for (let callback of this.callbacks[type]) callback.callback();
 	}
 
 	constructor(text: string, root?: CodeConstruct) {
-		for (let type in CallbackType) this.callbacks[type] = new Array<() => {}>();
+		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
 
 		this.rootNode = root;
 		this.text = text;
@@ -1011,11 +1060,17 @@ export class ElseStatement extends Statement {
 
 export class ForStatement extends Statement {
 	addableType = AddableType.Statement;
+
+	buttonId: string;
 	private counterIndex: number;
 	private rangeIndex: number;
+	dataType = DataType.Any;
 
 	constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
 		super();
+
+		this.buttonId = 'add-var-ref-' + VarAssignmentStmt.uniqueId;
+		VarAssignmentStmt.uniqueId++;
 
 		this.validEdits.push(EditFunctions.RemoveStatement);
 
@@ -1039,12 +1094,25 @@ export class ForStatement extends Statement {
 		this.hasEmptyToken = true;
 	}
 
+	rebuild(pos: monaco.Position, fromIndex: number) {
+		super.rebuild(pos, fromIndex);
+		this.updateButton();
+	}
+
 	replaceCounter(expr: Expression) {
 		this.replace(expr, this.counterIndex);
 	}
 
 	replaceRange(expr: Expression) {
 		this.replace(expr, this.rangeIndex);
+	}
+
+	getIdentifier(): string {
+		return this.tokens[3].getRenderText();
+	}
+
+	updateButton() {
+		document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
 	}
 }
 
@@ -1323,6 +1391,12 @@ export class MethodCallExpr extends Expression {
 	}
 }
 
+// Statement
+//   ExpressionStatement
+//       print()
+// Expressions
+//    let y = x.length
+
 export class MethodCallStmt extends Statement {
 	// it has an empty left expression
 
@@ -1360,6 +1434,29 @@ export class MethodCallStmt extends Statement {
 
 	replaceArgument(index: number, to: CodeConstruct) {
 		this.replace(to, this.argumentsIndices[index]);
+	}
+}
+
+export class MemberCallStmt extends Expression {
+	addableType = AddableType.Expression;
+	operator: BinaryOperator;
+	private rightOperandIndex: number;
+
+	constructor(returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+		super(returns);
+
+		this.rootNode = root;
+		this.indexInRoot = indexInRoot;
+
+		this.addableType = AddableType.Expression;
+		this.validEdits.push(EditFunctions.RemoveExpression);
+
+		this.tokens.push(new PunctuationTkn('[', this, this.tokens.length));
+		this.rightOperandIndex = this.tokens.length;
+		this.tokens.push(new EmptyExpr(this, this.tokens.length));
+		this.tokens.push(new PunctuationTkn(']', this, this.tokens.length));
+
+		this.hasEmptyToken = true;
 	}
 }
 
@@ -1523,7 +1620,12 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 	getSelection(): monaco.Selection {
 		let leftPos = this.getLeftPosition();
-		return new monaco.Selection(leftPos.lineNumber, leftPos.column, leftPos.lineNumber, leftPos.column);
+		return new monaco.Selection(
+			leftPos.lineNumber,
+			leftPos.column,
+			leftPos.lineNumber,
+			leftPos.column + this.text.length
+		);
 	}
 
 	getEditableText(): string {
@@ -1536,7 +1638,10 @@ export class EditableTextTkn extends Token implements TextEditable {
 			(this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
 
 			return true;
-		} else return false;
+		} else {
+			this.notify(CallbackType.fail);
+			return false;
+		}
 	}
 
 	build(pos: monaco.Position): monaco.Position {
@@ -1544,6 +1649,8 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 		if (this.text.length == 0) this.right = pos.column + this.text.length;
 		else this.right = pos.column + this.text.length - 1;
+
+		this.notify(CallbackType.change);
 
 		return new monaco.Position(pos.lineNumber, this.right + 1);
 	}
@@ -1737,7 +1844,10 @@ export class IdentifierTkn extends Token implements TextEditable {
 			(this.rootNode as Statement).rebuild(this.getLeftPosition(), this.indexInRoot);
 
 			return true;
-		} else return false;
+		} else {
+			this.notify(CallbackType.fail);
+			return false;
+		}
 	}
 }
 
@@ -1955,29 +2065,37 @@ export class Module {
 	focusedNode: CodeConstruct;
 
 	scope: Scope;
-	editor: monaco.editor.IStandaloneCodeEditor;
+	editor: Editor;
 	eventHandler: EventHandler;
 
 	constructor(editorId: string) {
-		this.editor = monaco.editor.create(document.getElementById(editorId), {
-			value: '',
-			language: 'python',
-			minimap: { enabled: false }
-		});
+		this.editor = new Editor(document.getElementById(editorId));
 
 		this.body.push(new EmptyLineStmt(this, 0));
 		this.scope = new Scope();
 		this.focusedNode = this.body[0];
 		this.focusedNode.build(new monaco.Position(1, 1));
-		this.editor.focus();
+		this.editor.monaco.focus();
 
 		this.eventHandler = new EventHandler(this);
 	}
 
 	addVariableButtonToToolbox(ref: VarAssignmentStmt) {
 		let button = document.createElement('div');
+		button.classList.add('button');
 		button.id = ref.buttonId;
-		button.className = 'toolbox-btn';
+
+		document.getElementById('variables').appendChild(button);
+
+		button.addEventListener('click', () => {
+			this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
+		});
+	}
+
+	addLoopVariableButtonToToolbox(ref: ForStatement) {
+		let button = document.createElement('div');
+		button.classList.add('button');
+		button.id = ref.buttonId;
 
 		document.getElementById('variables').appendChild(button);
 
@@ -1996,12 +2114,6 @@ export class Module {
 			this.addVariableButtonToToolbox(newStmt);
 			this.scope.references.push(new Reference(newStmt, this.scope));
 		}
-	}
-
-	focusSelection(selection: monaco.Selection) {
-		if (selection.startColumn == selection.endColumn)
-			this.editor.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
-		else this.editor.setSelection(selection);
 	}
 
 	locateStatement(pos: monaco.Position): Statement {
@@ -2029,9 +2141,7 @@ export class Module {
 	}
 
 	insertEmptyLine() {
-		console.log('InsertEmptyLine()');
-
-		let curPos = this.editor.getPosition();
+		let curPos = this.editor.monaco.getPosition();
 		let curStatement = this.locateStatement(curPos);
 
 		let parentRoot = this.focusedNode.getParentStatement().rootNode;
@@ -2039,6 +2149,7 @@ export class Module {
 		let parentStmtHasBody = false;
 		let textToAdd = '\n';
 		let spaces = '';
+		let atCompoundStmt = false;
 
 		if (parentRoot instanceof Statement && parentRoot.hasBody()) {
 			// is inside the body of another statement
@@ -2047,6 +2158,17 @@ export class Module {
 
 			if (leftPosToCheck != 1) {
 				for (let i = 0; i < parentRoot.left + TAB_SPACES - 1; i++) spaces += ' ';
+			}
+		}
+
+		if (curStatement instanceof Statement && curStatement.hasBody()) {
+			// is at the header statement of a statement with body
+			leftPosToCheck = curStatement.left + TAB_SPACES;
+			parentStmtHasBody = true;
+			atCompoundStmt = true;
+
+			if (leftPosToCheck != 1) {
+				for (let i = 0; i < curStatement.left + TAB_SPACES - 1; i++) spaces += ' ';
 			}
 		}
 
@@ -2060,24 +2182,18 @@ export class Module {
 				(parentRoot as Statement).addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 			else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 
-			this.editor.executeEdits('module', [
-				{
-					range: {
-						endColumn: 1,
-						endLineNumber: curStatement.lineNumber - 1,
-						startColumn: 1,
-						startLineNumber: curStatement.lineNumber - 1
-					},
-					text: spaces + textToAdd,
-					forceMoveMarkers: true
-				}
-			]);
+			const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
+			this.editor.executeEdits(range, null, spaces + textToAdd);
 		} else {
 			// insert emptyStatement on next line, move other statements down
 			let emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot + 1);
 			emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
 
-			if (parentStmtHasBody)
+			if (parentStmtHasBody && atCompoundStmt) {
+				emptyLine.indexInRoot = 0;
+				emptyLine.rootNode = curStatement;
+				(curStatement as Statement).addStatement(emptyLine, 0, curStatement.lineNumber + 1);
+			} else if (parentStmtHasBody)
 				(parentRoot as Statement).addStatement(
 					emptyLine,
 					curStatement.indexInRoot + 1,
@@ -2085,25 +2201,19 @@ export class Module {
 				);
 			else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
 
-			this.editor.executeEdits('module', [
-				{
-					range: {
-						endColumn: this.focusedNode.right + 1,
-						endLineNumber: curStatement.lineNumber,
-						startColumn: this.focusedNode.right + 1,
-						startLineNumber: curStatement.lineNumber
-					},
-					text: textToAdd + spaces,
-					forceMoveMarkers: true
-				}
-			]);
+			const range = new monaco.Range(
+				curStatement.lineNumber,
+				this.focusedNode.right + 1,
+				curStatement.lineNumber,
+				this.focusedNode.right + 1
+			);
+			this.editor.executeEdits(range, null, textToAdd + spaces);
 
 			this.focusedNode = emptyLine;
 		}
 	}
 
 	replaceFocusedStatement(newStmt: Statement) {
-		console.log('replaceFocusedStatement() : ' + newStmt.toString());
 		let curLineNumber = this.body[this.focusedNode.indexInRoot].lineNumber;
 
 		this.body[this.focusedNode.indexInRoot] = newStmt;
@@ -2115,6 +2225,11 @@ export class Module {
 
 		if (newStmt instanceof VarAssignmentStmt) {
 			this.addVariableButtonToToolbox(newStmt);
+			this.scope.references.push(new Reference(newStmt, this.scope));
+		}
+
+		if (newStmt instanceof ForStatement) {
+			this.addLoopVariableButtonToToolbox(newStmt);
 			this.scope.references.push(new Reference(newStmt, this.scope));
 		}
 
@@ -2142,7 +2257,7 @@ export class Module {
 
 	insert(code: CodeConstruct) {
 		if (code instanceof MethodCallExpr) {
-			let focusedPos = this.editor.getPosition();
+			let focusedPos = this.editor.monaco.getPosition();
 			let prevItem = this.focusedNode
 				.getParentStatement()
 				.locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
@@ -2166,10 +2281,7 @@ export class Module {
 					focusedPos.column
 				);
 
-				this.editor.executeEdits('module', [
-					{ range: range, text: code.getRenderText(), forceMoveMarkers: true }
-				]);
-
+				this.editor.executeEdits(range, code);
 				prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
 			}
 		}
@@ -2195,13 +2307,11 @@ export class Module {
 								focusedPos.column
 							);
 
-							this.editor.executeEdits('module', [
-								{
-									range: range,
-									text: code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1),
-									forceMoveMarkers: true
-								}
-							]);
+							this.editor.executeEdits(
+								range,
+								code,
+								code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1)
+							);
 						}
 					} else {
 						parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
@@ -2213,9 +2323,7 @@ export class Module {
 							code.right
 						);
 
-						this.editor.executeEdits('module', [
-							{ range: range, text: code.getRenderText(), forceMoveMarkers: true }
-						]);
+						this.editor.executeEdits(range, code);
 					}
 				} else {
 					this.replaceFocusedStatement(statement);
@@ -2227,9 +2335,7 @@ export class Module {
 						statement.right
 					);
 
-					this.editor.executeEdits('module', [
-						{ range: range, text: statement.getRenderText(), forceMoveMarkers: true }
-					]);
+					this.editor.executeEdits(range, statement);
 				}
 			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
 				let isValid = true;
@@ -2242,8 +2348,16 @@ export class Module {
 							focusedPos.lineNumber,
 							parentStatement.indexInRoot
 						);
-					else if (parentRoot instanceof Module || parentRoot instanceof Statement)
-						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
+						// Find module scope
+						let block = parentStatement;
+
+						while (!(block.rootNode instanceof Module)) {
+							block = block.getParentStatement();
+						}
+
+						isValid = block.rootNode.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+					}
 				}
 
 				if (isValid) {
@@ -2253,7 +2367,7 @@ export class Module {
 					this.replaceFocusedExpression(expr);
 
 					let padding = 1;
-					let selection = this.editor.getSelection();
+					let selection = this.editor.monaco.getSelection();
 
 					if (selection.endColumn == selection.startColumn) padding = 0;
 
@@ -2264,16 +2378,14 @@ export class Module {
 						this.focusedNode.right + padding
 					);
 
-					this.editor.executeEdits('module', [
-						{ range: range, text: expr.getRenderText(), forceMoveMarkers: true }
-					]);
+					this.editor.executeEdits(range, expr);
 				}
 			}
 
 			this.focusedNode = code.nextEmptyToken();
 
-			this.focusSelection(this.focusedNode.getSelection());
-			this.editor.focus();
+			this.editor.focusSelection(this.focusedNode.getSelection());
+			this.editor.monaco.focus();
 		} else console.warn('Cannot insert this code construct at focused location.');
 	}
 
@@ -2284,8 +2396,8 @@ export class Module {
 			let text = listExpr.insertListItem(this.focusedNode.indexInRoot);
 
 			let padding = 1;
-			let selection = this.editor.getSelection();
-			let focusedPos = this.editor.getPosition();
+			let selection = this.editor.monaco.getSelection();
+			let focusedPos = this.editor.monaco.getPosition();
 
 			if (selection.endColumn == selection.startColumn) padding = 0;
 
@@ -2296,7 +2408,7 @@ export class Module {
 				this.focusedNode.right + padding
 			);
 
-			this.editor.executeEdits('module', [ { range: range, text: text, forceMoveMarkers: true } ]);
+			this.editor.executeEdits(range, listExpr, text);
 		}
 	}
 }

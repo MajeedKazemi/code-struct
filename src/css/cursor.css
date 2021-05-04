@@ -1,0 +1,9 @@
+.cursor {
+  position: absolute;
+  background: #a4e2ff94;
+  mix-blend-mode: multiply;
+
+  transition: 0.1s ease-in;
+  pointer-events: none;
+  z-index: 5;
+}
