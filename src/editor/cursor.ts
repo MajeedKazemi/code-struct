@@ -28,8 +28,6 @@ export default class Cursor {
         }
 
         loop();
-
-        console.log(editor);
     }
 
     setTransform(transform: { x: number; width: number; y: number; height: number }) {

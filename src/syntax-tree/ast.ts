@@ -520,8 +520,6 @@ export abstract class Statement implements CodeConstruct {
 	 * Replaced the given item with the item in `this.body[index]`
 	 */
 	replaceInBody(index: number, newStmt: Statement) {
-		console.log('replaceInBody() : ' + newStmt.toString());
-
 		let curLeftPos = this.body[index].getLeftPosition();
 		newStmt.init(curLeftPos);
 
@@ -2143,8 +2141,6 @@ export class Module {
 	}
 
 	insertEmptyLine() {
-		console.log('InsertEmptyLine()');
-
 		let curPos = this.editor.monaco.getPosition();
 		let curStatement = this.locateStatement(curPos);
 
@@ -2153,6 +2149,7 @@ export class Module {
 		let parentStmtHasBody = false;
 		let textToAdd = '\n';
 		let spaces = '';
+		let atCompoundStmt = false;
 
 		if (parentRoot instanceof Statement && parentRoot.hasBody()) {
 			// is inside the body of another statement
@@ -2161,6 +2158,17 @@ export class Module {
 
 			if (leftPosToCheck != 1) {
 				for (let i = 0; i < parentRoot.left + TAB_SPACES - 1; i++) spaces += ' ';
+			}
+		}
+
+		if (curStatement instanceof Statement && curStatement.hasBody()) {
+			// is at the header statement of a statement with body
+			leftPosToCheck = curStatement.left + TAB_SPACES;
+			parentStmtHasBody = true;
+			atCompoundStmt = true;
+
+			if (leftPosToCheck != 1) {
+				for (let i = 0; i < curStatement.left + TAB_SPACES - 1; i++) spaces += ' ';
 			}
 		}
 
@@ -2175,13 +2183,17 @@ export class Module {
 			else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 
 			const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
-			this.editor.executeEdits(range, emptyLine, spaces + textToAdd);
+			this.editor.executeEdits(range, null, spaces + textToAdd);
 		} else {
 			// insert emptyStatement on next line, move other statements down
 			let emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot + 1);
 			emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
 
-			if (parentStmtHasBody)
+			if (parentStmtHasBody && atCompoundStmt) {
+				emptyLine.indexInRoot = 0;
+				emptyLine.rootNode = curStatement;
+				(curStatement as Statement).addStatement(emptyLine, 0, curStatement.lineNumber + 1);
+			} else if (parentStmtHasBody)
 				(parentRoot as Statement).addStatement(
 					emptyLine,
 					curStatement.indexInRoot + 1,
@@ -2195,7 +2207,7 @@ export class Module {
 				curStatement.lineNumber,
 				this.focusedNode.right + 1
 			);
-			this.editor.executeEdits(range, emptyLine, spaces + textToAdd);
+			this.editor.executeEdits(range, null, textToAdd + spaces);
 
 			this.focusedNode = emptyLine;
 		}
@@ -2278,7 +2290,6 @@ export class Module {
 			let focusedPos = this.focusedNode.getLeftPosition();
 			let parentStatement = this.focusedNode.getParentStatement();
 			let parentRoot = parentStatement.rootNode;
-			
 
 			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
 				// replaces statement with the newly inserted statement
@@ -2338,11 +2349,9 @@ export class Module {
 							parentStatement.indexInRoot
 						);
 					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
-
 						// Find module scope
 						let block = parentStatement;
-						// console.log(parentStatement.getParentStatement().rootNode instanceof Module);
-						// console.log(parentStatement.getParentStatement().getParentStatement().rootNode instanceof Module);
+
 						while (!(block.rootNode instanceof Module)) {
 							block = block.getParentStatement();
 						}
