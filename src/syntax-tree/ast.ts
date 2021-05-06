@@ -723,7 +723,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 	getParentStatement(): Statement {
 		if (this.isStatement()) return this as Statement;
-		else if (this.rootNode instanceof Statement) return this.rootNode;
+		else if (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) return this.rootNode;
 		else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
 	}
 }
@@ -858,7 +858,10 @@ export abstract class Token implements CodeConstruct {
 	}
 
 	getParentStatement(): Statement {
-		if (this.rootNode instanceof Statement || (this.rootNode instanceof Expression && this.rootNode.isStatement()))
+		if (
+			(this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) ||
+			(this.rootNode instanceof Expression && this.rootNode.isStatement())
+		)
 			return this.rootNode as Statement;
 		else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
 	}
@@ -1109,7 +1112,7 @@ export class ForStatement extends Statement {
 	}
 
 	getIdentifier(): string {
-		return this.tokens[3].getRenderText();
+		return this.tokens[this.counterIndex].getRenderText();
 	}
 
 	updateButton() {
@@ -2257,7 +2260,7 @@ export class Module {
 
 		if (newStmt instanceof ForStatement) {
 			this.addLoopVariableButtonToToolbox(newStmt);
-			this.scope.references.push(new Reference(newStmt, this.scope));
+			newStmt.scope.references.push(new Reference(newStmt, this.scope));
 		}
 
 		if (newStmt.getHeight() > 1) this.rebuildBody(newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
@@ -2376,14 +2379,7 @@ export class Module {
 							parentStatement.indexInRoot
 						);
 					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
-						// Find module scope
-						let block = parentStatement;
-
-						while (!(block.rootNode instanceof Module)) {
-							block = block.getParentStatement();
-						}
-
-						isValid = block.rootNode.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
 					}
 				}
 
@@ -2451,7 +2447,11 @@ export class Scope {
 		let validReferences = this.getValidReferences(line);
 
 		for (let ref of validReferences)
-			if (ref.statement instanceof VarAssignmentStmt && ref.statement.buttonId == uniqueId) return true;
+			if (
+				(ref.statement instanceof VarAssignmentStmt && ref.statement.buttonId == uniqueId) ||
+				(ref.statement instanceof ForStatement && ref.statement.buttonId == uniqueId)
+			)
+				return true;
 
 		return false;
 	}
