@@ -6,6 +6,7 @@ export default class Hole {
     editor: Editor;
     code: CodeConstruct;
     container: HTMLElement;
+    removed: boolean = false;
 
     constructor(editor: Editor, code: CodeConstruct) {
         this.editor = editor;
@@ -48,6 +49,8 @@ export default class Hole {
         );
 
         function loop() {
+            if (hole.removed) return;
+
             const bbox = editor.computeBoundingBox(code.getSelection());
             if (bbox.width == 0) {
                 bbox.x -= 7;
@@ -68,5 +71,10 @@ export default class Hole {
 
         this.element.style.width = `${transform.width + padding * 2}px`;
         this.element.style.height = `${transform.height - 5 * 2}px`;
+    }
+
+    remove() {
+        this.element.remove();
+        this.removed = true;
     }
 }

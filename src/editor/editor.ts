@@ -123,4 +123,10 @@ export default class Editor {
 
         return line.getBoundingClientRect().width / line.innerText.length;
     }
+
+    reset() {
+        this.monaco.getModel().setValue("");
+        this.holes.forEach((hole) => hole.remove());
+        this.holes = [];
+    }
 }
