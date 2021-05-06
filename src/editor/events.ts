@@ -104,7 +104,7 @@ export class EventHandler {
 
             case KeyPress.ArrowRight:
                 if (inTextEditMode) {
-                    if (curPos.column == (this.module.focusedNode as ast.Token).right + 1)
+                    if (curPos.column == (this.module.focusedNode as ast.Token).right + 1 || (this.module.focusedNode as ast.Token).text == "---")
                         return EditAction.SelectNextToken;
 
                     if (e.shiftKey && e.ctrlKey) return EditAction.SelectToEnd;

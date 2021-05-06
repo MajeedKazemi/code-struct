@@ -1079,7 +1079,7 @@ export class ForStatement extends Statement {
 		this.tokens.push(new KeywordTkn('for', this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.counterIndex = this.tokens.length;
-		this.tokens.push(new IdentifierTkn('---', this, this.tokens.length));
+		this.tokens.push(new IdentifierTkn(undefined, this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
 		this.tokens.push(new KeywordTkn('in', this, this.tokens.length));
 		this.tokens.push(new PunctuationTkn(' ', this, this.tokens.length));
