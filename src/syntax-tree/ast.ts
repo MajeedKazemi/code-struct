@@ -2187,7 +2187,7 @@ export class Module {
             }
         }
 
-        if (curStatement instanceof Statement && curStatement.hasBody()) {
+        if (curStatement instanceof Statement && curStatement.hasBody() && curPos.column != curStatement.left) {
             // is at the header statement of a statement with body
             leftPosToCheck = curStatement.left + TAB_SPACES;
             parentStmtHasBody = true;
