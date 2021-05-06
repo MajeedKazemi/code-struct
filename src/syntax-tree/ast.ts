@@ -1664,13 +1664,20 @@ export class EditableTextTkn extends Token implements TextEditable {
 export class LiteralValExpr extends Expression {
 	addableType = AddableType.Expression;
 
-	constructor(value: string, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+	constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
 		super(returns);
 
 		switch (returns) {
 			case DataType.String: {
 				this.tokens.push(new PunctuationTkn('"', this, this.tokens.length));
-				this.tokens.push(new EditableTextTkn('', RegExp('^([^\\r\\n\\"]*)$'), this, this.tokens.length));
+				this.tokens.push(
+					new EditableTextTkn(
+						value == undefined ? '' : value,
+						RegExp('^([^\\r\\n\\"]*)$'),
+						this,
+						this.tokens.length
+					)
+				);
 				this.tokens.push(new PunctuationTkn('"', this, this.tokens.length));
 
 				break;
@@ -1678,7 +1685,12 @@ export class LiteralValExpr extends Expression {
 
 			case DataType.Number: {
 				this.tokens.push(
-					new EditableTextTkn('', RegExp('^(([0-9]*)|(([0-9]*)\\.([0-9]*)))$'), this, this.tokens.length)
+					new EditableTextTkn(
+						value == undefined ? '' : value,
+						RegExp('^(([0-9]*)|(([0-9]*)\\.([0-9]*)))$'),
+						this,
+						this.tokens.length
+					)
 				);
 
 				break;
@@ -1764,14 +1776,17 @@ export class ListLiteralExpression extends Expression {
 		} else super.replace(code, index);
 	}
 
-	insertListItem(index: number): string {
+	insertListItem(index: number, value?: number): string {
 		let insertedText = '';
 		let rebuildColumn: number;
 
 		if (this.tokens[index] instanceof Token || (this.tokens[index] as Expression))
 			rebuildColumn = this.tokens[index].left;
 
-		let emptyExpr = new EmptyExpr(this);
+		let expr;
+
+		if (value != undefined) expr = new LiteralValExpr(DataType.Number, value.toString(), this);
+		else expr = new EmptyExpr(this);
 
 		if (index + 2 == this.tokens.length) {
 			// if emptyList right before closing bracket => replace emptyList with: separator + empty + expr + empty
@@ -1781,28 +1796,28 @@ export class ListLiteralExpression extends Expression {
 				new PunctuationTkn(',', this),
 				new PunctuationTkn(' ', this),
 				new EmptyListItem(false, this),
-				emptyExpr,
+				expr,
 				new EmptyListItem(false, this)
 			);
 
-			insertedText = ', ' + emptyExpr.getRenderText();
+			insertedText = ', ' + expr.getRenderText();
 		} else {
 			// o.w. => replace emptyList with: empty + expr + empty + separator
 			this.tokens.splice(
 				index,
 				1,
 				new EmptyListItem(false, this),
-				emptyExpr,
+				expr,
 				new EmptyListItem(false, this),
 				new PunctuationTkn(',', this),
 				new PunctuationTkn(' ', this)
 			);
 
-			insertedText = emptyExpr.getRenderText() + ', ';
+			insertedText = expr.getRenderText() + ', ';
 		}
 
 		this.rebuildTokensIndices();
-		this.updateHasEmptyToken(emptyExpr);
+		this.updateHasEmptyToken(expr);
 
 		if (rebuildColumn != undefined) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
 
