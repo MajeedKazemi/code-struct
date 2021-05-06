@@ -1621,11 +1621,12 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 	getSelection(): monaco.Selection {
 		let leftPos = this.getLeftPosition();
+
 		return new monaco.Selection(
 			leftPos.lineNumber,
-			leftPos.column,
+			leftPos.column + this.text.length,
 			leftPos.lineNumber,
-			leftPos.column + this.text.length
+			leftPos.column
 		);
 	}
 
