@@ -2423,8 +2423,8 @@ export class Module {
 			this.focusedNode = code.nextEmptyToken();
 
 			this.editor.focusSelection(this.focusedNode.getSelection());
-			this.editor.monaco.focus();
 		} else console.warn('Cannot insert this code construct at focused location.');
+		this.editor.monaco.focus();
 	}
 
 	insertListItem() {
