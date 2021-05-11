@@ -14,7 +14,7 @@ export default class Cursor {
         this.element = document.createElement("div");
         this.element.classList.add("cursor");
 
-        this.container = document.querySelector(".monaco-scrollable-element.editor-scrollable.vs");
+        this.container = document.querySelector(".lines-content.monaco-editor-background");
         this.container.append(this.element);
 
         const cursor = this;
