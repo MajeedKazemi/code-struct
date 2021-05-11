@@ -16,7 +16,7 @@ export default class Hole {
         const element = document.createElement("div");
         element.classList.add("hole");
 
-        this.container = document.querySelector(".monaco-scrollable-element.editor-scrollable.vs");
+        this.container = document.querySelector(".lines-content.monaco-editor-background");
         this.container.append(element);
 
         this.element = element;
