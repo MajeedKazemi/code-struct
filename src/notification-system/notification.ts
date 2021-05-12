@@ -4,28 +4,62 @@ import Editor from '../editor/editor';
 const hoverNotificationMaxWidth = 200;
 const hoverNotificationMaxHeight = 25;
 
-abstract class Notification{
+export abstract class Notification{
     message: string;
     editor: Editor;
+    selection: monaco.Selection;
     index: number;
-    htmlElement: HTMLDivElement;
+    htmlParentElement: HTMLDivElement;
     htmlTextElement: HTMLDivElement;
+    domId: string;
+    notificationDomIdPrefix: string;
+
+    static currDomId: number = 0;
+
+    constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
+        this.selection = selection;
+        this.editor = editor;
+        this.index = index;
+
+        this.htmlParentElement = document.createElement("div");
+    }
+
+    addHighlight(styleClass: string){
+        this.htmlParentElement.classList.add(styleClass);
+        this.setHighlightBounds();
+    }
+
+    setHighlightBounds(){
+        const transform = this.editor.computeBoundingBox(this.selection);
+
+        this.htmlParentElement.style.top = `${transform.y + 5}px`;
+        this.htmlParentElement.style.left = `${transform.x - 0}px`;
+
+        this.htmlParentElement.style.width = `${transform.width + 0 * 2}px`;
+        this.htmlParentElement.style.height = `${transform.height - 5 * 2}px`;
+    }
+
+    removeHighlight(){
+        throw new Error("NOT IMPLEMENTED...");
+    }
+
+    setDomId(){
+        Notification.currDomId++;
+
+        this.domId = `${this.notificationDomIdPrefix}-${Notification.currDomId}`;
+        this.htmlParentElement.setAttribute("id", this.domId)
+    }
 }
 
 export class HoverNotification extends Notification{
     htmlHoverElement: HTMLDivElement;
-    selection: monaco.Selection;
 
-    constructor(editor: Editor, selection: monaco.Selection){
-        super();
+    constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
+        super(editor, selection, index);
 
-        this.selection = selection;
-        this.editor = editor;
-
-        //highlight box
-        this.htmlElement = document.createElement("div");
-        this.htmlElement.classList.add("hoverNotificationHighlight");
-        this.setHighlightBounds();
+        this.notificationDomIdPrefix = "hoverNotification";
+        this.addHighlight("hoverNotificationHighlight");
+        this.setDomId();
 
         //hover box
         this.htmlHoverElement = document.createElement("div");
@@ -33,22 +67,12 @@ export class HoverNotification extends Notification{
         this.htmlHoverElement.style.visibility = "hidden";
         this.setHoverBoxBounds();
         this.setHoverEvent();
-        this.htmlElement.appendChild(this.htmlHoverElement);
+        this.htmlParentElement.appendChild(this.htmlHoverElement);
 
         //TODO: text
         
 
-        document.querySelector(".lines-content.monaco-editor-background").appendChild(this.htmlElement);
-    }
-
-    private setHighlightBounds(){
-        const transform = this.editor.computeBoundingBox(this.selection);
-
-        this.htmlElement.style.top = `${transform.y + 5}px`;
-        this.htmlElement.style.left = `${transform.x - 0}px`;
-
-        this.htmlElement.style.width = `${transform.width + 0 * 2}px`;
-        this.htmlElement.style.height = `${transform.height - 5 * 2}px`;
+        document.querySelector(".lines-content.monaco-editor-background").appendChild(this.htmlParentElement);
     }
 
     private setHoverBoxBounds(){
@@ -59,22 +83,21 @@ export class HoverNotification extends Notification{
         this.htmlHoverElement.style.height = `${hoverNotificationMaxHeight}px`;
 
         this.moveWithinEditor();
-
     }
 
     private setHoverEvent(){
-        this.htmlElement.addEventListener("mouseenter", (e) => {
+        this.htmlParentElement.addEventListener("mouseenter", (e) => {
             this.htmlHoverElement.style.visibility = "visible";
         })
 
-        this.htmlElement.addEventListener("mouseleave", (e) => {
+        this.htmlParentElement.addEventListener("mouseleave", (e) => {
             this.htmlHoverElement.style.visibility = "hidden";
         })
     }
 
     private moveWithinEditor(){
         if(parseInt(this.htmlHoverElement.style.left) < 0){
-            this.htmlHoverElement.style.left = `${parseInt(this.htmlElement.style.left)+ parseInt(this.htmlHoverElement.style.left)}px`;
+            this.htmlHoverElement.style.left = `${parseInt(this.htmlParentElement.style.left) + parseInt(this.htmlHoverElement.style.left)}px`;
         }
         if(parseInt(this.htmlHoverElement.style.top) < 0){
             this.htmlHoverElement.style.top = `${this.editor.computeCharHeight()}px`;
