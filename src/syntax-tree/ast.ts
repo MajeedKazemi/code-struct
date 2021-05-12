@@ -1,8 +1,19 @@
+<<<<<<< HEAD
 import * as monaco from "monaco-editor";
 import { EventHandler } from "../editor/events";
 import { TAB_SPACES } from "./keywords";
 import Editor from "../editor/editor";
 import ActionStack from "../actions";
+=======
+import * as monaco from 'monaco-editor';
+import { EventHandler } from '../editor/events';
+import { TAB_SPACES } from './keywords';
+import Editor from '../editor/editor';
+import ActionStack from '../actions';
+import { NotificationMessageType, NotificationSystemController } from '../notification-system/notification-system-controller';
+//import { Notification } from '../notification-system/notification';
+
+>>>>>>> Add onMouseMove event
 
 export class Callback {
     static counter: number;
@@ -93,10 +104,18 @@ export enum AddableType {
 }
 
 export enum CallbackType {
+<<<<<<< HEAD
     change,
     replace,
     delete,
     fail,
+=======
+	change,
+	replace,
+	delete,
+	fail,
+	warning
+>>>>>>> Add onMouseMove event
 }
 
 export interface CodeConstruct {
@@ -140,7 +159,16 @@ export interface CodeConstruct {
      */
     addableType: AddableType;
 
+<<<<<<< HEAD
     /**
+=======
+	/**
+	 * A warning or error notification for this code construct. (null if there are no notifications)
+	 */
+	notification: Notification;
+
+	/**
+>>>>>>> Add onMouseMove event
      * Builds the left and right positions of this node and all of its children nodes recursively.
      * @param pos the left position to start building the nodes from
      * @returns the final right position of the whole node (calculated after building all of the children nodes)
@@ -250,9 +278,17 @@ export abstract class Statement implements CodeConstruct {
 
     callbacks = new Map<string, Array<Callback>>();
 
+<<<<<<< HEAD
     constructor() {
         for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
     }
+=======
+	notification = null;
+
+	constructor() {
+		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
+	}
+>>>>>>> Add onMouseMove event
 
     /**
      * The lineNumbers from the beginning to the end of this statement.
@@ -753,9 +789,17 @@ export abstract class Token implements CodeConstruct {
 
     callbacks = new Map<string, Array<Callback>>();
 
+<<<<<<< HEAD
     subscribe(type: CallbackType, callback: Callback) {
         this.callbacks[type].push(callback);
     }
+=======
+	notification = null;
+
+	subscribe(type: CallbackType, callback: Callback) {
+		this.callbacks[type].push(callback);
+	}
+>>>>>>> Add onMouseMove event
 
     unsubscribe(type: CallbackType, callerId: string) {
         let index = -1;
@@ -2089,11 +2133,20 @@ export class Module {
     body = new Array<Statement>();
     focusedNode: CodeConstruct;
 
+<<<<<<< HEAD
     scope: Scope;
     editor: Editor;
     eventHandler: EventHandler;
     actionStack: ActionStack;
     buttons: HTMLElement[];
+=======
+	scope: Scope;
+	editor: Editor;
+	eventHandler: EventHandler;
+	actionStack: ActionStack;
+	buttons: HTMLElement[];
+	notificationSystem: NotificationSystemController;
+>>>>>>> Add onMouseMove event
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId));
@@ -2108,8 +2161,15 @@ export class Module {
 
         this.actionStack = new ActionStack(this);
 
+<<<<<<< HEAD
         this.buttons = [];
     }
+=======
+		this.notificationSystem = new NotificationSystemController(this.editor);
+
+		this.buttons = [];
+	}
+>>>>>>> Add onMouseMove event
 
     reset() {
         this.body = new Array<Statement>();
@@ -2211,6 +2271,7 @@ export class Module {
             leftPosToCheck = parentRoot.left + TAB_SPACES;
             parentStmtHasBody = true;
 
+<<<<<<< HEAD
             if (leftPosToCheck != 1) {
                 for (let i = 0; i < parentRoot.left + TAB_SPACES - 1; i++) spaces += " ";
             }
@@ -2459,6 +2520,263 @@ export class Module {
             this.editor.executeEdits(range, listExpr, text);
         }
     }
+=======
+			if (leftPosToCheck != 1) {
+				for (let i = 0; i < parentRoot.left + TAB_SPACES - 1; i++) spaces += ' ';
+			}
+		}
+
+		if (curStatement instanceof Statement && curStatement.hasBody() && curPos.column != curStatement.left) {
+			// is at the header statement of a statement with body
+			leftPosToCheck = curStatement.left + TAB_SPACES;
+			parentStmtHasBody = true;
+			atCompoundStmt = true;
+
+			if (leftPosToCheck != 1) {
+				for (let i = 0; i < curStatement.left + TAB_SPACES - 1; i++) spaces += ' ';
+			}
+		}
+
+		if (curPos.column == leftPosToCheck) {
+			// insert emptyStatement at this line, move other statements down
+			let emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot);
+
+			emptyLine.build(curStatement.getLeftPosition());
+
+			if (parentStmtHasBody)
+				(parentRoot as Statement).addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
+			else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
+
+			const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
+			this.editor.executeEdits(range, null, spaces + textToAdd);
+		} else {
+			// insert emptyStatement on next line, move other statements down
+			let emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot + 1);
+			emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
+
+			if (parentStmtHasBody && atCompoundStmt) {
+				emptyLine.indexInRoot = 0;
+				emptyLine.rootNode = curStatement;
+				(curStatement as Statement).addStatement(emptyLine, 0, curStatement.lineNumber + 1);
+			} else if (parentStmtHasBody)
+				(parentRoot as Statement).addStatement(
+					emptyLine,
+					curStatement.indexInRoot + 1,
+					curStatement.lineNumber + 1
+				);
+			else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
+
+			const range = new monaco.Range(
+				curStatement.lineNumber,
+				this.focusedNode.right + 1,
+				curStatement.lineNumber,
+				this.focusedNode.right + 1
+			);
+			this.editor.executeEdits(range, null, textToAdd + spaces);
+
+			this.focusedNode = emptyLine;
+		}
+	}
+
+	replaceFocusedStatement(newStmt: Statement) {
+		let curLineNumber = this.body[this.focusedNode.indexInRoot].lineNumber;
+
+		this.body[this.focusedNode.indexInRoot] = newStmt;
+		newStmt.rootNode = this.focusedNode.rootNode;
+		newStmt.indexInRoot = this.focusedNode.indexInRoot;
+		newStmt.init(this.focusedNode.getLeftPosition());
+
+		if (newStmt.hasScope()) newStmt.scope.parentScope = this.scope;
+
+		if (newStmt instanceof VarAssignmentStmt) {
+			this.addVariableButtonToToolbox(newStmt);
+			this.scope.references.push(new Reference(newStmt, this.scope));
+		}
+
+		if (newStmt instanceof ForStatement) {
+			this.addLoopVariableButtonToToolbox(newStmt);
+			newStmt.scope.references.push(new Reference(newStmt, this.scope));
+		}
+
+		if (newStmt.getHeight() > 1) this.rebuildBody(newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
+	}
+
+	rebuildBody(fromIndex: number, startLineNumber: number) {
+		let lineNumber = startLineNumber;
+
+		for (let i = fromIndex; i < this.body.length; i++) {
+			if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
+			else this.body[i].setLineNumber(lineNumber);
+
+			lineNumber += this.body[i].getHeight();
+		}
+	}
+
+	replaceFocusedExpression(expr: Expression) {
+		let root = this.focusedNode.rootNode as Statement;
+
+		root.replace(expr, this.focusedNode.indexInRoot);
+	}
+
+	referenceTable = new Array<Reference>();
+
+	insert(code: CodeConstruct) {
+		if (code instanceof MethodCallExpr) {
+			let focusedPos = this.editor.monaco.getPosition();
+			let prevItem = this.focusedNode
+				.getParentStatement()
+				.locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
+
+			if (prevItem instanceof Expression /* TODO: and check calledOn */) {
+				// will replace the expression with this
+				// and will have the expression as the first element inside the code
+				code.indexInRoot = prevItem.indexInRoot;
+				code.rootNode = prevItem.rootNode;
+
+				if (code.rootNode instanceof Expression || code.rootNode instanceof Statement) {
+					code.rootNode.replace(code, code.indexInRoot);
+				}
+
+				code.setExpression(prevItem);
+
+				let range = new monaco.Range(
+					focusedPos.lineNumber,
+					code.left,
+					focusedPos.lineNumber,
+					focusedPos.column
+				);
+
+				this.editor.executeEdits(range, code);
+				prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
+			}
+		}
+
+		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
+			let focusedPos = this.focusedNode.getLeftPosition();
+			let parentStatement = this.focusedNode.getParentStatement();
+			let parentRoot = parentStatement.rootNode;
+
+			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
+				// replaces statement with the newly inserted statement
+				let statement = code as Statement;
+
+				if (parentRoot instanceof Statement && parentRoot.hasBody()) {
+					if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
+						if (parentRoot.isValidElseInsertion(this.focusedNode.indexInRoot, code)) {
+							parentRoot.insertElseStatement(this.focusedNode.indexInRoot, code);
+
+							let range = new monaco.Range(
+								focusedPos.lineNumber,
+								focusedPos.column - TAB_SPACES,
+								focusedPos.lineNumber,
+								focusedPos.column
+							);
+
+							this.editor.executeEdits(
+								range,
+								code,
+								code.getRenderText() + '\n' + emptySpaces(focusedPos.column - 1)
+							);
+						}
+					} else if (!(statement instanceof ElseStatement)) {
+						parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
+
+						var range = new monaco.Range(
+							focusedPos.lineNumber,
+							code.left,
+							focusedPos.lineNumber,
+							code.right
+						);
+
+						this.editor.executeEdits(range, code);
+					}
+				} else if (!(statement instanceof ElseStatement)) {
+					this.replaceFocusedStatement(statement);
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						statement.left,
+						focusedPos.lineNumber,
+						statement.right
+					);
+
+					this.editor.executeEdits(range, statement);
+				}
+			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
+				let isValid = true;
+
+				if (code instanceof VariableReferenceExpr) {
+					// prevent out of scope referencing of a variable
+					if (parentRoot instanceof IfStatement)
+						isValid = parentRoot.isValidReference(
+							code.uniqueId,
+							focusedPos.lineNumber,
+							parentStatement.indexInRoot
+						);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
+						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+					}
+				}
+
+				if (isValid) {
+					// replaces expression with the newly inserted expression
+					let expr = code as Expression;
+
+					this.replaceFocusedExpression(expr);
+
+					let padding = 1;
+					let selection = this.editor.monaco.getSelection();
+
+					if (selection.endColumn == selection.startColumn) padding = 0;
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						this.focusedNode.left,
+						focusedPos.lineNumber,
+						this.focusedNode.right + padding
+					);
+
+					this.editor.executeEdits(range, expr);
+				}
+				else{
+					this.notificationSystem.addNotification(this.focusedNode, NotificationMessageType.outOfScopeVariableReference);
+				}
+			}
+
+			this.focusedNode = code.nextEmptyToken();
+
+			this.editor.focusSelection(this.focusedNode.getSelection());
+		} else {
+			console.warn('Cannot insert this code construct at focused location.');
+
+			this.notificationSystem.addNotification(this.focusedNode, NotificationMessageType.defaultNotification);
+		}
+		this.editor.monaco.focus();
+	}
+
+	insertListItem() {
+		if (this.focusedNode instanceof EmptyListItem) {
+			let listExpr = this.focusedNode.rootNode as ListLiteralExpression;
+
+			let text = listExpr.insertListItem(this.focusedNode.indexInRoot);
+
+			let padding = 1;
+			let selection = this.editor.monaco.getSelection();
+			let focusedPos = this.editor.monaco.getPosition();
+
+			if (selection.endColumn == selection.startColumn) padding = 0;
+
+			let range = new monaco.Range(
+				focusedPos.lineNumber,
+				this.focusedNode.left,
+				focusedPos.lineNumber,
+				this.focusedNode.right + padding
+			);
+
+			this.editor.executeEdits(range, listExpr, text);
+		}
+	}
+>>>>>>> Add onMouseMove event
 }
 
 /**

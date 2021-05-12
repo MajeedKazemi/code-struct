@@ -648,4 +648,8 @@ export class EventHandler {
 			default:
 		}
 	}
+
+	onMouseMove(e){
+		this.module.editor.mousePos = e.target.position;
+	}
 }

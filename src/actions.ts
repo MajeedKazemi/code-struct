@@ -4,6 +4,7 @@ enum ActionType {
     OnKeyDown,
     OnMouseDown,
     OnButtonDown,
+    OnMouseMove
 }
 
 export class Action {
@@ -26,6 +27,7 @@ export default class ActionStack {
         this.attachOnMouseDownListener();
         this.attachOnKeyDownListener();
         this.attachOnButtonPress();
+        this.attachOnMouseMoveListener();
     }
 
     undo() {
@@ -86,6 +88,15 @@ export default class ActionStack {
         });
     }
 
+    attachOnMouseMoveListener(){
+        const module = this.module;
+
+        module.editor.monaco.onMouseMove((e) => {
+            const action = new Action(ActionType.OnMouseMove, e);
+            this.apply(action);
+        });
+    }
+
     apply(action) {
         switch (action.type) {
             case ActionType.OnKeyDown:
@@ -97,6 +108,9 @@ export default class ActionStack {
             case ActionType.OnMouseDown:
                 this.module.eventHandler.onMouseDown(action.event);
                 break;
+            case ActionType.OnMouseMove:
+                this.module.eventHandler.onMouseMove(action.event);
+                break;  
             default:
                 break;
         }

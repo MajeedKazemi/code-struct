@@ -13,6 +13,7 @@ import Hole from "./hole";
 export default class Editor {
     monaco: monaco.editor.IStandaloneCodeEditor;
     cursor: Cursor;
+    mousePos: monaco.Position;
     holes: Hole[];
 
     constructor(parentEl: HTMLElement) {
