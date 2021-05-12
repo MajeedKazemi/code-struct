@@ -9,6 +9,7 @@ export enum NotificationMessageType{
 }
 
 const warningMessages = ["Out of scope var reference.", "Cannot insert this object here."]
+const popUpNotificationTime = 3000 //ms
 
 //TODO: Consider making this a static class or a singleton, there really should not be two of these anywhere. It will complicate things like keeping track of all notifications present in the program.
 //TODO: Update doc for methods in this class
@@ -36,7 +37,7 @@ export class NotificationSystemController{
 
         setTimeout(() => {
             this.removeNotification(code);
-        }, PopUpNotification.notificationTime);
+        }, popUpNotificationTime);
     }
    
     removeNotification(code: CodeConstruct){

@@ -1,17 +1,36 @@
 import * as monaco from 'monaco-editor';
 import Editor from '../editor/editor';
 
+//TODO: Might want to change this to be constructor parameters so that boxes of various sizes can be created anywhere
+//TODO: Most likely will have to size based on text size inside. Not all messages will be the same length.
 const hoverNotificationMaxWidth = 200;
 const hoverNotificationMaxHeight = 25;
 const notificationParentElement = ".lines-content.monaco-editor-background";
 
+//TODO: Add documentation for everything in here
+
+/**
+ * 
+ */
+interface NotificationBox{
+    notificationBox: HTMLDivElement;
+
+    addNotificationBox();
+    setNotificationBoxBounds();
+    setNotificationBehaviour();
+    moveWithinEditor();
+}
+
+/**
+ * 
+ */
 export abstract class Notification{
     message: string;
     editor: Editor;
     selection: monaco.Selection;
     index: number;
-    htmlParentElement: HTMLDivElement;
-    htmlTextElement: HTMLDivElement;
+    parentElement: HTMLDivElement;
+    notificationTextDiv: HTMLDivElement;
     domId: string;
     notificationDomIdPrefix: string;
 
@@ -22,22 +41,22 @@ export abstract class Notification{
         this.editor = editor;
         this.index = index;
 
-        this.htmlParentElement = document.createElement("div");
+        this.parentElement = document.createElement("div");
     }
 
     addHighlight(styleClass: string){
-        this.htmlParentElement.classList.add(styleClass);
+        this.parentElement.classList.add(styleClass);
         this.setHighlightBounds();
     }
 
     setHighlightBounds(){
         const transform = this.editor.computeBoundingBox(this.selection);
 
-        this.htmlParentElement.style.top = `${transform.y + 5}px`;
-        this.htmlParentElement.style.left = `${transform.x - 0}px`;
+        this.parentElement.style.top = `${transform.y + 5}px`;
+        this.parentElement.style.left = `${transform.x - 0}px`;
 
-        this.htmlParentElement.style.width = `${transform.width + 0 * 2}px`;
-        this.htmlParentElement.style.height = `${transform.height - 5 * 2}px`;
+        this.parentElement.style.width = `${transform.width + 0 * 2}px`;
+        this.parentElement.style.height = `${transform.height - 5 * 2}px`;
     }
 
     removeNotificationFromDOM(){
@@ -49,12 +68,15 @@ export abstract class Notification{
         Notification.currDomId++;
 
         this.domId = `${this.notificationDomIdPrefix}-${Notification.currDomId}`;
-        this.htmlParentElement.setAttribute("id", this.domId)
+        this.parentElement.setAttribute("id", this.domId)
     }
 }
 
-export class HoverNotification extends Notification{
-    htmlHoverElement: HTMLDivElement;
+/**
+ * Notification that allows user to hover over a selection to see more information.
+ */
+export class HoverNotification extends Notification implements NotificationBox{
+    notificationBox = null;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
         super(editor, selection, index);
@@ -64,51 +86,59 @@ export class HoverNotification extends Notification{
         this.setDomId();
 
         //hover box
-        this.htmlHoverElement = document.createElement("div");
-        this.htmlHoverElement.classList.add("hoverNotificationHover");
-        this.htmlHoverElement.style.visibility = "hidden";
-        this.setHoverBoxBounds();
-        this.setHoverEvent();
-        this.htmlParentElement.appendChild(this.htmlHoverElement);
+        this.addNotificationBox();
 
         //TODO: text
         
 
-        document.querySelector(notificationParentElement).appendChild(this.htmlParentElement);
+        document.querySelector(notificationParentElement).appendChild(this.parentElement);
     }
 
-    private setHoverBoxBounds(){
-        this.htmlHoverElement.style.top = `${-hoverNotificationMaxHeight}px`;
-        this.htmlHoverElement.style.left = `${(-hoverNotificationMaxWidth / 2)}px`;
+    addNotificationBox(){
+        this.notificationBox = document.createElement("div");
+        this.notificationBox.classList.add("hoverNotificationHover");
+        this.notificationBox.style.visibility = "hidden";
 
-        this.htmlHoverElement.style.width = `${hoverNotificationMaxWidth}px`;
-        this.htmlHoverElement.style.height = `${hoverNotificationMaxHeight}px`;
-
+        this.setNotificationBoxBounds();
+        this.setNotificationBehaviour();
         this.moveWithinEditor();
+
+        this.parentElement.appendChild(this.notificationBox);
     }
 
-    private setHoverEvent(){
-        this.htmlParentElement.addEventListener("mouseenter", (e) => {
-            this.htmlHoverElement.style.visibility = "visible";
+    setNotificationBoxBounds(){
+        this.notificationBox.style.top = `${-hoverNotificationMaxHeight}px`;
+        this.notificationBox.style.left = `${(-hoverNotificationMaxWidth / 2)}px`;
+
+        this.notificationBox.style.width = `${hoverNotificationMaxWidth}px`;
+        this.notificationBox.style.height = `${hoverNotificationMaxHeight}px`;
+    }
+
+    setNotificationBehaviour(){
+        this.parentElement.addEventListener("mouseenter", (e) => {
+            this.notificationBox.style.visibility = "visible";
         })
 
-        this.htmlParentElement.addEventListener("mouseleave", (e) => {
-            this.htmlHoverElement.style.visibility = "hidden";
+        this.parentElement.addEventListener("mouseleave", (e) => {
+            this.notificationBox.style.visibility = "hidden";
         })
     }
 
-    private moveWithinEditor(){
-        if(parseInt(this.htmlHoverElement.style.left) < 0){
-            this.htmlHoverElement.style.left = `${parseInt(this.htmlParentElement.style.left) + parseInt(this.htmlHoverElement.style.left)}px`;
+    moveWithinEditor(){
+        if(parseInt(this.notificationBox.style.left) < 0){
+            this.notificationBox.style.left = `${parseInt(this.parentElement.style.left) + parseInt(this.notificationBox.style.left)}px`;
         }
-        if(parseInt(this.htmlHoverElement.style.top) < 0){
-            this.htmlHoverElement.style.top = `${this.editor.computeCharHeight()}px`;
+        if(parseInt(this.notificationBox.style.top) < 0){
+            this.notificationBox.style.top = `${this.editor.computeCharHeight()}px`;
         }
     }
 }
 
-export class PopUpNotification extends Notification{
-    static notificationTime: number = 10000 //(ms)
+/**
+ * Notification that stays on the screen for a given period of time and then disappears.
+ */
+export class PopUpNotification extends Notification implements NotificationBox{
+    notificationBox = null;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
         super(editor, selection, index);
@@ -117,16 +147,31 @@ export class PopUpNotification extends Notification{
         this.setDomId();
         this.addHighlight("popUpNotification");
 
-        this.addPopUp();
+        this.addNotificationBox();
 
-        document.querySelector(notificationParentElement).appendChild(this.htmlParentElement);
+        document.querySelector(notificationParentElement).appendChild(this.parentElement);
     }  
 
-    private addPopUp(){
-        const popUpElement = document.createElement("div");
+    addNotificationBox(){
+        this.notificationBox = document.createElement("div");
+        this.notificationBox.classList.add("popUpNotification");
 
-        popUpElement.classList.add("popUpNotification");
+        //this.setNotificationBoxBounds();
+        //this.setNotificationBehaviour();
+        //this.moveWithinEditor();
 
-        this.htmlParentElement.appendChild(popUpElement);
+        this.parentElement.appendChild(this.notificationBox);
+    }
+
+    setNotificationBoxBounds(){
+        throw new Error("NOT IMPLEMENTED...")
+    }
+
+    setNotificationBehaviour(){
+        throw new Error("NOT IMPLEMENTED...")
+    }
+
+    moveWithinEditor(){
+        throw new Error("NOT IMPLEMENTED...")
     }
 }
