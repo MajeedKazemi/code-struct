@@ -104,3 +104,15 @@ export class HoverNotification extends Notification{
         }
     }
 }
+
+export class PopUpNotification extends Notification{
+    constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
+        super(editor, selection, index);
+
+        this.notificationDomIdPrefix = "popUpNotification";
+        this.addHighlight("popUpNotification");
+
+        document.querySelector(".lines-content.monaco-editor-background").appendChild(this.htmlParentElement);
+
+    }  
+}
