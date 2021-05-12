@@ -108,6 +108,8 @@ export class HoverNotification extends Notification{
 }
 
 export class PopUpNotification extends Notification{
+    static notificationTime: number = 10000 //(ms)
+
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
         super(editor, selection, index);
 
@@ -115,7 +117,16 @@ export class PopUpNotification extends Notification{
         this.setDomId();
         this.addHighlight("popUpNotification");
 
-        document.querySelector(notificationParentElement).appendChild(this.htmlParentElement);
+        this.addPopUp();
 
+        document.querySelector(notificationParentElement).appendChild(this.htmlParentElement);
     }  
+
+    private addPopUp(){
+        const popUpElement = document.createElement("div");
+
+        popUpElement.classList.add("popUpNotification");
+
+        this.htmlParentElement.appendChild(popUpElement);
+    }
 }

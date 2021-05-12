@@ -1,9 +1,17 @@
-import { CallbackType, CodeConstruct, Statement, Token} from "../syntax-tree/ast";
+import { CodeConstruct } from "../syntax-tree/ast";
 import Editor from '../editor/editor';
-import {Range} from "monaco-editor";
-import { Notification } from "./notification";
+import { Notification, HoverNotification, PopUpNotification } from "./notification";
 
 
+export enum NotificationMessageType{
+    outOfScopeVariableReference,
+    defaultNotification,
+}
+
+const warningMessages = ["Out of scope var reference.", "Cannot insert this object here."]
+
+//TODO: Consider making this a static class or a singleton, there really should not be two of these anywhere. It will complicate things like keeping track of all notifications present in the program.
+//TODO: Update doc for methods in this class
 /**
  * Class representing the main entry point of the code into the NotificationSystem. 
  * Top-level class for handling workflow; notification system logic is in NotificationSystem.
@@ -17,31 +25,23 @@ export class NotificationSystemController{
         this.notifications = [];
     }
 
-    
-    //TODO: Need to add logic for deciding what type of notification we will be adding and the text and style it takes
-    addNotification(code: CodeConstruct){
-        const errorRange = new Range(code.getLineNumber(), code.left, code.getLineNumber(), code.right + 1);
-        this.notifications.push(new Notification(this.editor, errorRange, this.notifications.length, "notificationHighlight", "Error Message Here"));
+    addHoverNotification(code: CodeConstruct){
+        this.notifications.push(new HoverNotification(this.editor, code.getSelection(), this.notifications.length));
         code.notification = this.notifications[this.notifications.length - 1];
     }
-   
-    removeNotification(code: CodeConstruct, notif: Notification){
-        notif.dispose();
-        this.notifications.splice(notif.index, 1);
 
+    addPopUpNotification(code: CodeConstruct){
+        this.notifications.push(new PopUpNotification(this.editor, code.getSelection(), this.notifications.length));
+        code.notification = this.notifications[this.notifications.length - 1];
+
+        setTimeout(() => {
+            this.removeNotification(code);
+        }, PopUpNotification.notificationTime);
+    }
+   
+    removeNotification(code: CodeConstruct){
+        this.notifications[code.notification.index].removeNotificationFromDOM();
+        this.notifications.splice(code.notification.index, 1);
         code.notification = null;
     }
 }
-
-
-
-
-/** NOTES
- * To remove previously set decorations you need to save the decorations somewhere when you are creating them and then call
- * this.editor.monaco.deltaDecorations(decorations, [{ range: new monaco.Range(1,1,1,1), options : { } }]
-        );
-    To remove them whenever
-
-
-    To remove a hover, need to save its hoverProvider somewhere and then call dispose
- */
