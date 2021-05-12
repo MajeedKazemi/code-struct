@@ -3,6 +3,7 @@ import Editor from '../editor/editor';
 
 const hoverNotificationMaxWidth = 200;
 const hoverNotificationMaxHeight = 25;
+const notificationParentElement = ".lines-content.monaco-editor-background";
 
 export abstract class Notification{
     message: string;
@@ -39,8 +40,9 @@ export abstract class Notification{
         this.htmlParentElement.style.height = `${transform.height - 5 * 2}px`;
     }
 
-    removeHighlight(){
-        throw new Error("NOT IMPLEMENTED...");
+    removeNotificationFromDOM(){
+        const parent = document.querySelector(notificationParentElement);
+        parent.removeChild(document.getElementById(this.domId));
     }
 
     setDomId(){
@@ -72,7 +74,7 @@ export class HoverNotification extends Notification{
         //TODO: text
         
 
-        document.querySelector(".lines-content.monaco-editor-background").appendChild(this.htmlParentElement);
+        document.querySelector(notificationParentElement).appendChild(this.htmlParentElement);
     }
 
     private setHoverBoxBounds(){
@@ -110,9 +112,10 @@ export class PopUpNotification extends Notification{
         super(editor, selection, index);
 
         this.notificationDomIdPrefix = "popUpNotification";
+        this.setDomId();
         this.addHighlight("popUpNotification");
 
-        document.querySelector(".lines-content.monaco-editor-background").appendChild(this.htmlParentElement);
+        document.querySelector(notificationParentElement).appendChild(this.htmlParentElement);
 
     }  
 }
