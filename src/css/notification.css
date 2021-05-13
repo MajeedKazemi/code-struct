@@ -1,15 +1,20 @@
 .hoverNotificationHighlight{
-    background-color: #f7c983;
-    opacity: 0.3;
+    background-color: rgba(255, 191, 94, 0.3);
     position: absolute;
     border-radius: 10%;
 }
 
 .hoverNotificationHover{
-    background-color: #f7c983;
-    opacity: 0.7;
+    background-color: rgba(247, 201, 131, 1);
     position: relative;
-    border-radius: 10%;
+    border-radius: 5px;
+    padding: 2pt;
+    height: fit-content;
+    font-size: 10pt;
+    overflow-y: scroll;
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+    font-weight: 700;
 }
 
 .popUpNotification{
@@ -17,4 +22,9 @@
     opacity: 0.7;
     position: relative;
     border-radius: 10%;
+
+    left: 200px;
+    top: 200px;
+    width: 200px;
+    height: 200px;
 }
