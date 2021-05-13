@@ -1,15 +1,15 @@
 import { CodeConstruct } from "../syntax-tree/ast";
 import Editor from '../editor/editor';
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
+import {ErrorMessageGenerator, ErrorMessage} from "./error-msg-generator";
 
-
-export enum NotificationMessageType{
-    outOfScopeVariableReference,
-    defaultNotification,
+export enum ErrorType{
+    defaultErr
 }
 
 const warningMessages = ["Out of scope var reference.", "Cannot insert this object here."]
 const popUpNotificationTime = 3000 //ms
+
 
 //TODO: Consider making this a static class or a singleton, there really should not be two of these anywhere. It will complicate things like keeping track of all notifications present in the program.
 //TODO: Update doc for methods in this class
@@ -20,14 +20,16 @@ const popUpNotificationTime = 3000 //ms
 export class NotificationSystemController{
 	editor: Editor;
     notifications: Notification[];
+    msgGenerator: ErrorMessageGenerator;
 
     constructor(editor: Editor){
         this.editor = editor;
         this.notifications = [];
+        this.msgGenerator = new ErrorMessageGenerator();
     }
 
-    addHoverNotification(code: CodeConstruct){
-        this.notifications.push(new HoverNotification(this.editor, code.getSelection(), this.notifications.length));
+    addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage = ErrorMessage.default){
+        this.notifications.push(new HoverNotification(this.editor, code.getSelection(), this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args)));
         code.notification = this.notifications[this.notifications.length - 1];
     }
 
