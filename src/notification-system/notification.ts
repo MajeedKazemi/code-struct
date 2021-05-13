@@ -76,7 +76,10 @@ export abstract class Notification{
  * Notification that allows user to hover over a selection to see more information.
  */
 export class HoverNotification extends Notification implements NotificationBox{
+    static notificationFadeDelay = 500; //ms
+
     notificationBox = null;
+    showNotificationBox  = false;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
         super(editor, selection, index);
@@ -119,12 +122,27 @@ export class HoverNotification extends Notification implements NotificationBox{
             this.notificationBox.style.visibility = "visible";
         })
 
-        this.parentElement.addEventListener("mouseleave", (e) => {
+        this.notificationBox.addEventListener("mouseenter", (e) => {
+            this.showNotificationBox = true;
+        })
+
+        this.notificationBox.addEventListener("mouseleave", (e) => {
+            this.showNotificationBox = false;
             this.notificationBox.style.visibility = "hidden";
+        })
+
+        this.parentElement.addEventListener("mouseleave", (e) => {
+            setTimeout(() => {
+                if(!this.showNotificationBox){
+                    this.notificationBox.style.visibility = "hidden";
+                }
+            }, HoverNotification.notificationFadeDelay)
         })
     }
 
     moveWithinEditor(){
+        //This was changed to use relative position, so these checks won't work anymore since they were 
+        //for absolute position
         if(parseInt(this.notificationBox.style.left) < 0){
             this.notificationBox.style.left = `${parseInt(this.parentElement.style.left) + parseInt(this.notificationBox.style.left)}px`;
         }
