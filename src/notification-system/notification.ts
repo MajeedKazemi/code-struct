@@ -35,19 +35,32 @@ interface NotificationBox{
     notificationBox: HTMLDivElement;
 
     addNotificationBox();
+    addText();
     setNotificationBoxBounds();
     setNotificationBehaviour();
     moveWithinEditor();
 }
 
 /**
- * 
+ * A Notification element that allows to highlight erroneous code constructs and display a message to the user.
  */
 export abstract class Notification{
     messageText: string;
     editor: Editor;
+
+    /**
+     * Selection within the editor that caused this notification.
+     */
     selection: monaco.Selection;
+
+    /**
+     * Index of this notification within the "notifications" list of a NotificationSystemController instance.
+     */
     index: number;
+
+    /**
+     * The highlight element of the notification.
+     */
     parentElement: HTMLDivElement;
     notificationTextDiv: HTMLDivElement;
     domId: string;
@@ -63,11 +76,19 @@ export abstract class Notification{
         this.parentElement = document.createElement("div");
     }
 
+    /**
+     * Add a div highlighting this notification's selection to the DOM.
+     * 
+     * @param styleClass style sheet class of the highlight
+     */
     addHighlight(styleClass: string){
         this.parentElement.classList.add(styleClass);
         this.setHighlightBounds();
     }
 
+    /**
+     * Set the transform of the highlight element to cover this notification's selection.
+     */
     setHighlightBounds(){
         const transform = this.editor.computeBoundingBox(this.selection);
 
@@ -78,11 +99,17 @@ export abstract class Notification{
         this.parentElement.style.height = `${transform.height - 5 * 2}px`;
     }
 
+    /**
+     * Remove this notification's DOM element and all of its children from the DOM.
+     */
     removeNotificationFromDOM(){
         const parent = document.querySelector(notificationParentElement);
         parent.removeChild(document.getElementById(this.domId));
     }
 
+    /**
+     * Assigns a unique DOM id to the notification's parent element.
+     */
     setDomId(){
         Notification.currDomId++;
 
@@ -95,7 +122,11 @@ export abstract class Notification{
  * Notification that allows user to hover over a selection to see more information.
  */
 export class HoverNotification extends Notification implements NotificationBox{
-    static notificationFadeDelay = 500; //ms
+    /**
+     * The ms delay between when the user hovers off of the notification highlight and the time the hover
+     * box of the notification disappears.
+     */
+    static notificationFadeDelay = 500;
 
     notificationBox = null;
     showNotificationBox  = false;
@@ -219,6 +250,9 @@ export class PopUpNotification extends Notification implements NotificationBox{
     }
 
     moveWithinEditor(){
+        throw new Error("NOT IMPLEMENTED...")
+    }
+    addText(){
         throw new Error("NOT IMPLEMENTED...")
     }
 }
