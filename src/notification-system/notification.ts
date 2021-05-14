@@ -8,6 +8,8 @@ const hoverNotificationDefaultHeight = 75;
 const hoverNotificationMaxHeight = 25;
 const notificationParentElement = ".lines-content.monaco-editor-background";
 
+
+
 //funcs that all classes should have access to, maybe move within some common parent later
 const getDimensionsFromStyle = (styleString: string) => {
     const trimmedStyle = styleString.replace(/\s/g, "");
@@ -45,6 +47,9 @@ interface NotificationBox{
  * A Notification element that allows to highlight erroneous code constructs and display a message to the user.
  */
 export abstract class Notification{
+    mouseLeftOffset: number
+    mouseTopOffset: number
+
     messageText: string;
     editor: Editor;
 
@@ -126,10 +131,11 @@ export class HoverNotification extends Notification implements NotificationBox{
      * The ms delay between when the user hovers off of the notification highlight and the time the hover
      * box of the notification disappears.
      */
-    static notificationFadeDelay = 500;
+    static hoverCheckInterval = 50;
 
     notificationBox = null;
-    showNotificationBox = false;
+    hoveringOverNotificationBox = false;
+    hoveringOverHighlight = false;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1, msg: string = ""){
         super(editor, selection, index);
@@ -145,6 +151,18 @@ export class HoverNotification extends Notification implements NotificationBox{
         document.querySelector(notificationParentElement).appendChild(this.parentElement);
 
         this.moveWithinEditor(); //needs to run after the notif element is added to the DOM. Otherwise cannot get offset dimensions when necessary.
+
+        this.mouseLeftOffset = document.getElementById("editor").offsetLeft +
+                                     (document.getElementById("editor")
+                                        .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                                        .getElementsByClassName("overflow-guard")[0]
+                                        .getElementsByClassName("margin")[0] as HTMLElement)
+                                        .offsetWidth
+                                + this.parentElement.offsetLeft;
+
+        //This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
+        //wrong from time to time...
+        this.mouseTopOffset = this.parentElement.offsetTop + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop); 
     }
 
     addText(){
@@ -176,27 +194,46 @@ export class HoverNotification extends Notification implements NotificationBox{
     }
 
     setNotificationBehaviour(){
-        this.parentElement.addEventListener("mouseenter", () => {
-            this.notificationBox.style.visibility = "visible"
-        })
+        setInterval(() => {
+            if(this.editor){
+                let x = this.editor.mousePosWindow[0];
+                let y = this.editor.mousePosWindow[1];
 
-        this.parentElement.addEventListener("mouseleave", () => {
-            setTimeout(() => {
-                if(!this.showNotificationBox){
-                    this.notificationBox.style.visibility = "hidden"
+                x -= this.mouseLeftOffset;
+                y -= (this.mouseTopOffset);
+
+                //collision with highlight box
+                if(x >= 0 && x <= this.parentElement.offsetWidth &&
+                   y >= 0 && y <= this.parentElement.offsetHeight){
+                   this.hoveringOverHighlight = true;
                 }
-            }, 100)
-        })
+                else{
+                    setTimeout(() => {
+                        this.hoveringOverHighlight = false;
+                    }, 300)
+                }
 
-        this.notificationBox.addEventListener("mouseenter", () => {
-            this.showNotificationBox = true;
-            this.notificationBox.style.visibility = "visible"
-        })
+                //collision with hover box
+                if(x >= this.notificationBox.offsetLeft && x <= (this.notificationBox.offsetLeft + this.notificationBox.offsetWidth) &&
+                   y >= this.notificationBox.offsetTop && y <= (this.notificationBox.offsetHeight + this.notificationBox.offsetTop)){
+                       if(this.hoveringOverHighlight){
+                        this.hoveringOverNotificationBox = true;
+                       }
+                }
+                else{
+                    this.hoveringOverNotificationBox = false;
+                }
 
-        this.notificationBox.addEventListener("mouseleave", () => {
-            this.showNotificationBox = false;
-            this.notificationBox.style.visibility = "hidden"
-        })
+                if(this.hoveringOverHighlight || this.hoveringOverNotificationBox){
+                    this.notificationBox.style.visibility = "visible";
+                }
+                else{
+                    this.hoveringOverNotificationBox = false;
+                    this.hoveringOverHighlight = false;
+                    this.notificationBox.style.visibility = "hidden"; 
+                }
+            }
+        }, HoverNotification.hoverCheckInterval)
     }
 
     moveWithinEditor(){
