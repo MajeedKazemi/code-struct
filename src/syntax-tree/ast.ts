@@ -1497,8 +1497,8 @@ export class BinaryOperatorExpr extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
@@ -1516,6 +1516,14 @@ export class BinaryOperatorExpr extends Expression {
 
     replaceRightOperand(code: CodeConstruct) {
         this.replace(code, this.rightOperandIndex);
+    }
+
+    getLeftOperandIndex(){
+        return this.leftOperandIndex;
+    }
+
+    getRightOperandIndex(){
+        return this.rightOperandIndex;
     }
 }
 
@@ -2445,6 +2453,33 @@ export class Module {
 					}
 				}
 
+                //TODO: This should go inside a separate validator module
+                //TODO: Need to add check for boolean ops
+                //TODO: Need further differentiation for more detailed error messages since this notification will be
+                //      created in many different scenarios (see below comment)
+                //type check for bin. ops
+                //needs to be checked when:
+                //  1. code is a Literal or var or non-void return method or other expression
+                //  2. AND the focusedNode is an EmptyExpr with rootNode being a BinaryOperatorExpr (or boolean)
+                //  3. AND one of the EmptyExpr places is filled
+                //code.returns holds the type of literal expression
+                //focusedNode.tokens[leftOperandIndex] and focusedNode.tokens[rightOperandIndex] should hold the tokens for the literals
+                //
+                let existingLiteralType = -1;
+                if(this.focusedNode.rootNode instanceof BinaryOperatorExpr && (code instanceof Expression)){
+                    if (!(this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] as Expression).returns;
+                    }
+                    else if(!(this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getRightOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getRightOperandIndex()] as Expression).returns;
+                    }
+
+                    if(existingLiteralType > -1 && existingLiteralType != code.returns){
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.binOpArgTypeMismatch);
+                        isValid = false;
+                    }
+                }
+
 				if (isValid) {
 					// replaces expression with the newly inserted expression
 					let expr = code as Expression;
@@ -2467,9 +2502,11 @@ export class Module {
 				}
 			}
 
-			this.focusedNode = code.nextEmptyToken();
-
-			this.editor.focusSelection(this.focusedNode.getSelection());
+            //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
+            if(!this.focusedNode.notification){
+                this.focusedNode = code.nextEmptyToken();
+                this.editor.focusSelection(this.focusedNode.getSelection());
+            }
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 

@@ -4,8 +4,8 @@ import {ErrorType} from "./notification-system-controller"
 export enum ErrorMessage{
     default,
     outOfScopeVarReference,
-    methodCallObjectTypeMismatch
-
+    methodCallObjectTypeMismatch,
+    binOpArgTypeMismatch
 }
 
 
@@ -39,8 +39,11 @@ export class ErrorMessageGenerator{
                 msg = `Attempted to reference "${args.identifier}" out of scope.`
                 break;
             case ErrorMessage.methodCallObjectTypeMismatch:
-                msg = `Attempted to call method from object that does not support it. Object type: ${args.objectType} -- Method: ${args.method} -- Called On: ${args.methodCalledOn}`
+                msg = `Attempted to call method from object that does not support it. Object type: ${args.objectType} \n Method: ${args.method} \n Called On: ${args.methodCalledOn}`
                 break;
+            case ErrorMessage.binOpArgTypeMismatch:
+                    msg = `${args.binOp} is not defined for types ${args.argType1} and ${args.argType2}.`
+                    break;
             default:
                 msg = "Invalid action."
                 break;
