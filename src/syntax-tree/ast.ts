@@ -1611,8 +1611,8 @@ export class ComparatorExpr extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
@@ -1630,6 +1630,14 @@ export class ComparatorExpr extends Expression {
 
     replaceRightOperand(code: CodeConstruct) {
         this.replace(code, this.rightOperandIndex);
+    }
+
+    getLeftOperandIndex(){
+        return this.leftOperandIndex;
+    }
+
+    getRightOperandIndex(){
+        return this.rightOperandIndex;
     }
 }
 
@@ -2466,7 +2474,7 @@ export class Module {
                 //focusedNode.tokens[leftOperandIndex] and focusedNode.tokens[rightOperandIndex] should hold the tokens for the literals
                 //
                 let existingLiteralType = -1;
-                if(this.focusedNode.rootNode instanceof BinaryOperatorExpr && (code instanceof Expression)){
+                if((this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr) && (code instanceof Expression)){
                     if (!(this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] instanceof EmptyExpr)){
                         existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] as Expression).returns;
                     }
@@ -2475,7 +2483,12 @@ export class Module {
                     }
 
                     if(existingLiteralType > -1 && existingLiteralType != code.returns){
-                        this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.binOpArgTypeMismatch);
+                        if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.binOpArgTypeMismatch);
+                        }
+                        else if(this.focusedNode.rootNode instanceof ComparatorExpr){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.compOpArgTypeMismatch);
+                        }
                         isValid = false;
                     }
                 }
@@ -2513,6 +2526,8 @@ export class Module {
                 this.focusedNode = code.nextEmptyToken();
                 this.editor.focusSelection(this.focusedNode.getSelection());
             }
+
+            //TODO: Need to remove old notification upon successful insert
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 

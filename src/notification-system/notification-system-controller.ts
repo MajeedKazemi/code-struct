@@ -66,7 +66,7 @@ export class NotificationSystemController{
         this.msgGenerator = new ErrorMessageGenerator();
     }
 
-    addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage = ErrorMessage.default){
+    addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage){
         this.notifications.push(new HoverNotification(this.editor, code.getSelection(), this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args)));
         code.notification = this.notifications[this.notifications.length - 1];
     }
