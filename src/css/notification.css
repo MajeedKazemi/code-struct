@@ -1,3 +1,9 @@
+.notificationParent{
+    display: block;
+    position: absolute;
+    pointer-events: none;
+}
+
 .hoverNotificationHighlight{
     display: block;
     background-color: rgba(255, 191, 94, 0.3);
@@ -14,7 +20,6 @@
     height: fit-content;
     font-size: 10pt;
     color: black;
-    font-family: Arial, Helvetica, sans-serif;
     font-weight: 700;
     overflow-y: scroll;
 }
