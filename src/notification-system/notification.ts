@@ -129,7 +129,7 @@ export class HoverNotification extends Notification implements NotificationBox{
     static notificationFadeDelay = 500;
 
     notificationBox = null;
-    showNotificationBox  = false;
+    showNotificationBox = false;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1, msg: string = ""){
         super(editor, selection, index);
@@ -176,25 +176,26 @@ export class HoverNotification extends Notification implements NotificationBox{
     }
 
     setNotificationBehaviour(){
-        this.parentElement.addEventListener("mouseenter", (e) => {
-            this.notificationBox.style.visibility = "visible";
+        this.parentElement.addEventListener("mouseenter", () => {
+            this.notificationBox.style.visibility = "visible"
         })
 
-        this.notificationBox.addEventListener("mouseenter", (e) => {
-            this.showNotificationBox = true;
-        })
-
-        this.notificationBox.addEventListener("mouseleave", (e) => {
-            this.showNotificationBox = false;
-            this.notificationBox.style.visibility = "hidden";
-        })
-
-        this.parentElement.addEventListener("mouseleave", (e) => {
+        this.parentElement.addEventListener("mouseleave", () => {
             setTimeout(() => {
                 if(!this.showNotificationBox){
-                    this.notificationBox.style.visibility = "hidden";
+                    this.notificationBox.style.visibility = "hidden"
                 }
-            }, HoverNotification.notificationFadeDelay)
+            }, 100)
+        })
+
+        this.notificationBox.addEventListener("mouseenter", () => {
+            this.showNotificationBox = true;
+            this.notificationBox.style.visibility = "visible"
+        })
+
+        this.notificationBox.addEventListener("mouseleave", () => {
+            this.showNotificationBox = false;
+            this.notificationBox.style.visibility = "hidden"
         })
     }
 
@@ -207,7 +208,7 @@ export class HoverNotification extends Notification implements NotificationBox{
         }
 
         if(this.parentElement.offsetTop + this.notificationBox.offsetTop < 0){
-            this.notificationBox.style.top = `${this.editor.computeCharHeight()}px`;
+            this.notificationBox.style.top = `${this.editor.computeCharHeight() - 10}px`;
         }
     }
 }
