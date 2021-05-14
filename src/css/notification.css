@@ -1,7 +1,7 @@
 .notificationParent{
     display: block;
     position: absolute;
-    pointer-events: stroke;
+    pointer-events: none;
 }
 
 .hoverNotificationHighlight{

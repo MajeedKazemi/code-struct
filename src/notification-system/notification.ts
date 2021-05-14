@@ -67,6 +67,9 @@ export abstract class Notification{
     domId: string;
     notificationDomIdPrefix: string;
 
+    mouseLeftOffset: number;
+    mouseTopOffset: number;
+
     static currDomId: number = 0;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
@@ -90,8 +93,8 @@ export abstract class Notification{
         this.highlightElement = document.createElement("div");
         this.highlightElement.classList.add(styleClass);
 
-        this.highlightElement.style.width = `${this.parentElement.offsetWidth + 10}px`;
-        this.highlightElement.style.height = `${this.parentElement.offsetHeight+10}px`;
+        this.highlightElement.style.width = `${this.parentElement.offsetWidth}px`;
+        this.highlightElement.style.height = `${this.parentElement.offsetHeight}px`;
 
         this.parentElement.appendChild(this.highlightElement);
     }
@@ -134,11 +137,8 @@ export abstract class Notification{
  * Notification that allows user to hover over a selection to see more information.
  */
 export class HoverNotification extends Notification implements NotificationBox{
-    /**
-     * The ms delay between when the user hovers off of the notification highlight and the time the hover
-     * box of the notification disappears.
-     */
-    static notificationFadeDelay = 500;
+    static notificationHighlightCollisionCheckInterval = 500;
+    static notificationFadeTime = 100;
 
     notificationBox = null;
     showNotificationBoxHighlight = false;
@@ -156,6 +156,18 @@ export class HoverNotification extends Notification implements NotificationBox{
         this.addNotificationBox(); //hover box
 
         this.moveWithinEditor(); //needs to run after the notif element is added to the DOM. Otherwise cannot get offset dimensions when necessary.
+
+        this.mouseLeftOffset = document.getElementById("editor").offsetLeft +
+                                     (document.getElementById("editor")
+                                        .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                                        .getElementsByClassName("overflow-guard")[0]
+                                        .getElementsByClassName("margin")[0] as HTMLElement)
+                                        .offsetWidth
+                                + this.parentElement.offsetLeft;
+
+        //This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
+        //wrong from time to time...
+        this.mouseTopOffset = this.parentElement.offsetTop + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
     }
 
     addText(){
@@ -187,19 +199,30 @@ export class HoverNotification extends Notification implements NotificationBox{
     }
 
     setNotificationBehaviour(){
-        this.highlightElement.addEventListener("mouseenter", () => {
-            this.notificationBox.style.visibility = "visible"
-            this.showNotificationBoxNotif = true
-        })
+        setInterval(() => {
+            if(this.editor){
+                let x = this.editor.mousePosWindow[0];
+                let y = this.editor.mousePosWindow[1];
 
-        this.highlightElement.addEventListener("mouseleave", () => {
-            this.showNotificationBoxNotif = false;
-            setTimeout(() => {
-                if(!this.showNotificationBoxHighlight){
-                    this.notificationBox.style.visibility = "hidden"
+                x -= this.mouseLeftOffset;
+                y -= (this.mouseTopOffset);
+
+                //collision with highlight box
+                if(x >= 0 && x <= this.parentElement.offsetWidth &&
+                    y >= 0 && y <= this.parentElement.offsetHeight){
+                        this.notificationBox.style.visibility = "visible"
+                        this.showNotificationBoxNotif = true
                 }
-            }, 100)
-        })
+                else{
+                    this.showNotificationBoxNotif = false;
+                    setTimeout(() => {
+                        if(!this.showNotificationBoxHighlight){
+                            this.notificationBox.style.visibility = "hidden"
+                        }
+                    }, HoverNotification.notificationFadeTime)
+                }
+            }
+        }, HoverNotification.notificationHighlightCollisionCheckInterval)
 
         this.notificationBox.addEventListener("mouseenter", () => {
             this.showNotificationBoxHighlight = true;
@@ -212,8 +235,7 @@ export class HoverNotification extends Notification implements NotificationBox{
                 if(!this.showNotificationBoxNotif){
                     this.notificationBox.style.visibility = "hidden"
                 }
-            }, 100)
-
+            }, HoverNotification.notificationFadeTime)
         })
     }
 

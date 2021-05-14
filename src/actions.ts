@@ -3,7 +3,8 @@ import { Module } from "./syntax-tree/ast";
 enum ActionType {
     OnKeyDown,
     OnMouseDown,
-    OnButtonDown
+    OnButtonDown,
+    OnMouseMove
 }
 
 export class Action {
@@ -26,6 +27,7 @@ export default class ActionStack {
         this.attachOnMouseDownListener();
         this.attachOnKeyDownListener();
         this.attachOnButtonPress();
+        this.attachOnMouseMoveListener();
     }
 
     undo() {
@@ -86,6 +88,22 @@ export default class ActionStack {
         });
     }
 
+    attachOnMouseMoveListener(){
+        const module = this.module;
+
+        //position of mouse inside of editor (line + column)
+        module.editor.monaco.onMouseMove((e) => {
+            const action = new Action(ActionType.OnMouseMove, e);
+            this.apply(action);
+        });
+
+        //x,y pos of mouse within window
+        document.onmousemove = function(e){
+            module.editor.mousePosWindow[0] = e.x;
+            module.editor.mousePosWindow[1] = e.y;
+        };
+    }
+
     apply(action) {
         switch (action.type) {
             case ActionType.OnKeyDown:
@@ -96,7 +114,10 @@ export default class ActionStack {
                 break;
             case ActionType.OnMouseDown:
                 this.module.eventHandler.onMouseDown(action.event);
-                break; 
+                break;
+            case ActionType.OnMouseMove:
+                this.module.eventHandler.onMouseMove(action.event);
+                break;  
             default:
                 break;
         }
