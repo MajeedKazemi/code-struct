@@ -33,9 +33,11 @@ export class ErrorMessageGenerator{
         let msg = ""
         switch(errMsgType){
             case ErrorMessage.outOfScopeVarReference:
-                msg = `Attempted to reference ${args.var1} out of scope.`
+                msg = `Attempted to reference "${args.identifier}" out of scope.`
+                break;
             default:
                 msg = "Invalid action."
+                break;
         }
 
         return msg;
