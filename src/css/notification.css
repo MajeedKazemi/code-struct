@@ -1,7 +1,7 @@
 .notificationParent{
     display: block;
     position: absolute;
-    pointer-events: none;
+    pointer-events: stroke;
 }
 
 .hoverNotificationHighlight{
@@ -9,6 +9,7 @@
     background-color: rgba(255, 191, 94, 0.3);
     position: absolute;
     border-radius: 10%;
+    pointer-events: none;
 }
 
 .hoverNotificationHover{
@@ -22,6 +23,7 @@
     color: black;
     font-weight: 700;
     overflow-y: scroll;
+    pointer-events: all;
 }
 
 .popUpNotification{

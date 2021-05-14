@@ -89,12 +89,17 @@ export abstract class Notification{
     addHighlight(styleClass: string){
         this.highlightElement = document.createElement("div");
         this.highlightElement.classList.add(styleClass);
-        this.wrapAroundCodeConstruct(this.highlightElement);
+
+        this.highlightElement.style.width = `${this.parentElement.offsetWidth}px`;
+        this.highlightElement.style.height = `${this.parentElement.offsetHeight}px`;
+
         this.parentElement.appendChild(this.highlightElement);
     }
 
     /**
-     * Set the transform of the highlight element to cover this notification's selection.
+     * Set the transform of the given element to cover this notification's selection.
+     * 
+     * @param element html div to set the transform of
      */
     wrapAroundCodeConstruct(element: HTMLDivElement){
         const transform = this.editor.computeBoundingBox(this.selection);
@@ -121,7 +126,7 @@ export abstract class Notification{
         Notification.currDomId++;
 
         this.domId = `${this.notificationDomIdPrefix}-${Notification.currDomId}`;
-        this.highlightElement.setAttribute("id", this.domId)
+        this.parentElement.setAttribute("id", this.domId)
     }
 }
 
@@ -148,8 +153,6 @@ export class HoverNotification extends Notification implements NotificationBox{
         this.setDomId();
 
         this.addNotificationBox(); //hover box
-
-        document.querySelector(notificationDOMParent).appendChild(this.highlightElement);
 
         this.moveWithinEditor(); //needs to run after the notif element is added to the DOM. Otherwise cannot get offset dimensions when necessary.
     }
@@ -183,11 +186,11 @@ export class HoverNotification extends Notification implements NotificationBox{
     }
 
     setNotificationBehaviour(){
-        this.highlightElement.addEventListener("mouseenter", () => {
+        this.parentElement.addEventListener("mouseenter", () => {
             this.notificationBox.style.visibility = "visible"
         })
 
-        this.highlightElement.addEventListener("mouseleave", () => {
+        this.parentElement.addEventListener("mouseleave", () => {
             setTimeout(() => {
                 if(!this.showNotificationBox){
                     this.notificationBox.style.visibility = "hidden"
@@ -210,11 +213,11 @@ export class HoverNotification extends Notification implements NotificationBox{
         this.notificationBox.style.left = `${(-(this.notificationBox.offsetWidth - this.highlightElement.offsetWidth / 2) / 2) + this.highlightElement.offsetWidth / 2}px`;
         this.notificationBox.style.top = `${-this.notificationBox.offsetHeight}px`; //TODO: Maybe raise it up by a few pixels, but it being adjacent could help with hovering detection. THis is only for when it is above the code line, when it is below it actually has some space between the line and the box.
 
-        if((this.highlightElement.offsetLeft + this.notificationBox.offsetLeft) < 0){
-            this.notificationBox.style.left = `${-this.highlightElement.offsetLeft}px`;
+        if((this.parentElement.offsetLeft + this.notificationBox.offsetLeft) < 0){
+            this.notificationBox.style.left = `${-this.parentElement.offsetLeft}px`;
         }
 
-        if(this.highlightElement.offsetTop + this.notificationBox.offsetTop < 0){
+        if(this.parentElement.offsetTop + this.notificationBox.offsetTop < 0){
             this.notificationBox.style.top = `${this.editor.computeCharHeight() - 10}px`;
         }
     }
