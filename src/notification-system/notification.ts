@@ -90,8 +90,8 @@ export abstract class Notification{
         this.highlightElement = document.createElement("div");
         this.highlightElement.classList.add(styleClass);
 
-        this.highlightElement.style.width = `${this.parentElement.offsetWidth}px`;
-        this.highlightElement.style.height = `${this.parentElement.offsetHeight}px`;
+        this.highlightElement.style.width = `${this.parentElement.offsetWidth + 10}px`;
+        this.highlightElement.style.height = `${this.parentElement.offsetHeight+10}px`;
 
         this.parentElement.appendChild(this.highlightElement);
     }
@@ -141,7 +141,8 @@ export class HoverNotification extends Notification implements NotificationBox{
     static notificationFadeDelay = 500;
 
     notificationBox = null;
-    showNotificationBox = false;
+    showNotificationBoxHighlight = false;
+    showNotificationBoxNotif = false;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1, msg: string = ""){
         super(editor, selection, index);
@@ -186,26 +187,33 @@ export class HoverNotification extends Notification implements NotificationBox{
     }
 
     setNotificationBehaviour(){
-        this.parentElement.addEventListener("mouseenter", () => {
+        this.highlightElement.addEventListener("mouseenter", () => {
             this.notificationBox.style.visibility = "visible"
+            this.showNotificationBoxNotif = true
         })
 
-        this.parentElement.addEventListener("mouseleave", () => {
+        this.highlightElement.addEventListener("mouseleave", () => {
+            this.showNotificationBoxNotif = false;
             setTimeout(() => {
-                if(!this.showNotificationBox){
+                if(!this.showNotificationBoxHighlight){
                     this.notificationBox.style.visibility = "hidden"
                 }
             }, 100)
         })
 
         this.notificationBox.addEventListener("mouseenter", () => {
-            this.showNotificationBox = true;
+            this.showNotificationBoxHighlight = true;
             this.notificationBox.style.visibility = "visible"
         })
 
         this.notificationBox.addEventListener("mouseleave", () => {
-            this.showNotificationBox = false;
-            this.notificationBox.style.visibility = "hidden"
+            this.showNotificationBoxHighlight = false;
+            setTimeout(() => {
+                if(!this.showNotificationBoxNotif){
+                    this.notificationBox.style.visibility = "hidden"
+                }
+            }, 100)
+
         })
     }
 
