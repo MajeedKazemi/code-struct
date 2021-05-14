@@ -5,7 +5,8 @@ export enum ErrorMessage{
     default,
     outOfScopeVarReference,
     methodCallObjectTypeMismatch,
-    binOpArgTypeMismatch
+    binOpArgTypeMismatch,
+    boolOpArgTypeMismatch
 }
 
 
@@ -43,6 +44,9 @@ export class ErrorMessageGenerator{
                 break;
             case ErrorMessage.binOpArgTypeMismatch:
                     msg = `${args.binOp} is not defined for types ${args.argType1} and ${args.argType2}.`
+                    break;
+            case ErrorMessage.boolOpArgTypeMismatch:
+                    msg = `${args.binOp} only accepts expressions that evaluate to type bool or bool literas. Attempted to insert ${args.argsType1}.`
                     break;
             default:
                 msg = "Invalid action."

@@ -2479,6 +2479,12 @@ export class Module {
                         isValid = false;
                     }
                 }
+                else if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr && (code instanceof Expression)){
+                    if(code.returns != DataType.Boolean){
+                        isValid = false;
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: code.returns}, ErrorMessage.boolOpArgTypeMismatch);
+                    }
+                }
 
 				if (isValid) {
 					// replaces expression with the newly inserted expression
