@@ -91,10 +91,17 @@ export default class ActionStack {
     attachOnMouseMoveListener(){
         const module = this.module;
 
+        //position of mouse inside of editor (line + column)
         module.editor.monaco.onMouseMove((e) => {
             const action = new Action(ActionType.OnMouseMove, e);
             this.apply(action);
         });
+
+        //x,y pos of mouse within window
+        document.onmousemove = function(e){
+            module.editor.mousePosWindow[0] = e.x;
+            module.editor.mousePosWindow[1] = e.y;
+        };
     }
 
     apply(action) {

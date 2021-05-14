@@ -650,6 +650,6 @@ export class EventHandler {
 	}
 
 	onMouseMove(e){
-		this.module.editor.mousePos = e.target.position;
+		this.module.editor.mousePosMonaco = e.target.position;
 	}
 }
