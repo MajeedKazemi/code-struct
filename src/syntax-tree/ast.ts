@@ -2370,23 +2370,17 @@ export class Module {
                 this.editor.executeEdits(range, code);
                 prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
             }
-            else{
-
-                if(prevItem instanceof Expression && prevItem.returns != code.calledOn){
-                    //relies on tokens array not changing the index of function name
-                    this.notificationSystem.addHoverNotification(
-                        this.focusedNode,
-                        {
-                            objectType: prevItem.returns,
-                            method: (code.tokens[2] as FunctionNameTkn).text,
-                            methodCalledOn: code.calledOn
-                        },
-                        ErrorMessage.methodCallObjectTypeMismatch
-                    )
-                }
-                else{
-                    //TODO?
-                }
+            else if(prevItem instanceof Expression && prevItem.returns != code.calledOn){
+                //relies on tokens array not changing the index of function name
+                this.notificationSystem.addHoverNotification(
+                    this.focusedNode,
+                    {
+                        objectType: prevItem.returns,
+                        method: (code.tokens[2] as FunctionNameTkn).text,
+                        methodCalledOn: code.calledOn
+                    },
+                    ErrorMessage.methodCallObjectTypeMismatch
+                )
             }
         }
 
