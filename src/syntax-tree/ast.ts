@@ -2540,10 +2540,15 @@ export class Module {
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 
-			//should not add a notif here if a top-level one caught this action
-			if(!this.focusedNode.notification){
-				this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
-			}
+            if(code.addableType == AddableType.NotAddable){
+                this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
+            }
+            else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
+                //TODO: Need to somehow get name of construct here. It can be in different places. KeyWordTkn for control statements FunctionNameTkn for func calls, etc...
+                this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "[Insert construct name here]", receivesTypes: this.focusedNode.receives, addedType: code.addableType}, ErrorMessage.addableTypeMismatch);
+            }
+            
+            
 		}
 		this.editor.monaco.focus();
 	}

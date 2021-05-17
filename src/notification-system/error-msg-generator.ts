@@ -8,7 +8,8 @@ export enum ErrorMessage{
     binOpArgTypeMismatch,
     boolOpArgTypeMismatch,
     compOpArgTypeMismatch,
-    methodArgTypeMismatch
+    methodArgTypeMismatch,
+    addableTypeMismatch
 }
 
 
@@ -56,6 +57,10 @@ export class ErrorMessageGenerator{
             case ErrorMessage.methodArgTypeMismatch:
                 msg = `Argument of type ${args.argType1} expected, but got ${args.argType2}.`
                 break;
+            case ErrorMessage.addableTypeMismatch:
+                //TODO: Need better formatting for the receives array her. Consider when it has more than one item and when it is completely empty.
+                    msg = `${args.constructName} can only recieve the following types: ${args.receivesTypes}. Found ${args.addedType} instead.`
+                    break;
             default:
                 msg = "Invalid action."
                 break;
