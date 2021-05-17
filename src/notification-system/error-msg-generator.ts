@@ -7,7 +7,8 @@ export enum ErrorMessage{
     methodCallObjectTypeMismatch,
     binOpArgTypeMismatch,
     boolOpArgTypeMismatch,
-    compOpArgTypeMismatch
+    compOpArgTypeMismatch,
+    methodArgTypeMismatch
 }
 
 
@@ -41,7 +42,7 @@ export class ErrorMessageGenerator{
                 msg = `Attempted to reference "${args.identifier}" out of scope.`
                 break;
             case ErrorMessage.methodCallObjectTypeMismatch:
-                msg = `Attempted to call method from object that does not support it. Object type: ${args.objectType} \n Method: ${args.method} \n Called On: ${args.methodCalledOn}`
+                msg = `Attempted to call method from object that does not support it. Object type: ${args.objectType} --- Method: ${args.method} --- Called On: ${args.methodCalledOn}`
                 break;
             case ErrorMessage.binOpArgTypeMismatch:
                     msg = `${args.binOp} is not defined for types ${args.argType1} and ${args.argType2}.`
@@ -51,6 +52,9 @@ export class ErrorMessageGenerator{
                     break;
             case ErrorMessage.compOpArgTypeMismatch:
                 msg = `${args.binOp} is not defined for types ${args.argType1} and ${args.argType2}.`
+                break;
+            case ErrorMessage.methodArgTypeMismatch:
+                msg = `Argument of type ${args.argType1} expected, but got ${args.argType2}.`
                 break;
             default:
                 msg = "Invalid action."

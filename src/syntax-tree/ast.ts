@@ -2468,7 +2468,9 @@ export class Module {
                 //focusedNode.tokens[leftOperandIndex] and focusedNode.tokens[rightOperandIndex] should hold the tokens for the literals
                 //
                 let existingLiteralType = -1;
-                if((this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr) && (code instanceof Expression)){
+
+                //Binary operator type check (+ - * / < > <= >= ==)
+                if((this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr) && code instanceof Expression){
                     if (!(this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] instanceof EmptyExpr)){
                         existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] as Expression).returns;
                     }
@@ -2486,10 +2488,23 @@ export class Module {
                         isValid = false;
                     }
                 }
-                else if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr && (code instanceof Expression)){
+                //boolean operator type check
+                else if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr && code instanceof Expression){
                     if(code.returns != DataType.Boolean){
                         isValid = false;
                         this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: code.returns}, ErrorMessage.boolOpArgTypeMismatch);
+                    }
+                }
+                //method argument type check
+                //This could be made more generic to catch all type mismatches for all typed expressions.
+                //But we still need the context of what type the parent statement is to create a more precise error message rather than
+                //a generic "Type mismatch".
+                //TODO: This will impact functions such as print() where the argument is set to be of type string, but could actually be anything that has a __string__() method otherwise it performs a generic conversion.
+                //      Probably should make that argument type a list of acceptable types. Print() is special that way as far as built-in funcs. go, so maybe it is not worth the change.
+                else if(this.focusedNode.rootNode instanceof FunctionCallStmt && this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
+                    if(code.returns != this.focusedNode.type){
+                        isValid = false;
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: this.focusedNode.type, argType2: code.returns}, ErrorMessage.methodArgTypeMismatch);
                     }
                 }
 
