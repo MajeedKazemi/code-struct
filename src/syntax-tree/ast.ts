@@ -2367,6 +2367,11 @@ export class Module {
                     focusedPos.column
                 );
 
+                //TODO: Maybe put into a method later for reusability. No good spot for it in the code right now though.
+                if(this.focusedNode.notification){
+                    this.notificationSystem.removeNotification(this.focusedNode);
+                }
+
                 this.editor.executeEdits(range, code);
                 prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
             }
@@ -2410,6 +2415,10 @@ export class Module {
 								code,
                                 code.getRenderText() + "\n" + emptySpaces(focusedPos.column - 1)
                             );
+
+                            if(this.focusedNode.notification){
+                                this.notificationSystem.removeNotification(this.focusedNode);
+                            }
                         }
                     } else if (!(statement instanceof ElseStatement)) {
                         parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
@@ -2421,6 +2430,9 @@ export class Module {
 							code.right
 						);
 
+                        if(this.focusedNode.notification){
+                            this.notificationSystem.removeNotification(this.focusedNode);
+                        }
 						this.editor.executeEdits(range, code);
 					}
 				} else if (!(statement instanceof ElseStatement)) {
@@ -2432,6 +2444,10 @@ export class Module {
 						focusedPos.lineNumber,
 						statement.right
 					);
+
+                    if(this.focusedNode.notification){
+                        this.notificationSystem.removeNotification(this.focusedNode);
+                    }
 
 					this.editor.executeEdits(range, statement);
 				}
@@ -2453,6 +2469,11 @@ export class Module {
 					if(!isValid){
 						this.notificationSystem.addHoverNotification(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference);
 					}
+                    else{
+                        if(this.focusedNode.notification){
+                            this.notificationSystem.removeNotification(this.focusedNode);
+                        }
+                    }
 				}
 
                 //TODO: This should go inside a separate validator module
@@ -2509,6 +2530,10 @@ export class Module {
                 }
 
 				if (isValid) {
+                    if(this.focusedNode.notification){
+                        this.notificationSystem.removeNotification(this.focusedNode);
+                    }
+
 					// replaces expression with the newly inserted expression
 					let expr = code as Expression;
 
@@ -2547,8 +2572,6 @@ export class Module {
                 //TODO: Need to somehow get name of construct here. It can be in different places. KeyWordTkn for control statements FunctionNameTkn for func calls, etc...
                 this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "[Insert construct name here]", receivesTypes: this.focusedNode.receives, addedType: code.addableType}, ErrorMessage.addableTypeMismatch);
             }
-            
-            
 		}
 		this.editor.monaco.focus();
 	}
