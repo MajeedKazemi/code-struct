@@ -67,8 +67,14 @@ export class NotificationSystemController{
     }
 
     addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage){
-        this.notifications.push(new HoverNotification(this.editor, code.getSelection(), this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args)));
-        code.notification = this.notifications[this.notifications.length - 1];
+        if(!code.notification){
+            this.notifications.push(new HoverNotification(this.editor, code.getSelection(), this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args)));
+            code.notification = this.notifications[this.notifications.length - 1];
+        }
+        else{
+            this.removeNotification(code);
+            this.addHoverNotification(code, args, errMsgType);
+        }
     }
 
     addPopUpNotification(code: CodeConstruct){
