@@ -5,7 +5,8 @@ import Editor from '../editor/editor';
 //TODO: Most likely will have to size based on text size inside. Not all messages will be the same length.
 const hoverNotificationDefaultWidth = 200;
 const hoverNotificationDefaultHeight = 75;
-const hoverNotificationMaxHeight = 25;
+const highlightDefaultWidth = 10;
+const highlightDefaultHeight = 25;
 const notificationDOMParent = ".lines-content.monaco-editor-background";
 
 //funcs that all classes should have access to, maybe move within some common parent later
@@ -93,8 +94,8 @@ export abstract class Notification{
         this.highlightElement = document.createElement("div");
         this.highlightElement.classList.add(styleClass);
 
-        this.highlightElement.style.width = `${this.parentElement.offsetWidth}px`;
-        this.highlightElement.style.height = `${this.parentElement.offsetHeight}px`;
+        this.highlightElement.style.width = `${this.parentElement.offsetWidth > 0 ? this.parentElement.offsetWidth : highlightDefaultWidth}px`;
+        this.highlightElement.style.height = `${this.parentElement.offsetHeight > 0 ? this.parentElement.offsetHeight : highlightDefaultHeight}px`;
 
         this.parentElement.appendChild(this.highlightElement);
     }
@@ -110,8 +111,8 @@ export abstract class Notification{
         element.style.top = `${transform.y + 5}px`;
         element.style.left = `${transform.x - 0}px`;
 
-        element.style.width = `${transform.width + 0 * 2}px`;
-        element.style.height = `${transform.height - 5 * 2}px`;
+        element.style.width = `${transform.width > 0 ? transform.width + 0 * 2 : highlightDefaultWidth}px`;
+        element.style.height = `${transform.height > 0 ? transform.height - 5 * 2 : highlightDefaultHeight}px`;
     }
 
     /**
@@ -144,13 +145,13 @@ export class HoverNotification extends Notification implements NotificationBox{
     showNotificationBoxHighlight = false;
     showNotificationBoxNotif = false;
 
-    constructor(editor: Editor, selection: monaco.Selection, index: number = -1, msg: string = ""){
+    constructor(editor: Editor, selection: monaco.Selection, index: number = -1, msg: string = "", style: string = "hoverNotificationHighlight"){
         super(editor, selection, index);
 
         this.messageText = msg;
 
         this.notificationDomIdPrefix = "hoverNotification";
-        this.addHighlight("hoverNotificationHighlight");
+        this.addHighlight(style);
         this.setDomId();
 
         this.addNotificationBox(); //hover box
