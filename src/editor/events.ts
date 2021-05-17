@@ -438,8 +438,8 @@ export class EventHandler {
 					new AST.FunctionCallStmt(
 						'randint',
 						[
-							new AST.Argument(AST.DataType.String, 'start', false),
-							new AST.Argument(AST.DataType.String, 'end', false)
+							new AST.Argument(AST.DataType.Number, 'start', false),
+							new AST.Argument(AST.DataType.Number, 'end', false)
 						],
 						AST.DataType.Number
 					)
