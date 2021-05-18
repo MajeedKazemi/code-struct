@@ -1,52 +1,85 @@
 import * as monaco from 'monaco-editor';
 import Editor from '../editor/editor';
 
-//TODO: Might want to change this to be constructor parameters so that boxes of various sizes can be created anywhere
-//TODO: Most likely will have to size based on text size inside. Not all messages will be the same length.
+
+/**
+ * Default width of the hover textbox for a hover notification (px).
+ */
 const hoverNotificationDefaultWidth = 200;
+
+/**
+ * Default height of the hover textbox for a hover notification (px).
+ */
 const hoverNotificationDefaultHeight = 75;
+
+/**
+ * Default width of the text highlight for a hover notification (px).
+ */
 const highlightDefaultWidth = 10;
+
+/**
+ * Default height of the text highlight for a hover notification (px).
+ */
 const highlightDefaultHeight = 25;
+
+/**
+ * Classname of the DOM element to which notifications are appended to.
+ */
 const notificationDOMParent = ".lines-content.monaco-editor-background";
 
-//funcs that all classes should have access to, maybe move within some common parent later
-const getDimensionsFromStyle = (styleString: string) => {
-    const trimmedStyle = styleString.replace(/\s/g, "");
-
-    const widthMatch = trimmedStyle.match(/width:-?\d+\.?\d+[^%]/);
-    const heightMatch = trimmedStyle.match(/height:-?\d+\.?\d+[^%]/);
-    const leftMatch = trimmedStyle.match(/left:-?\d+\.?\d+[^%]/);
-    const topMatch = trimmedStyle.match(/top:-?\d+\.?\d+[^%]/);
-
-    return {width: (widthMatch ? parseFloat(widthMatch[0].split(":")[1]) : 0),
-            height: (heightMatch ? parseFloat(heightMatch[0].split(":")[1]) : 0),
-            left: (leftMatch ? parseFloat(leftMatch[0].split(":")[1]) : 0),
-            top: (topMatch ? parseFloat(topMatch[0].split(":")[1]) : 0)
-    };
-}
-
-
-
-//TODO: Add documentation for everything in here
-
+//TODO: Probably should refactor to a Builder. It pretty much is already.
 /**
  * 
  */
 interface NotificationBox{
+    /**
+     * Main textbox of this notification.
+     */
     notificationBox: HTMLDivElement;
 
-    addNotificationBox();
-    addText();
-    setNotificationBoxBounds();
-    setNotificationBehaviour();
-    moveWithinEditor();
+    /**
+     * Build a textbox for the Notification and add it to the DOM.
+     */
+    addNotificationBox() : void;
+
+    /**
+     * Build the contents of the nofiticationBox element.
+     */
+    addText() : void;
+
+    /**
+     * Set the transform of the notification.
+     */
+    setNotificationBoxBounds() : void;
+
+    /**
+     * Set additional notifications behaviours.
+     */
+    setNotificationBehaviour() : void;
+
+    /**
+     * Move the Notification inside the code editor's viewport, if necessary.
+     */
+    moveWithinEditor() : void;
 }
 
 /**
- * A Notification element that allows to highlight erroneous code constructs and display a message to the user.
+ * A Notification shown when user performs invalid actions.
  */
 export abstract class Notification{
+    /**
+     * Next integer that can be appended to notificationDomIdPrefix to create a unique DOM id for the next notification.
+     */
+         static currDomId: number = 0;
+
+    /**
+     * HTML of the notification message.
+     */
     messageText: string;
+
+    /**
+     * Editor instance of the program.
+     */
     editor: Editor;
 
     /**
@@ -55,23 +88,44 @@ export abstract class Notification{
     selection: monaco.Selection;
 
     /**
-     * Index of this notification within the "notifications" list of a NotificationSystemController instance.
+     * Index of this notification within the "notifications" list of the NotificationSystemController instance that created it.
      */
     index: number;
 
     /**
-     * The highlight element of the notification.
+     * Top-level DOM element of the notification. Everything else is appended to it.
      */
     parentElement: HTMLDivElement;
+
+    /**
+     * DOM element of the highlight for the editor area that triggered this notification.
+     */
     highlightElement: HTMLDivElement;
+
+    /**
+     * DOM element of the notification textbox.
+     */
     notificationTextDiv: HTMLDivElement;
+
+    /**
+     * Unique DOM id of this Notification's parentElement.
+     */
     domId: string;
+
+    /**
+     * DOM id prefix of this notification.
+     */
     notificationDomIdPrefix: string;
 
+    /**
+     * Amount to subtract from the x-coordinate of the mouse cursor to make the left side of the parentElement be the cursor's origin along x.
+     */
     mouseLeftOffset: number;
+    
+    /**
+     * Amount to subtract from the y-coordinate of the mouse cursor to make the top side of the parentElement be the cursor's origin along y.
+     */
     mouseTopOffset: number;
-
-    static currDomId: number = 0;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
         this.selection = selection;
@@ -124,7 +178,7 @@ export abstract class Notification{
     }
 
     /**
-     * Assigns a unique DOM id to the notification's parent element.
+     * Assign a unique DOM id to the notification's parent element.
      */
     setDomId(){
         Notification.currDomId++;
@@ -138,12 +192,27 @@ export abstract class Notification{
  * Notification that allows user to hover over a selection to see more information.
  */
 export class HoverNotification extends Notification implements NotificationBox{
+    /**
+     * How often the collision between the mouse cursor and a HoverNotification is checked. (ms)
+     */
     static notificationHighlightCollisionCheckInterval = 500;
+
+    /**
+     * How long a HoverNotification stays on screen after it is not being hovered over anymore. (ms)
+     */
     static notificationFadeTime = 100;
 
-    notificationBox = null;
+    /**
+     * Determines whether the mouse cursor is currently hovering over this notification's highlighted area.
+     */
     showNotificationBoxHighlight = false;
+
+    /**
+     * Determines whether the mouse cursor is currently hovering over this notification's textbox.
+     */
     showNotificationBoxNotif = false;
+
+    notificationBox = null;
 
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1, msg: string = "", style: string = "hoverNotificationHighlight"){
         super(editor, selection, index);
@@ -254,6 +323,23 @@ export class HoverNotification extends Notification implements NotificationBox{
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//TODO: This class is unfinished since we don't have a clear use for it yet. Once there is a need for it, it can be quickly completed.
 /**
  * Notification that stays on the screen for a given period of time and then disappears.
  */
