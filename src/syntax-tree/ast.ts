@@ -2588,8 +2588,14 @@ export class Module {
                     this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
                 }
                 else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
-                    //TODO: Need to somehow get name of construct here. It can be in different places. KeyWordTkn for control statements FunctionNameTkn for func calls, etc...
-                    this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "[Insert construct name here]", receivesTypes: this.focusedNode.receives, addedType: code.addableType}, ErrorMessage.addableTypeMismatch);
+                    if(this.focusedNode.rootNode instanceof Statement){
+                        if(this.focusedNode.rootNode.getKeyword() != ""){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: this.focusedNode.rootNode.getKeyword(), addedType: code.addableType},
+                                                                         ErrorMessage.addableTypeMismatchControlStmt);
+                        }
+                       
+                    }
+
                 }
             }
 		}

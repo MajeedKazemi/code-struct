@@ -9,7 +9,8 @@ export enum ErrorMessage{
     boolOpArgTypeMismatch,
     compOpArgTypeMismatch,
     methodArgTypeMismatch,
-    addableTypeMismatch
+    addableTypeMismatch,
+    addableTypeMismatchControlStmt,
 }
 
 enum CSSClasses{
@@ -88,8 +89,18 @@ export class ErrorMessageGenerator{
             case ErrorMessage.methodArgTypeMismatch:
                 msg = `Argument of type ${this.getStyledSpan(args.argType1, CSSClasses.type)} expected, but got ${this.getStyledSpan(args.argType2, CSSClasses.type)}.`
                 break;
+            //TODO: Need better formatting for the receives array here. Consider when it has more than one item and when it is completely empty.
+            case ErrorMessage.addableTypeMismatchControlStmt:
+                    if(args.constructName != "for"){
+                        msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement. It only accepts boolean
+                               expressions or method calls and literal values that evaluate to a boolean. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
+                    }
+                    else{ //TODO: This case needs to be further separated based on which part of the for we attempted to insert into
+                        msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement that iterates over a range of values.
+                               It only accepts iterable objects. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
+                    }
+                    break;
             case ErrorMessage.addableTypeMismatch:
-                //TODO: Need better formatting for the receives array here. Consider when it has more than one item and when it is completely empty.
                     msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} can only recieve the following types:
                            ${this.getStyledSpan(args.receivesTypes, CSSClasses.type)}. Found ${this.getStyledSpan(args.addableType, CSSClasses.type)} instead.`
                     break;
