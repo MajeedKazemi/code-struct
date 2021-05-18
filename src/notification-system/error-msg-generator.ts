@@ -12,6 +12,7 @@ export enum ErrorMessage{
     addableTypeMismatch,
     addableTypeMismatchControlStmt,
     addableTypeMismatchVarAssignStmt,
+    addableTypeMismatchEmptyLine,
 }
 
 enum CSSClasses{
@@ -90,7 +91,6 @@ export class ErrorMessageGenerator{
             case ErrorMessage.methodArgTypeMismatch:
                 msg = `Argument of type ${this.getStyledSpan(args.argType1, CSSClasses.type)} expected, but got ${this.getStyledSpan(args.argType2, CSSClasses.type)}.`
                 break;
-            //TODO: Need better formatting for the receives array here. Consider when it has more than one item and when it is completely empty.
             case ErrorMessage.addableTypeMismatchControlStmt:
                 if(args.constructName != "for"){
                     msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement. It only accepts boolean
@@ -104,9 +104,8 @@ export class ErrorMessageGenerator{
             case ErrorMessage.addableTypeMismatchVarAssignStmt:
                 msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} accepts only text for the variable name. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
                 break;
-            case ErrorMessage.addableTypeMismatch:
-                msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} can only recieve the following types:
-                        ${this.getStyledSpan(args.receivesTypes, CSSClasses.type)}. Found ${this.getStyledSpan(args.addableType, CSSClasses.type)} instead.`
+            case ErrorMessage.addableTypeMismatchEmptyLine:
+                msg = `Cannot insert a(n) ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} on an empty line.`
                 break;
             default:
                 msg = "Invalid action."

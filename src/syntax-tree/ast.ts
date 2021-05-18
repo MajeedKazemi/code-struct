@@ -2597,28 +2597,19 @@ export class Module {
                             this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: this.focusedNode.rootNode.getKeyword(), addedType: code.addableType},
                                                                          ErrorMessage.addableTypeMismatchControlStmt);
                         }
-                        else{ //VarAssignmentStmt, MethodCallStmt and EmptyLineStmt
+                        else{ //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
                             if(this.focusedNode.rootNode instanceof MethodCallStmt){
                                 console.log("Address this once lists are fixed.")
                             }
                             else if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
                                 this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "Variable assignment", addedType: code.addableType},
-                                                                         ErrorMessage.addableTypeMismatchVarAssignStmt);
-                            }
-                            else{
-                                
-
-
-                                
+                                                                             ErrorMessage.addableTypeMismatchVarAssignStmt);
                             }
                         }
                     }
                     else{ //Token
-                        //calls to randint(), range() and len() on an empty line (FuncionCallStmt that return something)
-                        //MethodCallExpr (methods called from objects such as .split()) on an empty line
-                        //literals on empty lines
-                        //binary ops on empty lines
-                        console.log("General token notification.")
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
+                                                                             ErrorMessage.addableTypeMismatchEmptyLine);
                     }
                 }
             }
