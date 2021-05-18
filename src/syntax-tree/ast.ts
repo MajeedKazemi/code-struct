@@ -87,12 +87,12 @@ export enum ComparatorOp {
 export enum AddableType {
     NotAddable,
 
-    Statement,
-    Expression,
-    ExpressionModifier,
-    Identifier,
-    NumberLiteral,
-    StringLiteral,
+    Statement = "Statement",
+    Expression = "Expression",
+    ExpressionModifier = "Expression Modifier",
+    Identifier = "Identifier",
+    NumberLiteral = "Number Literal",
+    StringLiteral = "String Literal",
 }
 
 export enum CallbackType {
