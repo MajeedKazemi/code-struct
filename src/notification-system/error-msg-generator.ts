@@ -11,6 +11,7 @@ export enum ErrorMessage{
     methodArgTypeMismatch,
     addableTypeMismatch,
     addableTypeMismatchControlStmt,
+    addableTypeMismatchVarAssignStmt,
 }
 
 enum CSSClasses{
@@ -74,14 +75,14 @@ export class ErrorMessageGenerator{
                        It can only be called from objects of type ${this.getStyledSpan(args.objectType, CSSClasses.type)}.` 
                 break;
             case ErrorMessage.binOpArgTypeMismatch:
-                    msg = `${this.getStyledSpan(args.binOp, CSSClasses.other)} is not defined for types
-                           ${this.getStyledSpan(args.argType1, CSSClasses.type)} and ${this.getStyledSpan(args.argType2, CSSClasses.type)}.`
-                    break;
+                msg = `${this.getStyledSpan(args.binOp, CSSClasses.other)} is not defined for types
+                        ${this.getStyledSpan(args.argType1, CSSClasses.type)} and ${this.getStyledSpan(args.argType2, CSSClasses.type)}.`
+                break;
             case ErrorMessage.boolOpArgTypeMismatch:
-                    msg = `${this.getStyledSpan(args.binOp, CSSClasses.other)} only accepts expressions that evaluate to type 
-                           ${this.getStyledSpan("Boolean", CSSClasses.type)} or ${this.getStyledSpan("Boolean", CSSClasses.type)} literas.
-                           Attempted to insert ${this.getStyledSpan(args.argType1, CSSClasses.type)} instead.`
-                    break;
+                msg = `${this.getStyledSpan(args.binOp, CSSClasses.other)} only accepts expressions that evaluate to type 
+                        ${this.getStyledSpan("Boolean", CSSClasses.type)} or ${this.getStyledSpan("Boolean", CSSClasses.type)} literas.
+                        Attempted to insert ${this.getStyledSpan(args.argType1, CSSClasses.type)} instead.`
+                break;
             case ErrorMessage.compOpArgTypeMismatch:
                 msg = `${this.getStyledSpan(args.binOp, CSSClasses.other)} is not defined for types ${this.getStyledSpan(args.argType1, CSSClasses.type)}
                        and ${this.getStyledSpan(args.argType2, CSSClasses.type)}.`
@@ -91,19 +92,22 @@ export class ErrorMessageGenerator{
                 break;
             //TODO: Need better formatting for the receives array here. Consider when it has more than one item and when it is completely empty.
             case ErrorMessage.addableTypeMismatchControlStmt:
-                    if(args.constructName != "for"){
-                        msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement. It only accepts boolean
-                               expressions or method calls and literal values that evaluate to a boolean. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
-                    }
-                    else{ //TODO: This case needs to be further separated based on which part of the for we attempted to insert into
-                        msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement that iterates over a range of values.
-                               It only accepts iterable objects. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
-                    }
-                    break;
+                if(args.constructName != "for"){
+                    msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement. It only accepts boolean
+                            expressions or method calls and literal values that evaluate to a boolean. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
+                }
+                else{ //TODO: This case needs to be further separated based on which part of the for we attempted to insert into
+                    msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement that iterates over a range of values.
+                            It only accepts iterable objects. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
+                }
+                break;
+            case ErrorMessage.addableTypeMismatchVarAssignStmt:
+                msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} accepts only text for the variable name. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
+                break;
             case ErrorMessage.addableTypeMismatch:
-                    msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} can only recieve the following types:
-                           ${this.getStyledSpan(args.receivesTypes, CSSClasses.type)}. Found ${this.getStyledSpan(args.addableType, CSSClasses.type)} instead.`
-                    break;
+                msg = `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} can only recieve the following types:
+                        ${this.getStyledSpan(args.receivesTypes, CSSClasses.type)}. Found ${this.getStyledSpan(args.addableType, CSSClasses.type)} instead.`
+                break;
             default:
                 msg = "Invalid action."
                 break;

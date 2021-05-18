@@ -2584,6 +2584,10 @@ export class Module {
 			console.warn("Cannot insert this code construct at focused location.");
 
             if(!this.focusedNode.notification){
+                //TODO: This type of logic should not be inside the AST. It should be moved somewhere like a validator class or even the notification-system-controller.
+                //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
+                //
+                //(There is probably some code similar to this above as well)
                 if(code.addableType == AddableType.NotAddable){
                     this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
                 }
@@ -2593,9 +2597,29 @@ export class Module {
                             this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: this.focusedNode.rootNode.getKeyword(), addedType: code.addableType},
                                                                          ErrorMessage.addableTypeMismatchControlStmt);
                         }
-                       
-                    }
+                        else{ //VarAssignmentStmt, MethodCallStmt and EmptyLineStmt
+                            if(this.focusedNode.rootNode instanceof MethodCallStmt){
+                                console.log("Address this once lists are fixed.")
+                            }
+                            else if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "Variable assignment", addedType: code.addableType},
+                                                                         ErrorMessage.addableTypeMismatchVarAssignStmt);
+                            }
+                            else{
+                                
 
+
+                                
+                            }
+                        }
+                    }
+                    else{ //Token
+                        //calls to randint(), range() and len() on an empty line (FuncionCallStmt that return something)
+                        //MethodCallExpr (methods called from objects such as .split()) on an empty line
+                        //literals on empty lines
+                        //binary ops on empty lines
+                        console.log("General token notification.")
+                    }
                 }
             }
 		}
