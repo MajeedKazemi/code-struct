@@ -21,7 +21,6 @@
     height: fit-content;
     font-size: 10pt;
     color: black;
-    font-weight: 700;
     overflow-y: scroll;
     pointer-events: all;
 }
@@ -36,4 +35,22 @@
     top: 200px;
     width: 200px;
     height: 200px;
+}
+
+.identifier{
+    font-weight: bold;
+}
+
+.type{
+    color: rgb(46, 175, 162);
+    font-weight: 500;
+}
+
+.keyword{
+    color: blue;
+    font-weight: 500;
+}
+
+.other{
+    font-weight: 600;
 }

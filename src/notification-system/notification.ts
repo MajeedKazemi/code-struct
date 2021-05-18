@@ -173,7 +173,7 @@ export class HoverNotification extends Notification implements NotificationBox{
 
     addText(){
         this.notificationTextDiv = document.createElement("div");
-        this.notificationTextDiv.appendChild(document.createTextNode(this.messageText));//better to use this for now. Once we have a text "beautifier" we can use innerHTML instead. 
+        this.notificationTextDiv.innerHTML = this.messageText;
         this.notificationBox.appendChild(this.notificationTextDiv);
     }
 
