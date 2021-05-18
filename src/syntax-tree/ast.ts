@@ -31,17 +31,17 @@ export enum EditFunctions {
 }
 
 export enum DataType {
-    Number,
-    Boolean,
-    String,
-    Fractional,
-    Iterator,
-    List,
-    Set,
-    Dict,
-    Class,
-    Void,
-    Any,
+    Number = "Number",
+    Boolean = "Boolean",
+    String = "String",
+    Fractional = "Float",
+    Iterator = "Iterator",
+    List = "List",
+    Set = "Set",
+    Dict = "Dict",
+    Class = "Class",
+    Void = "Void",
+    Any = "Any",
 }
 
 export enum BinaryOperator {
@@ -2488,7 +2488,7 @@ export class Module {
                 //code.returns holds the type of literal expression
                 //focusedNode.tokens[leftOperandIndex] and focusedNode.tokens[rightOperandIndex] should hold the tokens for the literals
                 //
-                let existingLiteralType = -1;
+                let existingLiteralType = null;
 
                 //Binary operator type check (+ - * / < > <= >= ==)
                 if((this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr) && code instanceof Expression){
@@ -2499,7 +2499,7 @@ export class Module {
                         existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getRightOperandIndex()] as Expression).returns;
                     }
 
-                    if(existingLiteralType > -1 && existingLiteralType != code.returns){
+                    if(existingLiteralType != null && existingLiteralType != code.returns){
                         if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
                             this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.binOpArgTypeMismatch);
                         }
