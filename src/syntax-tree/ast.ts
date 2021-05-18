@@ -2382,7 +2382,7 @@ export class Module {
                     {
                         objectType: prevItem.returns,
                         method: (code.tokens[2] as FunctionNameTkn).text,
-                        methodCalledOn: code.calledOn
+                        calledOn: code.calledOn
                     },
                     ErrorMessage.methodCallObjectTypeMismatch
                 )
@@ -2565,12 +2565,15 @@ export class Module {
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 
-            if(code.addableType == AddableType.NotAddable){
-                this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
-            }
-            else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
-                //TODO: Need to somehow get name of construct here. It can be in different places. KeyWordTkn for control statements FunctionNameTkn for func calls, etc...
-                this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "[Insert construct name here]", receivesTypes: this.focusedNode.receives, addedType: code.addableType}, ErrorMessage.addableTypeMismatch);
+            //should not replace any notification that was added above 
+            if(!this.focusedNode.notification){
+                if(code.addableType == AddableType.NotAddable){
+                    this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
+                }
+                else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
+                    //TODO: Need to somehow get name of construct here. It can be in different places. KeyWordTkn for control statements FunctionNameTkn for func calls, etc...
+                    this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "[Insert construct name here]", receivesTypes: this.focusedNode.receives, addedType: code.addableType}, ErrorMessage.addableTypeMismatch);
+                }
             }
 		}
 		this.editor.monaco.focus();
