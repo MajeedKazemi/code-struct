@@ -260,6 +260,8 @@ export abstract class Statement implements CodeConstruct {
 
 	notification = null;
 
+    keywordIndex = -1;
+
 	constructor() {
 		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
 	}
@@ -660,6 +662,18 @@ export abstract class Statement implements CodeConstruct {
         if (this.rootNode instanceof Module) return this.rootNode;
         else return (this.rootNode as Statement).getModule();
     }
+
+    /**
+     * Return this statement's keyword if it has one. Otherwise return an empty string.
+     * 
+     * @returns text representation of statement's keyword or an empty string if it has none
+     */
+    getKeyword(): string{
+        if(this.keywordIndex > -1){
+            return (this.tokens[this.keywordIndex] as KeywordTkn).text;
+        }
+        return "";
+    }
 }
 
 /**
@@ -942,6 +956,7 @@ export class WhileStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(new KeywordTkn("while", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
@@ -970,6 +985,7 @@ export class IfStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(new KeywordTkn("if", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
@@ -1058,6 +1074,7 @@ export class ElseStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         if (hasCondition) {
             this.tokens.push(new KeywordTkn("elif", this, this.tokens.length));
             this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
@@ -1096,6 +1113,7 @@ export class ForStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(new KeywordTkn("for", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.counterIndex = this.tokens.length;
@@ -2565,7 +2583,6 @@ export class Module {
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 
-            //should not replace any notification that was added above 
             if(!this.focusedNode.notification){
                 if(code.addableType == AddableType.NotAddable){
                     this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
