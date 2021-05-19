@@ -87,8 +87,10 @@ export class NotificationSystemController{
     }
    
     removeNotification(code: CodeConstruct){
-        this.notifications[code.notification.index].removeNotificationFromDOM();
-        this.notifications.splice(code.notification.index, 1);
-        code.notification = null;
+        if(code?.notification){
+            this.notifications[code.notification.index].removeNotificationFromDOM();
+            this.notifications.splice(code.notification.index, 1);
+            code.notification = null;
+        }
     }
 }

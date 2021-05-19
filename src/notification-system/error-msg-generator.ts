@@ -13,6 +13,9 @@ export enum ErrorMessage{
     addableTypeMismatchControlStmt,
     addableTypeMismatchVarAssignStmt,
     addableTypeMismatchEmptyLine,
+    existingIdentifier,
+    identifierIsKeyword,
+    identifierIsBuiltInFunc
 }
 
 enum CSSClasses{
@@ -106,6 +109,15 @@ export class ErrorMessageGenerator{
                 break;
             case ErrorMessage.addableTypeMismatchEmptyLine:
                 msg = `Cannot insert a(n) ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} on an empty line.`
+                break;
+            case ErrorMessage.existingIdentifier:
+                msg = `The identifier ${this.getStyledSpan(args.identifier, CSSClasses.identifier)} is already in use in this scope. Please choose a different one.`
+                break;
+            case ErrorMessage.identifierIsKeyword:
+                msg = `The identifier ${this.getStyledSpan(args.identifier, CSSClasses.identifier)} is a reserved keyword. Please use a different one.`
+                break;
+            case ErrorMessage.identifierIsBuiltInFunc:
+                msg = `The identifier ${this.getStyledSpan(args.identifier, CSSClasses.identifier)} is the name of a built-in function or variable. Please use a different one.`
                 break;
             default:
                 msg = "Invalid action."
