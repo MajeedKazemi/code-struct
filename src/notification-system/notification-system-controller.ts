@@ -77,12 +77,12 @@ export class NotificationSystemController{
         }
     }
 
-    addPopUpNotification(code: CodeConstruct){
-        this.notifications.push(new PopUpNotification(this.editor, code.getSelection(), this.notifications.length));
-        code.notification = this.notifications[this.notifications.length - 1];
+    addPopUpNotification(){
+        this.notifications.push(new PopUpNotification(this.editor, this.notifications.length, "Pop Up!"));
+        const notif = this.notifications[this.notifications.length - 1];
 
         setTimeout(() => {
-            this.removeNotification(code);
+            document.querySelector(".lines-content.monaco-editor-background").removeChild(notif.parentElement);
         }, popUpNotificationTime);
     }
    

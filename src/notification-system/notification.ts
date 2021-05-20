@@ -33,11 +33,6 @@ const notificationDOMParent = ".lines-content.monaco-editor-background";
  */
 interface NotificationBox{
     /**
-     * Main textbox of this notification.
-     */
-    notificationBox: HTMLDivElement;
-
-    /**
      * Build a textbox for the Notification and add it to the DOM.
      */
     addNotificationBox() : void;
@@ -127,6 +122,11 @@ export abstract class Notification{
      */
     mouseTopOffset: number;
 
+    /**
+     * Main textbox of this notification.
+     */
+    notificationBox: HTMLDivElement;
+
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
         this.selection = selection;
         this.editor = editor;
@@ -134,7 +134,8 @@ export abstract class Notification{
 
         this.parentElement = document.createElement("div");
         this.parentElement.classList.add("notificationParent");
-        this.wrapAroundCodeConstruct(this.parentElement);
+
+        if(this.selection) this.wrapAroundCodeConstruct(this.parentElement);
         
         document.querySelector(notificationDOMParent).appendChild(this.parentElement);
     }
@@ -185,6 +186,12 @@ export abstract class Notification{
 
         this.domId = `${this.notificationDomIdPrefix}-${Notification.currDomId}`;
         this.parentElement.setAttribute("id", this.domId)
+    }
+
+    addText(){
+        this.notificationTextDiv = document.createElement("div");
+        this.notificationTextDiv.innerHTML = this.messageText;
+        this.notificationBox.appendChild(this.notificationTextDiv);
     }
 }
 
@@ -238,12 +245,6 @@ export class HoverNotification extends Notification implements NotificationBox{
         //This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
         //wrong from time to time...
         this.mouseTopOffset = this.parentElement.offsetTop + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
-    }
-
-    addText(){
-        this.notificationTextDiv = document.createElement("div");
-        this.notificationTextDiv.innerHTML = this.messageText;
-        this.notificationBox.appendChild(this.notificationTextDiv);
     }
 
     addNotificationBox(){
@@ -346,27 +347,26 @@ export class HoverNotification extends Notification implements NotificationBox{
 export class PopUpNotification extends Notification implements NotificationBox{
     notificationBox = null;
 
-    constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
-        super(editor, selection, index);
+    constructor(editor: Editor, index: number = -1, msg: string = ""){
+        super(editor, null, index);
+
+        this.messageText = msg;
 
         this.notificationDomIdPrefix = "popUpNotification";
         this.setDomId();
-        this.addHighlight("popUpNotification"); //probably need to remove this call or make it conditional since we are planning on showing both hovers and pop ups for the same warning at the same time
 
         this.addNotificationBox();
 
-        document.querySelector(notificationDOMParent).appendChild(this.highlightElement);
+        document.querySelector(notificationDOMParent).appendChild(this.parentElement);
     }  
 
     addNotificationBox(){
         this.notificationBox = document.createElement("div");
         this.notificationBox.classList.add("popUpNotification");
 
-        //this.setNotificationBoxBounds();
-        //this.setNotificationBehaviour();
-        //this.moveWithinEditor();
+        this.addText();
 
-        this.highlightElement.appendChild(this.notificationBox);
+        this.parentElement.appendChild(this.notificationBox);
     }
 
     setNotificationBoxBounds(){
@@ -378,9 +378,6 @@ export class PopUpNotification extends Notification implements NotificationBox{
     }
 
     moveWithinEditor(){
-        throw new Error("NOT IMPLEMENTED...")
-    }
-    addText(){
         throw new Error("NOT IMPLEMENTED...")
     }
 }
