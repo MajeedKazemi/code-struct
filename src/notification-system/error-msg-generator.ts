@@ -59,27 +59,28 @@ export class ErrorMessageGenerator{
      *      args.argType2: type of second expression
      * 
      * MethodArgTypeMismatch:
-     *      args.argType1: expected type of argument 
-     *      args.argType2: actual type of argument
+     *      args.argType1:   expected type of argument 
+     *      args.argType2:   actual type of argument
+     *      args.methodName: name of method
      * 
      * AddableTypeMismatchControlStmt:
      *      
      * 
      * AddableTypeMismatchVarAssignStmt:
      *      args.contructName: object type that the user tried to insert into. In this case should always be 'Variable assignment'
-     *      args.addedType:    type of object user tried to insert.
+     *      args.addedType:    type of object user tried to insert
      * 
      * AddableTypeMismatchEmptyLine:
-     *      args.addedType: type of object user tried to add.
+     *      args.addedType: type of object user tried to add
      * 
      * ExistingIdentifier:
-     *      args.identifier: identifier that the user tried to use.
+     *      args.identifier: identifier that the user tried to us
      * 
      * IdentifierIsKeyword:
-     *      args.identifier: identifier that the user tried to use.
+     *      args.identifier: identifier that the user tried to use
      * 
      * IdentifierIsBuiltInFunc:
-     *      args.identifier: identifier that the user tried to use.
+     *      args.identifier: identifier that the user tried to use
      * 
      * @returns  an appropriate error message for the given error and context
      */
@@ -138,8 +139,7 @@ export class ErrorMessageGenerator{
 
             case ErrorMessage.methodArgTypeMismatch:
                 if(usePersonalizedMessages){
-                    //TODO: Add method name to args and change generated message accordingly.
-                    return `The argument to ${this.getStyledSpan(args.argType1, CSSClasses.type)} should be of type 
+                    return `This argument to ${this.getStyledSpan(args.methodName, CSSClasses.identifier)} should be of type 
                             ${this.getStyledSpan(args.argType1, CSSClasses.type)}, but I found a ${this.getStyledSpan(args.argType2, CSSClasses.type)}.`;
                 }
 

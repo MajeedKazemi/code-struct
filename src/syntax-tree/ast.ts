@@ -1374,6 +1374,10 @@ export class FunctionCallStmt extends Expression {
     replaceArgument(index: number, to: CodeConstruct) {
         this.replace(to, this.argumentsIndices[index]);
     }
+
+    getFunctionName() : string {
+        return (this.tokens[0] as FunctionNameTkn).getFunctionName();
+    }
 }
 
 export class MethodCallExpr extends Expression {
@@ -1949,6 +1953,10 @@ export class FunctionNameTkn extends Token {
 
     getSelection(): monaco.Selection {
         return this.rootNode.getSelection();
+    }
+
+    getFunctionName() : string {
+        return this.text;
     }
 }
 
@@ -2543,7 +2551,9 @@ export class Module {
                 else if(this.focusedNode.rootNode instanceof FunctionCallStmt && this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
                     if(code.returns != this.focusedNode.type){
                         isValid = false;
-                        this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: this.focusedNode.type, argType2: code.returns}, ErrorMessage.methodArgTypeMismatch);
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: this.focusedNode.type, argType2: code.returns,
+                                                                                        methodName: (this.focusedNode.rootNode as FunctionCallStmt).getFunctionName()},
+                                                                     ErrorMessage.methodArgTypeMismatch);
                     }
                 }
 
