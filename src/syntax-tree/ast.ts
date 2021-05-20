@@ -1376,7 +1376,8 @@ export class FunctionCallStmt extends Expression {
     }
 
     getFunctionName() : string {
-        return (this.tokens[0] as FunctionNameTkn).getFunctionName();
+        if (this.isStatement()) return (this.tokens[1] as FunctionNameTkn).getFunctionName();;
+        return (this.tokens[0] as FunctionNameTkn).getFunctionName();    
     }
 }
 
