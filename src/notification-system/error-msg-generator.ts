@@ -1,4 +1,5 @@
 
+import { EmptyExpr, IdentifierTkn } from "../syntax-tree/ast";
 import {ErrorType} from "./notification-system-controller"
 
 export enum ErrorMessage{
@@ -64,7 +65,9 @@ export class ErrorMessageGenerator{
      *      args.methodName: name of method
      * 
      * AddableTypeMismatchControlStmt:
-     *      
+     *      args.constructName: name of control flow construct
+     *      args.addedType:     type of object the user attempted to add
+     *      args.focusedNode:   the module's focused node
      * 
      * AddableTypeMismatchVarAssignStmt:
      *      args.contructName: object type that the user tried to insert into. In this case should always be 'Variable assignment'
@@ -153,19 +156,29 @@ export class ErrorMessageGenerator{
                                 I can only put ${this.getStyledSpan("Boolean", CSSClasses.type)} expressions or anything else that evaluates 
                                 to a ${this.getStyledSpan("Boolean", CSSClasses.type)} value.`;
                     }
-                    else{ //TODO: This case needs to be further separated based on which part of the for we attempted to insert into
-                        return `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement that I can only put a range
-                                of values into. So I can use a list, string or a range of numbers here, but not ${this.getStyledSpan(args.addedType, CSSClasses.keyword)}.`;
+                    else{ 
+                        if(args.focusedNode instanceof IdentifierTkn){
+                            return `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement that I can only put a range
+                                of values into. For this particular hole I should be using a variable name that is used to represent an element of the reange I am looping over.`;
+                        }
+                        else if(args.focusedNode instanceof EmptyExpr){
+                            return `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement that I can only put a range
+                                of values into. Here I should use some iterable object such as a number range, a string or a list.`;
+                        }
                     }
                 }
 
                 if(args.constructName != "for"){
-                    return `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement. It only accepts ${this.getStyledSpan(args.constructName, CSSClasses.keyword)}
-                            expressions or method calls and literal values that evaluate to a ${this.getStyledSpan(args.constructName, CSSClasses.keyword)}. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
+                    return `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement. It only accepts ${this.getStyledSpan("Boolean", CSSClasses.type)}
+                            expressions or method calls and literal values that evaluate to a ${this.getStyledSpan("Boolean", CSSClasses.type)}. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.type)} instead.`
                 }
-                else{ //TODO: This case needs to be further separated based on which part of the for we attempted to insert into
-                    return `${this.getStyledSpan(args.constructName, CSSClasses.keyword)} is a control flow statement that iterates over a range of values.
-                            It only accepts iterable objects. Tried to insert a ${this.getStyledSpan(args.addedType, CSSClasses.keyword)} instead.`
+                else{ 
+                    if(args.focusedNode instanceof IdentifierTkn){
+                        return `Identifier expected. ${this.getStyledSpan(args.addedType, CSSClasses.type)} found instead.`
+                    }
+                    else if(args.focusedNode instanceof EmptyExpr){
+                        return `Iterable object expected. ${this.getStyledSpan(args.addedType, CSSClasses.type)} found instead.`
+                    }
                 }
                 
             case ErrorMessage.addableTypeMismatchVarAssignStmt:
