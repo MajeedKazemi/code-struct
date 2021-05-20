@@ -42,7 +42,7 @@ export class ErrorMessageGenerator{
      * MethodCallObjectTypeMismatch:
      *      args.objectType:     type of object the method was attempted to be called from
      *      args.method:         name of method that was called
-     *      args.methodCalledOn: type of object from which this method can be called from
+     *      args.calledOn: type of object from which this method can be called from
      * 
      * BinOpArgTypeMismatch:
      *      args.binOp: what algebraic binary operation was performed (+, -, /, *)
@@ -62,7 +62,24 @@ export class ErrorMessageGenerator{
      *      args.argType1: expected type of argument 
      *      args.argType2: actual type of argument
      * 
-     * AddableTypeMismatch:
+     * AddableTypeMismatchControlStmt:
+     *      
+     * 
+     * AddableTypeMismatchVarAssignStmt:
+     *      args.contructName: object type that the user tried to insert into. In this case should always be 'Variable assignment'
+     *      args.addedType:    type of object user tried to insert.
+     * 
+     * AddableTypeMismatchEmptyLine:
+     *      args.addedType: type of object user tried to add.
+     * 
+     * ExistingIdentifier:
+     *      args.identifier: identifier that the user tried to use.
+     * 
+     * IdentifierIsKeyword:
+     *      args.identifier: identifier that the user tried to use.
+     * 
+     * IdentifierIsBuiltInFunc:
+     *      args.identifier: identifier that the user tried to use.
      * 
      * @returns  an appropriate error message for the given error and context
      */
