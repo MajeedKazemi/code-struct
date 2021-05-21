@@ -72,7 +72,7 @@ export class NotificationSystemController{
             code.notification = this.notifications[this.notifications.length - 1];
         }
         else{
-            this.removeNotification(code);
+            this.removeNotificationFromConstruct(code);
             this.addHoverNotification(code, args, errMsgType);
         }
     }
@@ -87,7 +87,7 @@ export class NotificationSystemController{
         }, popUpNotificationTime);
     }
    
-    removeNotification(code: CodeConstruct){
+    removeNotificationFromConstruct(code: CodeConstruct){
         if(code?.notification){
             this.notifications[code.notification.index].removeNotificationFromDOM();
             this.notifications.splice(code.notification.index, 1);

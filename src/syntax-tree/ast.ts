@@ -2396,7 +2396,7 @@ export class Module {
 
                 //TODO: Maybe put into a method later for reusability. No good spot for it in the code right now though.
                 if(this.focusedNode.notification){
-                    this.notificationSystem.removeNotification(this.focusedNode);
+                    this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                 }
 
                 this.editor.executeEdits(range, code);
@@ -2444,7 +2444,7 @@ export class Module {
                             );
 
                             if(this.focusedNode.notification){
-                                this.notificationSystem.removeNotification(this.focusedNode);
+                                this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                             }
                         }
                     } else if (!(statement instanceof ElseStatement)) {
@@ -2458,7 +2458,7 @@ export class Module {
 						);
 
                         if(this.focusedNode.notification){
-                            this.notificationSystem.removeNotification(this.focusedNode);
+                            this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                         }
 						this.editor.executeEdits(range, code);
 					}
@@ -2473,7 +2473,7 @@ export class Module {
 					);
 
                     if(this.focusedNode.notification){
-                        this.notificationSystem.removeNotification(this.focusedNode);
+                        this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                     }
 
 					this.editor.executeEdits(range, statement);
@@ -2498,7 +2498,7 @@ export class Module {
 					}
                     else{
                         if(this.focusedNode.notification){
-                            this.notificationSystem.removeNotification(this.focusedNode);
+                            this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                         }
                     }
 				}
@@ -2560,7 +2560,7 @@ export class Module {
 
 				if (isValid) {
                     if(this.focusedNode.notification){
-                        this.notificationSystem.removeNotification(this.focusedNode);
+                        this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                     }
 
 					// replaces expression with the newly inserted expression
