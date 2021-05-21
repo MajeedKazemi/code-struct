@@ -53,7 +53,7 @@ interface NotificationBox{
     setNotificationBehaviour() : void;
 
     /**
-     * Move the Notification inside the code editor's viewport, if necessary.
+     * Adjust the Notification's position within the editor.
      */
     moveWithinEditor() : void;
 }
@@ -346,16 +346,19 @@ export class HoverNotification extends Notification implements NotificationBox{
  */
 export class PopUpNotification extends Notification implements NotificationBox{
     notificationBox = null;
+    position = null;
 
-    constructor(editor: Editor, index: number = -1, msg: string = ""){
+    constructor(editor: Editor, index: number = -1, msg: string = "", position: object = {top: 0, left: 0}){
         super(editor, null, index);
 
         this.messageText = msg;
+        this.position = position;
 
         this.notificationDomIdPrefix = "popUpNotification";
         this.setDomId();
 
         this.addNotificationBox();
+        this.moveWithinEditor();
 
         document.querySelector(notificationDOMParent).appendChild(this.parentElement);
     }  
@@ -378,6 +381,7 @@ export class PopUpNotification extends Notification implements NotificationBox{
     }
 
     moveWithinEditor(){
-        throw new Error("NOT IMPLEMENTED...")
+        this.parentElement.style.left = `${this.position.left}px`;
+        this.parentElement.style.top = `${this.position.top}px`;
     }
 }
