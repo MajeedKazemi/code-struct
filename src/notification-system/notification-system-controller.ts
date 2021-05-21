@@ -78,11 +78,12 @@ export class NotificationSystemController{
     }
 
     addPopUpNotification(){
-        this.notifications.push(new PopUpNotification(this.editor, this.notifications.length, "Pop Up!"));
+        this.notifications.push(new PopUpNotification(this.editor, this.notifications.length, "Pop Up!", {left: 0, top: 0}));
         const notif = this.notifications[this.notifications.length - 1];
 
         setTimeout(() => {
             document.querySelector(".lines-content.monaco-editor-background").removeChild(notif.parentElement);
+            this.notifications.splice(notif.index);
         }, popUpNotificationTime);
     }
    
