@@ -2545,6 +2545,13 @@ export class Module {
                         existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getRightOperandIndex()] as Expression).returns;
                     }
 
+                    if(!existingLiteralType && this.focusedNode.rootNode.returns === DataType.Any){
+                        this.focusedNode.rootNode.returns = code.returns;
+                    }
+                    else if(existingLiteralType && this.focusedNode.rootNode.returns === DataType.Any){
+                        this.focusedNode.rootNode.returns = existingLiteralType;
+                    }
+
                     if(existingLiteralType != null && existingLiteralType != code.returns){
                         if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
                             this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.binOpArgTypeMismatch);
@@ -2593,7 +2600,15 @@ export class Module {
                         (this.focusedNode.rootNode as VarAssignmentStmt).dataType = expr.returns;
                         button.addEventListener("click", this.addVarRefHandler(this.focusedNode.rootNode as VarAssignmentStmt).bind(this));
                     }
+                    else if(parentStatement instanceof VarAssignmentStmt){
+                        const button = document.getElementById(parentStatement.buttonId);
+                        button.removeEventListener("click", this.addVarRefHandler(null), false);
 
+                        (parentStatement as VarAssignmentStmt).dataType = expr.returns;
+                        button.addEventListener("click", this.addVarRefHandler(parentStatement as VarAssignmentStmt).bind(this));
+                    }
+
+                    
 					this.replaceFocusedExpression(expr);
 
 					let padding = 1;
