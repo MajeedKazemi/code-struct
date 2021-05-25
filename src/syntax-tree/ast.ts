@@ -2568,6 +2568,15 @@ export class Module {
                         this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: code.returns}, ErrorMessage.boolOpArgTypeMismatch);
                     }
                 }
+                //calling a function with incorrect return type
+                else if(this.focusedNode instanceof TypedEmptyExpr && code instanceof FunctionCallStmt && this.focusedNode.type != code.returns){
+                    this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
+                                                                                             constructName: parentStatement.getKeyword(),
+                                                                                             expectedType: this.focusedNode.type
+                                                                                            },
+                                                                 ErrorMessage.exprTypeMismatch);
+                    isValid = false;
+                }
                 //method argument type check
                 //This could be made more generic to catch all type mismatches for all typed expressions.
                 //But we still need the context of what type the parent statement is to create a more precise error message rather than
