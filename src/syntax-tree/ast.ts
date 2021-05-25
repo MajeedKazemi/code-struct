@@ -2164,7 +2164,7 @@ export class Module {
 
         this.actionStack = new ActionStack(this);
 
-		this.notificationSystem = new NotificationSystemController(this.editor);
+		this.notificationSystem = new NotificationSystemController(this.editor, this);
 
 		this.buttons = [];
 	}
@@ -2494,7 +2494,8 @@ export class Module {
 					}
 
 					if(!isValid){
-						this.notificationSystem.addHoverNotification(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference);
+                        //TODO: Refactor to have this be built in an easier way. So for this line, make it shorter and maybe also use Builder in Notificaiton.ts
+						this.notificationSystem.addHoverNotifVarOutOfScope(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference, parentRoot instanceof Module || parentRoot instanceof Statement ? parentRoot.scope : null, code, focusedPos);
 					}
                     else{
                         if(this.focusedNode.notification){

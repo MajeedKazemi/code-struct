@@ -1,7 +1,8 @@
-import { CodeConstruct } from "../syntax-tree/ast";
+import { CodeConstruct, Module, Scope, VariableReferenceExpr } from "../syntax-tree/ast";
 import Editor from '../editor/editor';
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import {ErrorMessageGenerator, ErrorMessage} from "./error-msg-generator";
+import { Position } from "monaco-editor";
 
 export enum ErrorType{
     defaultErr
@@ -59,11 +60,13 @@ export class NotificationSystemController{
 	editor: Editor;
     notifications: Notification[];
     msgGenerator: ErrorMessageGenerator;
+    module: Module; //TODO: Find some other way to get this. Probably should not be passing this around
 
-    constructor(editor: Editor){
+    constructor(editor: Editor, module: Module){
         this.editor = editor;
         this.notifications = [];
         this.msgGenerator = new ErrorMessageGenerator();
+        this.module = module;
     }
 
     addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage){
@@ -75,6 +78,11 @@ export class NotificationSystemController{
             this.removeNotificationFromConstruct(code);
             this.addHoverNotification(code, args, errMsgType);
         }
+    }
+
+    addHoverNotifVarOutOfScope(focusedCode: CodeConstruct, args: any, errMsgType: ErrorMessage, scope: Scope, insertedCode: VariableReferenceExpr, focusedPos: Position){
+        this.addHoverNotification(focusedCode, args, errMsgType);
+        focusedCode.notification.addAvailableVarsArea(scope, this.module, insertedCode, focusedPos);
     }
 
     addPopUpNotification(){

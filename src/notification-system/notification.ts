@@ -1,5 +1,6 @@
 import * as monaco from 'monaco-editor';
 import Editor from '../editor/editor';
+import { CodeConstruct, Module, Scope, Statement, VarAssignmentStmt, VariableReferenceExpr } from '../syntax-tree/ast';
 
 
 /**
@@ -192,6 +193,30 @@ export abstract class Notification{
         this.notificationTextDiv = document.createElement("div");
         this.notificationTextDiv.innerHTML = this.messageText;
         this.notificationBox.appendChild(this.notificationTextDiv);
+    }
+
+    addAvailableVarsArea(scope: Scope, module: Module, code: VariableReferenceExpr, focusedPos: monaco.Position){
+        const suggestionDiv = document.createElement("div");
+        suggestionDiv.classList.add("varScopeSuggestion");
+
+        const heading = document.createElement("h3");
+        heading.textContent = "Available Variables in this Scope:";
+        suggestionDiv.appendChild(heading);
+
+        scope.getValidReferences(focusedPos.lineNumber).forEach(ref => {
+            const button = document.createElement("button");
+            button.classList.add("suggestionVarAdd");
+            button.textContent = (ref.statement as VarAssignmentStmt).getIdentifier();
+
+            //TODO: When hovered over, it highlights all code lines where this variable could be used
+            button.addEventListener("click", () => {
+                module.insert(new VariableReferenceExpr((ref.statement as VarAssignmentStmt).getIdentifier(), (ref.statement as VarAssignmentStmt).dataType, (ref.statement as VarAssignmentStmt).buttonId));
+            })
+
+            suggestionDiv.appendChild(button);
+        });
+
+        this.notificationBox.appendChild(suggestionDiv);
     }
 }
 

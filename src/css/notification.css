@@ -52,3 +52,9 @@
 .other{
     font-weight: 600;
 }
+
+.varScopeSuggestion{
+    width: 500px;
+    height: 200px;
+    padding: 10px 10px 10px 10px;
+}
