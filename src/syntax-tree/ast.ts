@@ -2191,11 +2191,15 @@ export class Module {
 
         document.getElementById("variables").appendChild(button);
 
-        button.addEventListener("click", () => {
-            this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
-        });
+        button.addEventListener("click", this.addVarRefHandler(ref).bind(this))
 
         this.buttons.push(button);
+    }
+
+    addVarRefHandler(ref: VarAssignmentStmt){
+        return function(){
+            this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
+        };
     }
 
     addLoopVariableButtonToToolbox(ref: ForStatement) {
@@ -2566,6 +2570,15 @@ export class Module {
 
 					// replaces expression with the newly inserted expression
 					let expr = code as Expression;
+
+                    //originally all var ref buttons are of type any
+                    if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
+                        const button = document.getElementById(this.focusedNode.rootNode.buttonId);
+                        button.removeEventListener("click", this.addVarRefHandler(null), false);
+
+                        (this.focusedNode.rootNode as VarAssignmentStmt).dataType = expr.returns;
+                        button.addEventListener("click", this.addVarRefHandler(this.focusedNode.rootNode as VarAssignmentStmt).bind(this));
+                    }
 
 					this.replaceFocusedExpression(expr);
 
