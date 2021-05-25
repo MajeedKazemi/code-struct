@@ -2503,7 +2503,6 @@ export class Module {
                     }
 
                     //type check
-                    //TODO: Diffirentiate Else and ElseIf
                     if(this.focusedNode instanceof TypedEmptyExpr){
                         isValid = this.focusedNode.type === code.returns
                         if(!isValid){
@@ -2606,6 +2605,19 @@ export class Module {
 
                         (parentStatement as VarAssignmentStmt).dataType = expr.returns;
                         button.addEventListener("click", this.addVarRefHandler(parentStatement as VarAssignmentStmt).bind(this));
+                    }
+
+
+                    if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr || this.focusedNode.rootNode instanceof BinaryOperatorExpr){
+                        this.focusedNode.rootNode.returns = expr.returns;
+
+                        if(expr.returns != DataType.Boolean && (parentStatement instanceof WhileStatement || parentStatement instanceof IfStatement || parentStatement instanceof ElseStatement)){
+                            this.notificationSystem.addHoverNotification(this.focusedNode.rootNode, {addedType: expr.returns, 
+                                                                                            constructName: parentStatement.getKeyword(),
+                                                                                            expectedType: DataType.Boolean
+                                                                                           },
+                                                                         ErrorMessage.exprTypeMismatch);
+                        }
                     }
 
                     
