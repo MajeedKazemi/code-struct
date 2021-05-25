@@ -16,7 +16,8 @@ export enum ErrorMessage{
     addableTypeMismatchEmptyLine,
     existingIdentifier,
     identifierIsKeyword,
-    identifierIsBuiltInFunc
+    identifierIsBuiltInFunc,
+    exprTypeMismatch,
 }
 
 enum CSSClasses{
@@ -84,6 +85,11 @@ export class ErrorMessageGenerator{
      * 
      * IdentifierIsBuiltInFunc:
      *      args.identifier: identifier that the user tried to use
+     * 
+     * ExprTypeMismatchBoolean:
+     *      args.addedType:     type of object user tried to add
+     *      args.constructName: name of control flow construct. In this case should be one of: While, If, Else If
+     *      args.expectedType:  type that was expected by expression
      * 
      * @returns  an appropriate error message for the given error and context
      */
@@ -220,6 +226,14 @@ export class ErrorMessageGenerator{
                 return `The identifier ${this.getStyledSpan(args.identifier, CSSClasses.identifier)} is the name of a built-in function or variable.
                         Please use a different one.`;
 
+            case ErrorMessage.exprTypeMismatch:
+                if(usePersonalizedMessages){
+                    return `I can only use ${this.getStyledSpan(args.expectedType, CSSClasses.type)} expressions here, but I found a
+                            ${this.getStyledSpan(args.addedType, CSSClasses.type)} instead.`;
+                }
+                
+                return `A(n) ${this.getStyledSpan(args.constructName, CSSClasses.keyword)} statement only accepts ${this.getStyledSpan(args.expectedType, CSSClasses.type)}
+                        expressions. Found ${this.getStyledSpan(args.addedType, CSSClasses.type)} instead.`;
             default:
                 if(usePersonalizedMessages){
                     return "I cannot do that here.";

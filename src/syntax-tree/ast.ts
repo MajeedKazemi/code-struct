@@ -960,7 +960,7 @@ export class WhileStatement extends Statement {
         this.tokens.push(new KeywordTkn("while", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
@@ -989,7 +989,7 @@ export class IfStatement extends Statement {
         this.tokens.push(new KeywordTkn("if", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
@@ -1122,7 +1122,7 @@ export class ForStatement extends Statement {
         this.tokens.push(new KeywordTkn("in", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Iterator, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
@@ -2367,7 +2367,7 @@ export class Module {
     replaceFocusedExpression(expr: Expression) {
         let root = this.focusedNode.rootNode as Statement;
 
-        root.replace(expr, this.focusedNode.indexInRoot);
+        root.replace(expr, this.focusedNode.indexInRoot);        
     }
 
     referenceTable = new Array<Reference>();
@@ -2497,14 +2497,28 @@ export class Module {
 						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
 					}
 
-					if(!isValid){
+                    if(!isValid){
                         //TODO: Refactor to have this be built in an easier way. So for this line, make it shorter and maybe also use Builder in Notificaiton.ts
 						this.notificationSystem.addHoverNotifVarOutOfScope(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference, parentRoot instanceof Module || parentRoot instanceof Statement ? parentRoot.scope : null, code, focusedPos);
-					}
-                    else{
-                        if(this.focusedNode.notification){
-                            this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
+                    }
+
+                    //type check
+                    //TODO: Diffirentiate Else and ElseIf
+                    if(this.focusedNode instanceof TypedEmptyExpr){
+                        isValid = this.focusedNode.type === code.returns
+                        if(!isValid){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
+                                                                                            constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
+                                                                                            expectedType: this.focusedNode.type
+                                                                                           },
+                                                                         ErrorMessage.exprTypeMismatch);
+                            
+                            
                         }
+                    }
+                    
+					if(isValid && this.focusedNode.notification){
+                        this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                     }
 				}
 
