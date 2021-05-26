@@ -234,7 +234,26 @@ export abstract class Notification{
             this.selection = newSelection;
 
             this.parentElement.style.top = `${this.parentElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
+
+            this.updateMouseOffsets();
         }
+    }
+
+    /**
+     * Update mouse offset values when the notification's position changes
+     */
+    updateMouseOffsets(){
+        this.mouseLeftOffset = document.getElementById("editor").offsetLeft +
+                                     (document.getElementById("editor")
+                                        .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                                        .getElementsByClassName("overflow-guard")[0]
+                                        .getElementsByClassName("margin")[0] as HTMLElement)
+                                        .offsetWidth
+                                + this.parentElement.offsetLeft;
+
+        //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
+        //wrong from time to time...
+        this.mouseTopOffset = this.parentElement.offsetTop + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop) - 10;
     }
 }
 
@@ -277,17 +296,7 @@ export class HoverNotification extends Notification implements NotificationBox{
 
         this.moveWithinEditor(); //needs to run after the notif element is added to the DOM. Otherwise cannot get offset dimensions when necessary.
 
-        this.mouseLeftOffset = document.getElementById("editor").offsetLeft +
-                                     (document.getElementById("editor")
-                                        .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
-                                        .getElementsByClassName("overflow-guard")[0]
-                                        .getElementsByClassName("margin")[0] as HTMLElement)
-                                        .offsetWidth
-                                + this.parentElement.offsetLeft;
-
-        //This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
-        //wrong from time to time...
-        this.mouseTopOffset = this.parentElement.offsetTop + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
+        this.updateMouseOffsets();
     }
 
     addNotificationBox(){
@@ -319,7 +328,7 @@ export class HoverNotification extends Notification implements NotificationBox{
                 let y = this.editor.mousePosWindow[1];
 
                 x -= this.mouseLeftOffset;
-                y -= (this.mouseTopOffset);
+                y -= this.mouseTopOffset;
 
                 //collision with highlight box
                 if(x >= 0 && x <= this.parentElement.offsetWidth &&
