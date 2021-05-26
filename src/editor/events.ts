@@ -569,7 +569,7 @@ export class EventHandler {
 				break;
 
 			case 'add-unary-not-expr-btn':
-				this.module.insert(new AST.UnaryOperatorExpr(AST.UnaryOp.Not, AST.DataType.Boolean));
+				this.module.insert(new AST.UnaryOperatorExpr(AST.UnaryOp.Not, AST.DataType.Boolean,  AST.DataType.Boolean));
 				break;
 
 			case 'add-comp-eq-expr-btn':

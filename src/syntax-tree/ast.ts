@@ -1555,7 +1555,7 @@ export class UnaryOperatorExpr extends Expression {
     operator: UnaryOp;
     private operandIndex: number;
 
-    constructor(operator: UnaryOp, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+    constructor(operator: UnaryOp, returns: DataType, operatesOn: DataType = DataType.Any, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
 
         this.rootNode = root;
@@ -1569,7 +1569,7 @@ export class UnaryOperatorExpr extends Expression {
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(operatesOn,this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1577,6 +1577,10 @@ export class UnaryOperatorExpr extends Expression {
 
     replaceOperand(code: CodeConstruct) {
         this.replace(code, this.operandIndex);
+    }
+
+    getKeyword() : string {
+        return this.operator;
     }
 }
 
@@ -2501,25 +2505,25 @@ export class Module {
                         //TODO: Refactor to have this be built in an easier way. So for this line, make it shorter and maybe also use Builder in Notificaiton.ts
 						this.notificationSystem.addHoverNotifVarOutOfScope(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference, parentRoot instanceof Module || parentRoot instanceof Statement ? parentRoot.scope : null, code, focusedPos);
                     }
-
-                    //type check
-                    if(this.focusedNode instanceof TypedEmptyExpr){
-                        isValid = this.focusedNode.type === code.returns
-                        if(!isValid){
-                            this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
-                                                                                            constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
-                                                                                            expectedType: this.focusedNode.type
-                                                                                           },
-                                                                         ErrorMessage.exprTypeMismatch);
-                            
-                            
-                        }
-                    }
                     
 					if(isValid && this.focusedNode.notification){
                         this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                     }
 				}
+
+                //type check
+                if(this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
+                    isValid = this.focusedNode.type === code.returns
+                    if(!isValid){
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
+                                                                                        constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
+                                                                                        expectedType: this.focusedNode.type
+                                                                                       },
+                                                                     ErrorMessage.exprTypeMismatch);
+                        
+                        
+                    }
+                }
 
                 //TODO: This should go inside a separate validator module
                 //TODO: Need to add check for boolean ops
@@ -2680,6 +2684,10 @@ export class Module {
                             else if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
                                 this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "Variable assignment", addedType: code.addableType},
                                                                              ErrorMessage.addableTypeMismatchVarAssignStmt);
+                            }
+                            else if(this.focusedNode.rootNode instanceof Statement){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
+                                                                             ErrorMessage.addableTypeMismatchMethodArg);
                             }
                         }
                     }
