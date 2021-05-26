@@ -294,6 +294,8 @@ export abstract class Statement implements CodeConstruct {
     setLineNumber(lineNumber: number) {
         this.lineNumber = lineNumber;
 
+        if(this instanceof EmptyLineStmt) this.notify(CallbackType.change);
+
         for (let token of this.tokens) {
             if (token instanceof Expression) token.setLineNumber(lineNumber);
             (token as Token).notify(CallbackType.change);
