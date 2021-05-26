@@ -128,10 +128,13 @@ export abstract class Notification{
      */
     notificationBox: HTMLDivElement;
 
+    callerId: string;
+
     constructor(editor: Editor, selection: monaco.Selection, index: number = -1){
         this.selection = selection;
         this.editor = editor;
         this.index = index;
+        this.callerId = "";
 
         this.parentElement = document.createElement("div");
         this.parentElement.classList.add("notificationParent");
@@ -217,6 +220,21 @@ export abstract class Notification{
         });
 
         this.notificationBox.appendChild(suggestionDiv);
+    }
+
+    /**
+     * Update the position of the notification based on where the given code construct has moved, if it has moved.
+     * 
+     * @param code code construct the position of which was changed
+     */
+    updateParentElementPosition(code: CodeConstruct){
+        const newSelection = code.getSelection();
+        if(this.selection.startLineNumber != newSelection.startLineNumber){
+            const diff = newSelection.startLineNumber - this.selection.startLineNumber;
+            this.selection = newSelection;
+
+            this.parentElement.style.top = `${this.parentElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
+        }
     }
 }
 

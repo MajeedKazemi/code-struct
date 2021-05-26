@@ -1,4 +1,4 @@
-import { CodeConstruct, Module, Scope, VariableReferenceExpr } from "../syntax-tree/ast";
+import { Callback, CallbackType, CodeConstruct, Module, Scope, VariableReferenceExpr } from "../syntax-tree/ast";
 import Editor from '../editor/editor';
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import {ErrorMessageGenerator, ErrorMessage} from "./error-msg-generator";
@@ -71,8 +71,14 @@ export class NotificationSystemController{
 
     addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage){
         if(!code.notification){
-            this.notifications.push(new HoverNotification(this.editor, code.getSelection(), this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args)));
+            const notif = new HoverNotification(this.editor, code.getSelection(), this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args))
+            this.notifications.push(notif);
             code.notification = this.notifications[this.notifications.length - 1];
+
+            //subscribe to changes to the code construct of this notification because we might need to change position
+            const callback = new Callback(() => {notif.updateParentElementPosition(code)})
+            notif.callerId = callback.callerId;
+            code.subscribe(CallbackType.change, callback);
         }
         else{
             this.removeNotificationFromConstruct(code);
@@ -97,6 +103,10 @@ export class NotificationSystemController{
    
     removeNotificationFromConstruct(code: CodeConstruct){
         if(code?.notification){
+            if(code.notification.callerId !== ""){
+                code.unsubscribe(CallbackType.change, code.notification.callerId);
+            }
+            
             this.notifications[code.notification.index].removeNotificationFromDOM();
             this.notifications.splice(code.notification.index, 1);
             code.notification = null;

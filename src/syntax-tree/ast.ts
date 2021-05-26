@@ -296,6 +296,7 @@ export abstract class Statement implements CodeConstruct {
 
         for (let token of this.tokens) {
             if (token instanceof Expression) token.setLineNumber(lineNumber);
+            (token as Token).notify(CallbackType.change);
         }
     }
 
