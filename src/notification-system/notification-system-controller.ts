@@ -3,6 +3,7 @@ import Editor from '../editor/editor';
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import {ErrorMessageGenerator, ErrorMessage} from "./error-msg-generator";
 import { Position } from "monaco-editor";
+import { getDimensionsFromStyle } from "./util";
 
 export enum ErrorType{
     defaultErr

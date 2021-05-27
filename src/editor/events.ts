@@ -4,6 +4,7 @@ import { TAB_SPACES } from '../syntax-tree/keywords';
 import * as AST from '../syntax-tree/ast';
 import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
+import { getDimensionsFromStyle } from '../notification-system/util';
 
 export enum KeyPress {
 	// navigation:
@@ -711,5 +712,9 @@ export class EventHandler {
 
 	onMouseMove(e){
 		this.module.editor.mousePosMonaco = e.target.position;
+	}
+
+	onDidScrollChange(e){
+		this.module.editor.scrollOffsetTop = e.scrollTop;
 	}
 }

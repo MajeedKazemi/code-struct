@@ -249,11 +249,10 @@ export abstract class Notification{
                                         .getElementsByClassName("overflow-guard")[0]
                                         .getElementsByClassName("margin")[0] as HTMLElement)
                                         .offsetWidth
-                                + this.parentElement.offsetLeft;
 
         //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
         //wrong from time to time...
-        this.mouseTopOffset = this.parentElement.offsetTop + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop) - 10;
+        this.mouseTopOffset =  parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
     }
 }
 
@@ -331,8 +330,11 @@ export class HoverNotification extends Notification implements NotificationBox{
                 y -= this.mouseTopOffset;
 
                 //collision with highlight box
-                if(x >= 0 && x <= this.parentElement.offsetWidth &&
-                    y >= 0 && y <= this.parentElement.offsetHeight){
+                if(x >= this.parentElement.offsetLeft && 
+                   x <= this.parentElement.offsetLeft + this.parentElement.offsetWidth &&
+                   y >= this.parentElement.offsetTop - this.editor.scrollOffsetTop &&
+                   y <= this.parentElement.offsetTop + this.parentElement.offsetHeight - this.editor.scrollOffsetTop
+                ){
                         this.notificationBox.style.visibility = "visible"
                         this.showNotificationBoxNotif = true
                 }

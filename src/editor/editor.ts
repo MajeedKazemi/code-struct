@@ -15,6 +15,7 @@ export default class Editor {
     cursor: Cursor;
     mousePosMonaco: monaco.Position;
     mousePosWindow: number[] = [0, 0];
+    scrollOffsetTop: number = 0;
     holes: Hole[];
 
     constructor(parentEl: HTMLElement) {

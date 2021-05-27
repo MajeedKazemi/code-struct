@@ -1,10 +1,11 @@
-import { Module } from "./syntax-tree/ast";
+import { IfStatement, Module } from "./syntax-tree/ast";
 
 enum ActionType {
     OnKeyDown,
     OnMouseDown,
     OnButtonDown,
-    OnMouseMove
+    OnMouseMove,
+    OnDidScrollChange
 }
 
 export class Action {
@@ -28,6 +29,7 @@ export default class ActionStack {
         this.attachOnKeyDownListener();
         this.attachOnButtonPress();
         this.attachOnMouseMoveListener();
+        this.attachOnDidScrollChangeListener();
     }
 
     undo() {
@@ -104,6 +106,15 @@ export default class ActionStack {
         };
     }
 
+    attachOnDidScrollChangeListener(){
+        const module = this.module
+
+        module.editor.monaco.onDidScrollChange((e) => {
+            const action = new Action(ActionType.OnDidScrollChange, e);
+            this.apply(action);
+        });
+    }
+
     apply(action) {
         switch (action.type) {
             case ActionType.OnKeyDown:
@@ -117,6 +128,9 @@ export default class ActionStack {
                 break;
             case ActionType.OnMouseMove:
                 this.module.eventHandler.onMouseMove(action.event);
+                break;  
+            case ActionType.OnDidScrollChange:
+                this.module.eventHandler.onDidScrollChange(action.event);
                 break;  
             default:
                 break;
