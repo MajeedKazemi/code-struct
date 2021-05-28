@@ -1,5 +1,5 @@
 
-import { EmptyExpr, IdentifierTkn } from "../syntax-tree/ast";
+import { EmptyExpr, IdentifierTkn, TypedEmptyExpr } from "../syntax-tree/ast";
 import {ErrorType} from "./notification-system-controller"
 
 export enum ErrorMessage{
@@ -186,9 +186,11 @@ export class ErrorMessageGenerator{
                     if(args.focusedNode instanceof IdentifierTkn){
                         return `Identifier expected. ${this.getStyledSpan(args.addedType, CSSClasses.type)} found instead.`
                     }
-                    else if(args.focusedNode instanceof EmptyExpr){
+                    else if(args.focusedNode instanceof TypedEmptyExpr){
                         return `Iterable object expected. ${this.getStyledSpan(args.addedType, CSSClasses.type)} found instead.`
                     }
+
+                    break;
                 }
                 
             case ErrorMessage.addableTypeMismatchVarAssignStmt:
