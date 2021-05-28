@@ -293,7 +293,6 @@ export class HoverNotification extends Notification implements NotificationBox{
 
         this.addNotificationBox(); //hover box
 
-        this.moveWithinEditor(); //needs to run after the notif element is added to the DOM. Otherwise cannot get offset dimensions when necessary.
 
         this.updateMouseOffsets();
     }
@@ -323,6 +322,10 @@ export class HoverNotification extends Notification implements NotificationBox{
     setNotificationBehaviour(){
         setInterval(() => {
             if(this.editor){
+                this.moveWithinEditor(); //needs to run after the notif element is added to the DOM. Otherwise cannot get offset dimensions when necessary.
+                                         //NOTE: Move this back into the constructor if this makes setInterval slow down the browser! Doing so will cause #72
+                                         //but it is a very minor textbox placement issue.
+
                 let x = this.editor.mousePosWindow[0];
                 let y = this.editor.mousePosWindow[1];
 
@@ -373,7 +376,7 @@ export class HoverNotification extends Notification implements NotificationBox{
         }
 
         if(this.parentElement.offsetTop + this.notificationBox.offsetTop < 0){
-            this.notificationBox.style.top = `${this.editor.computeCharHeight() - 10}px`;
+            this.notificationBox.style.top = `${this.editor.computeCharHeight()}px`;
         }
     }
 }
