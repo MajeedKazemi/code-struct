@@ -2379,7 +2379,10 @@ export class Module {
 
     referenceTable = new Array<Reference>();
 
-    insert(code: CodeConstruct) {
+    insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
+        let focusedNodeProvided = false;
+        if(focusedNode) this.focusedNode = focusedNode; focusedNodeProvided = true;
+
         if (code instanceof MethodCallExpr) {
             let focusedPos = this.editor.monaco.getPosition();
             let prevItem = this.focusedNode
@@ -2640,7 +2643,7 @@ export class Module {
 					this.replaceFocusedExpression(expr);
 
 					let padding = 1;
-					let selection = this.editor.monaco.getSelection();
+					let selection = focusedNodeProvided ? this.focusedNode.getSelection() : this.editor.monaco.getSelection();
 
 					if (selection.endColumn == selection.startColumn) padding = 0;
 

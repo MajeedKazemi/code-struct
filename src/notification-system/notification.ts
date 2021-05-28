@@ -198,7 +198,7 @@ export abstract class Notification{
         this.notificationBox.appendChild(this.notificationTextDiv);
     }
 
-    addAvailableVarsArea(scope: Scope, module: Module, code: VariableReferenceExpr, focusedPos: monaco.Position){
+    addAvailableVarsArea(scope: Scope, module: Module, focusedNode: CodeConstruct, focusedPos: monaco.Position){
         const suggestionDiv = document.createElement("div");
         suggestionDiv.classList.add("varScopeSuggestion");
 
@@ -213,7 +213,7 @@ export abstract class Notification{
 
             //TODO: When hovered over, it highlights all code lines where this variable could be used
             button.addEventListener("click", () => {
-                module.insert(new VariableReferenceExpr((ref.statement as VarAssignmentStmt).getIdentifier(), (ref.statement as VarAssignmentStmt).dataType, (ref.statement as VarAssignmentStmt).buttonId));
+                module.insert(new VariableReferenceExpr((ref.statement as VarAssignmentStmt).getIdentifier(), (ref.statement as VarAssignmentStmt).dataType, (ref.statement as VarAssignmentStmt).buttonId, ((focusedNode.rootNode instanceof Module) ? null : focusedNode.rootNode as CodeConstruct) ), focusedNode);
             })
 
             suggestionDiv.appendChild(button);

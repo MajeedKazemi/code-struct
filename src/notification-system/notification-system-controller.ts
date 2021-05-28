@@ -89,7 +89,7 @@ export class NotificationSystemController{
 
     addHoverNotifVarOutOfScope(focusedCode: CodeConstruct, args: any, errMsgType: ErrorMessage, scope: Scope, insertedCode: VariableReferenceExpr, focusedPos: Position){
         this.addHoverNotification(focusedCode, args, errMsgType);
-        focusedCode.notification.addAvailableVarsArea(scope, this.module, insertedCode, focusedPos);
+        focusedCode.notification.addAvailableVarsArea(scope, this.module, focusedCode, focusedPos);
     }
 
     addPopUpNotification(){
