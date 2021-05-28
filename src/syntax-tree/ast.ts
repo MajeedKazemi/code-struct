@@ -2519,33 +2519,38 @@ export class Module {
 
                 //type check
                 if(this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
-                    isValid = this.focusedNode.type === code.returns
-                    if(!isValid){
-                        this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
-                                                                                        constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
-                                                                                        expectedType: this.focusedNode.type
-                                                                                       },
-                                                                     ErrorMessage.exprTypeMismatch);
-                        
-                        
+                    if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr){
+                        if(code.returns != DataType.Boolean){
+                            isValid = false;
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: code.returns}, ErrorMessage.boolOpArgTypeMismatch);
+                        }
+                    }
+                    else{
+                        isValid = this.focusedNode.type === code.returns || this.focusedNode.type === DataType.Any
+
+                        if(!isValid){
+                            //within method arguments
+                            if(this.focusedNode.rootNode instanceof FunctionCallStmt){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: this.focusedNode.type, 
+                                                                                                argType2: code.returns,
+                                                                                                methodName: this.focusedNode.rootNode.getFunctionName()
+                                                                                            },
+                                                                            ErrorMessage.methodArgTypeMismatch);
+                            }
+                            //within statements while, if, else if and second part of for
+                            else if(this.focusedNode.rootNode instanceof Statement){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
+                                                                                                constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
+                                                                                                expectedType: this.focusedNode.type
+                                                                                            },
+                                                                            ErrorMessage.exprTypeMismatch);
+                            }
+                        }
                     }
                 }
 
-                //TODO: This should go inside a separate validator module
-                //TODO: Need to add check for boolean ops
-                //TODO: Need further differentiation for more detailed error messages since this notification will be
-                //      created in many different scenarios (see below comment)
-                //type check for bin. ops
-                //needs to be checked when:
-                //  1. code is a Literal or var or non-void return method or other expression
-                //  2. AND the focusedNode is an EmptyExpr with rootNode being a BinaryOperatorExpr (or boolean)
-                //  3. AND one of the EmptyExpr places is filled
-                //code.returns holds the type of literal expression
-                //focusedNode.tokens[leftOperandIndex] and focusedNode.tokens[rightOperandIndex] should hold the tokens for the literals
-                //
+                //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
                 let existingLiteralType = null;
-
-                //Binary operator type check (+ - * / < > <= >= ==)
                 if((this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr) && code instanceof Expression){
                     if (!(this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] instanceof EmptyExpr)){
                         existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] as Expression).returns;
@@ -2562,43 +2567,14 @@ export class Module {
                     }
 
                     if(existingLiteralType != null && existingLiteralType != code.returns){
+                        isValid = false;
+
                         if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
                             this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.binOpArgTypeMismatch);
                         }
                         else if(this.focusedNode.rootNode instanceof ComparatorExpr){
                             this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.compOpArgTypeMismatch);
                         }
-                        isValid = false;
-                    }
-                }
-                //boolean operator type check
-                else if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr && code instanceof Expression){
-                    if(code.returns != DataType.Boolean){
-                        isValid = false;
-                        this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: code.returns}, ErrorMessage.boolOpArgTypeMismatch);
-                    }
-                }
-                //calling a function with incorrect return type
-                else if(this.focusedNode instanceof TypedEmptyExpr && code instanceof FunctionCallStmt && this.focusedNode.type != code.returns){
-                    this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
-                                                                                             constructName: parentStatement.getKeyword(),
-                                                                                             expectedType: this.focusedNode.type
-                                                                                            },
-                                                                 ErrorMessage.exprTypeMismatch);
-                    isValid = false;
-                }
-                //method argument type check
-                //This could be made more generic to catch all type mismatches for all typed expressions.
-                //But we still need the context of what type the parent statement is to create a more precise error message rather than
-                //a generic "Type mismatch".
-                //TODO: This will impact functions such as print() where the argument is set to be of type string, but could actually be anything that has a __string__() method otherwise it performs a generic conversion.
-                //      Probably should make that argument type a list of acceptable types. Print() is special that way as far as built-in funcs. go, so maybe it is not worth the change.
-                else if(this.focusedNode.rootNode instanceof FunctionCallStmt && this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
-                    if(code.returns != this.focusedNode.type){
-                        isValid = false;
-                        this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: this.focusedNode.type, argType2: code.returns,
-                                                                                        methodName: (this.focusedNode.rootNode as FunctionCallStmt).getFunctionName()},
-                                                                     ErrorMessage.methodArgTypeMismatch);
                     }
                 }
 
@@ -2610,6 +2586,7 @@ export class Module {
 					// replaces expression with the newly inserted expression
 					let expr = code as Expression;
 
+                    //update var type
                     //originally all var ref buttons are of type any
                     if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
                         const button = document.getElementById(this.focusedNode.rootNode.buttonId);
@@ -2626,7 +2603,7 @@ export class Module {
                         button.addEventListener("click", this.addVarRefHandler(parentStatement as VarAssignmentStmt).bind(this));
                     }
 
-
+                    //update type of expression
                     if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr || this.focusedNode.rootNode instanceof BinaryOperatorExpr){
                         this.focusedNode.rootNode.returns = expr.returns;
 
@@ -2663,45 +2640,51 @@ export class Module {
                 this.focusedNode = code.nextEmptyToken();
                 this.editor.focusSelection(this.focusedNode.getSelection());
             }
-
-            //TODO: Need to remove old notification upon successful insert
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 
-            if(!this.focusedNode.notification){
-                //TODO: This type of logic should not be inside the AST. It should be moved somewhere like a validator class or even the notification-system-controller.
-                //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
-                //
-                //(There is probably some code similar to this above as well)
-                if(code.addableType == AddableType.NotAddable){
-                    this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
-                }
-                else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
-                    if(this.focusedNode.rootNode instanceof Statement){
-                        if(this.focusedNode.rootNode.getKeyword() != ""){
-                            this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: this.focusedNode.rootNode.getKeyword(), addedType: code.addableType,
-                                                                                            focusedNode: this.focusedNode},
-                                                                         ErrorMessage.addableTypeMismatchControlStmt);
+            //TODO: This type of logic should not be inside the AST. It should be moved somewhere like a validator class or even the notification-system-controller.
+            //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
+            //
+            //(There is probably some code similar to this above as well)
+            if(code.addableType == AddableType.NotAddable){
+                this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
+            }
+            else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
+                if(this.focusedNode.rootNode instanceof Statement){
+                    if(this.focusedNode.rootNode.getKeyword() != ""){
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: this.focusedNode.rootNode.getKeyword(), addedType: code.addableType,
+                                                                                        focusedNode: this.focusedNode},
+                                                                        ErrorMessage.addableTypeMismatchControlStmt);
+                    }
+                    else{ //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
+                        if(this.focusedNode.rootNode instanceof MethodCallStmt){
+                            console.log("Address this once lists are fixed.")
                         }
-                        else{ //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
-                            if(this.focusedNode.rootNode instanceof MethodCallStmt){
-                                console.log("Address this once lists are fixed.")
+                        else if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "Variable assignment", addedType: code.addableType},
+                                                                            ErrorMessage.addableTypeMismatchVarAssignStmt);
+                        }
+                        else if(this.focusedNode.rootNode instanceof FunctionCallStmt){
+                            if(code instanceof Expression){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: (this.focusedNode as TypedEmptyExpr).type, 
+                                                                                                argType2: code.returns,
+                                                                                                methodName: this.focusedNode.rootNode.getFunctionName()
+                                                                                            },
+                                                                            ErrorMessage.methodArgTypeMismatch);
                             }
-                            else if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
-                                this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "Variable assignment", addedType: code.addableType},
-                                                                             ErrorMessage.addableTypeMismatchVarAssignStmt);
-                            }
-                            else if(this.focusedNode.rootNode instanceof Statement){
+                            else if(code instanceof Statement){
                                 this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
-                                                                             ErrorMessage.addableTypeMismatchMethodArg);
+                                    ErrorMessage.addableTypeMismatchMethodArg);
                             }
                         }
                     }
-                    else{ //Token
-                        this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
-                                                                             ErrorMessage.addableTypeMismatchEmptyLine);
-                    }
                 }
+                else{ //Token
+                    this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
+                                                                            ErrorMessage.addableTypeMismatchEmptyLine);
+                }
+            
             }
 		}
 		this.editor.monaco.focus();
