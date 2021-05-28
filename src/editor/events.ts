@@ -489,7 +489,7 @@ export class EventHandler {
 				this.module.insert(
 					new AST.FunctionCallStmt(
 						'print',
-						[ new AST.Argument(AST.DataType.String, 'item', false) ],
+						[ new AST.Argument(AST.DataType.Any, 'item', false) ],
 						AST.DataType.Void
 					)
 				);
