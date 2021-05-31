@@ -2526,6 +2526,18 @@ export class Module {
                             this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: code.returns}, ErrorMessage.boolOpArgTypeMismatch);
                         }
                     }
+                    //for-loop check is special since Iterable does not cover both str and list right now
+                    //can change it once the types are an array
+                    else if(this.focusedNode.rootNode instanceof ForStatement){
+                        if(code.returns != DataType.List && code.returns != DataType.String){
+                            isValid = false;
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
+                                                                                            constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
+                                                                                            expectedType: this.focusedNode.type
+                                                                                        },
+                                                                        ErrorMessage.exprTypeMismatch);
+                        }
+                    }
                     else{
                         isValid = this.focusedNode.type === code.returns || this.focusedNode.type === DataType.Any
 
