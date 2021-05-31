@@ -237,11 +237,24 @@ export abstract class Notification{
      */
     updateParentElementPosition(code: CodeConstruct){
         const newSelection = code.getSelection();
+
+        //top
         if(this.selection.startLineNumber != newSelection.startLineNumber){
             const diff = newSelection.startLineNumber - this.selection.startLineNumber;
             this.selection = newSelection;
 
             this.parentElement.style.top = `${this.parentElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
+
+            this.updateMouseOffsets();
+        }
+
+        //left
+        if(this.selection.startColumn != newSelection.startColumn){
+            const diff = newSelection.startColumn - this.selection.startColumn;
+
+            this.selection = newSelection;
+
+            this.parentElement.style.left = `${this.parentElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
 
             this.updateMouseOffsets();
         }
