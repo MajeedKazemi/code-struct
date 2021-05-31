@@ -2651,10 +2651,14 @@ export class Module {
             }
             else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
                 if(this.focusedNode.rootNode instanceof Statement){
-                    if(this.focusedNode.rootNode.getKeyword() != ""){
+                    if(this.focusedNode.rootNode.getKeyword() != ""){ //for, while, if, elseif
                         this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: this.focusedNode.rootNode.getKeyword(), addedType: code.addableType,
                                                                                         focusedNode: this.focusedNode},
                                                                         ErrorMessage.addableTypeMismatchControlStmt);
+                    }
+                    else if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr || this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof UnaryOperatorExpr){
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
+                            ErrorMessage.addableTypeMismatchGeneral);
                     }
                     else{ //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
                         if(this.focusedNode.rootNode instanceof MethodCallStmt){

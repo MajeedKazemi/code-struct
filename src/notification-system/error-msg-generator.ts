@@ -9,7 +9,7 @@ export enum ErrorMessage{
     boolOpArgTypeMismatch,
     compOpArgTypeMismatch,
     methodArgTypeMismatch,
-    addableTypeMismatch,
+    addableTypeMismatchGeneral,
     addableTypeMismatchControlStmt,
     addableTypeMismatchVarAssignStmt,
     addableTypeMismatchEmptyLine,
@@ -17,7 +17,8 @@ export enum ErrorMessage{
     identifierIsKeyword,
     identifierIsBuiltInFunc,
     exprTypeMismatch,
-    addableTypeMismatchMethodArg
+    addableTypeMismatchMethodArg,
+    addableTypeMismatchOperator
 }
 
 enum CSSClasses{
@@ -93,6 +94,9 @@ export class ErrorMessageGenerator{
      *      args.expectedType:  type that was expected by expression
      * 
      * AddableTypeMismatchMethodArg:
+     *      args.addedType:     type of code construct that was attempted to be added
+     * 
+     * AddableTypeMismatchGeneral:
      *      args.addedType:     type of code construct that was attempted to be added
      * 
      * @returns  an appropriate error message for the given error and context
@@ -247,6 +251,13 @@ export class ErrorMessageGenerator{
                 }
 
                 return `${this.getStyledSpan(args.addedType, CSSClasses.type)} cannot be used as a method argument.`;
+
+            case ErrorMessage.addableTypeMismatchGeneral:
+                if(usePersonalizedMessages){
+                    return `I cannot insert a(n) ${this.getStyledSpan(args.addedType, CSSClasses.type)} here.`;
+                }
+
+                return `A(n) ${this.getStyledSpan(args.addedType, CSSClasses.type)} cannot be inserted at this location.`;
 
             default:
                 if(usePersonalizedMessages){
