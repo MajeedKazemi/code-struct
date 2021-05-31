@@ -96,7 +96,7 @@ export class NotificationSystemController{
      */
     addHoverNotifVarOutOfScope(focusedCode: CodeConstruct, args: any, errMsgType: ErrorMessage, scope: Scope, focusedPos: Position){
         this.addHoverNotification(focusedCode, args, errMsgType);
-        focusedCode.notification.addAvailableVarsArea(scope, this.module, focusedCode, focusedPos);
+        focusedCode.notification.addInScopeVarsArea(scope, this.module, focusedCode, focusedPos);
     }
 
 

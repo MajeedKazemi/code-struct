@@ -206,7 +206,7 @@ export abstract class Notification{
      * @param focusedNode node to insert suggestion into, if clicked
      * @param focusedPos  position within the editor used for identifying in-scope vars to suggest
      */
-    addAvailableVarsArea(scope: Scope, module: Module, focusedNode: CodeConstruct, focusedPos: monaco.Position){
+    addInScopeVarsArea(scope: Scope, module: Module, focusedNode: CodeConstruct, focusedPos: monaco.Position){
         const suggestionDiv = document.createElement("div");
         suggestionDiv.classList.add("varScopeSuggestion");
 
