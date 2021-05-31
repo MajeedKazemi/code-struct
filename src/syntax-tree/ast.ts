@@ -2517,7 +2517,8 @@ export class Module {
                     }
 				}
 
-                //type check
+                //type checks -- different handling based on type of code construct
+                //focusedNode.returns != code.returns would work, but we need more context to get the right error message
                 if(isValid && this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
                     if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr){
                         if(code.returns != DataType.Boolean){
@@ -2602,7 +2603,9 @@ export class Module {
                         (this.focusedNode.rootNode as VarAssignmentStmt).dataType = expr.returns;
                         button.addEventListener("click", this.addVarRefHandler(this.focusedNode.rootNode as VarAssignmentStmt).bind(this));
                     }
-                    else if(parentStatement instanceof VarAssignmentStmt){
+                    //this is for when the expression that is assigned to the var was originally of type Any
+                    //This is ok for BooleaExpr because they only allow booleans to be added to them anyway.
+                    else if(parentStatement instanceof VarAssignmentStmt && !(this.focusedNode.rootNode instanceof ComparatorExpr)){
                         const button = document.getElementById(parentStatement.buttonId);
                         button.removeEventListener("click", this.addVarRefHandler(null), false);
 
