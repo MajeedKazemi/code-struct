@@ -52,8 +52,9 @@ export class ErrorMessageGenerator{
      *      args.argType2: type of second expression
      * 
      * BoolOpArgTypeMismatch:
-     *      args.binOp: what boolean binary operation was performed (and, or, not)
-     *      args.argType1: type of expression that caused the error
+     *      args.binOp: what boolean operation was performed (and, or)
+     *      args.argType1: type of first expression
+     *      args.argType2: type of second expression
      * 
      * CompOpArgTypeMismatch:
      *      args.binOp: what comparison binary operation was performed (==, <, >, <=, >=, !=)
@@ -120,6 +121,7 @@ export class ErrorMessageGenerator{
                        from an object of type ${this.getStyledSpan(args.objectType, CSSClasses.type)}.
                        It can only be called from objects of type ${this.getStyledSpan(args.calledOn, CSSClasses.type)}.`;
 
+            //The next three use the same text and args, but are kept separate in case we want to adjust their text individually
             case ErrorMessage.binOpArgTypeMismatch:
                 if(usePersonalizedMessages){
                     return `I can only perform ${this.getStyledSpan(args.binOp, CSSClasses.other)} for like types. I cannot perform it on two different types
@@ -131,14 +133,13 @@ export class ErrorMessageGenerator{
 
             case ErrorMessage.boolOpArgTypeMismatch:
                 if(usePersonalizedMessages){
-                    `I cannot perform  ${this.getStyledSpan(args.binOp, CSSClasses.other)} on an expression of type ${this.getStyledSpan(args.argType1, CSSClasses.type)}.
-                     I can only perform ${this.getStyledSpan(args.binOp, CSSClasses.other)} on ${this.getStyledSpan("Boolean", CSSClasses.type)} literals, 
+                    `I cannot perform  ${this.getStyledSpan(args.binOp, CSSClasses.other)} on an expression of type ${this.getStyledSpan(args.argType2, CSSClasses.type)}.
+                     I can only perform ${this.getStyledSpan(args.binOp, CSSClasses.other)} on ${this.getStyledSpan(args.argType1, CSSClasses.type)} literals, 
                      variables or expressions.`;
                 }
                 
-                return `${this.getStyledSpan(args.binOp, CSSClasses.other)} only accepts expressions that evaluate to type 
-                        ${this.getStyledSpan("Boolean", CSSClasses.type)} or ${this.getStyledSpan("Boolean", CSSClasses.type)} literals.
-                        Attempted to insert ${this.getStyledSpan(args.argType1, CSSClasses.type)} instead.`;
+                return `${this.getStyledSpan(args.binOp, CSSClasses.other)} is not defined for types
+                        ${this.getStyledSpan(args.argType1, CSSClasses.type)} and ${this.getStyledSpan(args.argType2, CSSClasses.type)}.`;
 
             case ErrorMessage.compOpArgTypeMismatch:
                 if(usePersonalizedMessages){

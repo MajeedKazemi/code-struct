@@ -2578,6 +2578,13 @@ export class Module {
                     }
                 }
 
+                if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr && code instanceof Expression){
+                    if(code.returns != DataType.Boolean){
+                        isValid = false;
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: DataType.Boolean, argType2: code.returns}, ErrorMessage.compOpArgTypeMismatch);
+                    }
+                }
+
 				if (isValid) {
                     if(this.focusedNode.notification){
                         this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
@@ -2603,19 +2610,10 @@ export class Module {
                         button.addEventListener("click", this.addVarRefHandler(parentStatement as VarAssignmentStmt).bind(this));
                     }
 
-                    //update type of expression
-                    if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr || this.focusedNode.rootNode instanceof BinaryOperatorExpr){
+                    //update types of expressions that need an update
+                    if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
                         this.focusedNode.rootNode.returns = expr.returns;
-
-                        if(expr.returns != DataType.Boolean && (parentStatement instanceof WhileStatement || parentStatement instanceof IfStatement || parentStatement instanceof ElseStatement)){
-                            this.notificationSystem.addHoverNotification(this.focusedNode.rootNode, {addedType: expr.returns, 
-                                                                                            constructName: parentStatement.getKeyword(),
-                                                                                            expectedType: DataType.Boolean
-                                                                                           },
-                                                                         ErrorMessage.exprTypeMismatch);
-                        }
                     }
-
                     
 					this.replaceFocusedExpression(expr);
 
