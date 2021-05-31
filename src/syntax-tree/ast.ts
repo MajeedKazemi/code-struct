@@ -2509,7 +2509,7 @@ export class Module {
 
                     if(!isValid){
                         //TODO: Refactor to have this be built in an easier way. So for this line, make it shorter and maybe also use Builder in Notificaiton.ts
-						this.notificationSystem.addHoverNotifVarOutOfScope(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference, parentRoot instanceof Module || parentRoot instanceof Statement ? parentRoot.scope : null, code, focusedPos);
+						this.notificationSystem.addHoverNotifVarOutOfScope(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference, parentRoot instanceof Module || parentRoot instanceof Statement ? parentRoot.scope : null, focusedPos);
                     }
                     
 					if(isValid && this.focusedNode.notification){
@@ -2645,8 +2645,6 @@ export class Module {
 
             //TODO: This type of logic should not be inside the AST. It should be moved somewhere like a validator class or even the notification-system-controller.
             //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
-            //
-            //(There is probably some code similar to this above as well)
             if(code.addableType == AddableType.NotAddable){
                 this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
             }

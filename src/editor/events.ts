@@ -4,7 +4,6 @@ import { TAB_SPACES } from '../syntax-tree/keywords';
 import * as AST from '../syntax-tree/ast';
 import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
-import { getDimensionsFromStyle } from '../notification-system/util';
 
 export enum KeyPress {
 	// navigation:
@@ -248,7 +247,6 @@ export class EventHandler {
 					newText = curText.join('');
 				}
 
-				//TODO: This should go inside the validator if we end up making a class for that or somewhere similar
 				//TODO: Disabled for now because navigation breaks when editing text, which in turn breaks this because
 				//this.module.focusedNode is null after edits which makes it impossible to correctly set the highlight bounds
 				//and a larger than necessary area ends up being highlighted.
@@ -344,7 +342,6 @@ export class EventHandler {
 
 				newText = curText.join('');
 
-				//TODO: This should go inside the validator if we end up making a class for that or somewhere similar
 				//TODO: Disabled for now because navigation breaks when editing text, which in turn breaks this because
 				//this.module.focusedNode is null after edits which makes it impossible to correctly set the highlight bounds
 				//and a larger than necessary area ends up being highlighted.

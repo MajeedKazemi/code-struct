@@ -1,6 +1,5 @@
 
 import { EmptyExpr, IdentifierTkn, TypedEmptyExpr } from "../syntax-tree/ast";
-import {ErrorType} from "./notification-system-controller"
 
 export enum ErrorMessage{
     default,

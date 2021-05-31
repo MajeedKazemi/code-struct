@@ -3,16 +3,10 @@ import Editor from '../editor/editor';
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import {ErrorMessageGenerator, ErrorMessage} from "./error-msg-generator";
 import { Position } from "monaco-editor";
-import { getDimensionsFromStyle } from "./util";
 
-export enum ErrorType{
-    defaultErr
-}
-
-const warningMessages = ["Out of scope var reference.", "Cannot insert this object here."]
 const popUpNotificationTime = 3000 //ms
 
-//testing vars
+//TODO: testing vars; remove later
 const testText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. " + 
                  "Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor"+ 
                  " in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident," + 
@@ -50,9 +44,6 @@ const longTestText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, s
 
 const shortTestText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 
-
-//TODO: Consider making this a static class or a singleton, there really should not be two of these anywhere. It will complicate things like keeping track of all notifications present in the program.
-//TODO: Update doc for methods in this class
 /**
  * Class representing the main entry point of the code into the NotificationSystem. 
  * Top-level class for handling workflow; notification system logic is in NotificationSystem.
@@ -61,7 +52,7 @@ export class NotificationSystemController{
 	editor: Editor;
     notifications: Notification[];
     msgGenerator: ErrorMessageGenerator;
-    module: Module; //TODO: Find some other way to get this. Probably should not be passing this around
+    module: Module; //TODO: Find some other way to get this. Probably should not be passing this around, maybe make it a method argument for methods that need it, instead of each instance holding a reference
 
     constructor(editor: Editor, module: Module){
         this.editor = editor;
@@ -70,6 +61,13 @@ export class NotificationSystemController{
         this.module = module;
     }
 
+    /**
+     * Add a hover notification to a code construct.
+     * 
+     * @param code       code construct being added to (hole, empty line, etc... Not the code being added)
+     * @param args       context for constructing appropriate message. See error-msg-generator.ts for more info
+     * @param errMsgType type of error message the notification should display when hovered over
+     */
     addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage){
         if(!code.notification){
             const notif = new HoverNotification(this.editor, code.getSelection(), this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args))
@@ -87,11 +85,24 @@ export class NotificationSystemController{
         }
     }
 
-    addHoverNotifVarOutOfScope(focusedCode: CodeConstruct, args: any, errMsgType: ErrorMessage, scope: Scope, insertedCode: VariableReferenceExpr, focusedPos: Position){
+    /**
+     * Add a hover notification for attempting to use a variable out of scope with suggestions of in-scope variables. 
+     * 
+     * @param focusedCode code construct where the reference was attempted to be added 
+     * @param args        context for constructing appropriate message. See error-msg-generator.ts for more info
+     * @param errMsgType  type of error message the notification should display when hovered over
+     * @param scope       scope of available variables
+     * @param focusedPos  position within the editor (line and column) of where the variable was attempted to be referenced
+     */
+    addHoverNotifVarOutOfScope(focusedCode: CodeConstruct, args: any, errMsgType: ErrorMessage, scope: Scope, focusedPos: Position){
         this.addHoverNotification(focusedCode, args, errMsgType);
         focusedCode.notification.addAvailableVarsArea(scope, this.module, focusedCode, focusedPos);
     }
 
+
+    /**
+     * Add a pop-up notification to the editor at the specified position.
+     */
     addPopUpNotification(){
         this.notifications.push(new PopUpNotification(this.editor, this.notifications.length, "Pop Up!", {left: 0, top: 0}));
         const notif = this.notifications[this.notifications.length - 1];
@@ -102,8 +113,15 @@ export class NotificationSystemController{
         }, popUpNotificationTime);
     }
    
+    /**
+     * Remove notification from given code construct if it exists.
+     * 
+     * @param code code construct to remove notification from
+     */
     removeNotificationFromConstruct(code: CodeConstruct){
         if(code?.notification){
+
+            //notifications are subscribed to changed in position, so need to unsub
             if(code.notification.callerId !== ""){
                 code.unsubscribe(CallbackType.change, code.notification.callerId);
             }

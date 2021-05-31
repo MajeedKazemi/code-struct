@@ -198,6 +198,14 @@ export abstract class Notification{
         this.notificationBox.appendChild(this.notificationTextDiv);
     }
 
+    /**
+     * Adds an area for displaying in-scope variable suggestions below the text of the notification textbox.
+     * 
+     * @param scope       scope to check in-scope variables against
+     * @param module      AST to insert suggestions into, if clicked
+     * @param focusedNode node to insert suggestion into, if clicked
+     * @param focusedPos  position within the editor used for identifying in-scope vars to suggest
+     */
     addAvailableVarsArea(scope: Scope, module: Module, focusedNode: CodeConstruct, focusedPos: monaco.Position){
         const suggestionDiv = document.createElement("div");
         suggestionDiv.classList.add("varScopeSuggestion");
@@ -292,7 +300,6 @@ export class HoverNotification extends Notification implements NotificationBox{
         this.setDomId();
 
         this.addNotificationBox(); //hover box
-
 
         this.updateMouseOffsets();
     }
