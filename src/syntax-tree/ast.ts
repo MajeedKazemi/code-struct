@@ -2518,7 +2518,7 @@ export class Module {
 				}
 
                 //type check
-                if(this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
+                if(isValid && this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
                     if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr){
                         if(code.returns != DataType.Boolean){
                             isValid = false;
