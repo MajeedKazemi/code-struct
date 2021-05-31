@@ -1082,7 +1082,7 @@ export class ElseStatement extends Statement {
             this.tokens.push(new KeywordTkn("elif", this, this.tokens.length));
             this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
             this.conditionIndex = this.tokens.length;
-            this.tokens.push(new EmptyExpr(this, this.tokens.length));
+            this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
             this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         } else this.tokens.push(new KeywordTkn("else", this, this.tokens.length));
 
