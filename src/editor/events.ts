@@ -260,7 +260,7 @@ export class EventHandler {
 					}
 
 					if(!newNotification && this.module.focusedNode.notification){
-						this.module.notificationSystem.removeNotification(this.module.focusedNode);
+						this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
 					}
 				}
 
@@ -344,7 +344,7 @@ export class EventHandler {
 					}
 
 					if(!newNotification && this.module.focusedNode.notification){
-						this.module.notificationSystem.removeNotification(this.module.focusedNode);
+						this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
 					}
 				}
 
