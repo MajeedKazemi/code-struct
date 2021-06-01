@@ -246,22 +246,11 @@ export class EventHandler {
 					);
 					newText = curText.join('');
 				}
-
-				//TODO: Disabled for now because navigation breaks when editing text, which in turn breaks this because
-				//this.module.focusedNode is null after edits which makes it impossible to correctly set the highlight bounds
-				//and a larger than necessary area ends up being highlighted.
-				/*
+				
 				if(this.module.focusedNode instanceof ast.IdentifierTkn){
-					const refs = this.module.scope.references;
 					let newNotification = false;
 
-					if(refs.filter((ref) => {
-						return ref.statement instanceof ast.VarAssignmentStmt && ref.statement.getIdentifier() == newText;
-					}).length > 0){
-						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.existingIdentifier);
-						newNotification = true;
-					}
-					else if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
+					if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
 						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsKeyword);
 						newNotification = true;
 					}
@@ -273,7 +262,7 @@ export class EventHandler {
 					if(!newNotification && this.module.focusedNode.notification){
 						this.module.notificationSystem.removeNotification(this.module.focusedNode);
 					}
-				}*/
+				}
 
 				// TODO: check if turns back into an empty hole
 
@@ -342,21 +331,10 @@ export class EventHandler {
 
 				newText = curText.join('');
 
-				//TODO: Disabled for now because navigation breaks when editing text, which in turn breaks this because
-				//this.module.focusedNode is null after edits which makes it impossible to correctly set the highlight bounds
-				//and a larger than necessary area ends up being highlighted.
-				/*
 				if(this.module.focusedNode instanceof ast.IdentifierTkn){
-					const refs = this.module.scope.references;
 					let newNotification = false;
-
-					if(refs.filter((ref) => {
-						return ref.statement instanceof ast.VarAssignmentStmt && ref.statement.getIdentifier() == newText;
-					}).length > 0){
-						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.existingIdentifier);
-						newNotification = true;
-					}
-					else if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
+					
+					if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
 						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsKeyword);
 						newNotification = true;
 					}
@@ -368,7 +346,7 @@ export class EventHandler {
 					if(!newNotification && this.module.focusedNode.notification){
 						this.module.notificationSystem.removeNotification(this.module.focusedNode);
 					}
-				}*/
+				}
 
 				// TODO: check if turns back into an empty hole
 
