@@ -2,6 +2,8 @@ import * as ast from '../syntax-tree/ast';
 import * as monaco from 'monaco-editor';
 import { TAB_SPACES } from '../syntax-tree/keywords';
 import * as AST from '../syntax-tree/ast';
+import {ErrorMessage} from '../notification-system/error-msg-generator';
+import * as keywords from '../syntax-tree/keywords';
 
 export enum KeyPress {
 	// navigation:
@@ -244,6 +246,23 @@ export class EventHandler {
 					);
 					newText = curText.join('');
 				}
+				
+				if(this.module.focusedNode instanceof ast.IdentifierTkn){
+					let newNotification = false;
+
+					if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
+						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsKeyword);
+						newNotification = true;
+					}
+					else if(Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1){
+						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsBuiltInFunc);
+						newNotification = true;
+					}
+
+					if(!newNotification && this.module.focusedNode.notification){
+						this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
+					}
+				}
 
 				// TODO: check if turns back into an empty hole
 
@@ -311,6 +330,23 @@ export class EventHandler {
 				);
 
 				newText = curText.join('');
+
+				if(this.module.focusedNode instanceof ast.IdentifierTkn){
+					let newNotification = false;
+					
+					if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
+						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsKeyword);
+						newNotification = true;
+					}
+					else if(Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1){
+						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsBuiltInFunc);
+						newNotification = true;
+					}
+
+					if(!newNotification && this.module.focusedNode.notification){
+						this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
+					}
+				}
 
 				// TODO: check if turns back into an empty hole
 
@@ -428,7 +464,7 @@ export class EventHandler {
 				this.module.insert(
 					new AST.FunctionCallStmt(
 						'print',
-						[ new AST.Argument(AST.DataType.String, 'item', false) ],
+						[ new AST.Argument(AST.DataType.Any, 'item', false) ],
 						AST.DataType.Void
 					)
 				);
@@ -438,8 +474,8 @@ export class EventHandler {
 					new AST.FunctionCallStmt(
 						'randint',
 						[
-							new AST.Argument(AST.DataType.String, 'start', false),
-							new AST.Argument(AST.DataType.String, 'end', false)
+							new AST.Argument(AST.DataType.Number, 'start', false),
+							new AST.Argument(AST.DataType.Number, 'end', false)
 						],
 						AST.DataType.Number
 					)
@@ -509,7 +545,7 @@ export class EventHandler {
 				break;
 
 			case 'add-unary-not-expr-btn':
-				this.module.insert(new AST.UnaryOperatorExpr(AST.UnaryOp.Not, AST.DataType.Boolean));
+				this.module.insert(new AST.UnaryOperatorExpr(AST.UnaryOp.Not, AST.DataType.Boolean,  AST.DataType.Boolean));
 				break;
 
 			case 'add-comp-eq-expr-btn':
@@ -647,5 +683,13 @@ export class EventHandler {
 
 			default:
 		}
+	}
+
+	onMouseMove(e){
+		this.module.editor.mousePosMonaco = e.target.position;
+	}
+
+	onDidScrollChange(e){
+		this.module.editor.scrollOffsetTop = e.scrollTop;
 	}
 }

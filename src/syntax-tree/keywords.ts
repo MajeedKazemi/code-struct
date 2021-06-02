@@ -36,7 +36,7 @@ export enum PythonKeywords {
 	yield = 'yield'
 }
 
-enum BuiltInFunctions {
+export enum BuiltInFunctions {
 	abs = 'abs',
 	delattr = 'delattr',
 	hash = 'hash',

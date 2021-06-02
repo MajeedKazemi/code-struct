@@ -3,6 +3,9 @@ import { EventHandler } from "../editor/events";
 import { TAB_SPACES } from "./keywords";
 import Editor from "../editor/editor";
 import ActionStack from "../actions";
+import { NotificationSystemController } from '../notification-system/notification-system-controller';
+import {ErrorMessage} from "../notification-system/error-msg-generator";
+import {Notification} from '../notification-system/notification'
 
 export class Callback {
     static counter: number;
@@ -28,17 +31,17 @@ export enum EditFunctions {
 }
 
 export enum DataType {
-    Number,
-    Boolean,
-    String,
-    Fractional,
-    Iterator,
-    List,
-    Set,
-    Dict,
-    Class,
-    Void,
-    Any,
+    Number = "Number",
+    Boolean = "Boolean",
+    String = "String",
+    Fractional = "Float",
+    Iterator = "Iterator",
+    List = "List",
+    Set = "Set",
+    Dict = "Dict",
+    Class = "Class",
+    Void = "Void",
+    Any = "Any",
 }
 
 export enum BinaryOperator {
@@ -84,12 +87,12 @@ export enum ComparatorOp {
 export enum AddableType {
     NotAddable,
 
-    Statement,
-    Expression,
-    ExpressionModifier,
-    Identifier,
-    NumberLiteral,
-    StringLiteral,
+    Statement = "Statement",
+    Expression = "Expression",
+    ExpressionModifier = "Expression Modifier",
+    Identifier = "Identifier",
+    NumberLiteral = "Number Literal",
+    StringLiteral = "String Literal",
 }
 
 export enum CallbackType {
@@ -140,7 +143,12 @@ export interface CodeConstruct {
      */
     addableType: AddableType;
 
-    /**
+	/**
+	 * A warning or error notification for this code construct. (null if there are no notifications)
+	 */
+	notification: Notification;
+
+	/**
      * Builds the left and right positions of this node and all of its children nodes recursively.
      * @param pos the left position to start building the nodes from
      * @returns the final right position of the whole node (calculated after building all of the children nodes)
@@ -250,9 +258,13 @@ export abstract class Statement implements CodeConstruct {
 
     callbacks = new Map<string, Array<Callback>>();
 
-    constructor() {
-        for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
-    }
+	notification = null;
+
+    keywordIndex = -1;
+
+	constructor() {
+		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
+	}
 
     /**
      * The lineNumbers from the beginning to the end of this statement.
@@ -282,8 +294,11 @@ export abstract class Statement implements CodeConstruct {
     setLineNumber(lineNumber: number) {
         this.lineNumber = lineNumber;
 
+        if(this instanceof EmptyLineStmt) this.notify(CallbackType.change);
+
         for (let token of this.tokens) {
             if (token instanceof Expression) token.setLineNumber(lineNumber);
+            (token as Token).notify(CallbackType.change);
         }
     }
 
@@ -650,6 +665,18 @@ export abstract class Statement implements CodeConstruct {
         if (this.rootNode instanceof Module) return this.rootNode;
         else return (this.rootNode as Statement).getModule();
     }
+
+    /**
+     * Return this statement's keyword if it has one. Otherwise return an empty string.
+     * 
+     * @returns text representation of statement's keyword or an empty string if it has none
+     */
+    getKeyword(): string{
+        if(this.keywordIndex > -1){
+            return (this.tokens[this.keywordIndex] as KeywordTkn).text;
+        }
+        return "";
+    }
 }
 
 /**
@@ -753,9 +780,11 @@ export abstract class Token implements CodeConstruct {
 
     callbacks = new Map<string, Array<Callback>>();
 
-    subscribe(type: CallbackType, callback: Callback) {
-        this.callbacks[type].push(callback);
-    }
+	notification = null;
+
+	subscribe(type: CallbackType, callback: Callback) {
+		this.callbacks[type].push(callback);
+	}
 
     unsubscribe(type: CallbackType, callerId: string) {
         let index = -1;
@@ -930,10 +959,11 @@ export class WhileStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(new KeywordTkn("while", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
@@ -958,10 +988,11 @@ export class IfStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(new KeywordTkn("if", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
@@ -1046,11 +1077,12 @@ export class ElseStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         if (hasCondition) {
             this.tokens.push(new KeywordTkn("elif", this, this.tokens.length));
             this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
             this.conditionIndex = this.tokens.length;
-            this.tokens.push(new EmptyExpr(this, this.tokens.length));
+            this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
             this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         } else this.tokens.push(new KeywordTkn("else", this, this.tokens.length));
 
@@ -1084,6 +1116,7 @@ export class ForStatement extends Statement {
         this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(new KeywordTkn("for", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.counterIndex = this.tokens.length;
@@ -1092,7 +1125,7 @@ export class ForStatement extends Statement {
         this.tokens.push(new KeywordTkn("in", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Iterator, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
@@ -1344,6 +1377,11 @@ export class FunctionCallStmt extends Expression {
     replaceArgument(index: number, to: CodeConstruct) {
         this.replace(to, this.argumentsIndices[index]);
     }
+
+    getFunctionName() : string {
+        if (this.isStatement()) return (this.tokens[1] as FunctionNameTkn).getFunctionName();;
+        return (this.tokens[0] as FunctionNameTkn).getFunctionName();    
+    }
 }
 
 export class MethodCallExpr extends Expression {
@@ -1485,8 +1523,8 @@ export class BinaryOperatorExpr extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
@@ -1505,6 +1543,14 @@ export class BinaryOperatorExpr extends Expression {
     replaceRightOperand(code: CodeConstruct) {
         this.replace(code, this.rightOperandIndex);
     }
+
+    getLeftOperandIndex(){
+        return this.leftOperandIndex;
+    }
+
+    getRightOperandIndex(){
+        return this.rightOperandIndex;
+    }
 }
 
 export class UnaryOperatorExpr extends Expression {
@@ -1512,7 +1558,7 @@ export class UnaryOperatorExpr extends Expression {
     operator: UnaryOp;
     private operandIndex: number;
 
-    constructor(operator: UnaryOp, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+    constructor(operator: UnaryOp, returns: DataType, operatesOn: DataType = DataType.Any, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
 
         this.rootNode = root;
@@ -1526,7 +1572,7 @@ export class UnaryOperatorExpr extends Expression {
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(operatesOn,this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1534,6 +1580,10 @@ export class UnaryOperatorExpr extends Expression {
 
     replaceOperand(code: CodeConstruct) {
         this.replace(code, this.operandIndex);
+    }
+
+    getKeyword() : string {
+        return this.operator;
     }
 }
 
@@ -1591,8 +1641,8 @@ export class ComparatorExpr extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
@@ -1610,6 +1660,14 @@ export class ComparatorExpr extends Expression {
 
     replaceRightOperand(code: CodeConstruct) {
         this.replace(code, this.rightOperandIndex);
+    }
+
+    getLeftOperandIndex(){
+        return this.leftOperandIndex;
+    }
+
+    getRightOperandIndex(){
+        return this.rightOperandIndex;
     }
 }
 
@@ -1904,6 +1962,10 @@ export class FunctionNameTkn extends Token {
     getSelection(): monaco.Selection {
         return this.rootNode.getSelection();
     }
+
+    getFunctionName() : string {
+        return this.text;
+    }
 }
 
 export class TypedEmptyExpr extends Token {
@@ -2089,11 +2151,12 @@ export class Module {
     body = new Array<Statement>();
     focusedNode: CodeConstruct;
 
-    scope: Scope;
-    editor: Editor;
-    eventHandler: EventHandler;
-    actionStack: ActionStack;
-    buttons: HTMLElement[];
+	scope: Scope;
+	editor: Editor;
+	eventHandler: EventHandler;
+	actionStack: ActionStack;
+	buttons: HTMLElement[];
+	notificationSystem: NotificationSystemController;
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId));
@@ -2108,8 +2171,10 @@ export class Module {
 
         this.actionStack = new ActionStack(this);
 
-        this.buttons = [];
-    }
+		this.notificationSystem = new NotificationSystemController(this.editor, this);
+
+		this.buttons = [];
+	}
 
     reset() {
         this.body = new Array<Statement>();
@@ -2133,11 +2198,15 @@ export class Module {
 
         document.getElementById("variables").appendChild(button);
 
-        button.addEventListener("click", () => {
-            this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
-        });
+        button.addEventListener("click", this.addVarRefHandler(ref).bind(this))
 
         this.buttons.push(button);
+    }
+
+    addVarRefHandler(ref: VarAssignmentStmt){
+        return function(){
+            this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
+        };
     }
 
     addLoopVariableButtonToToolbox(ref: ForStatement) {
@@ -2305,19 +2374,22 @@ export class Module {
     replaceFocusedExpression(expr: Expression) {
         let root = this.focusedNode.rootNode as Statement;
 
-        root.replace(expr, this.focusedNode.indexInRoot);
+        root.replace(expr, this.focusedNode.indexInRoot);        
     }
 
     referenceTable = new Array<Reference>();
 
-    insert(code: CodeConstruct) {
+    insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
+        let focusedNodeProvided = false;
+        if(focusedNode) this.focusedNode = focusedNode; focusedNodeProvided = true;
+
         if (code instanceof MethodCallExpr) {
             let focusedPos = this.editor.monaco.getPosition();
             let prevItem = this.focusedNode
                 .getParentStatement()
                 .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
 
-            if (prevItem instanceof Expression /* TODO: and check calledOn */) {
+            if (prevItem instanceof Expression && prevItem.returns == code.calledOn/* TODO: and check calledOn */) {
                 // will replace the expression with this
                 // and will have the expression as the first element inside the code
                 code.indexInRoot = prevItem.indexInRoot;
@@ -2336,129 +2408,325 @@ export class Module {
                     focusedPos.column
                 );
 
+                //TODO: Maybe put into a method later for reusability. No good spot for it in the code right now though.
+                if(this.focusedNode.notification){
+                    this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
+                }
+
                 this.editor.executeEdits(range, code);
                 prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
             }
+            else if(prevItem instanceof Expression && prevItem.returns != code.calledOn){
+                //relies on tokens array not changing the index of function name
+                this.notificationSystem.addHoverNotification(
+                    this.focusedNode,
+                    {
+                        objectType: prevItem.returns,
+                        method: (code.tokens[2] as FunctionNameTkn).text,
+                        calledOn: code.calledOn
+                    },
+                    ErrorMessage.methodCallObjectTypeMismatch
+                )
+            }
         }
 
-        if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
-            let focusedPos = this.focusedNode.getLeftPosition();
-            let parentStatement = this.focusedNode.getParentStatement();
-            let parentRoot = parentStatement.rootNode;
+		if (code.addableType != AddableType.NotAddable && this.focusedNode.receives.indexOf(code.addableType) > -1) {
+			let focusedPos = this.focusedNode.getLeftPosition();
+			let parentStatement = this.focusedNode.getParentStatement();
+			let parentRoot = parentStatement.rootNode;
 
-            if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
-                // replaces statement with the newly inserted statement
-                let statement = code as Statement;
+			if (this.focusedNode.receives.indexOf(AddableType.Statement) > -1) {
+				// replaces statement with the newly inserted statement
+				let statement = code as Statement;
 
-                if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-                    if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                        if (parentRoot.isValidElseInsertion(this.focusedNode.indexInRoot, code)) {
-                            parentRoot.insertElseStatement(this.focusedNode.indexInRoot, code);
+				if (parentRoot instanceof Statement && parentRoot.hasBody()) {
+					if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
+						if (parentRoot.isValidElseInsertion(this.focusedNode.indexInRoot, code)) {
+							parentRoot.insertElseStatement(this.focusedNode.indexInRoot, code);
 
-                            let range = new monaco.Range(
-                                focusedPos.lineNumber,
-                                focusedPos.column - TAB_SPACES,
-                                focusedPos.lineNumber,
-                                focusedPos.column
-                            );
+							let range = new monaco.Range(
+								focusedPos.lineNumber,
+								focusedPos.column - TAB_SPACES,
+								focusedPos.lineNumber,
+								focusedPos.column
+							);
 
-                            this.editor.executeEdits(
-                                range,
-                                code,
+							this.editor.executeEdits(
+								range,
+								code,
                                 code.getRenderText() + "\n" + emptySpaces(focusedPos.column - 1)
                             );
+
+                            if(this.focusedNode.notification){
+                                this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
+                            }
                         }
                     } else if (!(statement instanceof ElseStatement)) {
                         parentRoot.replaceInBody(this.focusedNode.indexInRoot, statement);
 
-                        var range = new monaco.Range(
-                            focusedPos.lineNumber,
-                            code.left,
-                            focusedPos.lineNumber,
-                            code.right
-                        );
+						var range = new monaco.Range(
+							focusedPos.lineNumber,
+							code.left,
+							focusedPos.lineNumber,
+							code.right
+						);
 
-                        this.editor.executeEdits(range, code);
+                        if(this.focusedNode.notification){
+                            this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
+                        }
+						this.editor.executeEdits(range, code);
+					}
+				} else if (!(statement instanceof ElseStatement)) {
+					this.replaceFocusedStatement(statement);
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						statement.left,
+						focusedPos.lineNumber,
+						statement.right
+					);
+
+                    if(this.focusedNode.notification){
+                        this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
                     }
-                } else if (!(statement instanceof ElseStatement)) {
-                    this.replaceFocusedStatement(statement);
 
-                    let range = new monaco.Range(
-                        focusedPos.lineNumber,
-                        statement.left,
-                        focusedPos.lineNumber,
-                        statement.right
-                    );
+					this.editor.executeEdits(range, statement);
+				}
+			} else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
+				let isValid = true;
 
-                    this.editor.executeEdits(range, statement);
-                }
-            } else if (this.focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-                let isValid = true;
+				if (code instanceof VariableReferenceExpr) {
+					// prevent out of scope referencing of a variable
+					if (parentRoot instanceof IfStatement)
+						isValid = parentRoot.isValidReference(
+							code.uniqueId,
+							focusedPos.lineNumber,
+							parentStatement.indexInRoot
+						);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
+						isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+					}
 
-                if (code instanceof VariableReferenceExpr) {
-                    // prevent out of scope referencing of a variable
-                    if (parentRoot instanceof IfStatement)
-                        isValid = parentRoot.isValidReference(
-                            code.uniqueId,
-                            focusedPos.lineNumber,
-                            parentStatement.indexInRoot
-                        );
-                    else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
-                        isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
+                    if(!isValid){
+                        //TODO: Refactor to have this be built in an easier way. So for this line, make it shorter and maybe also use Builder in Notificaiton.ts
+						this.notificationSystem.addHoverNotifVarOutOfScope(this.focusedNode, {identifier: code.identifier}, ErrorMessage.outOfScopeVarReference, parentRoot instanceof Module || parentRoot instanceof Statement ? parentRoot.scope : null, focusedPos);
+                    }
+                    
+					if(isValid && this.focusedNode.notification){
+                        this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
+                    }
+				}
+
+                //type checks -- different handling based on type of code construct
+                //focusedNode.returns != code.returns would work, but we need more context to get the right error message
+                if(isValid && this.focusedNode instanceof TypedEmptyExpr && code instanceof Expression){
+                    if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr){
+                        if(code.returns != DataType.Boolean){
+                            isValid = false;
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: code.returns}, ErrorMessage.boolOpArgTypeMismatch);
+                        }
+                    }
+                    //for-loop check is special since Iterable does not cover both str and list right now
+                    //can change it once the types are an array
+                    else if(this.focusedNode.rootNode instanceof ForStatement){
+                        if(code.returns != DataType.List && code.returns != DataType.String){
+                            isValid = false;
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
+                                                                                            constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
+                                                                                            expectedType: this.focusedNode.type
+                                                                                        },
+                                                                        ErrorMessage.exprTypeMismatch);
+                        }
+                    }
+                    else{
+                        isValid = this.focusedNode.type === code.returns || this.focusedNode.type === DataType.Any
+
+                        if(!isValid){
+                            //within method arguments
+                            if(this.focusedNode.rootNode instanceof FunctionCallStmt){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: this.focusedNode.type, 
+                                                                                                argType2: code.returns,
+                                                                                                methodName: this.focusedNode.rootNode.getFunctionName()
+                                                                                            },
+                                                                            ErrorMessage.methodArgTypeMismatch);
+                            }
+                            //within statements while, if, else if and second part of for
+                            else if(this.focusedNode.rootNode instanceof Statement){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.returns, 
+                                                                                                constructName: (this.focusedNode.rootNode as Statement).getKeyword(),
+                                                                                                expectedType: this.focusedNode.type
+                                                                                            },
+                                                                            ErrorMessage.exprTypeMismatch);
+                            }
+                        }
                     }
                 }
 
-                if (isValid) {
-                    // replaces expression with the newly inserted expression
-                    let expr = code as Expression;
+                //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
+                let existingLiteralType = null;
+                if((this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr) && code instanceof Expression){
+                    if (!(this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getLeftOperandIndex()] as Expression).returns;
+                    }
+                    else if(!(this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getRightOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (this.focusedNode.rootNode.tokens[this.focusedNode.rootNode.getRightOperandIndex()] as Expression).returns;
+                    }
 
-                    this.replaceFocusedExpression(expr);
+                    if(!existingLiteralType && this.focusedNode.rootNode.returns === DataType.Any){
+                        this.focusedNode.rootNode.returns = code.returns;
+                    }
+                    else if(existingLiteralType && this.focusedNode.rootNode.returns === DataType.Any){
+                        this.focusedNode.rootNode.returns = existingLiteralType;
+                    }
 
-                    let padding = 1;
-                    let selection = this.editor.monaco.getSelection();
+                    if(existingLiteralType != null && existingLiteralType != code.returns){
+                        isValid = false;
 
-                    if (selection.endColumn == selection.startColumn) padding = 0;
-
-                    let range = new monaco.Range(
-                        focusedPos.lineNumber,
-                        this.focusedNode.left,
-                        focusedPos.lineNumber,
-                        this.focusedNode.right + padding
-                    );
-
-                    this.editor.executeEdits(range, expr);
+                        if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.binOpArgTypeMismatch);
+                        }
+                        else if(this.focusedNode.rootNode instanceof ComparatorExpr){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: existingLiteralType, argType2: code.returns}, ErrorMessage.compOpArgTypeMismatch);
+                        }
+                    }
                 }
+
+                if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr && code instanceof Expression){
+                    if(code.returns != DataType.Boolean){
+                        isValid = false;
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {binOp: this.focusedNode.rootNode.operator, argType1: DataType.Boolean, argType2: code.returns}, ErrorMessage.compOpArgTypeMismatch);
+                    }
+                }
+
+				if (isValid) {
+                    if(this.focusedNode.notification){
+                        this.notificationSystem.removeNotificationFromConstruct(this.focusedNode);
+                    }
+
+					// replaces expression with the newly inserted expression
+					let expr = code as Expression;
+
+                    //update var type
+                    //originally all var ref buttons are of type any
+                    if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
+                        const button = document.getElementById(this.focusedNode.rootNode.buttonId);
+                        button.removeEventListener("click", this.addVarRefHandler(null), false);
+
+                        (this.focusedNode.rootNode as VarAssignmentStmt).dataType = expr.returns;
+                        button.addEventListener("click", this.addVarRefHandler(this.focusedNode.rootNode as VarAssignmentStmt).bind(this));
+                    }
+                    //this is for when the expression that is assigned to the var was originally of type Any
+                    //This is ok for BooleaExpr because they only allow booleans to be added to them anyway.
+                    else if(parentStatement instanceof VarAssignmentStmt && !(this.focusedNode.rootNode instanceof ComparatorExpr)){
+                        const button = document.getElementById(parentStatement.buttonId);
+                        button.removeEventListener("click", this.addVarRefHandler(null), false);
+
+                        (parentStatement as VarAssignmentStmt).dataType = expr.returns;
+                        button.addEventListener("click", this.addVarRefHandler(parentStatement as VarAssignmentStmt).bind(this));
+                    }
+
+                    //update types of expressions that need an update
+                    if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
+                        this.focusedNode.rootNode.returns = expr.returns;
+                    }
+                    
+					this.replaceFocusedExpression(expr);
+
+					let padding = 1;
+					let selection = focusedNodeProvided ? this.focusedNode.getSelection() : this.editor.monaco.getSelection();
+
+					if (selection.endColumn == selection.startColumn) padding = 0;
+
+					let range = new monaco.Range(
+						focusedPos.lineNumber,
+						this.focusedNode.left,
+						focusedPos.lineNumber,
+						this.focusedNode.right + padding
+					);
+
+					this.editor.executeEdits(range, expr);
+				}
+			}
+
+            //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
+            if(!this.focusedNode.notification){
+                this.focusedNode = code.nextEmptyToken();
+                this.editor.focusSelection(this.focusedNode.getSelection());
             }
+		} else {
+			console.warn("Cannot insert this code construct at focused location.");
 
-            this.focusedNode = code.nextEmptyToken();
+            //TODO: This type of logic should not be inside the AST. It should be moved somewhere like a validator class or even the notification-system-controller.
+            //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
+            if(code.addableType == AddableType.NotAddable){
+                this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);
+            }
+            else if(this.focusedNode.receives.indexOf(code.addableType) == -1){
+                if(this.focusedNode.rootNode instanceof Statement){
+                    if(this.focusedNode.rootNode.getKeyword() != ""){ //for, while, if, elseif
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: this.focusedNode.rootNode.getKeyword(), addedType: code.addableType,
+                                                                                        focusedNode: this.focusedNode},
+                                                                        ErrorMessage.addableTypeMismatchControlStmt);
+                    }
+                    else if(this.focusedNode.rootNode instanceof BinaryBoolOperatorExpr || this.focusedNode.rootNode instanceof ComparatorExpr || this.focusedNode.rootNode instanceof BinaryOperatorExpr || this.focusedNode.rootNode instanceof UnaryOperatorExpr){
+                        this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
+                            ErrorMessage.addableTypeMismatchGeneral);
+                    }
+                    else{ //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
+                        if(this.focusedNode.rootNode instanceof MethodCallStmt){
+                            console.log("Address this once lists are fixed.")
+                        }
+                        else if(this.focusedNode.rootNode instanceof VarAssignmentStmt){
+                            this.notificationSystem.addHoverNotification(this.focusedNode, {constructName: "Variable assignment", addedType: code.addableType},
+                                                                            ErrorMessage.addableTypeMismatchVarAssignStmt);
+                        }
+                        else if(this.focusedNode.rootNode instanceof FunctionCallStmt){
+                            if(code instanceof Expression){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {argType1: (this.focusedNode as TypedEmptyExpr).type, 
+                                                                                                argType2: code.returns,
+                                                                                                methodName: this.focusedNode.rootNode.getFunctionName()
+                                                                                            },
+                                                                            ErrorMessage.methodArgTypeMismatch);
+                            }
+                            else if(code instanceof Statement){
+                                this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
+                                    ErrorMessage.addableTypeMismatchMethodArg);
+                            }
+                        }
+                    }
+                }
+                else{ //Token
+                    this.notificationSystem.addHoverNotification(this.focusedNode, {addedType: code.addableType},
+                                                                            ErrorMessage.addableTypeMismatchEmptyLine);
+                }
+            
+            }
+		}
+		this.editor.monaco.focus();
+	}
 
-            this.editor.focusSelection(this.focusedNode.getSelection());
-        } else console.warn("Cannot insert this code construct at focused location.");
-        this.editor.monaco.focus();
-    }
+	insertListItem() {
+		if (this.focusedNode instanceof EmptyListItem) {
+			let listExpr = this.focusedNode.rootNode as ListLiteralExpression;
 
-    insertListItem() {
-        if (this.focusedNode instanceof EmptyListItem) {
-            let listExpr = this.focusedNode.rootNode as ListLiteralExpression;
+			let text = listExpr.insertListItem(this.focusedNode.indexInRoot);
 
-            let text = listExpr.insertListItem(this.focusedNode.indexInRoot);
+			let padding = 1;
+			let selection = this.editor.monaco.getSelection();
+			let focusedPos = this.editor.monaco.getPosition();
 
-            let padding = 1;
-            let selection = this.editor.monaco.getSelection();
-            let focusedPos = this.editor.monaco.getPosition();
+			if (selection.endColumn == selection.startColumn) padding = 0;
 
-            if (selection.endColumn == selection.startColumn) padding = 0;
+			let range = new monaco.Range(
+				focusedPos.lineNumber,
+				this.focusedNode.left,
+				focusedPos.lineNumber,
+				this.focusedNode.right + padding
+			);
 
-            let range = new monaco.Range(
-                focusedPos.lineNumber,
-                this.focusedNode.left,
-                focusedPos.lineNumber,
-                this.focusedNode.right + padding
-            );
-
-            this.editor.executeEdits(range, listExpr, text);
-        }
-    }
+			this.editor.executeEdits(range, listExpr, text);
+		}
+	}
 }
 
 /**
