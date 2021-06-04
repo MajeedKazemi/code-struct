@@ -511,6 +511,15 @@ export abstract class Statement implements CodeConstruct {
         const toReplace = this.tokens[index];
         if (toReplace instanceof Statement || toReplace instanceof Expression || toReplace instanceof Token) {
             toReplace.notify(CallbackType.delete);
+
+            //any hole-containing tokens need to be notified so their holes are removed
+            if(toReplace instanceof Statement || toReplace instanceof Expression){
+                toReplace.tokens.forEach(token => {
+                    if(token instanceof Token){
+                        token.notify(CallbackType.delete);
+                    }
+                });
+            }
         }
 
         // prepare the new Node
@@ -1727,6 +1736,8 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 export class LiteralValExpr extends Expression {
     addableType = AddableType.Expression;
+    allowedBinOps = new Array<BinaryOperator>();
+    allowedBoolOps = new Array<BoolOperator>();
 
     constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
@@ -1743,6 +1754,8 @@ export class LiteralValExpr extends Expression {
                     )
                 );
                 this.tokens.push(new PunctuationTkn('"', this, this.tokens.length));
+                
+                this.allowedBinOps.push(BinaryOperator.Add);
 
                 break;
             }
@@ -1757,11 +1770,19 @@ export class LiteralValExpr extends Expression {
                     )
                 );
 
+                this.allowedBinOps.push(BinaryOperator.Add);
+                this.allowedBinOps.push(BinaryOperator.Subtract);
+                this.allowedBinOps.push(BinaryOperator.Multiply);
+                this.allowedBinOps.push(BinaryOperator.Divide);
+
                 break;
             }
 
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTextTkn(value, this, this.tokens.length));
+
+                this.allowedBoolOps.push(BoolOperator.And);
+                this.allowedBoolOps.push(BoolOperator.Or);
 
                 break;
             }

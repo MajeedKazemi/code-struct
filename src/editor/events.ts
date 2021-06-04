@@ -5,7 +5,7 @@ import * as AST from '../syntax-tree/ast';
 import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
 import { ConstructCompleter } from '../typing-system/construct-completer';
-import { CodeConstruct, Statement } from '../syntax-tree/ast';
+import { BinaryOperator, CodeConstruct, Statement } from '../syntax-tree/ast';
 
 export enum KeyPress {
 	// navigation:
@@ -30,7 +30,10 @@ export enum KeyPress {
 	Z = 'z',
 	Y = 'y',
 
-	Plus = "+"
+	Plus = "+",
+	ForwardSlash = "/",
+	Star = "*",
+	Minus = "-"
 
 }
 
@@ -71,7 +74,10 @@ export enum EditAction {
 
 	None,
 
-	CompleteConstruct
+	CompleteAddition,
+	CompleteDivision,
+	CompleteMultiplication,
+	CompleteSubtraction
 }
 
 export class EventHandler {
@@ -170,7 +176,22 @@ export class EventHandler {
 			
 			case KeyPress.Plus:
 				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
-					return EditAction.CompleteConstruct;
+					return EditAction.CompleteAddition;
+				} 
+				break;
+			case KeyPress.Star:
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+					return EditAction.CompleteMultiplication;
+				} 
+				break;
+			case KeyPress.Minus:
+				if(!inTextEditMode && e.key.length == 1){
+					return EditAction.CompleteSubtraction;
+				} 
+				break;
+			case KeyPress.ForwardSlash:
+				if(!inTextEditMode && e.key.length == 1){
+					return EditAction.CompleteDivision;
 				} 
 				break;
 
@@ -458,38 +479,42 @@ export class EventHandler {
 			case EditAction.Copy:
 				break;
 
-			case EditAction.CompleteConstruct:
+			case EditAction.CompleteAddition:
 				console.log(this.module.editor.holes)
+				console.log(e)
 
-				const completionSys = ConstructCompleter.getInstance();
-				completionSys.completeConstruct();
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
 
-			/*
-				const completionSys = ConstructCompleter.getInstance();
-				const completion = completionSys.completeBinaryOp(this.module.focusedNode);
-				const focusedPos = this.module.editor.monaco.getPosition();*/
+				e.preventDefault();
+				e.stopPropagation();
+				break;
 
-				//(this.module.focusedNode.rootNode as Statement).replace(completion, (this.module.focusedNode.rootNode as CodeConstruct).indexInRoot);
-/*
-				console.log(focusedPos);
-				console.log(completion.getSelection());
-				console.log(this.module.focusedNode.getSelection());
-
-				((this.module.focusedNode.rootNode  as CodeConstruct).rootNode as Statement).tokens[(this.module.focusedNode.rootNode as CodeConstruct).indexInRoot] = completion;
-				let range = new monaco.Range(
-                    focusedPos.lineNumber,
-                    focusedPos.column,
-                    focusedPos.lineNumber,
-                    this.module.focusedNode.getSelection().endColumn,
-                );
+			case EditAction.CompleteSubtraction:
 				console.log(this.module.editor.holes)
-				this.module.editor.executeEdits(range, completion, null, true);
-				console.log(this.module.editor.holes)*/
+				console.log(e)
 
-				//console.log(this.module.body)
-				//this.module.editor.addHoles(completion);
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
 
-				//this.module.replaceFocusedStatement(completionSys.completeBinaryOp(this.module.focusedNode));
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteDivision:
+				console.log(this.module.editor.holes)
+				console.log(e)
+
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteMultiplication:
+				console.log(this.module.editor.holes)
+				console.log(e)
+
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
+
 				e.preventDefault();
 				e.stopPropagation();
 				break;
