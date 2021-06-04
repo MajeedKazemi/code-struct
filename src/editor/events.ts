@@ -4,6 +4,8 @@ import { TAB_SPACES } from '../syntax-tree/keywords';
 import * as AST from '../syntax-tree/ast';
 import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
+import { ConstructCompleter } from '../typing-system/construct-completer';
+import { CodeConstruct, Statement } from '../syntax-tree/ast';
 
 export enum KeyPress {
 	// navigation:
@@ -26,7 +28,10 @@ export enum KeyPress {
 	V = 'v',
 	C = 'c',
 	Z = 'z',
-	Y = 'y'
+	Y = 'y',
+
+	Plus = "+"
+
 }
 
 export enum EditAction {
@@ -64,7 +69,9 @@ export enum EditAction {
 
 	InsertChar,
 
-	None
+	None,
+
+	CompleteConstruct
 }
 
 export class EventHandler {
@@ -159,6 +166,12 @@ export class EventHandler {
 					if (curPos.column == leftPosToCheck || curPos.column == curLine.right + 1)
 						return EditAction.InsertEmptyLine;
 
+				break;
+			
+			case KeyPress.Plus:
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+					return EditAction.CompleteConstruct;
+				} 
 				break;
 
 			default:
@@ -443,6 +456,42 @@ export class EventHandler {
 				break;
 
 			case EditAction.Copy:
+				break;
+
+			case EditAction.CompleteConstruct:
+				console.log(this.module.editor.holes)
+
+				const completionSys = ConstructCompleter.getInstance();
+				completionSys.completeConstruct();
+
+			/*
+				const completionSys = ConstructCompleter.getInstance();
+				const completion = completionSys.completeBinaryOp(this.module.focusedNode);
+				const focusedPos = this.module.editor.monaco.getPosition();*/
+
+				//(this.module.focusedNode.rootNode as Statement).replace(completion, (this.module.focusedNode.rootNode as CodeConstruct).indexInRoot);
+/*
+				console.log(focusedPos);
+				console.log(completion.getSelection());
+				console.log(this.module.focusedNode.getSelection());
+
+				((this.module.focusedNode.rootNode  as CodeConstruct).rootNode as Statement).tokens[(this.module.focusedNode.rootNode as CodeConstruct).indexInRoot] = completion;
+				let range = new monaco.Range(
+                    focusedPos.lineNumber,
+                    focusedPos.column,
+                    focusedPos.lineNumber,
+                    this.module.focusedNode.getSelection().endColumn,
+                );
+				console.log(this.module.editor.holes)
+				this.module.editor.executeEdits(range, completion, null, true);
+				console.log(this.module.editor.holes)*/
+
+				//console.log(this.module.body)
+				//this.module.editor.addHoles(completion);
+
+				//this.module.replaceFocusedStatement(completionSys.completeBinaryOp(this.module.focusedNode));
+				e.preventDefault();
+				e.stopPropagation();
 				break;
 
 			default:

@@ -6,6 +6,7 @@ import ActionStack from "../actions";
 import { NotificationSystemController } from '../notification-system/notification-system-controller';
 import {ErrorMessage} from "../notification-system/error-msg-generator";
 import {Notification} from '../notification-system/notification'
+import { ConstructCompleter } from "../typing-system/construct-completer";
 
 export class Callback {
     static counter: number;
@@ -2157,6 +2158,7 @@ export class Module {
 	actionStack: ActionStack;
 	buttons: HTMLElement[];
 	notificationSystem: NotificationSystemController;
+    constructCompleter: ConstructCompleter;
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId));
@@ -2172,6 +2174,8 @@ export class Module {
         this.actionStack = new ActionStack(this);
 
 		this.notificationSystem = new NotificationSystemController(this.editor, this);
+        this.constructCompleter = ConstructCompleter.getInstance();
+        this.constructCompleter.setInstanceContext(this, this.editor);
 
 		this.buttons = [];
 	}
@@ -2381,7 +2385,7 @@ export class Module {
 
     insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
         let focusedNodeProvided = false;
-        if(focusedNode) this.focusedNode = focusedNode; focusedNodeProvided = true;
+        if(focusedNode !== undefined) this.focusedNode = focusedNode; focusedNodeProvided = true;
 
         if (code instanceof MethodCallExpr) {
             let focusedPos = this.editor.monaco.getPosition();
@@ -2703,6 +2707,8 @@ export class Module {
             }
 		}
 		this.editor.monaco.focus();
+        //console.log(this.editor.holes)
+        //console.log(this.body)
 	}
 
 	insertListItem() {
