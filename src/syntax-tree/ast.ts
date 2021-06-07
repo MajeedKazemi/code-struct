@@ -2618,7 +2618,7 @@ export class Module {
                     }
                     //this is for when the expression that is assigned to the var was originally of type Any
                     //This is ok for BooleaExpr because they only allow booleans to be added to them anyway.
-                    else if(parentStatement instanceof VarAssignmentStmt && !(this.focusedNode.rootNode instanceof ComparatorExpr)){
+                    else if(parentStatement instanceof VarAssignmentStmt && !(this.focusedNode.rootNode instanceof ComparatorExpr || this.focusedNode instanceof EmptyListItem)){
                         const button = document.getElementById(parentStatement.buttonId);
                         button.removeEventListener("click", this.addVarRefHandler(null), false);
 
