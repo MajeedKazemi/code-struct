@@ -36,7 +36,9 @@ export default class ActionStack {
 
     undo() {
         // Undo the 'ctrl' press after 'ctrl + z'
-        this.stack.pop();
+        if(this.stack[this.stack.length - 1].type === ActionType.OnKeyDown && this.stack[this.stack.length - 1].event.ctrlKey){
+            this.stack.pop();
+        }
 
         // Undo the most recent action
         this.stack.pop();
