@@ -1105,6 +1105,8 @@ export class ForStatement extends Statement {
     buttonId: string;
     private counterIndex: number;
     private rangeIndex: number;
+
+    //TODO: Statements should not have a data type?
     dataType = DataType.Any;
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
@@ -2218,7 +2220,8 @@ export class Module {
         document.getElementById("variables").appendChild(button);
 
         button.addEventListener("click", () => {
-            this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
+            //TODO: This var could either be a string or an int
+            this.insert(new VariableReferenceExpr(ref.getIdentifier(), DataType.Number, ref.buttonId));
         });
 
         this.buttons.push(button);
