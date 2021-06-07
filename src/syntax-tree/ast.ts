@@ -1019,7 +1019,7 @@ export class IfStatement extends Statement {
         }
 
         for (let stmt of this.scope.getValidReferences(this.getLineNumber()))
-            if (stmt.statement instanceof VarAssignmentStmt && uniqueId == stmt.statement.buttonId) return true;
+            if ((stmt.statement instanceof VarAssignmentStmt || stmt.statement instanceof ForStatement) && uniqueId == stmt.statement.buttonId) return true;
 
         return false;
     }
