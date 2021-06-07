@@ -5,7 +5,7 @@ import * as AST from '../syntax-tree/ast';
 import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
 import { ConstructCompleter } from '../typing-system/construct-completer';
-import { BinaryOperator, CodeConstruct, Statement } from '../syntax-tree/ast';
+import { BinaryOperator, CodeConstruct, DataType, Statement } from '../syntax-tree/ast';
 
 export enum KeyPress {
 	// navigation:
@@ -77,7 +77,11 @@ export enum EditAction {
 	CompleteAddition,
 	CompleteDivision,
 	CompleteMultiplication,
-	CompleteSubtraction
+	CompleteSubtraction,
+
+	CompleteIntLiteral,
+	CompleteStringLiteral,
+	CompleteBoolLiteral
 }
 
 export class EventHandler {
@@ -218,7 +222,18 @@ export class EventHandler {
 
 						return EditAction.InsertChar;
 					}
-				} else return EditAction.None;
+				} else {
+					if(["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1){
+						return EditAction.CompleteIntLiteral;
+					}
+					else if(["t", "f"].indexOf(e.key) > -1){
+						return EditAction.CompleteBoolLiteral;
+					}
+					else if(["\""].indexOf(e.key) > -1){
+						return EditAction.CompleteStringLiteral;
+					}
+					return EditAction.None;
+				}
 		}
 	}
 
@@ -514,6 +529,27 @@ export class EventHandler {
 				console.log(e)
 
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteIntLiteral:
+				this.module.constructCompleter.completeLiteralConstruct(DataType.Number);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteStringLiteral:
+				this.module.constructCompleter.completeLiteralConstruct(DataType.String);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteBoolLiteral:
+				this.module.constructCompleter.completeLiteralConstruct(DataType.Boolean);
 
 				e.preventDefault();
 				e.stopPropagation();

@@ -2406,7 +2406,7 @@ export class Module {
 
     insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
         let focusedNodeProvided = false;
-        if(focusedNode !== undefined) this.focusedNode = focusedNode; focusedNodeProvided = true;
+        if(focusedNode !== undefined) {this.focusedNode = focusedNode; focusedNodeProvided = true};
 
         if (code instanceof MethodCallExpr) {
             let focusedPos = this.editor.monaco.getPosition();

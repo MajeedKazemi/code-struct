@@ -1,5 +1,5 @@
 import Editor from "../editor/editor";
-import { BinaryOperator, BinaryOperatorExpr, CodeConstruct, EmptyExpr, EmptyLineStmt, Expression, LiteralValExpr, TypedEmptyExpr, Statement, Module, CallbackType } from "../syntax-tree/ast";
+import { BinaryOperator, BinaryOperatorExpr, CodeConstruct, EmptyExpr, EmptyLineStmt, Expression, LiteralValExpr, TypedEmptyExpr, Statement, Module, CallbackType, DataType } from "../syntax-tree/ast";
 import * as monaco from 'monaco-editor';
 
 
@@ -24,6 +24,9 @@ export class ConstructCompleter{
         this.module = module;
     }
 
+    completeLiteralConstruct(literalType: DataType){
+        this.module.insert(new LiteralValExpr(literalType));
+    }
 
     completeArithmeticConstruct(operator: BinaryOperator){
         //TODO: Currently locate() returns EndOfLine and StartOfLine tokens as well
