@@ -1526,12 +1526,12 @@ export class BinaryOperatorExpr extends Expression {
 
         this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -2541,6 +2541,13 @@ export class Module {
                     }
                     else{
                         isValid = this.focusedNode.type === code.returns || this.focusedNode.type === DataType.Any
+
+                        //assign operand types based on argument type for expressions being used as args
+                        if(!isValid && this.focusedNode.rootNode instanceof FunctionCallStmt && code instanceof BinaryOperatorExpr){
+                            isValid = true;
+                            (code.tokens[code.getLeftOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
+                            (code.tokens[code.getRightOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
+                        }
 
                         if(!isValid){
                             //within method arguments
