@@ -1133,6 +1133,8 @@ export class ForStatement extends Statement {
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
+        this.body.push(new EmptyLineStmt(this, 1)); //TODO: Workaround for inability to navigate outside of an indented region and stay on the same line
+
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
