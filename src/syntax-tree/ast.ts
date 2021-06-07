@@ -1498,9 +1498,10 @@ export class MemberCallStmt extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
+        this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn("[", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -2381,7 +2382,7 @@ export class Module {
 
     insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
         let focusedNodeProvided = false;
-        if(focusedNode) this.focusedNode = focusedNode; focusedNodeProvided = true;
+        if(focusedNode) {this.focusedNode = focusedNode; focusedNodeProvided = true;}
 
         if (code instanceof MethodCallExpr) {
             let focusedPos = this.editor.monaco.getPosition();
