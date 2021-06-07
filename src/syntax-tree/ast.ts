@@ -1440,6 +1440,30 @@ export class MethodCallExpr extends Expression {
     }
 }
 
+export class ListElementAssignment extends Statement{
+    constructor(root?: Expression, indexInRoot?: number){
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        this.addableType = AddableType.Statement;
+
+        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn("[", this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn("]", this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new OperatorTkn("=", this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        //TODO: Python lists allow elements of different types to be added to the same list. Should we keep that functionality?
+        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+    }
+}
+
+
 // Statement
 //   ExpressionStatement
 //       print()

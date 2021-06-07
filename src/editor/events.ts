@@ -681,6 +681,12 @@ export class EventHandler {
 				);
 				break;
 
+			case 'add-list-elem-assign-btn':
+				this.module.insert(
+					new AST.ListElementAssignment()
+				);
+				break;
+
 			default:
 		}
 	}
