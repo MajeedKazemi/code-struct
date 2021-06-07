@@ -1125,7 +1125,7 @@ export class ForStatement extends Statement {
         this.tokens.push(new KeywordTkn("in", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr(DataType.Iterator, this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.List || DataType.String, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
