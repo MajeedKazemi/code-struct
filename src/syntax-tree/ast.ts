@@ -7,6 +7,7 @@ import { NotificationSystemController } from '../notification-system/notificatio
 import {ErrorMessage} from "../notification-system/error-msg-generator";
 import {Notification} from '../notification-system/notification'
 import { ConstructCompleter } from "../typing-system/construct-completer";
+import { SuggestionsController } from "../suggestions/suggestions-controller";
 
 export class Callback {
     static counter: number;
@@ -2209,9 +2210,10 @@ export class Module {
 	buttons: HTMLElement[];
 	notificationSystem: NotificationSystemController;
     constructCompleter: ConstructCompleter;
+    suggestionsController: SuggestionsController;
 
     constructor(editorId: string) {
-        this.editor = new Editor(document.getElementById(editorId));
+        this.editor = new Editor(document.getElementById(editorId), this);
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
@@ -2228,6 +2230,9 @@ export class Module {
         this.constructCompleter.setInstanceContext(this, this.editor);
 
 		this.buttons = [];
+
+        this.suggestionsController = SuggestionsController.getInstance();
+        this.suggestionsController.setInstance(this, this.editor);
 	}
 
     reset() {
@@ -2435,6 +2440,262 @@ export class Module {
     }
 
     referenceTable = new Array<Reference>();
+
+    getValidInserts(focusedNode: CodeConstruct){
+        //TODO: Make these two a global so that don't have to reinstantiate every time the method runs
+        //TODO: You apparently cannot get the keys of a map in ts
+        const keys = ["VarAssign", "print()", "randint()", "range()", "len()", "string", "int",
+                      "True", "False", "+", "-", "*", "/", "And", "Or", "Not", "==", "!=", "<", "<=", ">", ">=", "while", 
+                      "If",  "Elif",  "Else", "For", "List Literal []", ".append()", "Member Call?", ".split()", ".join()", 
+                      ".replace()", ".find()"
+        ]
+
+        const inserts = new Map<string, CodeConstruct>([
+			["VarAssign", new VarAssignmentStmt()],
+			["print()", new FunctionCallStmt('print', [ new Argument(DataType.Any, 'item', false) ], DataType.Void)],
+			
+            ["randint()", new FunctionCallStmt(
+                'randint',
+                [
+                    new Argument(DataType.Number, 'start', false),
+                    new Argument(DataType.Number, 'end', false)
+                ],
+                DataType.Number
+            )],
+
+            ["range()", new FunctionCallStmt(
+                'range',
+                [
+                    new Argument(DataType.Number, 'start', false),
+                    new Argument(DataType.Number, 'end', false)
+                ],
+                DataType.List
+            )],
+
+            ["len()", new FunctionCallStmt(
+                'len',
+                [ new Argument(DataType.List, 'list', false) ],
+                DataType.Number
+            )],
+
+			["string", new LiteralValExpr(DataType.String)],
+
+			["int", new LiteralValExpr(DataType.Number)],
+
+			["True", new LiteralValExpr(DataType.Boolean , 'True' )],
+
+			["False", new LiteralValExpr(DataType.Boolean, 'False')],
+
+			["+", new BinaryOperatorExpr(BinaryOperator.Add, DataType.Any)],
+
+            ["-", new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Any)],
+
+            ["*", new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Any)],
+
+            ["/", new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Any)],
+
+            ["And", new BinaryBoolOperatorExpr(BoolOperator.And)],
+
+			["Or", new BinaryBoolOperatorExpr(BoolOperator.Or)],
+
+            ["Not", new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean,  DataType.Boolean)],
+
+            ["==", new ComparatorExpr(ComparatorOp.Equal)],
+
+            ["!=", new ComparatorExpr(ComparatorOp.NotEqual)],
+
+            ["<", new ComparatorExpr(ComparatorOp.LessThan)],
+
+            ["<=", new ComparatorExpr(ComparatorOp.LessThanEqual)],
+
+            [">", new ComparatorExpr(ComparatorOp.GreaterThan)],
+
+            [">=", new ComparatorExpr(ComparatorOp.GreaterThanEqual)],
+
+            ["while", new WhileStatement()],
+
+            ["If", new IfStatement()],
+
+            ["Elif", new ElseStatement(true)],
+
+            ["Else", new ElseStatement(false)],
+
+            ["For", new ForStatement()],
+
+            ["List Literal []", new ListLiteralExpression()],
+
+            [".append()", new MethodCallStmt('append', [ new Argument(DataType.Any, 'object', false) ])],
+
+            ["Member Call?",new MemberCallStmt(DataType.Any)],
+
+            [".split()", new MethodCallExpr(
+                'split',
+                [ new Argument(DataType.String, 'sep', false) ],
+                DataType.List,
+                DataType.String
+            )],
+
+            [".join()", new MethodCallExpr(
+                'join',
+                [ new Argument(DataType.List, 'items', false) ],
+                DataType.String,
+                DataType.String
+            )],
+
+            [".replace()", new MethodCallExpr(
+                'replace',
+                [
+                    new Argument(DataType.String, 'old', false),
+                    new Argument(DataType.String, 'new', false)
+                ],
+                DataType.String,
+                DataType.String
+            )],
+
+            [".find()", new MethodCallExpr(
+                'find',
+                [ new Argument(DataType.String, 'item', false) ],
+                DataType.Number,
+                DataType.String
+            )]
+        ])
+
+        const validInserts = new Map<string, boolean>();
+        keys.forEach(key => {
+            validInserts.set(key, this.tryInsert(focusedNode, inserts.get(key)))
+        })
+
+        return validInserts;
+    }
+
+    //code = insert, insertInto = focusedNode
+    tryInsert(insertInto: CodeConstruct, insert: CodeConstruct){
+        if (insert instanceof MethodCallExpr) {
+            let focusedPos = this.editor.monaco.getPosition();
+            let prevItem = insertInto
+                .getParentStatement()
+                .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
+
+            if (prevItem instanceof Expression && prevItem.returns == insert.calledOn/* TODO: and check calledOn */) {
+                // will replace the expression with this
+                // and will have the expression as the first element inside the code
+                insert.indexInRoot = prevItem.indexInRoot;
+                insert.rootNode = prevItem.rootNode;
+
+                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement) {
+                    return true;
+                }
+            }
+            else if(prevItem instanceof Expression && prevItem.returns != insert.calledOn){
+                return false;
+            }
+        }
+
+		if (insert.addableType != AddableType.NotAddable && insertInto.receives.indexOf(insert.addableType) > -1) {
+			let focusedPos = insertInto.getLeftPosition();
+			let parentStatement = insertInto.getParentStatement();
+			let parentRoot = parentStatement.rootNode;
+
+			if (insertInto.receives.indexOf(AddableType.Statement) > -1) {
+				// replaces statement with the newly inserted statement
+				let statement = insert as Statement;
+
+				if (parentRoot instanceof Statement && parentRoot.hasBody()) {
+					if (insert instanceof ElseStatement && parentRoot instanceof IfStatement) {
+						if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) {
+							return true;
+                        }
+                    } else if (!(statement instanceof ElseStatement)) {
+                        return true;
+					}
+				} else if (!(statement instanceof ElseStatement)) {
+					return true;
+				}
+			} else if (insertInto.receives.indexOf(AddableType.Expression) > -1) {
+				let isValid = true;
+
+				if (insert instanceof VariableReferenceExpr) {
+					// prevent out of scope referencing of a variable
+					if (parentRoot instanceof IfStatement)
+						isValid = parentRoot.isValidReference(
+							insert.uniqueId,
+							focusedPos.lineNumber,
+							parentStatement.indexInRoot
+						);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
+						isValid = parentRoot.scope.isValidReference(insert.uniqueId, focusedPos.lineNumber);
+					}
+
+                    if(!isValid){
+                        return false;
+                    }
+                   
+                    return true;
+				}
+
+                //type checks -- different handling based on type of code construct
+                //insertInto.returns != code.returns would work, but we need more context to get the right error message
+                if(isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression){
+                    if(insertInto.rootNode instanceof BinaryBoolOperatorExpr){
+                        if(insert.returns != DataType.Boolean){
+                            return false;
+                        }
+                        return true;
+                    }
+                    //for-loop check is special since Iterable does not cover both str and list right now
+                    //can change it once the types are an array
+                    else if(insertInto.rootNode instanceof ForStatement){
+                        if(insert.returns != DataType.List && insert.returns != DataType.String){
+                            return false;
+                        }
+                        return true;
+                    }
+                    else{
+                        isValid = insertInto.type === insert.returns || insertInto.type === DataType.Any
+
+                        if(!isValid){
+                            return false;
+                        }
+                        return true;
+                    }
+                }
+
+                //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
+                let existingLiteralType = null;
+                if((insertInto.rootNode instanceof BinaryOperatorExpr || insertInto.rootNode instanceof ComparatorExpr) && insert instanceof Expression){
+                    if (!(insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression).returns;
+                    }
+                    else if(!(insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression).returns;
+                    }
+
+                    if(!existingLiteralType && insertInto.rootNode.returns === DataType.Any){
+                        insertInto.rootNode.returns = insert.returns;
+                    }
+                    else if(existingLiteralType && insertInto.rootNode.returns === DataType.Any){
+                        insertInto.rootNode.returns = existingLiteralType;
+                    }
+
+                    if(existingLiteralType != null && existingLiteralType != insert.returns){
+                        return false;
+                    }
+                    return true;
+                }
+
+                if(insertInto.rootNode instanceof BinaryBoolOperatorExpr && insert instanceof Expression){
+                    if(insert.returns != DataType.Boolean){
+                        return false;
+                    }
+                    return true;
+                }
+
+				return true;
+			}
+		} else {
+			return false;
+		}
+    }
 
     insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
         //TODO: Probably want an overload of insert to take care of this case
@@ -2727,7 +2988,7 @@ export class Module {
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 
-            //TODO: This type of logic should not be inside the AST. It should be moved somewhere like a validator class or even the notification-system-controller.
+            //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
             //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
             if(code.addableType == AddableType.NotAddable){
                 this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);

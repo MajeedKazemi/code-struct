@@ -4,6 +4,7 @@ import {
     EditableTextTkn,
     EmptyExpr,
     IdentifierTkn,
+    Module,
     Statement,
     TypedEmptyExpr,
 } from "../syntax-tree/ast";
@@ -18,7 +19,9 @@ export default class Editor {
     scrollOffsetTop: number = 0;
     holes: Hole[];
 
-    constructor(parentEl: HTMLElement) {
+    module: Module;
+
+    constructor(parentEl: HTMLElement, module: Module) {
         this.monaco = monaco.editor.create(parentEl, {
             value: "",
             language: "python",
@@ -55,6 +58,8 @@ export default class Editor {
         // Visual
         this.cursor = new Cursor(this);
         this.holes = [];
+
+        this.module = module;
     }
 
     focusSelection(selection: monaco.Selection, code: CodeConstruct = null) {
@@ -64,6 +69,13 @@ export default class Editor {
             this.cursor.setSelection(selection, code);
             this.monaco.setSelection(selection);
         }
+
+        //TODO: This array should be a global
+        this.module.suggestionsController.buildMenu(this.module.getValidInserts(this.module.focusedNode), ["VarAssign", "print()", "randint()", "range()", "len()", "string", "int",
+        "True", "False", "+", "-", "*", "/", "And", "Or", "Not", "==", "!=", "<", "<=", ">", ">=", "while", 
+        "If",  "Elif",  "Else", "For", "List Literal []", ".append()", "Member Call?", ".split()", ".join()", 
+        ".replace()", ".find()"
+])
     }
 
     getLineEl(ln: number) {
