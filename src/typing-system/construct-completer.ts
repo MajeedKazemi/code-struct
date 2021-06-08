@@ -42,7 +42,7 @@ export class ConstructCompleter{
             if(selection.endColumn >= cursorPos.column && closestConstruct instanceof LiteralValExpr && closestConstruct.allowedBinOps.indexOf(operator) > -1){ //for now if the cursor is to the right of a literal val, it is treated as being inside the literal val so keyboard input is treated as inTextEditMode. This makes it only possible to perform + when cursor is to the left of literal
                 
                     const newConstruct = new BinaryOperatorExpr(operator, closestConstruct.returns, parentRoot, closestConstruct.indexInRoot);
-                    const newLiteralValExpr = new LiteralValExpr(closestConstruct.returns, closestConstruct.getRenderText())
+                    const newLiteralValExpr = new LiteralValExpr(closestConstruct.returns, closestConstruct.getRenderText().replace(/"/g, ""))
                     newConstruct.replaceLeftOperand(newLiteralValExpr);
 
                     //TODO: This is duplicate code from Module. Refactor this into a method inside of module!!!
