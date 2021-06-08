@@ -6,6 +6,7 @@ import ActionStack from "../actions";
 import { NotificationSystemController } from '../notification-system/notification-system-controller';
 import {ErrorMessage} from "../notification-system/error-msg-generator";
 import {Notification} from '../notification-system/notification'
+import { ConstructCompleter } from "../typing-system/construct-completer";
 
 export class Callback {
     static counter: number;
@@ -510,6 +511,15 @@ export abstract class Statement implements CodeConstruct {
         const toReplace = this.tokens[index];
         if (toReplace instanceof Statement || toReplace instanceof Expression || toReplace instanceof Token) {
             toReplace.notify(CallbackType.delete);
+
+            //any hole-containing tokens need to be notified so their holes are removed
+            if(toReplace instanceof Statement || toReplace instanceof Expression){
+                toReplace.tokens.forEach(token => {
+                    if(token instanceof Token){
+                        token.notify(CallbackType.delete);
+                    }
+                });
+            }
         }
 
         // prepare the new Node
@@ -1755,6 +1765,8 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 export class LiteralValExpr extends Expression {
     addableType = AddableType.Expression;
+    allowedBinOps = new Array<BinaryOperator>();
+    allowedBoolOps = new Array<BoolOperator>();
 
     constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
@@ -1771,6 +1783,8 @@ export class LiteralValExpr extends Expression {
                     )
                 );
                 this.tokens.push(new PunctuationTkn('"', this, this.tokens.length));
+                
+                this.allowedBinOps.push(BinaryOperator.Add);
 
                 break;
             }
@@ -1785,11 +1799,19 @@ export class LiteralValExpr extends Expression {
                     )
                 );
 
+                this.allowedBinOps.push(BinaryOperator.Add);
+                this.allowedBinOps.push(BinaryOperator.Subtract);
+                this.allowedBinOps.push(BinaryOperator.Multiply);
+                this.allowedBinOps.push(BinaryOperator.Divide);
+
                 break;
             }
 
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTextTkn(value, this, this.tokens.length));
+
+                this.allowedBoolOps.push(BoolOperator.And);
+                this.allowedBoolOps.push(BoolOperator.Or);
 
                 break;
             }
@@ -2186,6 +2208,7 @@ export class Module {
 	actionStack: ActionStack;
 	buttons: HTMLElement[];
 	notificationSystem: NotificationSystemController;
+    constructCompleter: ConstructCompleter;
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId));
@@ -2201,6 +2224,8 @@ export class Module {
         this.actionStack = new ActionStack(this);
 
 		this.notificationSystem = new NotificationSystemController(this.editor, this);
+        this.constructCompleter = ConstructCompleter.getInstance();
+        this.constructCompleter.setInstanceContext(this, this.editor);
 
 		this.buttons = [];
 	}
@@ -2412,6 +2437,7 @@ export class Module {
     referenceTable = new Array<Reference>();
 
     insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
+        //TODO: Probably want an overload of insert to take care of this case
         let focusedNodeProvided = false;
         if(focusedNode) {this.focusedNode = focusedNode; focusedNodeProvided = true;}
 
@@ -2690,7 +2716,13 @@ export class Module {
             //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
             if(!this.focusedNode.notification){
                 this.focusedNode = code.nextEmptyToken();
-                this.editor.focusSelection(this.focusedNode.getSelection());
+
+                try{
+                    this.editor.focusSelection(this.focusedNode.getSelection());
+                }catch(e){
+                    console.error("Could not focus selection:\n" + e);
+                    this.editor.focusSelection(parentStatement.getSelection());
+                }
             }
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
@@ -2742,6 +2774,8 @@ export class Module {
             }
 		}
 		this.editor.monaco.focus();
+        //console.log(this.editor.holes)
+        //console.log(this.body)
 	}
 
 	insertListItem() {

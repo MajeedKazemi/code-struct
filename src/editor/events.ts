@@ -4,6 +4,8 @@ import { TAB_SPACES } from '../syntax-tree/keywords';
 import * as AST from '../syntax-tree/ast';
 import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
+import { ConstructCompleter } from '../typing-system/construct-completer';
+import { BinaryOperator, CodeConstruct, DataType, Statement } from '../syntax-tree/ast';
 
 export enum KeyPress {
 	// navigation:
@@ -26,7 +28,13 @@ export enum KeyPress {
 	V = 'v',
 	C = 'c',
 	Z = 'z',
-	Y = 'y'
+	Y = 'y',
+
+	Plus = "+",
+	ForwardSlash = "/",
+	Star = "*",
+	Minus = "-"
+
 }
 
 export enum EditAction {
@@ -64,7 +72,16 @@ export enum EditAction {
 
 	InsertChar,
 
-	None
+	None,
+
+	CompleteAddition,
+	CompleteDivision,
+	CompleteMultiplication,
+	CompleteSubtraction,
+
+	CompleteIntLiteral,
+	CompleteStringLiteral,
+	CompleteBoolLiteral
 }
 
 export class EventHandler {
@@ -82,9 +99,9 @@ export class EventHandler {
 	getKeyAction(e: KeyboardEvent) {
 		let curPos = this.module.editor.monaco.getPosition();
 
-		// if (this.module.focusedNode == null)
-		// 	this.module.focusedNode = this.locate(curPos);
-
+		if (this.module.focusedNode == null){
+			this.module.focusedNode = this.module.locateStatementAtLine(curPos.lineNumber);
+		}
 		let inTextEditMode = this.module.focusedNode.isTextEditable;
 
 		switch (e.key) {
@@ -160,6 +177,27 @@ export class EventHandler {
 						return EditAction.InsertEmptyLine;
 
 				break;
+			
+			case KeyPress.Plus:
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+					return EditAction.CompleteAddition;
+				} 
+				break;
+			case KeyPress.Star:
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+					return EditAction.CompleteMultiplication;
+				} 
+				break;
+			case KeyPress.Minus:
+				if(!inTextEditMode && e.key.length == 1){
+					return EditAction.CompleteSubtraction;
+				} 
+				break;
+			case KeyPress.ForwardSlash:
+				if(!inTextEditMode && e.key.length == 1){
+					return EditAction.CompleteDivision;
+				} 
+				break;
 
 			default:
 				if (inTextEditMode) {
@@ -184,7 +222,18 @@ export class EventHandler {
 
 						return EditAction.InsertChar;
 					}
-				} else return EditAction.None;
+				} else {
+					if(["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1){
+						return EditAction.CompleteIntLiteral;
+					}
+					else if(["t", "f"].indexOf(e.key) > -1){
+						return EditAction.CompleteBoolLiteral;
+					}
+					else if(["\""].indexOf(e.key) > -1){
+						return EditAction.CompleteStringLiteral;
+					}
+					return EditAction.None;
+				}
 		}
 	}
 
@@ -443,6 +492,68 @@ export class EventHandler {
 				break;
 
 			case EditAction.Copy:
+				break;
+
+			case EditAction.CompleteAddition:
+				console.log(this.module.editor.holes)
+				console.log(e)
+
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteSubtraction:
+				console.log(this.module.editor.holes)
+				console.log(e)
+
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteDivision:
+				console.log(this.module.editor.holes)
+				console.log(e)
+
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteMultiplication:
+				console.log(this.module.editor.holes)
+				console.log(e)
+
+				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteIntLiteral:
+				this.module.constructCompleter.completeLiteralConstruct(DataType.Number);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteStringLiteral:
+				this.module.constructCompleter.completeLiteralConstruct(DataType.String);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteBoolLiteral:
+				console.log(e)
+				this.module.constructCompleter.completeBoolLiteralConstruct(e.browserEvent.key === "t" ? 1 : 0);
+
+				e.preventDefault();
+				e.stopPropagation();
 				break;
 
 			default:

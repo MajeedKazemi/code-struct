@@ -26,7 +26,7 @@ export default class Hole {
             CallbackType.delete,
             new Callback(() => {
                 hole.setTransform({ x: 0, y: 0, width: 0, height: 0 });
-                hole.element.remove();
+                hole.remove();
             })
         );
 
@@ -34,7 +34,7 @@ export default class Hole {
             CallbackType.replace,
             new Callback(() => {
                 hole.setTransform({ x: 0, y: 0, width: 0, height: 0 });
-                hole.element.remove();
+                hole.remove();
             })
         );
 
