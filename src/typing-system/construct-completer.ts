@@ -28,6 +28,10 @@ export class ConstructCompleter{
         this.module.insert(new LiteralValExpr(literalType));
     }
 
+    completeBoolLiteralConstruct(boolValue: Number){
+        this.module.insert(new LiteralValExpr(DataType.Boolean, boolValue ? "True" : "False"));
+    }
+
     completeArithmeticConstruct(operator: BinaryOperator){
         //TODO: Currently locate() returns EndOfLine and StartOfLine tokens as well
         //Once that changes, need to modify this to not use the rootNode because presumeably it would be returning a statement or an expression

@@ -2676,7 +2676,13 @@ export class Module {
             //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
             if(!this.focusedNode.notification){
                 this.focusedNode = code.nextEmptyToken();
-                this.editor.focusSelection(this.focusedNode.getSelection());
+
+                try{
+                    this.editor.focusSelection(this.focusedNode.getSelection());
+                }catch(e){
+                    console.error("Could not focus selection:\n" + e);
+                    this.editor.focusSelection(parentStatement.getSelection());
+                }
             }
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");

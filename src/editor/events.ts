@@ -99,9 +99,9 @@ export class EventHandler {
 	getKeyAction(e: KeyboardEvent) {
 		let curPos = this.module.editor.monaco.getPosition();
 
-		// if (this.module.focusedNode == null)
-		// 	this.module.focusedNode = this.locate(curPos);
-
+		if (this.module.focusedNode == null){
+			this.module.focusedNode = this.module.locateStatementAtLine(curPos.lineNumber);
+		}
 		let inTextEditMode = this.module.focusedNode.isTextEditable;
 
 		switch (e.key) {
@@ -549,7 +549,8 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteBoolLiteral:
-				this.module.constructCompleter.completeLiteralConstruct(DataType.Boolean);
+				console.log(e)
+				this.module.constructCompleter.completeBoolLiteralConstruct(e.browserEvent.key === "t" ? 1 : 0);
 
 				e.preventDefault();
 				e.stopPropagation();
