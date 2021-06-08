@@ -1029,7 +1029,7 @@ export class IfStatement extends Statement {
         }
 
         for (let stmt of this.scope.getValidReferences(this.getLineNumber()))
-            if (stmt.statement instanceof VarAssignmentStmt && uniqueId == stmt.statement.buttonId) return true;
+            if ((stmt.statement instanceof VarAssignmentStmt || stmt.statement instanceof ForStatement) && uniqueId == stmt.statement.buttonId) return true;
 
         return false;
     }
@@ -1115,6 +1115,8 @@ export class ForStatement extends Statement {
     buttonId: string;
     private counterIndex: number;
     private rangeIndex: number;
+
+    //TODO: Statements should not have a data type?
     dataType = DataType.Any;
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
@@ -1135,12 +1137,14 @@ export class ForStatement extends Statement {
         this.tokens.push(new KeywordTkn("in", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr(DataType.Iterator, this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.List || DataType.String, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
         this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
+        this.body.push(new EmptyLineStmt(this, 1)); //TODO: Workaround for inability to navigate outside of an indented region and stay on the same line
+
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
@@ -1448,6 +1452,30 @@ export class MethodCallExpr extends Expression {
     }
 }
 
+export class ListElementAssignment extends Statement{
+    constructor(root?: Expression, indexInRoot?: number){
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        this.addableType = AddableType.Statement;
+
+        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn("[", this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn("]", this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new OperatorTkn("=", this, this.tokens.length));
+        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        //TODO: Python lists allow elements of different types to be added to the same list. Should we keep that functionality?
+        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+    }
+}
+
+
 // Statement
 //   ExpressionStatement
 //       print()
@@ -1508,9 +1536,10 @@ export class MemberCallStmt extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
+        this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn("[", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1535,12 +1564,12 @@ export class BinaryOperatorExpr extends Expression {
 
         this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
         this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -2214,6 +2243,8 @@ export class Module {
 
         this.buttons.forEach((button) => button.remove());
         this.buttons = [];
+
+        this.notificationSystem.clearAllNotifications();
     }
 
     addVariableButtonToToolbox(ref: VarAssignmentStmt) {
@@ -2242,7 +2273,8 @@ export class Module {
         document.getElementById("variables").appendChild(button);
 
         button.addEventListener("click", () => {
-            this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
+            //TODO: This var could either be a string or an int
+            this.insert(new VariableReferenceExpr(ref.getIdentifier(), DataType.Number, ref.buttonId));
         });
 
         this.buttons.push(button);
@@ -2405,8 +2437,9 @@ export class Module {
     referenceTable = new Array<Reference>();
 
     insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
+        //TODO: Probably want an overload of insert to take care of this case
         let focusedNodeProvided = false;
-        if(focusedNode !== undefined) {this.focusedNode = focusedNode; focusedNodeProvided = true};
+        if(focusedNode) {this.focusedNode = focusedNode; focusedNodeProvided = true;}
 
         if (code instanceof MethodCallExpr) {
             let focusedPos = this.editor.monaco.getPosition();
@@ -2566,6 +2599,13 @@ export class Module {
                     else{
                         isValid = this.focusedNode.type === code.returns || this.focusedNode.type === DataType.Any
 
+                        //assign operand types based on argument type for expressions being used as args
+                        if(!isValid && this.focusedNode instanceof TypedEmptyExpr && code instanceof BinaryOperatorExpr){
+                            isValid = true;
+                            (code.tokens[code.getLeftOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
+                            (code.tokens[code.getRightOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
+                        }
+
                         if(!isValid){
                             //within method arguments
                             if(this.focusedNode.rootNode instanceof FunctionCallStmt){
@@ -2642,7 +2682,7 @@ export class Module {
                     }
                     //this is for when the expression that is assigned to the var was originally of type Any
                     //This is ok for BooleaExpr because they only allow booleans to be added to them anyway.
-                    else if(parentStatement instanceof VarAssignmentStmt && !(this.focusedNode.rootNode instanceof ComparatorExpr)){
+                    else if(parentStatement instanceof VarAssignmentStmt && parentStatement.dataType == DataType.Any && !(this.focusedNode.rootNode instanceof ComparatorExpr || this.focusedNode instanceof EmptyListItem || this.focusedNode.rootNode instanceof ListLiteralExpression)){
                         const button = document.getElementById(parentStatement.buttonId);
                         button.removeEventListener("click", this.addVarRefHandler(null), false);
 
