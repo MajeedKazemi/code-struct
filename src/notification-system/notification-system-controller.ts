@@ -131,4 +131,12 @@ export class NotificationSystemController{
             code.notification = null;
         }
     }
+
+    clearAllNotifications(){
+        this.notifications.forEach(notification => {
+            notification.removeNotificationFromDOM();
+        });
+
+        this.notifications = [];
+    }
 }

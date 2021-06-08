@@ -2218,6 +2218,8 @@ export class Module {
 
         this.buttons.forEach((button) => button.remove());
         this.buttons = [];
+
+        this.notificationSystem.clearAllNotifications();
     }
 
     addVariableButtonToToolbox(ref: VarAssignmentStmt) {

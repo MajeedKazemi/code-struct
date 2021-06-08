@@ -1,5 +1,7 @@
 import { IfStatement, Module } from "./syntax-tree/ast";
 
+const navigationKeys = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"]
+
 enum ActionType {
     OnKeyDown,
     OnMouseDown,
@@ -34,7 +36,9 @@ export default class ActionStack {
 
     undo() {
         // Undo the 'ctrl' press after 'ctrl + z'
-        this.stack.pop();
+        if(this.stack[this.stack.length - 1].type === ActionType.OnKeyDown && this.stack[this.stack.length - 1].event.ctrlKey){
+            this.stack.pop();
+        }
 
         // Undo the most recent action
         this.stack.pop();
@@ -85,7 +89,12 @@ export default class ActionStack {
             }
 
             const action = new Action(ActionType.OnKeyDown, e);
-            this.stack.push(action);
+
+            //exclude navigation
+            if(navigationKeys.indexOf(e.code) === -1){
+                this.stack.push(action);
+            }
+
             this.apply(action);
         });
     }
