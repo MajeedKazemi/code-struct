@@ -153,7 +153,8 @@ export class SuggestionsController{
         document.getElementById("editor").appendChild(this.menuParent);
     }
 
-    displayMenu(){}
-
-    removeMenu(){}
+    removeMenu(){
+        document.getElementById("editor").removeChild(this.menuParent);
+        this.menuParent = null;
+    }
 }
