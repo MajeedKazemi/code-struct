@@ -75,7 +75,7 @@ export default class Editor {
             this.module.suggestionsController.buildMenu(this.module.getValidInserts(this.module.focusedNode), ["VarAssign", "print()", "randint()", "range()", "len()", "string", "int",
             "True", "False", "+", "-", "*", "/", "And", "Or", "Not", "==", "!=", "<", "<=", ">", ">=", "while", 
             "If",  "Elif",  "Else", "For", "List Literal []", ".append()", "Member Call?", ".split()", ".join()", 
-            ".replace()", ".find()"]);
+            ".replace()", ".find()"], {left: selection.startColumn * this.computeCharWidth(), top: selection.startLineNumber * this.computeCharHeight()});
         }
         else{
             this.module.suggestionsController.removeMenu();

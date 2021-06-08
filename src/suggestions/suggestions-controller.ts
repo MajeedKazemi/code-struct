@@ -136,7 +136,7 @@ export class SuggestionsController{
         this.editor = editor;
     }
 
-    buildMenu(inserts: Map<string, boolean>, keys: Array<string>){
+    buildMenu(inserts: Map<string, boolean>, keys: Array<string>, pos: any){
         this.menuParent = document.createElement("div");
         this.menuParent.classList.add("suggestionMenuParent");
 
@@ -149,6 +149,10 @@ export class SuggestionsController{
                 this.menuParent.appendChild(option)
             }
         })
+
+        //TODO: These are the same values as the ones used for mouse offset by the Notifications so maybe make them shared in some util file
+        this.menuParent.style.left = `${pos.left + document.getElementById("editor").offsetLeft}px`;
+        this.menuParent.style.top = `${pos.top + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop)}px`;
 
         document.getElementById("editor").appendChild(this.menuParent);
     }
