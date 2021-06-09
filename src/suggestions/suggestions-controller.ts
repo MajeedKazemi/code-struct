@@ -10,7 +10,6 @@ export class SuggestionsController{
     editor: Editor;
 
     menuParent: HTMLDivElement;
-    menuDomPARENT: HTMLDivElement;
 
     private constructor(){}
 
@@ -58,7 +57,8 @@ export class SuggestionsController{
 
     buildMenu(inserts: Map<string, boolean>, keys: Array<string>, pos: any){
         this.menuParent = document.createElement("div");
-        this.menuParent.classList.add("suggestionMenuParent");
+        this.menuParent.id = "suggestionMenuParent";
+        document.getElementById("editor").appendChild(this.menuParent);
 
         keys.forEach(key => {
             if(inserts.get(key)){
@@ -72,7 +72,10 @@ export class SuggestionsController{
         this.menuParent.style.left = `${pos.left + document.getElementById("editor").offsetLeft}px`;
         this.menuParent.style.top = `${pos.top + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop)}px`;
 
-        document.getElementById("editor").appendChild(this.menuParent);
+        //TODO: No good way of separating responsibility completely because ready doc objects are stored in util instead of being created here.
+        //I guess, it is always possible to have a list of active docs and loop through it here and update their positions instead of 
+        //using the static method to update them all. Do that in case this ever slows down anything.
+        ConstructDoc.updateDocsLeftOffset(document.getElementById("editor").offsetLeft + document.getElementById("suggestionMenuParent").offsetWidth);
     }
 
     removeMenu(){

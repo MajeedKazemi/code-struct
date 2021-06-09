@@ -1,4 +1,4 @@
-.suggestionMenuParent{
+#suggestionMenuParent{
     display: flex;
     flex-direction: column;
     position: absolute;
@@ -10,7 +10,7 @@
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
 }
-.suggestionMenuParent::-webkit-scrollbar {
+#suggestionMenuParent::-webkit-scrollbar {
     width: 0;
     height: 0;
 }

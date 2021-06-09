@@ -131,7 +131,7 @@ export class Util{
         ])
 
         this.constructDocs = new Map<string, ConstructDoc>([
-            ["print()", new ConstructDoc("Function: print()", "Outputs argument to stdout.")]
+            ["print()", new ConstructDoc("Function: print()", "Outputs argument to stdout.",  ['./src/res/img/cat1.jpg','./src/res/img/cat2.jpg', './src/res/img/cat3.jpg', './src/res/img/cat4.jpg', './src/res/img/cat5.jpg'])]
         ])
     }
 

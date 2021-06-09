@@ -3,8 +3,10 @@
     left: 200px;
     top: 200px;
 
-    max-width: 30%;
-    max-height: 20%;
+    max-width: 50%;
+    max-height: 30%;
+    min-width: 40%;
+    min-height: 20%;
     width: fit-content;
     height: fit-content;
     overflow-y: scroll;
@@ -35,5 +37,29 @@
 }
 
 .docBody{
-    padding: 1px;
+    padding-left: 1px;
+    padding-right: 1px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    font-size: 10pt;
+}
+
+.docImageParent{
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: auto;
+    column-gap: 10px;
+    row-gap: 15px;
+    margin-top: 10px;
+
+    padding-right: 10px;
+    padding-top: 2px;
+    padding-bottom: 1px;
+}
+
+.docImage{
+    max-width: 100%;
+    max-height: 100%;
+    min-width: 100%;
+    min-height: 100%;
 }
