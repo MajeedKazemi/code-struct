@@ -5,6 +5,11 @@ import { constructKeys, Util } from "../utilities/util";
  * Class representing a code construct's documentation that can be displayed to the user.
  */
 export class ConstructDoc{
+    private docElementClass = "docParent";
+    private imgElementClass = "docImageParent";
+    private bodyElementClass = "docBody";
+    private titleElementClass = "docTitle";
+
     images: Array<string>;
     text: string;
     links: Array<string>[];
@@ -26,7 +31,7 @@ export class ConstructDoc{
         this.links = links;
 
         this.parentElement = document.createElement("div");
-        this.parentElement.classList.add("docParent");
+        this.parentElement.classList.add(this.docElementClass);
         
         this.buildDoc();
         this.hide();
@@ -43,10 +48,10 @@ export class ConstructDoc{
     private buildDoc(){
         const title = document.createElement("h3");
         title.textContent = this.title;
-        title.classList.add("docTitle");
+        title.classList.add(this.titleElementClass);
 
         const body = document.createElement("div");
-        body.classList.add("docBody");
+        body.classList.add(this.bodyElementClass);
         body.innerHTML = this.text;
 
         this.parentElement.appendChild(title);
@@ -69,7 +74,7 @@ export class ConstructDoc{
 
     private addImageSection(){
         const imageParent = document.createElement("div");
-        imageParent.classList.add("docImageParent");
+        imageParent.classList.add(this.imgElementClass);
 
         this.images.forEach((imgSrc) => {
             const image = document.createElement("img");
