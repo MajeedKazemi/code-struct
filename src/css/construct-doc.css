@@ -1,0 +1,39 @@
+.docParent{
+    position: absolute;
+    left: 200px;
+    top: 200px;
+
+    max-width: 30%;
+    max-height: 20%;
+    width: fit-content;
+    height: fit-content;
+    overflow-y: scroll;
+
+    border-style: solid;
+    border-width: 2px;
+    border-color: grey;
+
+    background-color: rgb(197, 197, 197);
+
+    padding: 2px 2px 2px 2px;
+
+    overflow-y: scroll;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+
+}
+.docParent::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.docTitle{
+    padding: 2px;
+    margin: 0px;
+    border-bottom: solid 1px;
+    border-color: black;
+}
+
+.docBody{
+    padding: 1px;
+}

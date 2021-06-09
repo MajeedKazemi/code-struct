@@ -1,6 +1,7 @@
 import Editor from "../editor/editor";
 import { Module } from "../syntax-tree/ast";
 import {Util} from "../utilities/util"
+import { ConstructDoc } from "./construct-doc";
 
 export class SuggestionsController{
     private static instance: SuggestionsController
@@ -9,6 +10,7 @@ export class SuggestionsController{
     editor: Editor;
 
     menuParent: HTMLDivElement;
+    menuDomPARENT: HTMLDivElement;
 
     private constructor(){}
 
@@ -25,14 +27,20 @@ export class SuggestionsController{
         this.editor = editor;
     }
 
-    buildMenuOption(optionName: string, action: Function): HTMLDivElement{
+    buildMenuOption(optionName: string, action: Function, doc?: ConstructDoc): HTMLDivElement{
         const optionParent = document.createElement("div");
         optionParent.classList.add("suggestionOptionParent");
 
         optionParent.addEventListener("mouseover", () => {
-            console.log("not implemented")
-            //change colour
-            //display info
+            if(doc){
+                doc.show();
+            }
+        });
+
+        optionParent.addEventListener("mouseleave", () => {
+            if(doc){
+                doc.hide();
+            }
         });
 
         optionParent.addEventListener("click", () => {
@@ -55,7 +63,7 @@ export class SuggestionsController{
         keys.forEach(key => {
             if(inserts.get(key)){
                 this.menuParent.appendChild(
-                    this.buildMenuOption(key, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(key))})
+                    this.buildMenuOption(key, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(key))}, Util.getInstance().constructDocs.get(key))
                 );
             }
         })

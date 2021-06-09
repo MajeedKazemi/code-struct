@@ -1,3 +1,4 @@
+import { ConstructDoc } from "../suggestions/construct-doc";
 import {Argument, BinaryBoolOperatorExpr, BinaryOperator, BinaryOperatorExpr, BoolOperator, CodeConstruct,
         ComparatorExpr, ComparatorOp, DataType, ElseStatement, ForStatement, FunctionCallStmt, IfStatement,
         ListLiteralExpression, LiteralValExpr, MemberCallStmt, MethodCallExpr, MethodCallStmt,
@@ -15,6 +16,7 @@ export class Util{
     private static instance: Util;
 
     dummyToolboxConstructs: Map<string, CodeConstruct>;
+    constructDocs: Map<string, ConstructDoc>;
     
     private constructor(){
         //this cannot exist on its own, need to wrap it in a class. Otherwise it does not see the imports for the construct classes.
@@ -126,6 +128,10 @@ export class Util{
                 DataType.Number,
                 DataType.String
             )]
+        ])
+
+        this.constructDocs = new Map<string, ConstructDoc>([
+            ["print()", new ConstructDoc("Function: print()", "Outputs argument to stdout.")]
         ])
     }
 
