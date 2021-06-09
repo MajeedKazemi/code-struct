@@ -87,6 +87,10 @@ export class SuggestionsController{
      *                The object will calculate its position itself otherwise.
      */
     buildMenu(inserts: Map<string, boolean>, keys: Array<string>, pos: any = {left: 0, top: 0}){
+        if(this.menuParent){
+            this.removeMenu();
+        }
+
         this.menuParent = document.createElement("div");
         this.menuParent.id = this.menuElementId;
         document.getElementById("editor").appendChild(this.menuParent);
@@ -94,7 +98,7 @@ export class SuggestionsController{
         keys.forEach(key => {
             if(inserts.get(key)){
                 this.menuParent.appendChild(
-                    this.addMenuOption(key, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(key))}, Util.getInstance().constructDocs.get(key))
+                    this.addMenuOption(ConstructKeys[key], () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(ConstructKeys[key]))}, Util.getInstance().constructDocs.get(ConstructKeys[key]))
                 );
             }
         })
@@ -112,11 +116,15 @@ export class SuggestionsController{
     /**
      * Construct a menu with the provided options at the given location within the editor.
      * 
-     * @param options constructs that should be displayed as options for insertion by the menu
+     * @param options constructs that should be displayed as options for insertion by the menu as keys into Util.ConstructKeys
      * @param pos     (x, y) of top left corner of the selected construct/hole in pixels. Only necessary if need a specific position. 
      *                The object will calculate its position itself otherwise.
      */
     buildCustomMenu(options: Array<ConstructKeys>, pos: any = {left: 0, top: 0}){
+        if(this.menuParent){
+            this.removeMenu();
+        }
+
         this.menuParent = document.createElement("div");
         this.menuParent.id = this.menuElementId;
         document.getElementById("editor").appendChild(this.menuParent);

@@ -1,5 +1,5 @@
 import * as monaco from "monaco-editor";
-import {constructKeys} from "../utilities/util"
+import {ConstructKeys, constructKeys} from "../utilities/util"
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -72,7 +72,7 @@ export default class Editor {
         }
 
         if(!this.module.suggestionsController.menuParent){
-            this.module.suggestionsController.buildMenu(this.module.getValidInserts(this.module.focusedNode), constructKeys,
+            this.module.suggestionsController.buildMenu(this.module.getValidInserts(this.module.focusedNode), Object.keys(ConstructKeys),
                                                        {left: selection.startColumn * this.computeCharWidth(), top: selection.startLineNumber * this.computeCharHeight()});
         }
         else{

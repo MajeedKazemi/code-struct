@@ -23,7 +23,7 @@ export const constructKeys = [
     ".replace()", ".find()"
 ]
 
-export const enum ConstructKeys{
+export enum ConstructKeys{
     VariableAssignment = "VarAssign",
     PrintCall = "print()",
     RandintCall = "randint()",
@@ -50,7 +50,7 @@ export const enum ConstructKeys{
     If = "if",
     Elif = "elif",
     Else = "else",
-    For = "For",
+    For = "for",
     ListLiteral = "Lister Literal",
     AppendCall = ".append()",
     SplitCall = ".split()",
@@ -138,7 +138,7 @@ export class Util{
     
             [ConstructKeys.Else, new ElseStatement(false)],
     
-            [ConstructKeys.False, new ForStatement()],
+            [ConstructKeys.For, new ForStatement()],
     
             [ConstructKeys.ListLiteral, new ListLiteralExpression()],
     

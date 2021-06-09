@@ -8,7 +8,7 @@ import {ErrorMessage} from "../notification-system/error-msg-generator";
 import {Notification} from '../notification-system/notification'
 import { ConstructCompleter } from "../typing-system/construct-completer";
 import { SuggestionsController } from "../suggestions/suggestions-controller";
-import {constructKeys, Util} from "../utilities/util"
+import {ConstructKeys, constructKeys, Util} from "../utilities/util"
 
 export class Callback {
     static counter: number;
@@ -2444,8 +2444,8 @@ export class Module {
 
     getValidInserts(focusedNode: CodeConstruct){
         const validInserts = new Map<string, boolean>();
-        constructKeys.forEach(key => {
-            validInserts.set(key, this.tryInsert(focusedNode, Util.getInstance().dummyToolboxConstructs.get(key)))
+        Object.keys(ConstructKeys).forEach(key => {
+            validInserts.set(key, this.tryInsert(focusedNode, Util.getInstance().dummyToolboxConstructs.get(ConstructKeys[key])))
         })
 
         return validInserts;

@@ -219,7 +219,7 @@ export class EventHandler {
 				break;
 
 			case KeyPress.GreaterThan:
-				if(!inTextEditMode && e.key.length == 1){
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
 					return EditAction.CompleteGreaterThan;
 				}
 				break;
