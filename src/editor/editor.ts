@@ -72,7 +72,7 @@ export default class Editor {
         }
 
         if(!this.module.suggestionsController.menuParent){
-            this.module.suggestionsController.buildMenu(this.module.getValidInserts(this.module.focusedNode), Object.keys(ConstructKeys),
+            this.module.suggestionsController.buildMenu(this.module.getValidInserts(this.module.focusedNode),
                                                        {left: selection.startColumn * this.computeCharWidth(), top: selection.startLineNumber * this.computeCharHeight()});
         }
         else{
