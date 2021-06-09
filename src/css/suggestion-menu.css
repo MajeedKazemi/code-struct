@@ -32,3 +32,7 @@
     color: black;
     font-size: 9pt;
 }
+
+.selectedSuggestionOptionParent{
+    background-color: rgba(93, 149, 240, 0.7);
+}

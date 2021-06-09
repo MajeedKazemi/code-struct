@@ -81,7 +81,11 @@ export enum EditAction {
 
 	CompleteIntLiteral,
 	CompleteStringLiteral,
-	CompleteBoolLiteral
+	CompleteBoolLiteral,
+	
+	SelectSuggestionBelow,
+	SelectSuggestionAbove,
+	SelectSuggestion
 }
 
 export class EventHandler {
@@ -106,9 +110,15 @@ export class EventHandler {
 
 		switch (e.key) {
 			case KeyPress.ArrowUp:
+				if(this.module.suggestionsController.isMenuActive()){
+					return EditAction.SelectSuggestionAbove;
+				}
 				return EditAction.SelectClosestTokenAbove;
 
 			case KeyPress.ArrowDown:
+				if(this.module.suggestionsController.isMenuActive()){
+					return EditAction.SelectSuggestionBelow;
+				}
 				return EditAction.SelectClosestTokenBelow;
 
 			case KeyPress.ArrowLeft:
@@ -162,6 +172,10 @@ export class EventHandler {
 				} else return EditAction.DeletePrevToken;
 
 			case KeyPress.Enter:
+				if(this.module.suggestionsController.isMenuActive()){
+					return EditAction.SelectSuggestion;
+				}
+
 				let curLine = this.module.locateStatement(curPos);
 				let curSelection = this.module.editor.monaco.getSelection();
 
@@ -554,6 +568,22 @@ export class EventHandler {
 
 				e.preventDefault();
 				e.stopPropagation();
+			case EditAction.SelectSuggestionAbove:
+				this.module.suggestionsController.selectOptionAbove();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+			
+			case EditAction.SelectSuggestionBelow:
+				this.module.suggestionsController.selectOptionBelow();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.SelectSuggestion:
+				this.module.suggestionsController.selectSuggestion();
+				e.stopPropagation();
+				e.preventDefault();
 				break;
 
 			default:

@@ -8,6 +8,8 @@ import { ConstructDoc } from "./construct-doc";
  */
 export class SuggestionsController{
     private static instance: SuggestionsController
+    private selectedOptionIndex = -1;
+    private optionActions = [];
 
     module: Module;
     editor: Editor;
@@ -56,6 +58,8 @@ export class SuggestionsController{
 
         optionParent.appendChild(textNode);
 
+        this.optionActions.push(action);
+
         return optionParent;
     }
 
@@ -85,5 +89,59 @@ export class SuggestionsController{
     removeMenu(){
         document.getElementById("editor").removeChild(this.menuParent);
         this.menuParent = null;
+    }
+
+    isMenuActive(){
+        return this.menuParent ? true : false;
+    }
+
+    selectOptionBelow(){
+        const options = this.menuParent.getElementsByClassName("suggestionOptionParent");
+
+        if(this.selectedOptionIndex != -1 && this.selectedOptionIndex != options.length){
+            options[this.selectedOptionIndex].classList.remove("selectedSuggestionOptionParent");
+        }
+
+        this.selectedOptionIndex++;
+
+        if(this.selectedOptionIndex == options.length){
+            this.selectedOptionIndex = 0;
+        }
+        
+        options[this.selectedOptionIndex].classList.add("selectedSuggestionOptionParent");
+
+        if(this.selectedOptionIndex == 0){
+            this.menuParent.scrollTop = 0;
+        }
+        else{
+            this.menuParent.scrollTop += (options[0] as HTMLDivElement).offsetHeight;
+        }
+    }
+
+    selectOptionAbove(){
+        const options = this.menuParent.getElementsByClassName("suggestionOptionParent");
+
+        if(this.selectedOptionIndex != -1 && this.selectedOptionIndex != options.length){
+            options[this.selectedOptionIndex].classList.remove("selectedSuggestionOptionParent");
+        }
+
+        this.selectedOptionIndex--;
+
+        if(this.selectedOptionIndex < 0){
+            this.selectedOptionIndex = options.length - 1;
+        }
+        
+        options[this.selectedOptionIndex].classList.add("selectedSuggestionOptionParent");
+
+        if(this.selectedOptionIndex == options.length - 1){
+            this.menuParent.scrollTop = (options[0] as HTMLDivElement).offsetHeight * options.length;
+        }
+        else{
+            this.menuParent.scrollTop -= (options[0] as HTMLDivElement).offsetHeight;
+        }
+    }
+
+    selectSuggestion(){
+        this.optionActions[this.selectedOptionIndex]();        
     }
 }
