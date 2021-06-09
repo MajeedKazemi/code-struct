@@ -6,6 +6,7 @@ import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
 import { ConstructCompleter } from '../typing-system/construct-completer';
 import { BinaryOperator, CodeConstruct, DataType, Statement } from '../syntax-tree/ast';
+import { ConstructKeys } from '../utilities/util';
 
 export enum KeyPress {
 	// navigation:
@@ -33,7 +34,9 @@ export enum KeyPress {
 	Plus = "+",
 	ForwardSlash = "/",
 	Star = "*",
-	Minus = "-"
+	Minus = "-",
+
+	GreaterThan = ">"
 
 }
 
@@ -82,7 +85,9 @@ export enum EditAction {
 	CompleteIntLiteral,
 	CompleteStringLiteral,
 	CompleteBoolLiteral,
-	
+
+	CompleteGreaterThan,
+
 	SelectSuggestionBelow,
 	SelectSuggestionAbove,
 	SelectSuggestion
@@ -211,6 +216,12 @@ export class EventHandler {
 				if(!inTextEditMode && e.key.length == 1){
 					return EditAction.CompleteDivision;
 				} 
+				break;
+
+			case KeyPress.GreaterThan:
+				if(!inTextEditMode && e.key.length == 1){
+					return EditAction.CompleteGreaterThan;
+				}
 				break;
 
 			default:
@@ -509,9 +520,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteAddition:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
 
 				e.preventDefault();
@@ -519,9 +527,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteSubtraction:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
 
 				e.preventDefault();
@@ -529,9 +534,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteDivision:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
 
 				e.preventDefault();
@@ -563,11 +565,25 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteBoolLiteral:
-				console.log(e)
 				this.module.constructCompleter.completeBoolLiteralConstruct(e.browserEvent.key === "t" ? 1 : 0);
 
 				e.preventDefault();
 				e.stopPropagation();
+				break;
+
+			case EditAction.CompleteGreaterThan:
+				const selection = this.module.focusedNode.getSelection();
+				this.module.suggestionsController.buildCustomMenu([ConstructKeys.GreaterThan, ConstructKeys.GreaterThenOrEqual],
+					                                              {
+																	left: selection.startColumn * this.module.editor.computeCharWidth(),
+																    top: selection.startLineNumber * this.module.editor.computeCharHeight()
+																  }
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
 			case EditAction.SelectSuggestionAbove:
 				this.module.suggestionsController.selectOptionAbove();
 				e.stopPropagation();
