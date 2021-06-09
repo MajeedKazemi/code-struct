@@ -1,0 +1,1 @@
+Git does not let you push empty folders.
