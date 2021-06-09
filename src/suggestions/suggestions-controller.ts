@@ -1,6 +1,6 @@
 import Editor from "../editor/editor";
 import { Module } from "../syntax-tree/ast";
-import {Util} from "../utilities/util"
+import {ConstructKeys, Util} from "../utilities/util"
 import { ConstructDoc } from "./construct-doc";
 
 /**
@@ -36,6 +36,14 @@ export class SuggestionsController{
         this.editor = editor;
     }
 
+    /**
+     * Add an option to this menu.
+     * 
+     * @param optionName display name of option
+     * @param action     function to be executed when this option is clicked or selected through ENTER
+     * @param doc        documentation that is displayed when the option is hovered over or selected (selection is for keys; hover is for mouse)
+     * @returns 
+     */
     addMenuOption(optionName: string, action: Function, doc?: ConstructDoc): HTMLDivElement{
         const optionParent = document.createElement("div");
         optionParent.classList.add(this.optionElementClass);
@@ -68,7 +76,17 @@ export class SuggestionsController{
         return optionParent;
     }
 
-    buildMenu(inserts: Map<string, boolean>, keys: Array<string>, pos: any){
+    /**
+     * Construct a menu with ALL valid insertions at the focused node as options at the given location within the editor.
+     * 
+     * If need to construct a menu with specific options use buildCustomMenu.
+     * 
+     * @param inserts a map parallel to Util.dummyToolboxConstructs that states whether the given construct is possible to insert at the focused location.
+     * @param keys    keys into inserts
+     * @param pos     (x, y) of top left corner of the selected construct/hole in pixels. Only necessary if need a specific position. 
+     *                The object will calculate its position itself otherwise.
+     */
+    buildMenu(inserts: Map<string, boolean>, keys: Array<string>, pos: any = {left: 0, top: 0}){
         this.menuParent = document.createElement("div");
         this.menuParent.id = this.menuElementId;
         document.getElementById("editor").appendChild(this.menuParent);
@@ -91,6 +109,34 @@ export class SuggestionsController{
         ConstructDoc.updateDocsLeftOffset(document.getElementById("editor").offsetLeft + document.getElementById(this.menuElementId).offsetWidth);
     }
 
+    /**
+     * Construct a menu with the provided options at the given location within the editor.
+     * 
+     * @param options constructs that should be displayed as options for insertion by the menu
+     * @param pos     (x, y) of top left corner of the selected construct/hole in pixels. Only necessary if need a specific position. 
+     *                The object will calculate its position itself otherwise.
+     */
+    buildCustomMenu(options: Array<ConstructKeys>, pos: any = {left: 0, top: 0}){
+        this.menuParent = document.createElement("div");
+        this.menuParent.id = this.menuElementId;
+        document.getElementById("editor").appendChild(this.menuParent);
+
+        options.forEach((key) => {
+            this.menuParent.appendChild(
+                this.addMenuOption(key, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(key))}, Util.getInstance().constructDocs.get(key))
+            );
+        })
+
+         //TODO: These are the same values as the ones used for mouse offset by the Notifications so maybe make them shared in some util file
+         this.menuParent.style.left = `${pos.left + document.getElementById("editor").offsetLeft}px`;
+         this.menuParent.style.top = `${pos.top + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop)}px`;
+ 
+         //TODO: No good way of separating responsibility completely because ready doc objects are stored in util instead of being created here.
+         //I guess, it is always possible to have a list of active docs and loop through it here and update their positions instead of 
+         //using the static method to update them all. Do that in case this ever slows down anything.
+         ConstructDoc.updateDocsLeftOffset(document.getElementById("editor").offsetLeft + document.getElementById(this.menuElementId).offsetWidth);
+    }
+
     removeMenu(){
         document.getElementById("editor").removeChild(this.menuParent);
         this.menuParent = null;
@@ -102,6 +148,7 @@ export class SuggestionsController{
         return this.menuParent ? true : false;
     }
 
+    //Methods for keyboard interactions with the menu
     selectOptionBelow(){
         const options = this.menuParent.getElementsByClassName(this.optionElementClass);
 
