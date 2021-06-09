@@ -5,12 +5,60 @@ import {Argument, BinaryBoolOperatorExpr, BinaryOperator, BinaryOperatorExpr, Bo
         UnaryOp, UnaryOperatorExpr, VarAssignmentStmt, WhileStatement
 } from "../syntax-tree/ast"
 
+
+/**
+ * IMPORTANT!!!
+ * 
+ * constructKeys and ConstructKeys need to have the same values. 
+ * 
+ * The enum is that we can get a dummy construct anywhere in the code.
+ * The list is so that we can loop over all dumy constructs since Map does not have a public keys property.
+ * 
+ * In regular JS we could always call Object.keys(ConstructKeys), but not in TS.
+ */
 export const constructKeys = [
     "VarAssign", "print()", "randint()", "range()", "len()", "string", "int", "True", "False",
     "+", "-", "*", "/", "And", "Or", "Not", "==", "!=", "<", "<=", ">", ">=", "while", 
     "If",  "Elif",  "Else", "For", "List Literal []", ".append()", "Member Call?", ".split()", ".join()", 
     ".replace()", ".find()"
 ]
+
+export const enum ConstructKeys{
+    VariableAssignment = "VarAssign",
+    PrintCall = "print()",
+    RandintCall = "randint()",
+    RangeCall = "range()",
+    LenCall = "len()",
+    StringLiteral = "string",
+    NumberLiteral = "int",
+    True = "True",
+    False = "False",
+    Addition = "+",
+    Subtracion = "-",
+    Multiplication = "*",
+    Division = "/",
+    And = "And",
+    Or = "Or",
+    Not = "Not",
+    Equals = "==",
+    NotEquals = "!=",
+    LessThan = "<",
+    LessThanOrEqual = "<=",
+    GreaterThan = ">",
+    GreaterThenOrEqual = ">=",
+    While = "while",
+    If = "if",
+    Elif = "elif",
+    Else = "else",
+    For = "For",
+    ListLiteral = "Lister Literal",
+    AppendCall = ".append()",
+    SplitCall = ".split()",
+    JoinCall = ".join()",
+    ReplaceCall = ".replace()",
+    FindCall = ".find()",
+    MemberCall = "Member Call ?"
+}
 
 export class Util{
     private static instance: Util;
@@ -21,10 +69,10 @@ export class Util{
     private constructor(){
         //this cannot exist on its own, need to wrap it in a class. Otherwise it does not see the imports for the construct classes.
         this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
-            ["VarAssign", new VarAssignmentStmt()],
-            ["print()", new FunctionCallStmt('print', [ new Argument(DataType.Any, 'item', false) ], DataType.Void)],
+            [ConstructKeys.VariableAssignment, new VarAssignmentStmt()],
+            [ConstructKeys.PrintCall, new FunctionCallStmt('print', [ new Argument(DataType.Any, 'item', false) ], DataType.Void)],
             
-            ["randint()", new FunctionCallStmt(
+            [ConstructKeys.RandintCall, new FunctionCallStmt(
                 'randint',
                 [
                     new Argument(DataType.Number, 'start', false),
@@ -33,7 +81,7 @@ export class Util{
                 DataType.Number
             )],
     
-            ["range()", new FunctionCallStmt(
+            [ConstructKeys.RangeCall, new FunctionCallStmt(
                 'range',
                 [
                     new Argument(DataType.Number, 'start', false),
@@ -42,77 +90,77 @@ export class Util{
                 DataType.List
             )],
     
-            ["len()", new FunctionCallStmt(
+            [ConstructKeys.LenCall, new FunctionCallStmt(
                 'len',
                 [ new Argument(DataType.List, 'list', false) ],
                 DataType.Number
             )],
     
-            ["string", new LiteralValExpr(DataType.String)],
+            [ConstructKeys.StringLiteral, new LiteralValExpr(DataType.String)],
     
-            ["int", new LiteralValExpr(DataType.Number)],
+            [ConstructKeys.NumberLiteral, new LiteralValExpr(DataType.Number)],
     
-            ["True", new LiteralValExpr(DataType.Boolean , 'True' )],
+            [ConstructKeys.True, new LiteralValExpr(DataType.Boolean , 'True' )],
     
-            ["False", new LiteralValExpr(DataType.Boolean, 'False')],
+            [ConstructKeys.False, new LiteralValExpr(DataType.Boolean, 'False')],
     
-            ["+", new BinaryOperatorExpr(BinaryOperator.Add, DataType.Any)],
+            [ConstructKeys.Addition, new BinaryOperatorExpr(BinaryOperator.Add, DataType.Any)],
     
-            ["-", new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Any)],
+            [ConstructKeys.Subtracion, new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Any)],
     
-            ["*", new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Any)],
+            [ConstructKeys.Multiplication, new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Any)],
     
-            ["/", new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Any)],
+            [ConstructKeys.Division, new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Any)],
     
-            ["And", new BinaryBoolOperatorExpr(BoolOperator.And)],
+            [ConstructKeys.And, new BinaryBoolOperatorExpr(BoolOperator.And)],
     
-            ["Or", new BinaryBoolOperatorExpr(BoolOperator.Or)],
+            [ConstructKeys.Or, new BinaryBoolOperatorExpr(BoolOperator.Or)],
     
-            ["Not", new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean,  DataType.Boolean)],
+            [ConstructKeys.Not, new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean,  DataType.Boolean)],
     
-            ["==", new ComparatorExpr(ComparatorOp.Equal)],
+            [ConstructKeys.Equals, new ComparatorExpr(ComparatorOp.Equal)],
     
-            ["!=", new ComparatorExpr(ComparatorOp.NotEqual)],
+            [ConstructKeys.NotEquals, new ComparatorExpr(ComparatorOp.NotEqual)],
     
-            ["<", new ComparatorExpr(ComparatorOp.LessThan)],
+            [ConstructKeys.LessThan, new ComparatorExpr(ComparatorOp.LessThan)],
     
-            ["<=", new ComparatorExpr(ComparatorOp.LessThanEqual)],
+            [ConstructKeys.LessThanOrEqual, new ComparatorExpr(ComparatorOp.LessThanEqual)],
     
-            [">", new ComparatorExpr(ComparatorOp.GreaterThan)],
+            [ConstructKeys.GreaterThan, new ComparatorExpr(ComparatorOp.GreaterThan)],
     
-            [">=", new ComparatorExpr(ComparatorOp.GreaterThanEqual)],
+            [ConstructKeys.GreaterThenOrEqual, new ComparatorExpr(ComparatorOp.GreaterThanEqual)],
     
-            ["while", new WhileStatement()],
+            [ConstructKeys.While, new WhileStatement()],
     
-            ["If", new IfStatement()],
+            [ConstructKeys.If, new IfStatement()],
     
-            ["Elif", new ElseStatement(true)],
+            [ConstructKeys.Elif, new ElseStatement(true)],
     
-            ["Else", new ElseStatement(false)],
+            [ConstructKeys.Else, new ElseStatement(false)],
     
-            ["For", new ForStatement()],
+            [ConstructKeys.False, new ForStatement()],
     
-            ["List Literal []", new ListLiteralExpression()],
+            [ConstructKeys.ListLiteral, new ListLiteralExpression()],
     
-            [".append()", new MethodCallStmt('append', [ new Argument(DataType.Any, 'object', false) ])],
+            [ConstructKeys.AppendCall, new MethodCallStmt('append', [ new Argument(DataType.Any, 'object', false) ])],
     
-            ["Member Call?",new MemberCallStmt(DataType.Any)],
+            [ConstructKeys.MemberCall, new MemberCallStmt(DataType.Any)],
     
-            [".split()", new MethodCallExpr(
+            [ConstructKeys.SplitCall, new MethodCallExpr(
                 'split',
                 [ new Argument(DataType.String, 'sep', false) ],
                 DataType.List,
                 DataType.String
             )],
     
-            [".join()", new MethodCallExpr(
+            [ConstructKeys.JoinCall, new MethodCallExpr(
                 'join',
                 [ new Argument(DataType.List, 'items', false) ],
                 DataType.String,
                 DataType.String
             )],
     
-            [".replace()", new MethodCallExpr(
+            [ConstructKeys.ReplaceCall, new MethodCallExpr(
                 'replace',
                 [
                     new Argument(DataType.String, 'old', false),
@@ -122,7 +170,7 @@ export class Util{
                 DataType.String
             )],
     
-            [".find()", new MethodCallExpr(
+            [ConstructKeys.FindCall, new MethodCallExpr(
                 'find',
                 [ new Argument(DataType.String, 'item', false) ],
                 DataType.Number,
@@ -131,7 +179,7 @@ export class Util{
         ])
 
         this.constructDocs = new Map<string, ConstructDoc>([
-            ["print()", new ConstructDoc("Function: print()", "Outputs argument to stdout.",  ['./src/res/img/cat1.jpg','./src/res/img/cat2.jpg', './src/res/img/cat3.jpg', './src/res/img/cat4.jpg', './src/res/img/cat5.jpg'])]
+            [ConstructKeys.PrintCall, new ConstructDoc("Function: " + ConstructKeys.PrintCall, "Outputs argument to stdout.",  ['./src/res/img/cat1.jpg','./src/res/img/cat2.jpg', './src/res/img/cat3.jpg', './src/res/img/cat4.jpg', './src/res/img/cat5.jpg'])]
         ])
     }
 
