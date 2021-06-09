@@ -4,7 +4,8 @@
     position: absolute;
     max-height: 20%;
     width: fit-content;
-    max-width: 30%;
+    max-width: 50%;
+    min-width: 2%;
 
     overflow-y: scroll;
     scrollbar-width: none; /* Firefox */
