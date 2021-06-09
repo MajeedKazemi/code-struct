@@ -1,5 +1,9 @@
 import { constructKeys, Util } from "../utilities/util";
 
+
+/**
+ * Class representing a code construct's documentation that can be displayed to the user.
+ */
 export class ConstructDoc{
     images: Array<string>;
     text: string;
@@ -95,6 +99,10 @@ export class ConstructDoc{
 
     updateLeftOffset(offset: number){
         this.parentElement.style.left = `${offset}px`;
+    }
+
+    resetScroll(){
+        this.parentElement.scrollTop = 0;
     }
 }
 

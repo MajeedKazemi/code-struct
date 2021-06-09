@@ -3,6 +3,9 @@ import { Module } from "../syntax-tree/ast";
 import {Util} from "../utilities/util"
 import { ConstructDoc } from "./construct-doc";
 
+/**
+ * Singleton controlling the suggestion menu. Represents a list of options available for insertion at the current focused node with the ability to display them to the user.
+ */
 export class SuggestionsController{
     private static instance: SuggestionsController
 
@@ -26,12 +29,13 @@ export class SuggestionsController{
         this.editor = editor;
     }
 
-    buildMenuOption(optionName: string, action: Function, doc?: ConstructDoc): HTMLDivElement{
+    addMenuOption(optionName: string, action: Function, doc?: ConstructDoc): HTMLDivElement{
         const optionParent = document.createElement("div");
         optionParent.classList.add("suggestionOptionParent");
 
         optionParent.addEventListener("mouseover", () => {
             if(doc){
+                doc.resetScroll();
                 doc.show();
             }
         });
@@ -63,7 +67,7 @@ export class SuggestionsController{
         keys.forEach(key => {
             if(inserts.get(key)){
                 this.menuParent.appendChild(
-                    this.buildMenuOption(key, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(key))}, Util.getInstance().constructDocs.get(key))
+                    this.addMenuOption(key, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(key))}, Util.getInstance().constructDocs.get(key))
                 );
             }
         })
