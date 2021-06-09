@@ -14,11 +14,11 @@ export const constructKeys = [
 export class Util{
     private static instance: Util;
 
-    dummyConstructs: Map<string, CodeConstruct>;
+    dummyToolboxConstructs: Map<string, CodeConstruct>;
     
     private constructor(){
         //this cannot exist on its own, need to wrap it in a class. Otherwise it does not see the imports for the construct classes.
-        this.dummyConstructs = new Map<string, CodeConstruct>([
+        this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
             ["VarAssign", new VarAssignmentStmt()],
             ["print()", new FunctionCallStmt('print', [ new Argument(DataType.Any, 'item', false) ], DataType.Void)],
             

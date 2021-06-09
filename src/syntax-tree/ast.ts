@@ -2445,7 +2445,7 @@ export class Module {
     getValidInserts(focusedNode: CodeConstruct){
         const validInserts = new Map<string, boolean>();
         constructKeys.forEach(key => {
-            validInserts.set(key, this.tryInsert(focusedNode, Util.getInstance().dummyConstructs.get(key)))
+            validInserts.set(key, this.tryInsert(focusedNode, Util.getInstance().dummyToolboxConstructs.get(key)))
         })
 
         return validInserts;
