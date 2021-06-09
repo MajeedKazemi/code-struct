@@ -89,6 +89,8 @@ export class SuggestionsController{
     removeMenu(){
         document.getElementById("editor").removeChild(this.menuParent);
         this.menuParent = null;
+        this.optionActions = [];
+        this.selectedOptionIndex = -1;
     }
 
     isMenuActive(){
@@ -142,6 +144,7 @@ export class SuggestionsController{
     }
 
     selectSuggestion(){
-        this.optionActions[this.selectedOptionIndex]();        
+        this.optionActions[this.selectedOptionIndex]();    
+        this.selectedOptionIndex = -1;
     }
 }
