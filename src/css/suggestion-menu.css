@@ -7,3 +7,21 @@
     width: fit-content;
     max-width: 30%;
 }
+
+.suggestionOptionParent{
+    padding-left: 2px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-right: 2px;
+    background-color: rgba(215, 215, 215, 0.7);
+    cursor: pointer;
+}
+
+:hover.suggestionOptionParent{
+    background-color: rgba(93, 149, 240, 0.7);
+}
+
+.suggestionOptionText{
+    color: black;
+    font-size: 9pt;
+}
