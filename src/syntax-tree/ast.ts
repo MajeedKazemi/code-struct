@@ -2442,14 +2442,20 @@ export class Module {
 
     referenceTable = new Array<Reference>();
 
-    getValidInserts(focusedNode: CodeConstruct){
-        const validInserts = new Map<string, boolean>();
+    getAllValidInserts(focusedNode: CodeConstruct){
+        const validInserts = new Map<ConstructKeys, boolean>();
         Object.keys(ConstructKeys).forEach(key => {
-            validInserts.set(key, this.tryInsert(focusedNode, Util.getInstance().dummyToolboxConstructs.get(ConstructKeys[key])))
+            validInserts.set(ConstructKeys[key], this.tryInsert(focusedNode, Util.getInstance().dummyToolboxConstructs.get(ConstructKeys[key])))
         })
 
         return validInserts;
     }
+
+    getValidInsertsFromSet(focusedNode: CodeConstruct, insertSet: Array<ConstructKeys>){
+        const validInserts = this.getAllValidInserts(focusedNode);
+		return insertSet.filter(insertionCandidate => validInserts.get(insertionCandidate));
+    }
+
 
     //code = insert, insertInto = focusedNode
     tryInsert(insertInto: CodeConstruct, insert: CodeConstruct){

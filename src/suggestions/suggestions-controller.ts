@@ -85,7 +85,7 @@ export class SuggestionsController{
      * @param pos     (x, y) of top left corner of the selected construct/hole in pixels. Only necessary if need a specific position. 
      *                The object will calculate its position itself otherwise.
      */
-    buildMenu(inserts: Map<string, boolean>, pos: any = {left: 0, top: 0}){
+    buildMenu(inserts: Map<ConstructKeys, boolean>, pos: any = {left: 0, top: 0}){
         if(this.menuParent){
             this.removeMenu();
         }
@@ -95,7 +95,7 @@ export class SuggestionsController{
         document.getElementById("editor").appendChild(this.menuParent);
 
         Object.keys(ConstructKeys).forEach(key => {
-            if(inserts.get(key)){
+            if(inserts.get(ConstructKeys[key])){
                 this.menuParent.appendChild(
                     this.addMenuOption(ConstructKeys[key], () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(ConstructKeys[key]))}, Util.getInstance().constructDocs.get(ConstructKeys[key]))
                 );
