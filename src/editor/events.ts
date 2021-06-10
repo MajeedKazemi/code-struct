@@ -293,6 +293,7 @@ export class EventHandler {
 	onKeyDown(e) {
 		let action = this.getKeyAction(e.browserEvent);
 		const selection = this.module.focusedNode.getSelection();
+		let suggestions = [];
 
 		switch (action) {
 			case EditAction.InsertEmptyLine: {
@@ -601,8 +602,10 @@ export class EventHandler {
 				break;
 
 			case EditAction.DisplayGreaterThanSuggestion:
-				//TODO: Need to validate suggestions based on context. If > and >= are not valid inserts at the focused node, then don't show anything.
-				this.module.suggestionsController.buildCustomMenu([ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
+				suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+
+				this.module.suggestionsController.buildCustomMenu(suggestions,
 					                                              {
 																	left: selection.startColumn * this.module.editor.computeCharWidth(),
 																    top: selection.startLineNumber * this.module.editor.computeCharHeight()
@@ -614,8 +617,10 @@ export class EventHandler {
 				break;
 
 			case EditAction.DisplayLessThanSuggestion:
-				//TODO: Need to validate suggestions based on context. If < and <= are not valid inserts at the focused node, then don't show anything.
-				this.module.suggestionsController.buildCustomMenu([ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
+				suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+
+				this.module.suggestionsController.buildCustomMenu(suggestions,
 																	{
 																		left: selection.startColumn * this.module.editor.computeCharWidth(),
 																		top: selection.startLineNumber * this.module.editor.computeCharHeight()
@@ -627,7 +632,8 @@ export class EventHandler {
 				break;
 
 			case EditAction.DisplayEqualsSuggestion:
-				let suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
+				suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
 
 				this.module.suggestionsController.buildCustomMenu(suggestions,
 					{
