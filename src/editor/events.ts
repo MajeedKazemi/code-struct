@@ -36,7 +36,10 @@ export enum KeyPress {
 	Star = "*",
 	Minus = "-",
 
-	GreaterThan = ">"
+	GreaterThan = ">",
+	LessThan = "<",
+
+	Escape = "Escape"
 
 }
 
@@ -87,10 +90,12 @@ export enum EditAction {
 	CompleteBoolLiteral,
 
 	CompleteGreaterThan,
+	CompleteLessThan,
 
-	SelectSuggestionBelow,
-	SelectSuggestionAbove,
-	SelectSuggestion
+	SelectMenuSuggestionBelow,
+	SelectMenuSuggestionAbove,
+	SelectMenuSuggestion,
+	CloseSuggestionMenu
 }
 
 export class EventHandler {
@@ -116,13 +121,13 @@ export class EventHandler {
 		switch (e.key) {
 			case KeyPress.ArrowUp:
 				if(this.module.suggestionsController.isMenuActive()){
-					return EditAction.SelectSuggestionAbove;
+					return EditAction.SelectMenuSuggestionAbove;
 				}
 				return EditAction.SelectClosestTokenAbove;
 
 			case KeyPress.ArrowDown:
 				if(this.module.suggestionsController.isMenuActive()){
-					return EditAction.SelectSuggestionBelow;
+					return EditAction.SelectMenuSuggestionBelow;
 				}
 				return EditAction.SelectClosestTokenBelow;
 
@@ -178,7 +183,7 @@ export class EventHandler {
 
 			case KeyPress.Enter:
 				if(this.module.suggestionsController.isMenuActive()){
-					return EditAction.SelectSuggestion;
+					return EditAction.SelectMenuSuggestion;
 				}
 
 				let curLine = this.module.locateStatement(curPos);
@@ -224,6 +229,18 @@ export class EventHandler {
 				}
 				break;
 
+			case KeyPress.LessThan:
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+					return EditAction.CompleteLessThan;
+				}
+				break;
+
+			case KeyPress.Escape:
+				if(!inTextEditMode && this.module.suggestionsController.isMenuActive()){
+					return EditAction.CloseSuggestionMenu;
+				}
+				break;
+
 			default:
 				if (inTextEditMode) {
 					if (e.key.length == 1) {
@@ -264,6 +281,7 @@ export class EventHandler {
 
 	onKeyDown(e) {
 		let action = this.getKeyAction(e.browserEvent);
+		const selection = this.module.focusedNode.getSelection();
 
 		switch (action) {
 			case EditAction.InsertEmptyLine: {
@@ -572,8 +590,7 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteGreaterThan:
-				const selection = this.module.focusedNode.getSelection();
-				this.module.suggestionsController.buildCustomMenu([ConstructKeys.GreaterThan, ConstructKeys.GreaterThenOrEqual],
+				this.module.suggestionsController.buildCustomMenu([ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
 					                                              {
 																	left: selection.startColumn * this.module.editor.computeCharWidth(),
 																    top: selection.startLineNumber * this.module.editor.computeCharHeight()
@@ -584,20 +601,38 @@ export class EventHandler {
 				e.stopPropagation();
 				break;
 
-			case EditAction.SelectSuggestionAbove:
+			case EditAction.CompleteLessThan:
+				this.module.suggestionsController.buildCustomMenu([ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
+																	{
+																	left: selection.startColumn * this.module.editor.computeCharWidth(),
+																	top: selection.startLineNumber * this.module.editor.computeCharHeight()
+																	}
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.SelectMenuSuggestionAbove:
 				this.module.suggestionsController.selectOptionAbove();
 				e.stopPropagation();
 				e.preventDefault();
 				break;
 			
-			case EditAction.SelectSuggestionBelow:
+			case EditAction.SelectMenuSuggestionBelow:
 				this.module.suggestionsController.selectOptionBelow();
 				e.stopPropagation();
 				e.preventDefault();
 				break;
 
-			case EditAction.SelectSuggestion:
+			case EditAction.SelectMenuSuggestion:
 				this.module.suggestionsController.selectSuggestion();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.CloseSuggestionMenu:
+				this.module.suggestionsController.removeMenu();
 				e.stopPropagation();
 				e.preventDefault();
 				break;
