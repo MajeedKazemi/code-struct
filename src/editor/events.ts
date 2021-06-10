@@ -31,13 +31,14 @@ export enum KeyPress {
 	Z = 'z',
 	Y = 'y',
 
+	//Typing sys
 	Plus = "+",
 	ForwardSlash = "/",
 	Star = "*",
 	Minus = "-",
-
 	GreaterThan = ">",
 	LessThan = "<",
+	Equals = "=",
 
 	Escape = "Escape"
 
@@ -80,6 +81,7 @@ export enum EditAction {
 
 	None,
 
+	//typing actions
 	CompleteAddition,
 	CompleteDivision,
 	CompleteMultiplication,
@@ -89,9 +91,12 @@ export enum EditAction {
 	CompleteStringLiteral,
 	CompleteBoolLiteral,
 
-	CompleteGreaterThan,
-	CompleteLessThan,
+	//displaying suggestion menu
+	DisplayGreaterThanSuggestion,
+	DisplayLessThanSuggestion,
+	DisplayEqualsSuggestion,
 
+	//suggestion management
 	SelectMenuSuggestionBelow,
 	SelectMenuSuggestionAbove,
 	SelectMenuSuggestion,
@@ -225,19 +230,25 @@ export class EventHandler {
 
 			case KeyPress.GreaterThan:
 				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
-					return EditAction.CompleteGreaterThan;
+					return EditAction.DisplayGreaterThanSuggestion;
 				}
 				break;
 
 			case KeyPress.LessThan:
 				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
-					return EditAction.CompleteLessThan;
+					return EditAction.DisplayLessThanSuggestion;
 				}
 				break;
 
 			case KeyPress.Escape:
 				if(!inTextEditMode && this.module.suggestionsController.isMenuActive()){
 					return EditAction.CloseSuggestionMenu;
+				}
+				break;
+
+			case KeyPress.Equals:
+				if(!inTextEditMode && e.key.length == 1){
+					return EditAction.DisplayEqualsSuggestion;
 				}
 				break;
 
@@ -589,7 +600,8 @@ export class EventHandler {
 				e.stopPropagation();
 				break;
 
-			case EditAction.CompleteGreaterThan:
+			case EditAction.DisplayGreaterThanSuggestion:
+				//TODO: Need to validate suggestions based on context. If > and >= are not valid inserts at the focused node, then don't show anything.
 				this.module.suggestionsController.buildCustomMenu([ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
 					                                              {
 																	left: selection.startColumn * this.module.editor.computeCharWidth(),
@@ -601,13 +613,28 @@ export class EventHandler {
 				e.stopPropagation();
 				break;
 
-			case EditAction.CompleteLessThan:
+			case EditAction.DisplayLessThanSuggestion:
+				//TODO: Need to validate suggestions based on context. If < and <= are not valid inserts at the focused node, then don't show anything.
 				this.module.suggestionsController.buildCustomMenu([ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
 																	{
-																	left: selection.startColumn * this.module.editor.computeCharWidth(),
-																	top: selection.startLineNumber * this.module.editor.computeCharHeight()
+																		left: selection.startColumn * this.module.editor.computeCharWidth(),
+																		top: selection.startLineNumber * this.module.editor.computeCharHeight()
 																	}
 				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.DisplayEqualsSuggestion:
+				let suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
+
+				this.module.suggestionsController.buildCustomMenu(suggestions,
+					{
+						left: selection.startColumn * this.module.editor.computeCharWidth(),
+						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+					}
+				);	
 
 				e.preventDefault();
 				e.stopPropagation();
