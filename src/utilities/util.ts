@@ -45,7 +45,7 @@ export enum ConstructKeys{
     LessThan = "<",
     LessThanOrEqual = "<=",
     GreaterThan = ">",
-    GreaterThenOrEqual = ">=",
+    GreaterThanOrEqual = ">=",
     While = "while",
     If = "if",
     Elif = "elif",
@@ -128,7 +128,7 @@ export class Util{
     
             [ConstructKeys.GreaterThan, new ComparatorExpr(ComparatorOp.GreaterThan)],
     
-            [ConstructKeys.GreaterThenOrEqual, new ComparatorExpr(ComparatorOp.GreaterThanEqual)],
+            [ConstructKeys.GreaterThanOrEqual, new ComparatorExpr(ComparatorOp.GreaterThanEqual)],
     
             [ConstructKeys.While, new WhileStatement()],
     
