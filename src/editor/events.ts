@@ -40,8 +40,7 @@ export enum KeyPress {
 	LessThan = "<",
 	Equals = "=",
 
-	Escape = "Escape"
-
+	Escape = "Escape",
 }
 
 export enum EditAction {
@@ -125,15 +124,15 @@ export class EventHandler {
 
 		switch (e.key) {
 			case KeyPress.ArrowUp:
-				if(this.module.suggestionsController.isMenuActive()){
+				/*if(this.module.suggestionsController.isMenuActive()){
 					return EditAction.SelectMenuSuggestionAbove;
-				}
+				}*/
 				return EditAction.SelectClosestTokenAbove;
 
 			case KeyPress.ArrowDown:
-				if(this.module.suggestionsController.isMenuActive()){
+				/*if(this.module.suggestionsController.isMenuActive()){
 					return EditAction.SelectMenuSuggestionBelow;
-				}
+				}*/
 				return EditAction.SelectClosestTokenBelow;
 
 			case KeyPress.ArrowLeft:
@@ -187,9 +186,9 @@ export class EventHandler {
 				} else return EditAction.DeletePrevToken;
 
 			case KeyPress.Enter:
-				if(this.module.suggestionsController.isMenuActive()){
+				/*if(this.module.suggestionsController.isMenuActive()){
 					return EditAction.SelectMenuSuggestion;
-				}
+				}*/
 
 				let curLine = this.module.locateStatement(curPos);
 				let curSelection = this.module.editor.monaco.getSelection();
@@ -241,9 +240,9 @@ export class EventHandler {
 				break;
 
 			case KeyPress.Escape:
-				if(!inTextEditMode && this.module.suggestionsController.isMenuActive()){
+				/*if(!inTextEditMode && this.module.suggestionsController.isMenuActive()){
 					return EditAction.CloseSuggestionMenu;
-				}
+				}*/
 				break;
 
 			case KeyPress.Equals:
@@ -603,14 +602,31 @@ export class EventHandler {
 
 			case EditAction.DisplayGreaterThanSuggestion:
 				suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
+				suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
+
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
 
-				this.module.suggestionsController.buildCustomMenu(suggestions,
+				/*this.module.suggestionsController.buildCustomMenu(suggestions,
 					                                              {
 																	left: selection.startColumn * this.module.editor.computeCharWidth(),
 																    top: selection.startLineNumber * this.module.editor.computeCharHeight()
 																  }
-				);
+				);*/
+
+				const nestingMap = new Map<string, [number, number]>();
+				const options1 = [ConstructKeys.GreaterThan, "linkToMenu2"]
+				const options2 = [ConstructKeys.Addition, ConstructKeys.And, "linkToMenu3", ConstructKeys.Division, "linkToMenu4"]
+				const options3 = [ConstructKeys.Elif]
+				const options4 = [ConstructKeys.Else]
+
+				nestingMap.set("linkToMenu2", [0, 1]);
+				nestingMap.set("linkToMenu3", [1, 2]);
+				nestingMap.set("linkToMenu4", [1, 3]);
+
+				this.module.suggestionsController.buildNestedMenu([options1, options2, options3, options4], nestingMap, {
+					left: selection.startColumn * this.module.editor.computeCharWidth(),
+					top: selection.startLineNumber * this.module.editor.computeCharHeight()
+				  });
 
 				e.preventDefault();
 				e.stopPropagation();
@@ -619,14 +635,14 @@ export class EventHandler {
 			case EditAction.DisplayLessThanSuggestion:
 				suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-
+/*
 				this.module.suggestionsController.buildCustomMenu(suggestions,
 																	{
 																		left: selection.startColumn * this.module.editor.computeCharWidth(),
 																		top: selection.startLineNumber * this.module.editor.computeCharHeight()
 																	}
 				);
-
+*/
 				e.preventDefault();
 				e.stopPropagation();
 				break;
@@ -634,18 +650,18 @@ export class EventHandler {
 			case EditAction.DisplayEqualsSuggestion:
 				suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-
+/*
 				this.module.suggestionsController.buildCustomMenu(suggestions,
 					{
 						left: selection.startColumn * this.module.editor.computeCharWidth(),
 						top: selection.startLineNumber * this.module.editor.computeCharHeight()
 					}
 				);	
-
+*/
 				e.preventDefault();
 				e.stopPropagation();
 				break;
-
+/*
 			case EditAction.SelectMenuSuggestionAbove:
 				this.module.suggestionsController.selectOptionAbove();
 				e.stopPropagation();
@@ -669,7 +685,7 @@ export class EventHandler {
 				e.stopPropagation();
 				e.preventDefault();
 				break;
-
+*/
 			default:
 				e.preventDefault();
 				e.stopPropagation();

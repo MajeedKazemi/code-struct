@@ -71,13 +71,16 @@ export default class Editor {
             this.monaco.setSelection(selection);
         }
 
+        this.module.suggestionsController.showTopLevelMenu();
+
+        /*
         if(!this.module.suggestionsController.menuParent){
             this.module.suggestionsController.buildMenu(this.module.getAllValidInserts(this.module.focusedNode),
                                                        {left: selection.startColumn * this.computeCharWidth(), top: selection.startLineNumber * this.computeCharHeight()});
         }
         else{
             this.module.suggestionsController.removeMenu();
-        }
+        }*/
 
         
     }

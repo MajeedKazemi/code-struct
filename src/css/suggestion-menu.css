@@ -1,8 +1,8 @@
-#suggestionMenuParent{
+.suggestionMenuParent{
     display: flex;
     flex-direction: column;
     position: absolute;
-    max-height: 20%;
+    max-height: 30%;
     width: fit-content;
     max-width: 50%;
     min-width: 2%;
@@ -11,7 +11,7 @@
     scrollbar-width: none; /* Firefox */
     -ms-overflow-style: none;  /* Internet Explorer 10+ */
 }
-#suggestionMenuParent::-webkit-scrollbar {
+.suggestionMenuParent::-webkit-scrollbar {
     width: 0;
     height: 0;
 }
