@@ -1,6 +1,6 @@
 import Editor from "../editor/editor";
 import { Module } from "../syntax-tree/ast";
-import {ConstructKeys, Util} from "../utilities/util"
+import {constructKeys, ConstructKeys, Util} from "../utilities/util"
 import { ConstructDoc } from "./construct-doc";
 
 /**
@@ -277,11 +277,18 @@ export class Menu{
         this.htmlElement.style.visibility = "hidden";
     }
 
-    linkMenuThroughOption(parent: Menu, child: Menu, optionInParent: string){
+    static linkMenuThroughOption(parent: Menu, child: Menu, optionInParent: string){
+        console.log("Parent: " + parent.options.map(option => option.text) + "\n Child: " + child.options.map(option => option.text))
+
         const option = parent.options.filter(option => option.text === optionInParent)[0]
         option.linkToChildMenu(child);
         option.selectAction = null;
         child.close();
+
+        child.htmlElement.style.left = `${parent.htmlElement.offsetWidth + parent.htmlElement.offsetLeft}px`
+
+
+        parent.addChildMenu(child);
     }
 
     isMenuOpen(){
@@ -423,6 +430,26 @@ export class SuggestionsController2{
     menuActive = false;
     menus: Menu[] = [];
 
+    categoryLevels: Map<string, Array<string>> = new Map<string, Array<string>>([
+        ["Literals", [ConstructKeys.StringLiteral, ConstructKeys.NumberLiteral, ConstructKeys.True, ConstructKeys.False, ConstructKeys.ListLiteral]],
+        ["Function Calls", [ConstructKeys.PrintCall, ConstructKeys.LenCall, ConstructKeys.RandintCall, ConstructKeys.RangeCall]],
+        ["Operators", ["Arithmetic", "Boolean", "Comparator"]],
+        ["Control Statements", [ConstructKeys.If, ConstructKeys.Elif, ConstructKeys.Else, ConstructKeys.While, ConstructKeys.For]],
+        ["Arithmetic", [ConstructKeys.Addition, ConstructKeys.Subtracion, ConstructKeys.Division, ConstructKeys.Multiplication]],
+        ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
+        ["Comparator", [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual, ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual]],
+        ["Member Function Calls", [ConstructKeys.AppendCall, ConstructKeys.FindCall, ConstructKeys.SplitCall, ConstructKeys.ReplaceCall, ConstructKeys.JoinCall]],
+        ["Other", [ConstructKeys.VariableAssignment]]
+    ])
+
+    keys = ["Literals", "Function Calls", "Operators", "Control Statements", "Arithmetic", "Boolean", "Comparator", "Member Function Calls", "Other"]
+
+    //have a premade nesting map for all categories and then just populate the various option arrays associated with it in the events file.
+    //This is fine since we will have at least one of the top-level event categories displayed in any menu that looks at these.
+    //Then if we have only one, we can collapse it into one menu instead of two, but if we have more than 1, we make use of the nesting.
+
+    static globalNestingMap: Map<string, [number, number]>
+
     private constructor(){}
 
     static getInstance(){
@@ -438,7 +465,78 @@ export class SuggestionsController2{
         this.editor = editor;
     }
 
-    buildNestedMenu(options: Array<ConstructKeys | string>[], nestingMap: Map<string, number[]>, pos: any = {left: 0, top: 0}){
+    adjustOffsetWidth(menu: Menu, offset: number = 0){
+        if(menu.childMenus.length > 0){
+            let adjustment = offset + menu.htmlElement.offsetWidth;
+            menu.childMenus.forEach(child => {
+                child.htmlElement.style.left = `${adjustment}px`;
+
+                if(child.childMenus.length > 0){
+                    this.adjustOffsetWidth(child, adjustment);
+                }
+            })
+        }
+        else{
+
+        }
+    }
+
+    buildMenuFromOptionMap(map: Map<string, Array<string>>, keys: Array<string>){
+        /*
+            Find options in the top-level menu and combine them into one top-level menu.
+            If map only contains one top-level menu, then this does nothing. Useful when using a map like categoryLevels above.
+        */
+        map.set("TopLevelMenu", []);
+
+        //get keys of top level menus
+        const topLevelKeys = []
+        keys.forEach((key1) => {
+            let isOption = false;
+
+            for(let i = 0; i < keys.length; i++){
+                if(map.get(keys[i]).indexOf(key1) > -1){
+                    isOption = true; //top level menus are ones whose keys do not occur as an option in any other menu
+                    break;
+                }
+            }
+
+            if(!isOption){
+                topLevelKeys.push(key1);
+            }
+        })
+
+        //remove old top level keys and replace them with a single one that holds all options
+        const topLevelOptions = []
+        topLevelKeys.forEach(key => {
+            topLevelOptions.push(...map.get(key))
+            map.delete(key);
+            keys = keys.filter(optionKey => optionKey != key)
+        })
+
+        keys.push("TopLevelMenu");
+        map.set("TopLevelMenu", topLevelOptions)
+
+
+        //build menus with updated structure
+        const menus = new Map<string, Menu>();
+        keys.forEach((key) => {
+            menus.set(key, this.buildMenu(map.get(key)));
+            this.menus.push(menus.get(key));
+        })
+
+        keys.forEach((key) => {
+            map.get(key).forEach((option) => {
+                if(map.has(option)){
+                    Menu.linkMenuThroughOption(menus.get(key), menus.get(option), option);
+                }
+            })
+        })
+
+        //indents menu as necessary per structure
+        this.adjustOffsetWidth(menus.get("TopLevelMenu"), menus.get("TopLevelMenu").htmlElement.offsetLeft);
+    }
+
+    buildMenuFromNestingMap(options: Array<ConstructKeys | string>[], nestingMap: Map<string, number[]>, pos: any = {left: 0, top: 0}){
         if(this.menus.length > 0){
             this.menus.forEach(menu => {
                 menu.close();
@@ -457,8 +555,9 @@ export class SuggestionsController2{
             options.forEach(menuOptions => {
                 menuOptions.forEach(option => {
                     if(nestingMap.has(option)){
-                        menus[nestingMap.get(option)[0]].linkMenuThroughOption(menus[nestingMap.get(option)[0]], menus[nestingMap.get(option)[1]], option);
+                        Menu.linkMenuThroughOption(menus[nestingMap.get(option)[0]], menus[nestingMap.get(option)[1]], option);
                         
+                        /*
                         //update child's position based on how deep it is within tree
                         const childInitialLeft = parseFloat(menus[nestingMap.get(option)[1]].htmlElement.offsetLeft)
                         const offsetLeft = menus.reduce((offset, menu, i) => {
@@ -469,7 +568,7 @@ export class SuggestionsController2{
                         }, 0)
                         menus[nestingMap.get(option)[1]].htmlElement.style.left = `${childInitialLeft + offsetLeft}px`
     
-                        menus[nestingMap.get(option)[0]].addChildMenu(menus[nestingMap.get(option)[1]]);
+                        menus[nestingMap.get(option)[0]].addChildMenu(menus[nestingMap.get(option)[1]]);*/
                     }
                 })
             })
@@ -478,7 +577,9 @@ export class SuggestionsController2{
         }
     }
 
-    buildMenu(options: Array<ConstructKeys | string>, pos: any = {left: 0, top: 0}){
+    //helper for building a menu with the given options. Does not do anything in terms of setting the tree structure.
+    //The two methods above are the ones that take care of the tree.
+    private buildMenu(options: Array<ConstructKeys | string>, pos: any = {left: 0, top: 0}){
         if(options.length > 0){
         
             const menuOptions = new Map<string, Function>();
