@@ -70,19 +70,6 @@ export default class Editor {
             this.cursor.setSelection(selection, code);
             this.monaco.setSelection(selection);
         }
-
-        //TODO: When do we want to automatically show the menu to the user?
-        //On every hole + empty line?
-        if(!this.module.suggestionsController.isMenuOpen()){
-            this.module.suggestionsController.buildAvailableInsertsMenu(
-                this.module.getAllValidInsertsList(this.module.focusedNode),
-                {left: selection.startColumn * this.computeCharWidth(), top: selection.startLineNumber * this.computeCharHeight()}
-             );
-        }
-        else{
-            this.module.suggestionsController.removeMenus();
-        }
-
     }
 
     getLineEl(ln: number) {

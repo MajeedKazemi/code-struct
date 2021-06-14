@@ -240,7 +240,7 @@ export class Menu{
     static menuCount = 0;
     static idPrefix = "suggestion-menu-";
 
-    private options: MenuOption[] = [];
+    options: MenuOption[] = [];
     //menu has been entered once
     private isMenuActive: boolean = false;
     //menu is currently being hovered over or navigated with arrow keys
@@ -248,6 +248,8 @@ export class Menu{
     private isMenuOpen: boolean = false;
 
     indexInController: number = -1;
+
+    openedLinkOptionIndex = 0;
 
     //tree structure
     children: Menu[] = []
@@ -331,6 +333,11 @@ export class Menu{
 
         if(activeChildren.length > 0){
             activeChildren.forEach(menu => {
+                //if we are closing this menu, the focused option needs to be reset
+                menu.options.forEach(option => {
+                    option.removeFocus();
+                })
+
                 Menu.closeChildren(menu);
                 menu.close();
             })
@@ -390,7 +397,7 @@ export class MenuOption{
     private childMenu: Menu;
 
     //menu within which this option is contained
-    private parentMenu: Menu;
+    parentMenu: Menu;
 
     text: string;
     doc: ConstructDoc;
@@ -421,25 +428,12 @@ export class MenuOption{
         this.htmlElement.appendChild(textNode);
 
         this.htmlElement.addEventListener("mouseenter", (() => {
-            if(this.childMenu){
-                Menu.closeChildren(this.parentMenu);
-                this.childMenu.open();
-                this.childMenu.htmlElement.style.top = `${this.htmlElement.offsetTop + this.parentMenu.htmlElement.offsetTop - this.parentMenu.htmlElement.scrollTop}px`;
-            }
-            else{
-                Menu.closeChildren(this.parentMenu);
-            }
-
-            if(this.doc){
-                this.doc.resetScroll();
-                this.doc.show();
-            }
-
-            this.parentMenu.setActive(true);
+            SuggestionsController2.getInstance().focusOption(this);
         }).bind(this))
 
         this.htmlElement.addEventListener("click", () => {
             this.select();
+            SuggestionsController2.getInstance().removeMenus();
         })
     }
 
@@ -471,6 +465,31 @@ export class MenuOption{
     getChildMenu(){
         return this.childMenu;
     }
+
+    setFocus(){
+        this.htmlElement.classList.add(SuggestionsController2.selectedOptionElementClass);
+
+        if(this.childMenu){
+            this.childMenu.open();
+            this.childMenu.htmlElement.style.top = `${this.htmlElement.offsetTop + this.parentMenu.htmlElement.offsetTop - this.parentMenu.htmlElement.scrollTop}px`;
+        }
+
+        else if(this.doc){
+            this.doc.resetScroll();
+            this.doc.show();
+        }
+    }
+
+    removeFocus(){
+        this.htmlElement.classList.remove(SuggestionsController2.selectedOptionElementClass);
+
+        if(this.childMenu){
+            Menu.closeChildren(this.parentMenu);
+        }
+        else if(this.doc){
+            this.doc.hide();
+        }
+    }
 }
 
 
@@ -487,7 +506,7 @@ export class SuggestionsController2{
     indexOfTopMenu: number = -1;
 
     focusedMenuIndex: number = 0;
-    focusedOptionInedx: number = -1;
+    focusedOptionIndex: number = -1;
 
     menus: Menu[] = [];
 
@@ -552,13 +571,13 @@ export class SuggestionsController2{
         }
         else{
             const menuMap =  new Map<string, Array<string>>([
-                ["Top", ["Literals", "Function Calls", "Operators", "Control Statements", "Member Function Calls", "Other", ConstructKeys.StringLiteral]],
+                ["Top", ["Literals", "Function Calls", "Operators", "Control Statements", "Member Function Calls", "Other"]],
                 ["Literals", [ConstructKeys.StringLiteral, ConstructKeys.NumberLiteral, ConstructKeys.True, ConstructKeys.False, ConstructKeys.ListLiteral]],
                 ["Function Calls", [ConstructKeys.PrintCall, ConstructKeys.LenCall, ConstructKeys.RandintCall, ConstructKeys.RangeCall]],
                 ["Operators", [ "Comparator"]],
                 ["Control Statements", [ConstructKeys.If, ConstructKeys.Elif, ConstructKeys.Else, ConstructKeys.While, ConstructKeys.For]],
-                //["Arithmetic", [ConstructKeys.Addition, ConstructKeys.Subtracion, ConstructKeys.Division, ConstructKeys.Multiplication]],
-               // ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
+                ["Arithmetic", [ConstructKeys.Addition, ConstructKeys.Subtracion, ConstructKeys.Division, ConstructKeys.Multiplication]],
+                ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
                 ["Comparator", [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual, ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual]],
                 ["Member Function Calls", [ConstructKeys.AppendCall, ConstructKeys.FindCall, ConstructKeys.SplitCall, ConstructKeys.ReplaceCall, ConstructKeys.JoinCall]],
                 ["Other", [ConstructKeys.VariableAssignment]]
@@ -701,7 +720,6 @@ export class SuggestionsController2{
     }
 
     openTopLevelMenu(){
-        console.log(this.menus[this.indexOfTopMenu].isOpen())
         if(this.menus.length && this.indexOfTopMenu >= 0){
             if(!this.menus[this.indexOfTopMenu].isOpen()){
                 this.menus[this.indexOfTopMenu].open();
@@ -721,50 +739,103 @@ export class SuggestionsController2{
         this.menus = [];
     }
 
-    selectOptionBelow(){
-        const options = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(SuggestionsController2.optionElementClass);
+    focusOptionBelow(){
+        const options = this.menus[this.focusedMenuIndex].options;
+        const optionDomElements = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(SuggestionsController2.optionElementClass);
 
-        if(this.focusedOptionInedx != -1 && this.focusedOptionInedx != options.length){
-            options[this.focusedOptionInedx].classList.remove(SuggestionsController2.selectedOptionElementClass);
+        if(this.focusedOptionIndex != -1 && this.focusedOptionIndex != optionDomElements.length){
+            options[this.focusedOptionIndex].removeFocus();
         }
 
-        this.focusedOptionInedx++;
+        this.focusedOptionIndex++;
 
-        if(this.focusedOptionInedx == options.length){
-            this.focusedOptionInedx = 0;
+        if(this.focusedOptionIndex == optionDomElements.length){
+            this.focusedOptionIndex = 0;
         }
         
-        options[this.focusedOptionInedx].classList.add(SuggestionsController2.selectedOptionElementClass);
+        options[this.focusedOptionIndex].setFocus();
 
-        if(this.focusedOptionInedx == 0){
+        if(this.focusedOptionIndex == 0){
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop = 0;
         }
         else{
-            this.menus[this.focusedMenuIndex].htmlElement.scrollTop += (options[0] as HTMLDivElement).offsetHeight;
+            this.menus[this.focusedMenuIndex].htmlElement.scrollTop += (optionDomElements[0] as HTMLDivElement).offsetHeight;
         }
     }
 
-    selectOptionAbove(){
-        const options = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(SuggestionsController2.optionElementClass);
+    focusOptionAbove(){
+        const options = this.menus[this.focusedMenuIndex].options;
+        const optionDomElements = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(SuggestionsController2.optionElementClass);
 
-        if(this.focusedOptionInedx != -1 && this.focusedOptionInedx != options.length){
-            options[this.focusedOptionInedx].classList.remove(SuggestionsController2.selectedOptionElementClass);
+        if(this.focusedOptionIndex != -1 && this.focusedOptionIndex != options.length){
+            options[this.focusedOptionIndex].removeFocus();
         }
 
-        this.focusedOptionInedx--;
+        this.focusedOptionIndex--;
 
-        if(this.focusedOptionInedx < 0){
-            this.focusedOptionInedx = options.length - 1;
+        if(this.focusedOptionIndex < 0){
+            this.focusedOptionIndex = options.length - 1;
         }
         
-        options[this.focusedOptionInedx].classList.add(SuggestionsController2.selectedOptionElementClass);
+        options[this.focusedOptionIndex].setFocus();
 
-        if(this.focusedOptionInedx == options.length - 1){
-            this.menus[this.focusedMenuIndex].htmlElement.scrollTop = (options[0] as HTMLDivElement).offsetHeight * options.length;
+        if(this.focusedOptionIndex == options.length - 1){
+            this.menus[this.focusedMenuIndex].htmlElement.scrollTop = (optionDomElements[0] as HTMLDivElement).offsetHeight * options.length;
         }
         else{
-            this.menus[this.focusedMenuIndex].htmlElement.scrollTop -= (options[0] as HTMLDivElement).offsetHeight;
+            this.menus[this.focusedMenuIndex].htmlElement.scrollTop -= (optionDomElements[0] as HTMLDivElement).offsetHeight;
         }
+    }
+
+    //used for mouse interactions, keys use focusOptionBelow(), focusOptionAbove(), openSubMenu() and closeSubMenu()
+    focusOption(option: MenuOption){
+        //remove focus from any other options that may be focused within the currently focused menu
+        if(this.focusedOptionIndex > -1 && this.focusedMenuIndex == this.menus.indexOf(option.parentMenu)){
+            this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].removeFocus();
+        }
+    
+        //update focus
+        this.focusedMenuIndex = this.menus.indexOf(option.parentMenu);
+        this.focusedOptionIndex = this.menus[this.focusedMenuIndex].options.indexOf(option);
+
+        //if user navigated from child, need to clear options in newly focused menu as well
+        this.menus[this.focusedMenuIndex].options.forEach(option => {
+            option.removeFocus();
+        })
+
+        this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].setFocus();
+    }
+
+    openSubMenu(){
+        if(this.focusedOptionIndex > -1){
+            const newFocusedMenu = this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].getChildMenu();
+            const optionDomElements = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(SuggestionsController2.optionElementClass);
+    
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
+
+            if(newFocusedMenu){
+                this.selectFocusedOption();
+    
+                this.focusedMenuIndex = this.menus.indexOf(newFocusedMenu);
+                this.focusedOptionIndex = 0;
+                this.focusOption(this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex]);
+            }
+        }
+    }
+
+    closeSubMenu(){
+        if(this.menus[this.focusedMenuIndex].parentMenu){
+            this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].removeFocus();
+            this.focusedMenuIndex = this.menus.indexOf(this.menus[this.focusedMenuIndex].parentMenu);
+            this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex;
+            this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].setFocus();
+
+            Menu.closeChildren(this.menus[this.focusedMenuIndex]);
+        }
+    }
+
+    selectFocusedOption(){
+        this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].select();
     }
 
     isMenuOpen(){

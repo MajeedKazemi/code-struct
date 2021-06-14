@@ -41,6 +41,7 @@ export enum KeyPress {
 	Equals = "=",
 
 	Escape = "Escape",
+	Space = " "
 }
 
 export enum EditAction {
@@ -99,7 +100,10 @@ export enum EditAction {
 	SelectMenuSuggestionBelow,
 	SelectMenuSuggestionAbove,
 	SelectMenuSuggestion,
-	CloseSuggestionMenu
+	CloseValidInsertMenu,
+	OpenValidInsertMenu,
+	OpenSubMenu,
+	CloseSubMenu
 }
 
 export class EventHandler {
@@ -136,6 +140,10 @@ export class EventHandler {
 				return EditAction.SelectClosestTokenBelow;
 
 			case KeyPress.ArrowLeft:
+				if(!inTextEditMode && this.module.suggestionsController.isMenuOpen()){
+					return EditAction.CloseSubMenu;
+				}
+
 				if (inTextEditMode) {
 					if (curPos.column == (this.module.focusedNode as ast.Token).left) return EditAction.SelectPrevToken;
 
@@ -146,6 +154,10 @@ export class EventHandler {
 				} else return EditAction.SelectPrevToken;
 
 			case KeyPress.ArrowRight:
+				if(!inTextEditMode && this.module.suggestionsController.isMenuOpen()){
+					return EditAction.OpenSubMenu;
+				}
+
 				if (inTextEditMode) {
 					if (
 						curPos.column == (this.module.focusedNode as ast.Token).right + 1 ||
@@ -186,9 +198,9 @@ export class EventHandler {
 				} else return EditAction.DeletePrevToken;
 
 			case KeyPress.Enter:
-				/*if(this.module.suggestionsController.isMenuActive()){
+				if(this.module.suggestionsController.isMenuOpen()){
 					return EditAction.SelectMenuSuggestion;
-				}*/
+				}
 
 				let curLine = this.module.locateStatement(curPos);
 				let curSelection = this.module.editor.monaco.getSelection();
@@ -240,14 +252,20 @@ export class EventHandler {
 				break;
 
 			case KeyPress.Escape:
-				/*if(!inTextEditMode && this.module.suggestionsController.isMenuActive()){
-					return EditAction.CloseSuggestionMenu;
-				}*/
+				if(!inTextEditMode && this.module.suggestionsController.isMenuOpen()){
+					return EditAction.CloseValidInsertMenu;
+				}
 				break;
 
 			case KeyPress.Equals:
 				if(!inTextEditMode && e.key.length == 1){
 					return EditAction.DisplayEqualsSuggestion;
+				}
+				break;
+
+			case KeyPress.Space:
+				if(!inTextEditMode &&  e.ctrlKey && e.key.length == 1){
+					return EditAction.OpenValidInsertMenu;
 				}
 				break;
 
@@ -643,30 +661,57 @@ export class EventHandler {
 				e.stopPropagation();
 				break;
 
+			case EditAction.OpenValidInsertMenu:
+				if(!this.module.suggestionsController.isMenuOpen()){
+					this.module.suggestionsController.buildAvailableInsertsMenu(
+						this.module.getAllValidInsertsList(this.module.focusedNode),
+						{left: selection.startColumn * this.module.editor.computeCharWidth(), top: selection.startLineNumber * this.module.editor.computeCharHeight()}
+					 );
+				}
+				else{
+					this.module.suggestionsController.removeMenus();
+				}
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
 			case EditAction.SelectMenuSuggestionAbove:
-				this.module.suggestionsController.selectOptionAbove();
+				this.module.suggestionsController.focusOptionAbove();
 				e.stopPropagation();
 				e.preventDefault();
 				break;
 			
 			case EditAction.SelectMenuSuggestionBelow:
-				this.module.suggestionsController.selectOptionBelow();
-				e.stopPropagation();
-				e.preventDefault();
-				break;
-/*
-			case EditAction.SelectMenuSuggestion:
-				this.module.suggestionsController.selectSuggestion();
+				this.module.suggestionsController.focusOptionBelow();
 				e.stopPropagation();
 				e.preventDefault();
 				break;
 
-			case EditAction.CloseSuggestionMenu:
-				this.module.suggestionsController.removeMenu();
+			case EditAction.SelectMenuSuggestion:
+				this.module.suggestionsController.selectFocusedOption();
 				e.stopPropagation();
 				e.preventDefault();
 				break;
-*/
+
+			case EditAction.CloseValidInsertMenu:
+				this.module.suggestionsController.removeMenus();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.OpenSubMenu:
+				this.module.suggestionsController.openSubMenu();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.CloseSubMenu:
+				this.module.suggestionsController.closeSubMenu();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
 			default:
 				e.preventDefault();
 				e.stopPropagation();
