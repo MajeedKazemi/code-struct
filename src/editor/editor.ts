@@ -70,6 +70,10 @@ export default class Editor {
             this.cursor.setSelection(selection, code);
             this.monaco.setSelection(selection);
         }
+
+        if(this.module.suggestionsController.isMenuOpen()){
+            this.module.suggestionsController.removeMenus();
+        }
     }
 
     getLineEl(ln: number) {
