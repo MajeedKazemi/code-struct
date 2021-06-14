@@ -124,15 +124,15 @@ export class EventHandler {
 
 		switch (e.key) {
 			case KeyPress.ArrowUp:
-				/*if(this.module.suggestionsController.isMenuActive()){
+				if(this.module.suggestionsController.isMenuOpen()){
 					return EditAction.SelectMenuSuggestionAbove;
-				}*/
+				}
 				return EditAction.SelectClosestTokenAbove;
 
 			case KeyPress.ArrowDown:
-				/*if(this.module.suggestionsController.isMenuActive()){
+				if(this.module.suggestionsController.isMenuOpen()){
 					return EditAction.SelectMenuSuggestionBelow;
-				}*/
+				}
 				return EditAction.SelectClosestTokenBelow;
 
 			case KeyPress.ArrowLeft:
@@ -293,6 +293,7 @@ export class EventHandler {
 		let action = this.getKeyAction(e.browserEvent);
 		const selection = this.module.focusedNode.getSelection();
 		let suggestions = [];
+		let suggestionMap = null;
 
 		switch (action) {
 			case EditAction.InsertEmptyLine: {
@@ -602,58 +603,14 @@ export class EventHandler {
 
 			case EditAction.DisplayGreaterThanSuggestion:
 				suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
-				suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
-
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+				
+				this.module.suggestionsController.buildSingleLevelMenu(suggestions, {
+																						left: selection.startColumn * this.module.editor.computeCharWidth(),
+																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+				  																	}
+				);
 
-				/*
-				const optionMap = new Map<string, Array<string>>(
-					[
-						["Menu1", ["Option 1", "Option 2", "Option 3"]],
-						["Option 1", ["Option 7", "Option 8", "Option 9"]],
-						["Option 2", ["Option 10", "Option 11"]],
-						["Option 11", ["Option 12"]],
-						["Option 12", ["Option 13", "Option 14", "Option 15"]]
-					]
-				);*/
-
-				const categoryLevels =  new Map<string, Array<string>>([
-					["Literals", [ConstructKeys.StringLiteral, ConstructKeys.NumberLiteral, ConstructKeys.True, ConstructKeys.False, ConstructKeys.ListLiteral]],
-					["Function Calls", [ConstructKeys.PrintCall, ConstructKeys.LenCall, ConstructKeys.RandintCall, ConstructKeys.RangeCall]],
-					["Operators", ["Arithmetic", "Boolean", "Comparator"]],
-					["Control Statements", [ConstructKeys.If, ConstructKeys.Elif, ConstructKeys.Else, ConstructKeys.While, ConstructKeys.For]],
-					["Arithmetic", [ConstructKeys.Addition, ConstructKeys.Subtracion, ConstructKeys.Division, ConstructKeys.Multiplication]],
-					["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
-					["Comparator", [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual, ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual]],
-					["Member Function Calls", [ConstructKeys.AppendCall, ConstructKeys.FindCall, ConstructKeys.SplitCall, ConstructKeys.ReplaceCall, ConstructKeys.JoinCall]],
-					["Other", [ConstructKeys.VariableAssignment]]
-				])
-
-				this.module.suggestionsController.buildMenuFromOptionMap(categoryLevels, ["Literals", "Function Calls", "Operators", "Control Statements",
-				"Arithmetic", "Boolean", "Comparator", "Member Function Calls", "Other"]);
-
-				/*this.module.suggestionsController.buildCustomMenu(suggestions,
-					                                              {
-																	left: selection.startColumn * this.module.editor.computeCharWidth(),
-																    top: selection.startLineNumber * this.module.editor.computeCharHeight()
-																  }
-				);*/
-/*
-				const nestingMap = new Map<string, [number, number]>();
-				const options1 = [ConstructKeys.GreaterThan, "linkToMenu2"]
-				const options2 = [ConstructKeys.Addition, ConstructKeys.And, "linkToMenu3", ConstructKeys.Division, "linkToMenu4"]
-				const options3 = [ConstructKeys.Elif]
-				const options4 = [ConstructKeys.Else]
-
-				nestingMap.set("linkToMenu2", [0, 1]);
-				nestingMap.set("linkToMenu3", [1, 2]);
-				nestingMap.set("linkToMenu4", [1, 3]);
-
-				this.module.suggestionsController.buildMenuFromNestingMap([options1, options2, options3, options4], nestingMap, {
-					left: selection.startColumn * this.module.editor.computeCharWidth(),
-					top: selection.startLineNumber * this.module.editor.computeCharHeight()
-				  });
-*/
 				e.preventDefault();
 				e.stopPropagation();
 				break;
@@ -661,14 +618,13 @@ export class EventHandler {
 			case EditAction.DisplayLessThanSuggestion:
 				suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-/*
-				this.module.suggestionsController.buildCustomMenu(suggestions,
-																	{
-																		left: selection.startColumn * this.module.editor.computeCharWidth(),
-																		top: selection.startLineNumber * this.module.editor.computeCharHeight()
-																	}
+
+				this.module.suggestionsController.buildSingleLevelMenu(suggestions, {
+																						left: selection.startColumn * this.module.editor.computeCharWidth(),
+																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+																					}
 				);
-*/
+
 				e.preventDefault();
 				e.stopPropagation();
 				break;
@@ -676,18 +632,17 @@ export class EventHandler {
 			case EditAction.DisplayEqualsSuggestion:
 				suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-/*
-				this.module.suggestionsController.buildCustomMenu(suggestions,
-					{
-						left: selection.startColumn * this.module.editor.computeCharWidth(),
-						top: selection.startLineNumber * this.module.editor.computeCharHeight()
-					}
-				);	
-*/
+
+				this.module.suggestionsController.buildSingleLevelMenu(suggestions, {
+																						left: selection.startColumn * this.module.editor.computeCharWidth(),
+																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+																					}
+				);
+
 				e.preventDefault();
 				e.stopPropagation();
 				break;
-/*
+
 			case EditAction.SelectMenuSuggestionAbove:
 				this.module.suggestionsController.selectOptionAbove();
 				e.stopPropagation();
@@ -699,7 +654,7 @@ export class EventHandler {
 				e.stopPropagation();
 				e.preventDefault();
 				break;
-
+/*
 			case EditAction.SelectMenuSuggestion:
 				this.module.suggestionsController.selectSuggestion();
 				e.stopPropagation();

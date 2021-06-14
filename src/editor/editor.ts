@@ -71,18 +71,18 @@ export default class Editor {
             this.monaco.setSelection(selection);
         }
 
-        this.module.suggestionsController.showTopLevelMenu();
-
-        /*
-        if(!this.module.suggestionsController.menuParent){
-            this.module.suggestionsController.buildMenu(this.module.getAllValidInserts(this.module.focusedNode),
-                                                       {left: selection.startColumn * this.computeCharWidth(), top: selection.startLineNumber * this.computeCharHeight()});
+        //TODO: When do we want to automatically show the menu to the user?
+        //On every hole + empty line?
+        if(!this.module.suggestionsController.isMenuOpen()){
+            this.module.suggestionsController.buildAvailableInsertsMenu(
+                this.module.getAllValidInsertsList(this.module.focusedNode),
+                {left: selection.startColumn * this.computeCharWidth(), top: selection.startLineNumber * this.computeCharHeight()}
+             );
         }
         else{
-            this.module.suggestionsController.removeMenu();
-        }*/
+            this.module.suggestionsController.removeMenus();
+        }
 
-        
     }
 
     getLineEl(ln: number) {

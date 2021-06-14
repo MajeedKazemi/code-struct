@@ -51,7 +51,7 @@ export enum ConstructKeys{
     Elif = "elif",
     Else = "else",
     For = "for",
-    ListLiteral = "Lister Literal",
+    ListLiteral = "List Literal",
     AppendCall = ".append()",
     SplitCall = ".split()",
     JoinCall = ".join()",

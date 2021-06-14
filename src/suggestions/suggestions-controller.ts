@@ -208,6 +208,8 @@ export class SuggestionsController{
     }
 }
 
+
+//TODO: Rename suggestion controller 2 to this
 export class MenuController{
     private static instance: MenuController;
 
@@ -232,18 +234,24 @@ export class MenuController{
     }
 }
 
+//a menu with options
 export class Menu{
-    private options: MenuOption[] = [];
-
+    //used for setting id of each new menu's DOM element
     static menuCount = 0;
     static idPrefix = "suggestion-menu-";
 
-    childMenus = []
-    parentMenu = null;
-
-    private isActive: boolean = false;
+    private options: MenuOption[] = [];
+    //menu has been entered once
+    private isMenuActive: boolean = false;
+    //menu is currently being hovered over or navigated with arrow keys
     private isFocused: boolean = false;
-    private isOpen: boolean = false;
+    private isMenuOpen: boolean = false;
+
+    indexInController: number = -1;
+
+    //tree structure
+    children: Menu[] = []
+    parentMenu = null;
 
     htmlElement: HTMLDivElement;
 
@@ -257,8 +265,9 @@ export class Menu{
 
         keys.forEach((key => {
             const option = new MenuOption(keys.indexOf(key), key, null, this, Util.getInstance().constructDocs.get(key), options.get(key));
-            this.options.push(option);
             option.attachToParentMenu(this);
+
+            this.options.push(option);
             this.htmlElement.appendChild(option.htmlElement);
         }).bind(this))
 
@@ -268,18 +277,17 @@ export class Menu{
     }
 
     open(){
-        this.isOpen = true;
+        this.isMenuOpen = true;
         this.htmlElement.style.visibility = "visible";
     }
 
     close(){
-        this.isOpen = false;
+        this.isMenuOpen = false;
         this.htmlElement.style.visibility = "hidden";
     }
 
+    //Links two menus through the given optionInParent
     static linkMenuThroughOption(parent: Menu, child: Menu, optionInParent: string){
-        console.log("Parent: " + parent.options.map(option => option.text) + "\n Child: " + child.options.map(option => option.text))
-
         const option = parent.options.filter(option => option.text === optionInParent)[0]
         option.linkToChildMenu(child);
         option.selectAction = null;
@@ -291,39 +299,84 @@ export class Menu{
         parent.addChildMenu(child);
     }
 
-    isMenuOpen(){
-        return this.isOpen;
+    isOpen(){
+        return this.isMenuOpen;
     }
 
-    isMenuActive(){
-        return this.isActive;
+    isActive(){
+        return this.isMenuActive;
     }
 
     setActive(active: boolean){
-        this.isActive = active;
+        this.isMenuActive = active;
     }
 
+    //for bulk setting children
     setChildMenus(menus: Menu[]){
         menus.forEach(((menu) => {
             menu.parentMenu = this;
         }).bind(this))
 
-        this.childMenus = menus;
+        this.children = menus;
     }
 
     addChildMenu(menu: Menu){
         menu.parentMenu = this;
-        this.childMenus.push(menu);
+        this.children.push(menu);
     }
 
-    static collapseChildren(menu: Menu){
-        const activeChildren = menu.childMenus.filter(menu => menu.isOpen)
+    //close nested menus up to menu starting at bottom of tree
+    static closeChildren(menu: Menu){
+        const activeChildren = menu.children.filter(menu => menu.isOpen)
 
         if(activeChildren.length > 0){
             activeChildren.forEach(menu => {
-                Menu.collapseChildren(menu);
+                Menu.closeChildren(menu);
                 menu.close();
             })
+        }
+    }
+
+    //sets all menus that have a single option that links to another set of options
+    //to instead contain the set being linked to without the link option
+    //In other words, collapse unnecessary menus starting at menu
+    static collapseSingleOptionLinkMenus(menu: Menu){
+        if(menu.children.length > 0){
+            for(let i = 0; i < menu.children.length; i++){
+                Menu.collapseSingleOptionLinkMenus(menu.children[i]);
+
+                if(menu.children[i].options.length == 1 && menu.children[i].options[0].getChildMenu() && menu.parentMenu != null){
+                    const grandparent = menu.children[i].parentMenu;
+                    const linkOption = grandparent.options.filter(option => option.child === menu.children[i])[0]
+
+                    menu.children[i] = menu.children[i].options[0].getChildMenu();
+                    menu.children[i].parentMenu = grandparent;
+                    linkOption.child = menu.children[i];
+                }
+            }
+            if(menu.options.length == 1 && menu.options[0].getChildMenu() && menu.parentMenu != null){
+                Menu.collapseSingleOptionLinkMenus(menu.parentMenu);
+                return
+            }
+        }
+
+        return
+    }
+
+    //indent child menus of menu
+    static adjustOffsetWidth(menu: Menu, offset: number = 0){
+        if(menu.children.length > 0){
+            let adjustment = offset + menu.htmlElement.offsetWidth;
+            menu.children.forEach(child => {
+                child.htmlElement.style.left = `${adjustment}px`;
+
+                if(child.children.length > 0){
+                    Menu.adjustOffsetWidth(child, adjustment);
+                }
+            })
+        }
+        else{
+
         }
     }
 
@@ -333,9 +386,13 @@ export class Menu{
 }
 
 export class MenuOption{
-    text: string;
+    //menu that this option links to
     private childMenu: Menu;
+
+    //menu within which this option is contained
     private parentMenu: Menu;
+
+    text: string;
     doc: ConstructDoc;
     htmlElement: HTMLDivElement;
     selectAction: Function;
@@ -365,12 +422,12 @@ export class MenuOption{
 
         this.htmlElement.addEventListener("mouseenter", (() => {
             if(this.childMenu){
-                Menu.collapseChildren(this.parentMenu);
+                Menu.closeChildren(this.parentMenu);
                 this.childMenu.open();
-                this.childMenu.htmlElement.style.top = `${this.htmlElement.offsetTop + this.parentMenu.htmlElement.offsetTop}px`;
+                this.childMenu.htmlElement.style.top = `${this.htmlElement.offsetTop + this.parentMenu.htmlElement.offsetTop - this.parentMenu.htmlElement.scrollTop}px`;
             }
             else{
-                Menu.collapseChildren(this.parentMenu);
+                Menu.closeChildren(this.parentMenu);
             }
 
             if(this.doc){
@@ -422,15 +479,20 @@ export class SuggestionsController2{
 
     static optionElementClass: string = "suggestionOptionParent";
     static menuElementClass: string = "suggestionMenuParent";
-    static optionTextElementClass = "suggestionOptionText";
+    static optionTextElementClass: string = "suggestionOptionText";
+    static selectedOptionElementClass: string = "selectedSuggestionOptionParent";
 
     module: Module;
     editor: Editor;
+    indexOfTopMenu: number = -1;
 
-    menuActive = false;
+    focusedMenuIndex: number = 0;
+    focusedOptionInedx: number = -1;
+
     menus: Menu[] = [];
 
     categoryLevels: Map<string, Array<string>> = new Map<string, Array<string>>([
+        ["Top", ["Literals", "Function Calls", "Operators", "Control Statements", "Member Function Calls", "Other"]],
         ["Literals", [ConstructKeys.StringLiteral, ConstructKeys.NumberLiteral, ConstructKeys.True, ConstructKeys.False, ConstructKeys.ListLiteral]],
         ["Function Calls", [ConstructKeys.PrintCall, ConstructKeys.LenCall, ConstructKeys.RandintCall, ConstructKeys.RangeCall]],
         ["Operators", ["Arithmetic", "Boolean", "Comparator"]],
@@ -448,7 +510,7 @@ export class SuggestionsController2{
     //This is fine since we will have at least one of the top-level event categories displayed in any menu that looks at these.
     //Then if we have only one, we can collapse it into one menu instead of two, but if we have more than 1, we make use of the nesting.
 
-    static globalNestingMap: Map<string, [number, number]>
+    static globallinkageMap: Map<string, [number, number]>
 
     private constructor(){}
 
@@ -465,115 +527,142 @@ export class SuggestionsController2{
         this.editor = editor;
     }
 
-    adjustOffsetWidth(menu: Menu, offset: number = 0){
-        if(menu.childMenus.length > 0){
-            let adjustment = offset + menu.htmlElement.offsetWidth;
-            menu.childMenus.forEach(child => {
-                child.htmlElement.style.left = `${adjustment}px`;
+    buildSingleLevelMenu(suggestions: Array<string>, pos: any = {left: 0, top: 0}){
+        if(this.menus.length > 0){
+            this.removeMenus();
+        }
 
-                if(child.childMenus.length > 0){
-                    this.adjustOffsetWidth(child, adjustment);
-                }
-            })
+        const suggestionMap = new Map<string, Array<string>>(
+            [
+                ["Top", suggestions]
+            ]
+        );
+        
+        if(suggestions.length > 0){
+            this.module.suggestionsController.buildMenuFromOptionMap(suggestionMap, ["Top"], "Top", pos);
+        }
+
+        this.openTopLevelMenu();
+    }
+
+    buildAvailableInsertsMenu(suggestions: Array<string>, pos: any = {left: 0, top: 0}){
+        //TODO: Not all build methods might need this kind of removal logic. It can probably be moved out of the class since this method is now doing two things, removing if necessary and building a new menu. Remember single responsibility.
+        if(this.menus.length > 0){
+            this.removeMenus();
         }
         else{
+            const menuMap =  new Map<string, Array<string>>([
+                ["Top", ["Literals", "Function Calls", "Operators", "Control Statements", "Member Function Calls", "Other", ConstructKeys.StringLiteral]],
+                ["Literals", [ConstructKeys.StringLiteral, ConstructKeys.NumberLiteral, ConstructKeys.True, ConstructKeys.False, ConstructKeys.ListLiteral]],
+                ["Function Calls", [ConstructKeys.PrintCall, ConstructKeys.LenCall, ConstructKeys.RandintCall, ConstructKeys.RangeCall]],
+                ["Operators", [ "Comparator"]],
+                ["Control Statements", [ConstructKeys.If, ConstructKeys.Elif, ConstructKeys.Else, ConstructKeys.While, ConstructKeys.For]],
+                //["Arithmetic", [ConstructKeys.Addition, ConstructKeys.Subtracion, ConstructKeys.Division, ConstructKeys.Multiplication]],
+               // ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
+                ["Comparator", [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual, ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual]],
+                ["Member Function Calls", [ConstructKeys.AppendCall, ConstructKeys.FindCall, ConstructKeys.SplitCall, ConstructKeys.ReplaceCall, ConstructKeys.JoinCall]],
+                ["Other", [ConstructKeys.VariableAssignment]]
+            ]);
+    
+            let keys = ["Literals", "Function Calls", "Operators", "Control Statements",
+                           "Comparator", "Member Function Calls", "Other", "Top"
+                         ];
 
+            //find all options that link to another menu
+            const links = []
+            keys.forEach((key) => {
+                menuMap.get(key).forEach((option) => { 
+                    if(menuMap.has(option)){
+                        links.push(option);
+                    }
+                })
+            })
+            
+            keys.forEach((key) => {
+                //remove invalid options that are not links
+                if(key != "Top"){
+                    menuMap.set(key, menuMap.get(key).filter(option => suggestions.indexOf(option) > -1 || links.indexOf(option) != -1));
+                }
+
+                //remove menus with empty options
+                if(menuMap.get(key).length == 0){
+                    menuMap.delete(key);
+                    keys = keys.filter(keyToKeep => keyToKeep != key);
+                    
+                    //remove link options that link to empty menus from the top level
+                    if(menuMap.get("Top").indexOf(key) > -1){
+                        menuMap.set("Top", menuMap.get("Top").filter(topKey => topKey != key));
+                    }
+                }
+            });
+
+            this.buildMenuFromOptionMap(menuMap, keys, "Top", pos);
+    
+            //Menu.collapseSingleOptionLinkMenus(this.menus[this.indexOfTopMenu]);
         }
     }
 
-    buildMenuFromOptionMap(map: Map<string, Array<string>>, keys: Array<string>){
-        /*
-            Find options in the top-level menu and combine them into one top-level menu.
-            If map only contains one top-level menu, then this does nothing. Useful when using a map like categoryLevels above.
-        */
-        map.set("TopLevelMenu", []);
+    //option map should always contain a key that maps to an array of options for the top-level menu
+    //without this key, the menu will have an incorrect structure
+    buildMenuFromOptionMap(map: Map<string, Array<string>>, keys: Array<string>, topKey: string, pos: any = {left: 0, top: 0}){
+        if(this.menus.length > 0){
+            this.removeMenus();
+        }
+        else{
+            //build menus with updated structure
+            const menus = new Map<string, Menu>();
+            keys.forEach((key) => {
+                menus.set(key, this.buildMenu(map.get(key), pos));
 
-        //get keys of top level menus
-        const topLevelKeys = []
-        keys.forEach((key1) => {
-            let isOption = false;
-
-            for(let i = 0; i < keys.length; i++){
-                if(map.get(keys[i]).indexOf(key1) > -1){
-                    isOption = true; //top level menus are ones whose keys do not occur as an option in any other menu
-                    break;
-                }
-            }
-
-            if(!isOption){
-                topLevelKeys.push(key1);
-            }
-        })
-
-        //remove old top level keys and replace them with a single one that holds all options
-        const topLevelOptions = []
-        topLevelKeys.forEach(key => {
-            topLevelOptions.push(...map.get(key))
-            map.delete(key);
-            keys = keys.filter(optionKey => optionKey != key)
-        })
-
-        keys.push("TopLevelMenu");
-        map.set("TopLevelMenu", topLevelOptions)
-
-
-        //build menus with updated structure
-        const menus = new Map<string, Menu>();
-        keys.forEach((key) => {
-            menus.set(key, this.buildMenu(map.get(key)));
-            this.menus.push(menus.get(key));
-        })
-
-        keys.forEach((key) => {
-            map.get(key).forEach((option) => {
-                if(map.has(option)){
-                    Menu.linkMenuThroughOption(menus.get(key), menus.get(option), option);
+                if(key == topKey){
+                    this.indexOfTopMenu = this.menus.length - 1;
+                    this.focusedMenuIndex = this.indexOfTopMenu;
                 }
             })
-        })
 
-        //indents menu as necessary per structure
-        this.adjustOffsetWidth(menus.get("TopLevelMenu"), menus.get("TopLevelMenu").htmlElement.offsetLeft);
+            keys.forEach((key) => {
+                map.get(key).forEach((option) => { //if some menu's option is also a key within the map, that means it links two menus together
+                    if(map.has(option)){
+                        Menu.linkMenuThroughOption(menus.get(key), menus.get(option), option);
+                    }
+                })
+            })
+
+            //indents menu as necessary per structure
+            Menu.adjustOffsetWidth(menus.get(topKey), menus.get(topKey).htmlElement.offsetLeft);
+
+            this.openTopLevelMenu();
+        }
     }
 
-    buildMenuFromNestingMap(options: Array<ConstructKeys | string>[], nestingMap: Map<string, number[]>, pos: any = {left: 0, top: 0}){
-        if(this.menus.length > 0){
-            this.menus.forEach(menu => {
-                menu.close();
-                menu.removeFromDOM();
-            })
+    //Each set of options is a separate menu. A nesting map is a manual way to link the menus. An entry within the map specifies an option and the two menus
+    //it links inthe order [parentIndex, childIndex] where each index refers to the order of these menus in the options array
 
-            this.menus = [];
+    //NOTE: Top level menu is always assumed to be at index 0
+    buildMenuFromlinkageMap(options: Array<ConstructKeys | string>[], linkageMap: Map<string, number[]>, pos: any = {left: 0, top: 0}){
+        if(this.menus.length > 0){
+           this.removeMenus();
         }
         else if(options.length > 0){
             const menus = []
             options.forEach(menuOptions => {
-                menus.push(this.buildMenu(menuOptions, pos));
+                this.buildMenu(menuOptions, pos);
             })
     
             //create menu tree
             options.forEach(menuOptions => {
                 menuOptions.forEach(option => {
-                    if(nestingMap.has(option)){
-                        Menu.linkMenuThroughOption(menus[nestingMap.get(option)[0]], menus[nestingMap.get(option)[1]], option);
-                        
-                        /*
-                        //update child's position based on how deep it is within tree
-                        const childInitialLeft = parseFloat(menus[nestingMap.get(option)[1]].htmlElement.offsetLeft)
-                        const offsetLeft = menus.reduce((offset, menu, i) => {
-                            if(i < nestingMap.get(option)[0] + 1){
-                                offset += menu.htmlElement.offsetWidth;
-                            }
-                            return offset;
-                        }, 0)
-                        menus[nestingMap.get(option)[1]].htmlElement.style.left = `${childInitialLeft + offsetLeft}px`
-    
-                        menus[nestingMap.get(option)[0]].addChildMenu(menus[nestingMap.get(option)[1]]);*/
+                    if(linkageMap.has(option)){
+                        Menu.linkMenuThroughOption(menus[linkageMap.get(option)[0]], menus[linkageMap.get(option)[1]], option);
                     }
                 })
             })
     
             this.menus = menus;
+            this.indexOfTopMenu = 0;
+            this.focusedMenuIndex = 0;
+
+            this.openTopLevelMenu();
         }
     }
 
@@ -603,7 +692,7 @@ export class SuggestionsController2{
             //using the static method to update them all. Do that in case this ever slows down anything.
             ConstructDoc.updateDocsLeftOffset(document.getElementById("editor").offsetLeft + document.getElementById(`${Menu.idPrefix}${Menu.menuCount - 1}`).offsetWidth);
 
-            this.menuActive = true;
+            this.menus.push(menu);
 
             return menu;
         }
@@ -611,16 +700,74 @@ export class SuggestionsController2{
         return null
     }
 
-    showTopLevelMenu(){
-        if(this.menus.length > 0){
-            this.menus[0].open();
-            this.menuActive = true;
+    openTopLevelMenu(){
+        console.log(this.menus[this.indexOfTopMenu].isOpen())
+        if(this.menus.length && this.indexOfTopMenu >= 0){
+            if(!this.menus[this.indexOfTopMenu].isOpen()){
+                this.menus[this.indexOfTopMenu].open();
+            }
+            else{
+                this.menus[this.indexOfTopMenu].close();
+            }
         }
     }
 
     removeMenus(){
-        this.menus.forEach((menu) => {
-            document.getElementById("editor").removeChild(menu.htmlElement);
+        this.menus.forEach(menu => {
+            menu.close();
+            menu.removeFromDOM();
         })
+
+        this.menus = [];
+    }
+
+    selectOptionBelow(){
+        const options = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(SuggestionsController2.optionElementClass);
+
+        if(this.focusedOptionInedx != -1 && this.focusedOptionInedx != options.length){
+            options[this.focusedOptionInedx].classList.remove(SuggestionsController2.selectedOptionElementClass);
+        }
+
+        this.focusedOptionInedx++;
+
+        if(this.focusedOptionInedx == options.length){
+            this.focusedOptionInedx = 0;
+        }
+        
+        options[this.focusedOptionInedx].classList.add(SuggestionsController2.selectedOptionElementClass);
+
+        if(this.focusedOptionInedx == 0){
+            this.menus[this.focusedMenuIndex].htmlElement.scrollTop = 0;
+        }
+        else{
+            this.menus[this.focusedMenuIndex].htmlElement.scrollTop += (options[0] as HTMLDivElement).offsetHeight;
+        }
+    }
+
+    selectOptionAbove(){
+        const options = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(SuggestionsController2.optionElementClass);
+
+        if(this.focusedOptionInedx != -1 && this.focusedOptionInedx != options.length){
+            options[this.focusedOptionInedx].classList.remove(SuggestionsController2.selectedOptionElementClass);
+        }
+
+        this.focusedOptionInedx--;
+
+        if(this.focusedOptionInedx < 0){
+            this.focusedOptionInedx = options.length - 1;
+        }
+        
+        options[this.focusedOptionInedx].classList.add(SuggestionsController2.selectedOptionElementClass);
+
+        if(this.focusedOptionInedx == options.length - 1){
+            this.menus[this.focusedMenuIndex].htmlElement.scrollTop = (options[0] as HTMLDivElement).offsetHeight * options.length;
+        }
+        else{
+            this.menus[this.focusedMenuIndex].htmlElement.scrollTop -= (options[0] as HTMLDivElement).offsetHeight;
+        }
+    }
+
+    isMenuOpen(){
+        return this.menus.length > 0 ? this.menus[this.indexOfTopMenu].isOpen() : false;
     }
 }
