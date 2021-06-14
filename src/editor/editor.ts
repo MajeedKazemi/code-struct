@@ -71,8 +71,8 @@ export default class Editor {
             this.monaco.setSelection(selection);
         }
 
-        if(this.module.suggestionsController.isMenuOpen()){
-            this.module.suggestionsController.removeMenus();
+        if(this.module.menuController.isMenuOpen()){
+            this.module.menuController.removeMenus();
         }
     }
 

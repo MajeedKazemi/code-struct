@@ -7,7 +7,7 @@ import { NotificationSystemController } from '../notification-system/notificatio
 import {ErrorMessage} from "../notification-system/error-msg-generator";
 import {Notification} from '../notification-system/notification'
 import { ConstructCompleter } from "../typing-system/construct-completer";
-import { SuggestionsController, SuggestionsController2 } from "../suggestions/suggestions-controller";
+import { MenuController } from "../suggestions/suggestions-controller";
 import {ConstructKeys, constructKeys, Util} from "../utilities/util"
 
 export class Callback {
@@ -2211,7 +2211,7 @@ export class Module {
 	buttons: HTMLElement[];
 	notificationSystem: NotificationSystemController;
     constructCompleter: ConstructCompleter;
-    suggestionsController: SuggestionsController2;
+    menuController: MenuController;
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
@@ -2232,8 +2232,8 @@ export class Module {
 
 		this.buttons = [];
 
-        this.suggestionsController = SuggestionsController2.getInstance();
-        this.suggestionsController.setInstance(this, this.editor);
+        this.menuController = MenuController.getInstance();
+        this.menuController.setInstance(this, this.editor);
 	}
 
     reset() {
