@@ -190,11 +190,13 @@ export class MenuOption{
 
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
-        
+
         const textNode = document.createElement("span");
         textNode.classList.add(MenuController.optionTextElementClass);
         textNode.textContent = text;
-        this.htmlElement.appendChild(textNode);
+        this.htmlElement.appendChild(textNode)
+
+        this.addArrowImg();
 
         this.htmlElement.addEventListener("mouseenter", (() => {
             MenuController.getInstance().focusOption(this);
@@ -204,6 +206,15 @@ export class MenuOption{
             this.select();
             MenuController.getInstance().removeMenus();
         })
+    }
+
+    addArrowImg(){
+        if(this.childMenu){
+            const image = document.createElement("img")
+            image.src = "./src/res/img/optionArrow.png"
+            image.classList.add("optionArrowImage");
+            this.htmlElement.appendChild(image);
+        }
     }
 
     select(){
@@ -221,6 +232,8 @@ export class MenuOption{
         this.htmlElement.addEventListener("mouseenter", () => {
             this.childMenu.open();
         });
+
+        this.addArrowImg();
     }
 
     attachToParentMenu(menu: Menu){

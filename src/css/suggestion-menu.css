@@ -23,6 +23,10 @@
     padding-right: 2px;
     background-color: rgba(215, 215, 215, 0.7);
     cursor: pointer;
+
+    display: grid;
+    height: fit-content;
+    column-gap: 5px;
 }
 
 :hover.suggestionOptionParent{
@@ -32,8 +36,21 @@
 .suggestionOptionText{
     color: black;
     font-size: 9pt;
+    width: fit-content;
 }
 
 .selectedSuggestionOptionParent{
     background-color: rgba(93, 149, 240, 0.7);
+}
+
+.optionArrowImage{
+    grid-column-start: 2;
+    grid-column-end: 2;
+    grid-row-start: 1;
+    grid-row-end: 1;
+
+    width: 10px;
+    height: 10px;
+    align-self: center;
+    justify-self: end;
 }
