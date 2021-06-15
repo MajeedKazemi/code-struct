@@ -151,6 +151,9 @@ export class Menu{
     }
 }
 
+/**
+ * An option within a menu that can link to another menu or perform an action when selected.
+ */
 export class MenuOption{
     //menu this option links to
     private childMenu: Menu;
