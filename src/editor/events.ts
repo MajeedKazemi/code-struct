@@ -622,7 +622,8 @@ export class EventHandler {
 			case EditAction.DisplayGreaterThanSuggestion:
 				suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-				this.module.menuController.buildSingleLevelMenu(suggestions, {
+				this.module.menuController.buildSingleLevelMenu(suggestions, new Map<string, Function>(), 
+																					{
 																						left: selection.startColumn * this.module.editor.computeCharWidth(),
 																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
 				  																	}
@@ -636,7 +637,8 @@ export class EventHandler {
 				suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
 
-				this.module.menuController.buildSingleLevelMenu(suggestions, {
+				this.module.menuController.buildSingleLevelMenu(suggestions, new Map<string, Function>(), 
+																					{
 																						left: selection.startColumn * this.module.editor.computeCharWidth(),
 																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
 																					}
@@ -650,7 +652,8 @@ export class EventHandler {
 				suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
 				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
 
-				this.module.menuController.buildSingleLevelMenu(suggestions, {
+				this.module.menuController.buildSingleLevelMenu(suggestions, new Map<string, Function>(), 
+																					{
 																						left: selection.startColumn * this.module.editor.computeCharWidth(),
 																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
 																					}
@@ -663,7 +666,7 @@ export class EventHandler {
 			case EditAction.OpenValidInsertMenu:
 				if(!this.module.menuController.isMenuOpen()){
 					this.module.menuController.buildAvailableInsertsMenu(
-						this.module.getAllValidInsertsList(this.module.focusedNode),
+						this.module.getAllValidInsertsList(this.module.focusedNode), new Map<string, Function>(),
 						{left: selection.startColumn * this.module.editor.computeCharWidth(), top: selection.startLineNumber * this.module.editor.computeCharHeight()}
 					 );
 				}
