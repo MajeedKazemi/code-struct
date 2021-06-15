@@ -152,16 +152,19 @@ export class Menu{
 }
 
 export class MenuOption{
-    //menu that this option links to
+    //menu this option links to
     private childMenu: Menu;
-
-    //menu within which this option is contained
+    //menu this option is a part of
     parentMenu: Menu;
 
     text: string;
     doc: ConstructDoc;
     htmlElement: HTMLDivElement;
+
+    //action performed when this option is selected, null if this option links to another menu
     selectAction: Function;
+
+    //index of this option in parentMenu.options
     indexInParent: number;
 
     constructor(indexInParent:number, text: string = "Option Text", childMenu?: Menu, parentMenu?: Menu, doc?: ConstructDoc, selectAction?: Function){
@@ -225,6 +228,7 @@ export class MenuOption{
         return this.childMenu;
     }
 
+    //highlights this option when it is focused on in the menu and opens its child menu if it has one
     setFocus(){
         this.htmlElement.classList.add(MenuController.selectedOptionElementClass);
 
@@ -239,6 +243,7 @@ export class MenuOption{
         }
     }
 
+    //removes highlight from option when focused off and closes any child menus that were open
     removeFocus(){
         this.htmlElement.classList.remove(MenuController.selectedOptionElementClass);
 
