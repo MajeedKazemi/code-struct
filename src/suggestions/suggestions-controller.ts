@@ -1,30 +1,31 @@
 import Editor from "../editor/editor";
 import { Module } from "../syntax-tree/ast";
-import {constructKeys, ConstructKeys, Util} from "../utilities/util"
+import {ConstructKeys, Util} from "../utilities/util"
 import { ConstructDoc } from "./construct-doc";
 
 
-//a menu with options
+/*
+*A tree menu that can hold options for the user and link through those options to other menus.
+*/
 export class Menu{
-    //used for setting id of each new menu's DOM element
-    static menuCount = 0;
-    static idPrefix = "suggestion-menu-";
-
-    options: MenuOption[] = [];
-    //menu has been entered once
-    private isMenuActive: boolean = false;
-    //menu is currently being hovered over or navigated with arrow keys
-    private isFocused: boolean = false;
+    //Menu object
     private isMenuOpen: boolean = false;
+    options: MenuOption[] = [];
 
-    indexInController: number = -1;
+    /**
+     * Index into this.options of an option that is currently focused and links to another menu.
+     */
+    openedLinkOptionIndex = -1;
 
-    openedLinkOptionIndex = 0;
 
     //tree structure
     children: Menu[] = []
     parentMenu = null;
 
+
+    //DOM
+    static menuCount = 0;
+    static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
 
     constructor(options: Map<string, Function>, keys: string[]){
@@ -48,6 +49,70 @@ export class Menu{
         })
     }
 
+    //close any open sub-menus of menu 
+    closeChildren(){
+        const activeChildren = this.children.filter(menu => menu.isOpen)
+
+        if(activeChildren.length > 0){
+            activeChildren.forEach(menu => {
+                menu.closeChildren();
+                menu.close();
+            })
+        }
+    }
+
+    //indent children of this menu according to their level
+    indentChildren(offset: number = 0){
+        if(this.children.length > 0){
+            let adjustment = offset + this.htmlElement.offsetWidth;
+            this.children.forEach(child => {
+                child.htmlElement.style.left = `${adjustment}px`;
+
+                if(child.children.length > 0){
+                    child.indentChildren(adjustment);
+                }
+            })
+        }
+    }
+    
+    //Link this menu to a child through optionInParent
+    linkMenuThroughOption(child: Menu, optionInParent: string){
+        const option = this.options.filter(option => option.text === optionInParent)[0]
+        option.linkToChildMenu(child);
+        option.selectAction = null;
+        child.close();
+
+        child.htmlElement.style.left = `${this.htmlElement.offsetWidth + this.htmlElement.offsetLeft}px`
+
+        this.addChildMenu(child);
+    }
+
+    //sets all menus that have a single option that links to another set of options
+    //to instead contain the set being linked to without the link option
+    //In other words, collapse unnecessary menus starting at menu
+    collapseSingleOptionLinkMenus(){
+        if(this.children.length > 0){
+            for(let i = 0; i < this.children.length; i++){
+                this.children[i].collapseSingleOptionLinkMenus();
+
+                if(this.children[i].options.length == 1 && this.children[i].options[0].getChildMenu() && this.parentMenu != null){
+                    const grandparent = this.children[i].parentMenu;
+                    const linkOption = grandparent.options.filter(option => option.child === this.children[i])[0]
+
+                    this.children[i] = this.children[i].options[0].getChildMenu();
+                    this.children[i].parentMenu = grandparent;
+                    linkOption.child = this.children[i];
+                }
+            }
+            if(this.options.length == 1 && this.options[0].getChildMenu() && this.parentMenu != null){
+                this.parentMenu.collapseSingleOptionLinkMenus();
+                return
+            }
+        }
+
+        return
+    }
+
     open(){
         this.isMenuOpen = true;
         this.htmlElement.style.visibility = "visible";
@@ -56,31 +121,15 @@ export class Menu{
     close(){
         this.isMenuOpen = false;
         this.htmlElement.style.visibility = "hidden";
-    }
 
-    //Links two menus through the given optionInParent
-    static linkMenuThroughOption(parent: Menu, child: Menu, optionInParent: string){
-        const option = parent.options.filter(option => option.text === optionInParent)[0]
-        option.linkToChildMenu(child);
-        option.selectAction = null;
-        child.close();
-
-        child.htmlElement.style.left = `${parent.htmlElement.offsetWidth + parent.htmlElement.offsetLeft}px`
-
-
-        parent.addChildMenu(child);
+        //if we are closing this menu, the focused option needs to be reset
+        this.options.forEach(option => {
+            option.removeFocus();
+        })
     }
 
     isOpen(){
         return this.isMenuOpen;
-    }
-
-    isActive(){
-        return this.isMenuActive;
-    }
-
-    setActive(active: boolean){
-        this.isMenuActive = active;
     }
 
     //for bulk setting children
@@ -95,66 +144,6 @@ export class Menu{
     addChildMenu(menu: Menu){
         menu.parentMenu = this;
         this.children.push(menu);
-    }
-
-    //close nested menus up to menu starting at bottom of tree
-    static closeChildren(menu: Menu){
-        const activeChildren = menu.children.filter(menu => menu.isOpen)
-
-        if(activeChildren.length > 0){
-            activeChildren.forEach(menu => {
-                //if we are closing this menu, the focused option needs to be reset
-                menu.options.forEach(option => {
-                    option.removeFocus();
-                })
-
-                Menu.closeChildren(menu);
-                menu.close();
-            })
-        }
-    }
-
-    //sets all menus that have a single option that links to another set of options
-    //to instead contain the set being linked to without the link option
-    //In other words, collapse unnecessary menus starting at menu
-    static collapseSingleOptionLinkMenus(menu: Menu){
-        if(menu.children.length > 0){
-            for(let i = 0; i < menu.children.length; i++){
-                Menu.collapseSingleOptionLinkMenus(menu.children[i]);
-
-                if(menu.children[i].options.length == 1 && menu.children[i].options[0].getChildMenu() && menu.parentMenu != null){
-                    const grandparent = menu.children[i].parentMenu;
-                    const linkOption = grandparent.options.filter(option => option.child === menu.children[i])[0]
-
-                    menu.children[i] = menu.children[i].options[0].getChildMenu();
-                    menu.children[i].parentMenu = grandparent;
-                    linkOption.child = menu.children[i];
-                }
-            }
-            if(menu.options.length == 1 && menu.options[0].getChildMenu() && menu.parentMenu != null){
-                Menu.collapseSingleOptionLinkMenus(menu.parentMenu);
-                return
-            }
-        }
-
-        return
-    }
-
-    //indent child menus of menu
-    static adjustOffsetWidth(menu: Menu, offset: number = 0){
-        if(menu.children.length > 0){
-            let adjustment = offset + menu.htmlElement.offsetWidth;
-            menu.children.forEach(child => {
-                child.htmlElement.style.left = `${adjustment}px`;
-
-                if(child.children.length > 0){
-                    Menu.adjustOffsetWidth(child, adjustment);
-                }
-            })
-        }
-        else{
-
-        }
     }
 
     removeFromDOM(){
@@ -254,7 +243,7 @@ export class MenuOption{
         this.htmlElement.classList.remove(MenuController.selectedOptionElementClass);
 
         if(this.childMenu){
-            Menu.closeChildren(this.parentMenu);
+            this.parentMenu.closeChildren();
         }
         else if(this.doc){
             this.doc.hide();
@@ -411,13 +400,13 @@ export class MenuController{
             keys.forEach((key) => {
                 map.get(key).forEach((option) => { //if some menu's option is also a key within the map, that means it links two menus together
                     if(map.has(option)){
-                        Menu.linkMenuThroughOption(menus.get(key), menus.get(option), option);
+                        menus.get(key).linkMenuThroughOption(menus.get(option), option);
                     }
                 })
             })
 
             //indents menu as necessary per structure
-            Menu.adjustOffsetWidth(menus.get(topKey), menus.get(topKey).htmlElement.offsetLeft);
+            menus.get(topKey).indentChildren(menus.get(topKey).htmlElement.offsetLeft);
 
             this.openTopLevelMenu();
         }
@@ -441,7 +430,7 @@ export class MenuController{
             options.forEach(menuOptions => {
                 menuOptions.forEach(option => {
                     if(linkageMap.has(option)){
-                        Menu.linkMenuThroughOption(menus[linkageMap.get(option)[0]], menus[linkageMap.get(option)[1]], option);
+                        menus[linkageMap.get(option)[0]].linkMenuThroughOption(menus[linkageMap.get(option)[1]], option);
                     }
                 })
             })
@@ -599,7 +588,7 @@ export class MenuController{
             this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex;
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].setFocus();
 
-            Menu.closeChildren(this.menus[this.focusedMenuIndex]);
+            this.menus[this.focusedMenuIndex].closeChildren();
         }
     }
 
