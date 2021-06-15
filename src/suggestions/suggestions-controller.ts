@@ -37,7 +37,7 @@ export class Menu{
         Menu.menuCount++;
 
         keys.forEach((key => {
-            const option = new MenuOption(keys.indexOf(key), key, null, this, Util.getInstance().constructDocs.get(key), options.get(key));
+            const option = new MenuOption(key, null, this, Util.getInstance().constructDocs.get(key), options.get(key));
             option.attachToParentMenu(this);
 
             this.options.push(option);
@@ -107,20 +107,28 @@ export class Menu{
         return false;
     }
 
+    //Remove the option that links this menu to child from this menu and the DOM
     private removeLink(child: Menu){
         const link = this.options.filter(option => option.hasChild() && option.getChildMenu() === child)[0]
-        this.options = this.options.splice(this.options.indexOf(link), 1);
+        this.options.splice(this.options.indexOf(link), 1);
         link.removeFromDOM();
     }
 
-    //sets all menus that have a single option that links to another set of options
-    //to instead contain the set being linked to without the link option
-    //In other words, collapse unnecessary menus starting at menu
-    static collapseSingleOptionLinkMenus(root: Menu){
-        if(root.children.length == 0){
-            return
-        }
-        else if(root.options.length == 1 && root.children.length == 1){
+    //An empty option is one that does not link to another menu and also does not have a select action
+    countEmptyOptions(){
+        let count = 0;
+        this.options.forEach((option) => {
+            if(!option.selectAction && !option.hasChild()){
+                count++;
+            }
+        })
+
+        return count;
+    }
+
+    //Removes menu's that only serve as links (have a single option that links to another menu)
+    static collapseSingleLinkMenus(root: Menu){
+        if(root.parentMenu && root.options.length == 1 && root.children.length == 1){
             const child = root.children[0];
             
             //move the child's options' DOM elements to root
@@ -138,19 +146,44 @@ export class Menu{
             root.options = child.options;
 
             //possible that root is a single option menu that links to another
-            root = Menu.collapseSingleOptionLinkMenus(root);
+            root = Menu.collapseSingleLinkMenus(root);
 
             return root;
         }
 
         //Do this for all nodes
         root.children.forEach(child => {
-            child = Menu.collapseSingleOptionLinkMenus(child);
+            child = Menu.collapseSingleLinkMenus(child);
         })  
         
         return root;
         
     }
+
+    removeEmptyChildren(){
+        if(this.children.length == 0){
+
+            //root could be a menu with options that had all of their links removed
+            if(this.countEmptyOptions() == this.options.length && this.parentMenu){
+                this.parentMenu.removeChild(this);
+            }
+        }
+        
+        this.children.forEach(child => {
+            child.removeEmptyChildren();
+        })
+    }
+/*
+    if(root.children.length == 0){
+            let ret = root;
+            //root could be a menu with options that had all of their links removed
+            if(root.countEmptyOptions() == root.options.length && root.parentMenu){
+                ret = root.parentMenu;
+                root.parentMenu.removeChild(root);
+            }
+            return ret;
+        }
+        else */
 
     open(){
         this.isMenuOpen = true;
@@ -210,22 +243,12 @@ export class MenuOption{
     //action performed when this option is selected, null if this option links to another menu
     selectAction: Function;
 
-    //index of this option in parentMenu.options
-    indexInParent: number;
-
-    constructor(indexInParent:number, text: string = "Option Text", childMenu?: Menu, parentMenu?: Menu, doc?: ConstructDoc, selectAction?: Function){
+    constructor(text: string = "Option Text", childMenu?: Menu, parentMenu?: Menu, doc?: ConstructDoc, selectAction?: Function){
         this.text = text;
         this.childMenu = childMenu;
         this.parentMenu = parentMenu;
         this.doc = doc;
-        this.indexInParent = indexInParent;
-
-        if(!selectAction){
-            this.selectAction = () => {console.log("Selected " + this.text)};
-        }
-        else{
-            this.selectAction = selectAction;
-        }
+        this.selectAction = selectAction;
 
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
@@ -260,7 +283,7 @@ export class MenuOption{
         if(this.childMenu){
             this.childMenu.open();
         }
-        else{
+        else if(this.selectAction){
             this.selectAction();
         }
     }
@@ -269,6 +292,7 @@ export class MenuOption{
         this.childMenu = child;
 
         this.htmlElement.addEventListener("mouseenter", () => {
+            this.childMenu.parentMenu.openedLinkOptionIndex = this.childMenu.parentMenu.options.indexOf(this);
             this.childMenu.open();
         });
 
@@ -489,8 +513,9 @@ export class MenuController{
 
             //indents menu as necessary per structure
             menus.get(rootKey).indentChildren(menus.get(rootKey).htmlElement.offsetLeft);
-            
-            menus.set(rootKey, Menu.collapseSingleOptionLinkMenus(menus.get(rootKey)));
+            menus.set(rootKey, Menu.collapseSingleLinkMenus(menus.get(rootKey)));
+            menus.get(rootKey).removeEmptyChildren();
+
             this.updateMenuArrayFromTree(menus.get(rootKey), true);
 
             this.openRootMenu();
@@ -551,7 +576,7 @@ export class MenuController{
         
             const menuOptions = new Map<string, Function>();
             options.forEach(option => {
-                if(option in Object.keys(ConstructKeys).map(key => ConstructKeys[key])){
+                if(Object.keys(ConstructKeys).map(key => ConstructKeys[key]).indexOf(option) > -1){
                     menuOptions.set(option as ConstructKeys, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(option as ConstructKeys))});
                 }
                 else{
@@ -600,8 +625,6 @@ export class MenuController{
 
     //Removes focus from currently focused option and sets it to the option below it.
     focusOptionBelow(){
-        console.log(this.menus)
-        console.log(this.focusedMenuIndex)
         const options = this.menus[this.focusedMenuIndex].options;
         const optionDomElements = this.menus[this.focusedMenuIndex].htmlElement.getElementsByClassName(MenuController.optionElementClass);
 
@@ -692,6 +715,7 @@ export class MenuController{
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].removeFocus();
             this.focusedMenuIndex = this.menus.indexOf(this.menus[this.focusedMenuIndex].parentMenu);
             this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex;
+
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].setFocus();
 
             this.menus[this.focusedMenuIndex].closeChildren();
