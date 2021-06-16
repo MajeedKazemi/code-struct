@@ -2,6 +2,7 @@ import { ConstructDoc } from "../suggestions/construct-doc";
 import {Argument, BinaryBoolOperatorExpr, BinaryOperator, BinaryOperatorExpr, BoolOperator, CodeConstruct,
         ComparatorExpr, ComparatorOp, DataType, ElseStatement, ForStatement, FunctionCallStmt, IfStatement,
         ListLiteralExpression, LiteralValExpr, MemberCallStmt, MethodCallExpr, MethodCallStmt,
+        Module,
         UnaryOp, UnaryOperatorExpr, VarAssignmentStmt, WhileStatement
 } from "../syntax-tree/ast"
 
@@ -64,9 +65,12 @@ export class Util{
     private static instance: Util;
 
     dummyToolboxConstructs: Map<string, CodeConstruct>;
+    constructActions: Map<ConstructKeys, Function>;
     constructDocs: Map<string, ConstructDoc>;
+    module: Module;
     
-    private constructor(){
+    private constructor(module: Module){
+        this.module = module;
         //this cannot exist on its own, need to wrap it in a class. Otherwise it does not see the imports for the construct classes.
         this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
             [ConstructKeys.VariableAssignment, new VarAssignmentStmt()],
@@ -178,15 +182,137 @@ export class Util{
             )]
         ])
 
+        this.constructActions = new Map<ConstructKeys, Function>([
+            [ConstructKeys.VariableAssignment, () => {this.module.insert(new VarAssignmentStmt())}],
+            [ConstructKeys.PrintCall, () => {this.module.insert(
+                new FunctionCallStmt(
+                    'print',
+                    [ new Argument(DataType.Any, 'item', false) ],
+                    DataType.Void
+                )
+            )}],
+            
+            [ConstructKeys.RandintCall, () => {this.module.insert(
+                new FunctionCallStmt(
+                    'randint',
+                    [
+                        new Argument(DataType.Number, 'start', false),
+                        new Argument(DataType.Number, 'end', false)
+                    ],
+                    DataType.Number
+                )
+            )}],
+    
+            [ConstructKeys.RangeCall, () => {this.module.insert(new FunctionCallStmt(
+                'range',
+                [
+                    new Argument(DataType.Number, 'start', false),
+                    new Argument(DataType.Number, 'end', false)
+                ],
+                DataType.List
+            ))}],
+    
+            [ConstructKeys.LenCall, () => {this.module.insert(new FunctionCallStmt(
+                'len',
+                [ new Argument(DataType.List, 'list', false) ],
+                DataType.Number
+            ))}],
+    
+            [ConstructKeys.StringLiteral, () => {this.module.insert(new LiteralValExpr(DataType.String))}],
+    
+            [ConstructKeys.NumberLiteral, () => {this.module.insert(new LiteralValExpr(DataType.Number))}],
+    
+            [ConstructKeys.True, () => {this.module.insert(new LiteralValExpr(DataType.Boolean , 'True' ))}],
+    
+            [ConstructKeys.False, () => {this.module.insert(new LiteralValExpr(DataType.Boolean, 'False'))}],
+    
+            [ConstructKeys.Addition, () => {this.module.insert(new BinaryOperatorExpr(BinaryOperator.Add, DataType.Any))}],
+    
+            [ConstructKeys.Subtracion, () => {this.module.insert(new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Any))}],
+    
+            [ConstructKeys.Multiplication, () => {this.module.insert(new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Any))}],
+    
+            [ConstructKeys.Division, () => {this.module.insert(new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Any))}],
+    
+            [ConstructKeys.And, () => {this.module.insert(new BinaryBoolOperatorExpr(BoolOperator.And))}],
+    
+            [ConstructKeys.Or, () => {this.module.insert(new BinaryBoolOperatorExpr(BoolOperator.Or))}],
+    
+            [ConstructKeys.Not, () => {this.module.insert(new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean,  DataType.Boolean))}],
+    
+            [ConstructKeys.Equals, () => {this.module.insert(new ComparatorExpr(ComparatorOp.Equal))}],
+    
+            [ConstructKeys.NotEquals, () => {this.module.insert(new ComparatorExpr(ComparatorOp.NotEqual))}],
+    
+            [ConstructKeys.LessThan, () => {this.module.insert(new ComparatorExpr(ComparatorOp.LessThan))}],
+    
+            [ConstructKeys.LessThanOrEqual, () => {this.module.insert(new ComparatorExpr(ComparatorOp.LessThanEqual))}],
+    
+            [ConstructKeys.GreaterThan, () => {this.module.insert(new ComparatorExpr(ComparatorOp.GreaterThan))}],
+    
+            [ConstructKeys.GreaterThanOrEqual, () => {this.module.insert(new ComparatorExpr(ComparatorOp.GreaterThanEqual))}],
+    
+            [ConstructKeys.While, () => {this.module.insert(new WhileStatement())}],
+    
+            [ConstructKeys.If, () => {this.module.insert(new IfStatement())}],
+    
+            [ConstructKeys.Elif, () => {this.module.insert(new ElseStatement(true))}],
+    
+            [ConstructKeys.Else, () => {this.module.insert(new ElseStatement(false))}],
+    
+            [ConstructKeys.For, () => {this.module.insert(new ForStatement())}],
+    
+            [ConstructKeys.ListLiteral, () => {this.module.insert(new ListLiteralExpression())}],
+    
+            [ConstructKeys.AppendCall, () => {this.module.insert(new MethodCallStmt('append', [ new Argument(DataType.Any, 'object', false) ]))}],
+    
+            [ConstructKeys.MemberCall, () => {this.module.insert(new MemberCallStmt(DataType.Any))}],
+    
+            [ConstructKeys.SplitCall, () => {this.module.insert(new MethodCallExpr(
+                'split',
+                [ new Argument(DataType.String, 'sep', false) ],
+                DataType.List,
+                DataType.String
+            ))}],
+    
+            [ConstructKeys.JoinCall, () => {this.module.insert(new MethodCallExpr(
+                'join',
+                [ new Argument(DataType.List, 'items', false) ],
+                DataType.String,
+                DataType.String
+            ))}],
+    
+            [ConstructKeys.ReplaceCall, () => {this.module.insert(new MethodCallExpr(
+                'replace',
+                [
+                    new Argument(DataType.String, 'old', false),
+                    new Argument(DataType.String, 'new', false)
+                ],
+                DataType.String,
+                DataType.String
+            ))}],
+    
+            [ConstructKeys.FindCall, () => {this.module.insert(new MethodCallExpr(
+                'find',
+                [ new Argument(DataType.String, 'item', false) ],
+                DataType.Number,
+                DataType.String
+            ))}]
+        ]);
+
         this.constructDocs = new Map<string, ConstructDoc>([
             [ConstructKeys.PrintCall, new ConstructDoc("Function: " + ConstructKeys.PrintCall, "Outputs argument to stdout.",  ['./src/res/img/cat1.jpg','./src/res/img/cat2.jpg', './src/res/img/cat3.jpg', './src/res/img/cat4.jpg', './src/res/img/cat5.jpg'])]
         ])
     }
 
-    static getInstance(){
+    static getInstance(module: Module){
         if(!Util.instance){
-            Util.instance = new Util;
+            Util.instance = new Util(module);
         }
+        return Util.instance;
+    }
+
+    static getPopulatedInstance(){
         return Util.instance;
     }
 }

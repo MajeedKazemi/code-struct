@@ -37,7 +37,7 @@ export class Menu{
         Menu.menuCount++;
 
         keys.forEach((key => {
-            const option = new MenuOption(key, null, this, Util.getInstance().constructDocs.get(key), options.get(key));
+            const option = new MenuOption(key, null, this, Util.getInstance(MenuController.getInstance().module).constructDocs.get(key), options.get(key));
             option.attachToParentMenu(this);
 
             this.options.push(option);
@@ -173,17 +173,6 @@ export class Menu{
             child.removeEmptyChildren();
         })
     }
-/*
-    if(root.children.length == 0){
-            let ret = root;
-            //root could be a menu with options that had all of their links removed
-            if(root.countEmptyOptions() == root.options.length && root.parentMenu){
-                ret = root.parentMenu;
-                root.parentMenu.removeChild(root);
-            }
-            return ret;
-        }
-        else */
 
     open(){
         this.isMenuOpen = true;
@@ -577,7 +566,7 @@ export class MenuController{
             const menuOptions = new Map<string, Function>();
             options.forEach(option => {
                 if(Object.keys(ConstructKeys).map(key => ConstructKeys[key]).indexOf(option) > -1){
-                    menuOptions.set(option as ConstructKeys, () => {this.module.insert(Util.getInstance().dummyToolboxConstructs.get(option as ConstructKeys))});
+                    menuOptions.set(option as ConstructKeys, () => {this.module.insert(Util.getInstance(this.module).dummyToolboxConstructs.get(option as ConstructKeys))});
                 }
                 else{
                     menuOptions.set(option, null);

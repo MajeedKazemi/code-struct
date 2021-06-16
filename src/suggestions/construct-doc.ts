@@ -1,3 +1,4 @@
+import { Module } from "../syntax-tree/ast";
 import { constructKeys, Util } from "../utilities/util";
 
 
@@ -18,8 +19,8 @@ export class ConstructDoc{
 
     static updateDocsLeftOffset(offset: number){
         constructKeys.forEach((key) => {
-            if(Util.getInstance().constructDocs.get(key)){
-                Util.getInstance().constructDocs.get(key).updateLeftOffset(offset);
+            if(Util.getPopulatedInstance().constructDocs.get(key)){
+                Util.getPopulatedInstance().constructDocs.get(key).updateLeftOffset(offset);
             }
         })
     }

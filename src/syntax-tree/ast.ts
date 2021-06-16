@@ -2445,7 +2445,7 @@ export class Module {
     getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean>{
         const validInserts = new Map<ConstructKeys, boolean>();
         Object.keys(ConstructKeys).forEach(key => {
-            validInserts.set(ConstructKeys[key], this.tryInsert(focusedNode, Util.getInstance().dummyToolboxConstructs.get(ConstructKeys[key])))
+            validInserts.set(ConstructKeys[key], this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])))
         })
 
         return validInserts;
@@ -2454,7 +2454,7 @@ export class Module {
     getAllValidInsertsList(focusedNode: CodeConstruct): Array<ConstructKeys>{
         const validInsertsList = [];
         Object.keys(ConstructKeys).forEach(key => {
-            if(this.tryInsert(focusedNode, Util.getInstance().dummyToolboxConstructs.get(ConstructKeys[key]))){
+            if(this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key]))){
                 validInsertsList.push(ConstructKeys[key]);
             }
         })
