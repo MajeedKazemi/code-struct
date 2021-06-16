@@ -422,7 +422,7 @@ export class MenuController{
                 ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
                 ["Comparator", [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual, ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual]],
                 ["Member Function Calls", [ConstructKeys.AppendCall, ConstructKeys.FindCall, ConstructKeys.SplitCall, ConstructKeys.ReplaceCall, ConstructKeys.JoinCall]],
-                ["Other", [ConstructKeys.VariableAssignment]]
+                ["Other", [ConstructKeys.VariableAssignment, ConstructKeys.ListElementAssignment, ConstructKeys.MemberCall]]
             ]);
     
             let keys = ["Literals", "Function Calls", "Operators", "Control Statements",

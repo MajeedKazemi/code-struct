@@ -1,6 +1,7 @@
 import { ConstructDoc } from "../suggestions/construct-doc";
 import {Argument, BinaryBoolOperatorExpr, BinaryOperator, BinaryOperatorExpr, BoolOperator, CodeConstruct,
         ComparatorExpr, ComparatorOp, DataType, ElseStatement, ForStatement, FunctionCallStmt, IfStatement,
+        ListElementAssignment,
         ListLiteralExpression, LiteralValExpr, MemberCallStmt, MethodCallExpr, MethodCallStmt,
         Module,
         UnaryOp, UnaryOperatorExpr, VarAssignmentStmt, WhileStatement
@@ -12,7 +13,7 @@ import {Argument, BinaryBoolOperatorExpr, BinaryOperator, BinaryOperatorExpr, Bo
  * 
  * constructKeys and ConstructKeys need to have the same values. 
  * 
- * The enum is that we can get a dummy construct anywhere in the code.
+ * The enum is so that we can get a dummy construct anywhere in the code.
  * The list is so that we can loop over all dumy constructs since Map does not have a public keys property.
  * 
  * In regular JS we could always call Object.keys(ConstructKeys), but not in TS.
@@ -20,8 +21,8 @@ import {Argument, BinaryBoolOperatorExpr, BinaryOperator, BinaryOperatorExpr, Bo
 export const constructKeys = [
     "VarAssign", "print()", "randint()", "range()", "len()", "string", "int", "True", "False",
     "+", "-", "*", "/", "And", "Or", "Not", "==", "!=", "<", "<=", ">", ">=", "while", 
-    "If",  "Elif",  "Else", "For", "List Literal []", ".append()", "Member Call?", ".split()", ".join()", 
-    ".replace()", ".find()"
+    "If",  "Elif",  "Else", "For", "List Literal", ".append()", "Member Call", ".split()", ".join()", 
+    ".replace()", ".find()", "List Element Assignment"
 ]
 
 export enum ConstructKeys{
@@ -58,7 +59,8 @@ export enum ConstructKeys{
     JoinCall = ".join()",
     ReplaceCall = ".replace()",
     FindCall = ".find()",
-    MemberCall = "Member Call ?"
+    MemberCall = "Member Call",
+    ListElementAssignment = "List Element Assignment"
 }
 
 export class Util{
@@ -179,8 +181,13 @@ export class Util{
                 [ new Argument(DataType.String, 'item', false) ],
                 DataType.Number,
                 DataType.String
-            )]
+            )],
+
+            [ConstructKeys.ListElementAssignment, new ListElementAssignment()]
         ])
+
+
+        ///
 
         this.constructActions = new Map<ConstructKeys, Function>([
             [ConstructKeys.VariableAssignment, () => {this.module.insert(new VarAssignmentStmt())}],
@@ -297,7 +304,10 @@ export class Util{
                 [ new Argument(DataType.String, 'item', false) ],
                 DataType.Number,
                 DataType.String
-            ))}]
+            ))}],
+            [ConstructKeys.ListElementAssignment, () => {this.module.insert(
+                new ListElementAssignment()
+            )}]
         ]);
 
         this.constructDocs = new Map<string, ConstructDoc>([
