@@ -371,6 +371,78 @@ export class MenuController{
         this.editor = editor;
     }
 
+    //TODO: Remove later
+    buildSingleLevelConstructCategoryMenu(suggestions: Array<string | ConstructKeys>){
+        if(this.menus.length > 0){
+            this.removeMenus();
+        }
+        else{
+            const util = Util.getInstance(this.module);
+            const actionMap = new Map<string, Function>();
+
+            const menuMap =  new Map<string, Array<string>>([
+                ["Top", ["Literals", "Function Calls", "Operators", "Control Statements", "Member Function Calls", "Other"]],
+                ["Literals", [ConstructKeys.StringLiteral, ConstructKeys.NumberLiteral, ConstructKeys.True, ConstructKeys.False, ConstructKeys.ListLiteral]],
+                ["Function Calls", [ConstructKeys.PrintCall, ConstructKeys.LenCall, ConstructKeys.RandintCall, ConstructKeys.RangeCall]],
+                ["Operators", [ "Comparator", "Arithmetic", "Boolean"]],
+                ["Control Statements", [ConstructKeys.If, ConstructKeys.Elif, ConstructKeys.Else, ConstructKeys.While, ConstructKeys.For]],
+                ["Arithmetic", [ConstructKeys.Addition, ConstructKeys.Subtracion, ConstructKeys.Division, ConstructKeys.Multiplication]],
+                ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
+                ["Comparator", [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual, ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual]],
+                ["Member Function Calls", [ConstructKeys.AppendCall, ConstructKeys.FindCall, ConstructKeys.SplitCall, ConstructKeys.ReplaceCall, ConstructKeys.JoinCall]],
+                ["Other", [ConstructKeys.VariableAssignment, ConstructKeys.ListElementAssignment, ConstructKeys.MemberCall]]
+            ]);
+    
+            let keys = ["Literals", "Function Calls", "Operators", "Control Statements",
+                           "Comparator", "Arithmetic", "Boolean", "Member Function Calls", "Other", "Top"
+                         ];
+            let categories = [];
+
+            //insert categories as options
+            const categorizedSuggestions = []
+            keys.forEach(category => {
+                categorizedSuggestions.push(category);
+                actionMap.set(category, () => {console.log(category)})
+                categories.push(category);
+                
+                let emptyCategory = true
+                suggestions.forEach(suggestion => {
+                    if(menuMap.get(category).indexOf(suggestion) > -1){
+                        categorizedSuggestions.push(suggestion);
+                        emptyCategory = false;
+                    }
+                })
+
+                if(emptyCategory){
+                    categorizedSuggestions.splice(categorizedSuggestions.length - 1, 1)
+                    categories.splice(categorizedSuggestions.length - 1, 1)
+                }
+            })
+
+            //add actions
+            keys.forEach(category => {
+                menuMap.get(category).forEach(option => {
+                    if(util.constructActions.has(option)){ //construct has an action
+                        actionMap.set(option, util.constructActions.get(option));
+                    }
+                })
+            })
+
+            this.buildSingleLevelMenu(categorizedSuggestions, actionMap);
+
+            //update options to have correct style
+            this.menus[0].options.forEach(option => {
+                if(categories.indexOf(option.text) > -1){
+                    option.htmlElement.classList.add("categoryHeading");
+                }
+                else{
+                    option.htmlElement.classList.add("categoryOption");
+                }
+            })
+        }
+
+    }
+
     /**
      * Build a single-node menu that contains all options provided by suggestions.
      * 
@@ -385,15 +457,16 @@ export class MenuController{
         if(this.menus.length > 0){
             this.removeMenus();
         }
-
-        const suggestionMap = new Map<string, Array<string>>(
-            [
-                ["Top", suggestions]
-            ]
-        );
-        
-        if(suggestions.length > 0){
-            this.module.menuController.buildMenuFromOptionMap(suggestionMap, ["Top"], "Top", actionMap, pos);
+        else{
+            const suggestionMap = new Map<string, Array<string>>(
+                [
+                    ["Top", suggestions]
+                ]
+            );
+            
+            if(suggestions.length > 0){
+                this.module.menuController.buildMenuFromOptionMap(suggestionMap, ["Top"], "Top", actionMap, pos);
+            }
         }
     }
 
@@ -489,6 +562,7 @@ export class MenuController{
                 }
             })
 
+            //set actions
             keys.forEach((menuKey) => {
                 map.get(menuKey).forEach((option) => { 
                     if(actionMap.has(option)){

@@ -54,3 +54,11 @@
     align-self: center;
     justify-self: end;
 }
+
+.categoryHeading{
+    font-weight: bold;
+}
+
+.categoryOption{
+    padding-left: 10px;
+}

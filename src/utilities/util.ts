@@ -75,7 +75,7 @@ export class Util{
     private static instance: Util;
 
     dummyToolboxConstructs: Map<string, CodeConstruct>;
-    constructActions: Map<ConstructKeys, Function>;
+    constructActions: Map<string, Function>;
     constructDocs: Map<string, ConstructDoc>;
     module: Module;
     

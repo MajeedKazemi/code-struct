@@ -41,7 +41,10 @@ export enum KeyPress {
 	Equals = "=",
 
 	Escape = "Escape",
-	Space = " "
+	Space = " ",
+
+	//TODO: Remove later
+	P = "p"
 }
 
 export enum EditAction {
@@ -103,7 +106,10 @@ export enum EditAction {
 	CloseValidInsertMenu,
 	OpenValidInsertMenu,
 	OpenSubMenu,
-	CloseSubMenu
+	CloseSubMenu,
+
+	//TODO: Remove later
+	OpenValidInsertMenuSingleLevel
 }
 
 export class EventHandler {
@@ -266,6 +272,13 @@ export class EventHandler {
 			case KeyPress.Space:
 				if(!inTextEditMode &&  e.ctrlKey && e.key.length == 1){
 					return EditAction.OpenValidInsertMenu;
+				}
+				break;
+
+			//TODO: Remove later
+			case KeyPress.P:
+				if(!inTextEditMode &&  e.ctrlKey && e.key.length == 1){
+					return EditAction.OpenValidInsertMenuSingleLevel;
 				}
 				break;
 
@@ -669,6 +682,20 @@ export class EventHandler {
 						this.module.getAllValidInsertsList(this.module.focusedNode), Util.getInstance(this.module).constructActions,
 						{left: selection.startColumn * this.module.editor.computeCharWidth(), top: selection.startLineNumber * this.module.editor.computeCharHeight()}
 					 );
+				}
+				else{
+					this.module.menuController.removeMenus();
+				}
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			//TODO: Remove later
+			case EditAction.OpenValidInsertMenuSingleLevel:
+				if(!this.module.menuController.isMenuOpen()){
+					const suggestions = this.module.getAllValidInsertsList(this.module.focusedNode)
+					this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
 				}
 				else{
 					this.module.menuController.removeMenus();
