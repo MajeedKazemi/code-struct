@@ -71,6 +71,76 @@ export enum ConstructKeys{
     ListElementAssignment = "List Element Assignment"
 }
 
+export const constructToToolboxButton = new Map<ConstructKeys, string>(
+    [
+        [ConstructKeys.VariableAssignment, "add-var-btn"],
+
+        [ConstructKeys.PrintCall, "add-print-btn"],
+        
+        [ConstructKeys.RandintCall, "add-randint-btn"],
+
+        [ConstructKeys.RangeCall, "add-range-btn"],
+
+        [ConstructKeys.LenCall, "add-len-btn"],
+
+        [ConstructKeys.StringLiteral, "add-str-btn"],
+
+        [ConstructKeys.NumberLiteral, "add-num-btn" ],
+
+        [ConstructKeys.True, "add-true-btn"],
+
+        [ConstructKeys.False, "add-false-btn"],
+
+        [ConstructKeys.Addition, "add-bin-add-expr-btn"],
+
+        [ConstructKeys.Subtracion, "add-bin-sub-expr-btn"],
+
+        [ConstructKeys.Multiplication, "add-bin-mul-expr-btn"],
+
+        [ConstructKeys.Division, "add-bin-div-expr-btn"],
+
+        [ConstructKeys.And, "add-bin-and-expr-btn"],
+
+        [ConstructKeys.Or, "add-bin-or-expr-btn"],
+
+        [ConstructKeys.Not, "add-unary-not-expr-btn"],
+
+        [ConstructKeys.Equals, "add-comp-eq-expr-btn"],
+
+        [ConstructKeys.NotEquals, "add-comp-neq-expr-btn"],
+
+        [ConstructKeys.LessThan, "add-comp-lt-expr-btn"],
+
+        [ConstructKeys.LessThanOrEqual, "add-comp-lte-expr-btn"],
+
+        [ConstructKeys.GreaterThan, "add-comp-gt-expr-btn"],
+
+        [ConstructKeys.GreaterThanOrEqual, "add-comp-gte-expr-btn"],
+
+        [ConstructKeys.While, "add-while-expr-btn"],
+
+        [ConstructKeys.If, "add-if-expr-btn"],
+
+        [ConstructKeys.Elif, "add-elif-expr-btn" ],
+
+        [ConstructKeys.Else, "add-else-expr-btn" ],
+
+        [ConstructKeys.For, "add-for-expr-btn"],
+
+        [ConstructKeys.ListLiteral, "add-list-literal-btn"],
+
+        [ConstructKeys.SplitCall, "add-split-method-call-btn"],
+
+        [ConstructKeys.JoinCall, "add-join-method-call-btn"],
+
+        [ConstructKeys.ReplaceCall, "add-replace-method-call-btn"],
+
+        [ConstructKeys.FindCall, "add-find-method-call-btn"],
+
+        [ConstructKeys.ListElementAssignment, "add-list-elem-assign-btn"]
+    ]
+)
+
 export class Util{
     private static instance: Util;
 

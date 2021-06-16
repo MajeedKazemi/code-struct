@@ -8,7 +8,7 @@ import {ErrorMessage} from "../notification-system/error-msg-generator";
 import {Notification} from '../notification-system/notification'
 import { ConstructCompleter } from "../typing-system/construct-completer";
 import { MenuController } from "../suggestions/suggestions-controller";
-import {ConstructKeys, constructKeys, Util} from "../utilities/util"
+import {ConstructKeys, constructKeys, constructToToolboxButton, Util} from "../utilities/util"
 
 export class Callback {
     static counter: number;
@@ -2208,7 +2208,7 @@ export class Module {
 	editor: Editor;
 	eventHandler: EventHandler;
 	actionStack: ActionStack;
-	buttons: HTMLElement[];
+	variableButtons: HTMLElement[];
 	notificationSystem: NotificationSystemController;
     constructCompleter: ConstructCompleter;
     menuController: MenuController;
@@ -2230,7 +2230,7 @@ export class Module {
         this.constructCompleter = ConstructCompleter.getInstance();
         this.constructCompleter.setInstanceContext(this, this.editor);
 
-		this.buttons = [];
+		this.variableButtons = [];
 
         this.menuController = MenuController.getInstance();
         this.menuController.setInstance(this, this.editor);
@@ -2247,8 +2247,8 @@ export class Module {
         this.editor.reset();
         this.editor.monaco.focus();
 
-        this.buttons.forEach((button) => button.remove());
-        this.buttons = [];
+        this.variableButtons.forEach((button) => button.remove());
+        this.variableButtons = [];
 
         this.notificationSystem.clearAllNotifications();
     }
@@ -2262,7 +2262,7 @@ export class Module {
 
         button.addEventListener("click", this.addVarRefHandler(ref).bind(this))
 
-        this.buttons.push(button);
+        this.variableButtons.push(button);
     }
 
     addVarRefHandler(ref: VarAssignmentStmt){
@@ -2283,7 +2283,7 @@ export class Module {
             this.insert(new VariableReferenceExpr(ref.getIdentifier(), DataType.Number, ref.buttonId));
         });
 
-        this.buttons.push(button);
+        this.variableButtons.push(button);
     }
 
     addStatement(newStmt: Statement, index: number, lineNumber: number) {

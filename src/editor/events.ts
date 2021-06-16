@@ -754,7 +754,9 @@ export class EventHandler {
 	onButtonDown(id: string) {
 		switch (id) {
 			case 'add-var-btn':
-				this.module.insert(new AST.VarAssignmentStmt());
+				if(!(document.getElementById('add-var-btn') as HTMLButtonElement).disabled){
+					this.module.insert(new AST.VarAssignmentStmt());
+				}
 				break;
 			case 'add-print-btn':
 				this.module.insert(

@@ -52,3 +52,7 @@
   border-radius: 6px;
   border: 3px solid white;
 }
+
+.disabledButton{
+  background-color:rgba(245, 30, 30, 0.5);
+}

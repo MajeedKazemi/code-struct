@@ -1,5 +1,5 @@
 import * as monaco from "monaco-editor";
-import {ConstructKeys, constructKeys} from "../utilities/util"
+import {ConstructKeys, constructKeys, constructToToolboxButton} from "../utilities/util"
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -74,6 +74,22 @@ export default class Editor {
         if(this.module.menuController.isMenuOpen()){
             this.module.menuController.removeMenus();
         }
+
+        const validInserts = this.module.getAllValidInsertsList(this.module.focusedNode);
+        Object.keys(ConstructKeys).forEach(construct => {
+            if(constructToToolboxButton.has(ConstructKeys[construct])){
+                if(validInserts.indexOf(ConstructKeys[construct]) == -1){
+                    const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
+                    button.disabled = true;
+                    button.classList.add("disabledButton");
+                }
+                else{
+                    const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
+                    button.disabled = false;
+                    button.classList.remove("disabledButton");
+                }
+            }
+        })
     }
 
     getLineEl(ln: number) {
