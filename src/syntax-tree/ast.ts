@@ -101,6 +101,8 @@ export enum CallbackType {
     replace,
     delete,
     fail,
+    focus,
+    loseFocus
 }
 
 export interface CodeConstruct {
@@ -220,6 +222,11 @@ export interface CodeConstruct {
      * Removes all subscribes of the given type for this code construct
      */
     unsubscribe(type: CallbackType, callerId: string);
+
+    /**
+     * Calls callback of the given type if this construct is subscribed to it.
+     */
+    notify(type: CallbackType);
 }
 
 /**
@@ -262,6 +269,8 @@ export abstract class Statement implements CodeConstruct {
 	notification = null;
 
     keywordIndex = -1;
+
+    hole = null;
 
 	constructor() {
 		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();

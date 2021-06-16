@@ -6,6 +6,7 @@ import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
 import { ConstructCompleter } from '../typing-system/construct-completer';
 import { BinaryOperator, CodeConstruct, DataType, Statement } from '../syntax-tree/ast';
+import Hole from './hole';
 
 export enum KeyPress {
 	// navigation:
@@ -92,8 +93,12 @@ export class EventHandler {
 	}
 
 	setFocusedNode(code: ast.CodeConstruct) {
+		this.module.focusedNode.notify(ast.CallbackType.loseFocus);
+
 		this.module.focusedNode = code;
 		this.module.editor.focusSelection(this.module.focusedNode.getSelection());
+
+		code.notify(ast.CallbackType.focus);
 	}
 
 	getKeyAction(e: KeyboardEvent) {

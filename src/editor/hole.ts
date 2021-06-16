@@ -1,7 +1,9 @@
-import { CallbackType, CodeConstruct, Callback } from "../syntax-tree/ast";
+import { CallbackType, CodeConstruct, Callback, LiteralValExpr, EditableTextTkn, IdentifierTkn } from "../syntax-tree/ast";
 import Editor from "./editor";
 
 export default class Hole {
+    static editableHoleClass = "editableHole";
+
     element: HTMLDivElement;
     editor: Editor;
     code: CodeConstruct;
@@ -21,6 +23,18 @@ export default class Hole {
 
         this.element = element;
         const hole = this;
+
+        if(code instanceof EditableTextTkn || code instanceof IdentifierTkn){
+            this.element.classList.add(Hole.editableHoleClass);
+
+            code.subscribe(CallbackType.loseFocus, new Callback(() => {
+				this.element.classList.remove(Hole.editableHoleClass);
+            }))
+
+            code.subscribe(CallbackType.focus, new Callback(() => {
+				this.element.classList.add(Hole.editableHoleClass);
+            }))
+        }
 
         code.subscribe(
             CallbackType.delete,
