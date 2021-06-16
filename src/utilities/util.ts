@@ -25,6 +25,14 @@ export const constructKeys = [
     ".replace()", ".find()", "List Element Assignment"
 ]
 
+/**
+ * To add a construct to the general menu (the one that is displayed with Ctrl+Space).
+ *  1. Add a Construct Key for it in ConstructKeys enum. 
+ *  2. Add a dummy construct for it in Util.dummyToolboxConstructs.
+ *  3. Add an action for it in Util.constructActions.
+ *  4. Modify the menuMap in suggestions-controller.ts->buildAvailableInsertsMenu to include your construct.
+ */
+
 export enum ConstructKeys{
     VariableAssignment = "VarAssign",
     PrintCall = "print()",

@@ -548,6 +548,12 @@ export class MenuController{
             this.indexOfRootMenu = 0;
             this.focusedMenuIndex = 0;
 
+            menus[0].indentChildren(menus[0].htmlElement.offsetLeft);
+            menus[0] = Menu.collapseSingleLinkMenus(menus[0]);
+            menus[0].removeEmptyChildren();
+
+            this.updateMenuArrayFromTree(menus[0], true);
+
             this.openRootMenu();
         }
     }
