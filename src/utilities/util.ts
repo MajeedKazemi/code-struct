@@ -389,7 +389,7 @@ export class Util{
         ]);
 
         this.constructDocs = new Map<string, ConstructDoc>([
-            [ConstructKeys.PrintCall, new ConstructDoc("Function: " + ConstructKeys.PrintCall, "Outputs argument to stdout.",  ['./src/res/img/cat1.jpg','./src/res/img/cat2.jpg', './src/res/img/cat3.jpg', './src/res/img/cat4.jpg', './src/res/img/cat5.jpg'])]
+            [ConstructKeys.PrintCall, new ConstructDoc("Function: " + ConstructKeys.PrintCall, "Outputs argument to stdout.",  [])] //['./src/res/img/cat1.jpg','./src/res/img/cat2.jpg', './src/res/img/cat3.jpg', './src/res/img/cat4.jpg', './src/res/img/cat5.jpg']
         ])
     }
 
