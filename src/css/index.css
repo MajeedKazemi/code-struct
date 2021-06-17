@@ -54,3 +54,8 @@ body {
   box-shadow: none;
   background-color: #f3f5fa !important;
 }
+
+.button.disabled{
+  opacity: 0.4;
+  cursor: not-allowed;
+}

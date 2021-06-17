@@ -81,12 +81,12 @@ export default class Editor {
                 if(validInserts.indexOf(ConstructKeys[construct]) == -1){
                     const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
                     button.disabled = true;
-                    button.classList.add("disabledButton");
+                    button.classList.add("disabled");
                 }
                 else{
                     const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
                     button.disabled = false;
-                    button.classList.remove("disabledButton");
+                    button.classList.remove("disabled");
                 }
             }
         })
