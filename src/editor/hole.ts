@@ -1,8 +1,11 @@
-import { CallbackType, CodeConstruct, Callback, LiteralValExpr, EditableTextTkn, IdentifierTkn } from "../syntax-tree/ast";
+import { CallbackType, CodeConstruct, Callback, LiteralValExpr, EditableTextTkn, IdentifierTkn, TypedEmptyExpr, VarAssignmentStmt, DataType, Expression } from "../syntax-tree/ast";
 import Editor from "./editor";
+import * as monaco from 'monaco-editor';
 
 export default class Hole {
     static editableHoleClass = "editableHole";
+    static inScopeHole = "inScopeHole"
+    static holes = []
 
     element: HTMLDivElement;
     editor: Editor;
@@ -24,15 +27,36 @@ export default class Hole {
         this.element = element;
         const hole = this;
 
+        Hole.holes.push(hole);
+console.log(Hole.holes)
         if(code instanceof EditableTextTkn || code instanceof IdentifierTkn){
             this.element.classList.add(Hole.editableHoleClass);
 
             code.subscribe(CallbackType.loseFocus, new Callback(() => {
 				this.element.classList.remove(Hole.editableHoleClass);
+
+                if(code instanceof IdentifierTkn){
+                    Hole.holes.forEach(hole => {
+                        if(hole.element.classList.contains(Hole.inScopeHole)){
+                            hole.element.classList.remove(Hole.inScopeHole);
+                        }
+                    })
+                }
             }))
 
             code.subscribe(CallbackType.focus, new Callback(() => {
 				this.element.classList.add(Hole.editableHoleClass);
+               
+                if(code instanceof IdentifierTkn){
+                    Hole.holes.forEach(hole => {
+                        if( hole.code instanceof TypedEmptyExpr &&
+                           ((code.getParentStatement() as VarAssignmentStmt).dataType == (hole.code as TypedEmptyExpr).type || (hole.code as TypedEmptyExpr).type == DataType.Any) &&
+                            hole.code.getParentStatement().hasScope() && hole.code.getParentStatement().scope.isValidReference((code.getParentStatement() as VarAssignmentStmt).buttonId, hole.code.getSelection().startLineNumber)
+                          ){
+                            hole.element.classList.add(Hole.inScopeHole);
+                        }
+                    })
+                }
             }))
         }
 
