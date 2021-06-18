@@ -1,5 +1,5 @@
 import Editor from "../editor/editor";
-import { Module } from "../syntax-tree/ast";
+import { ForStatement, Module, VarAssignmentStmt } from "../syntax-tree/ast";
 import {ConstructKeys, Util} from "../utilities/util"
 import { ConstructDoc } from "./construct-doc";
 
@@ -502,6 +502,17 @@ export class MenuController{
                            "Comparator", "Arithmetic", "Boolean", "Member Function Calls", "Other", "Top"
                          ];
 
+            //add variable references
+            const refs = this.module.getValidVariableReferences(this.module.focusedNode);
+            const identifiers = refs.map(ref => (ref.statement as VarAssignmentStmt).getIdentifier())
+            refs.forEach(ref => {
+                console.log(ref)
+                if(ref.statement instanceof VarAssignmentStmt){
+                    menuMap.get("Other").push(ref.statement.getIdentifier())
+                    actionMap.set(ref.statement.getIdentifier(), this.module.addVarRefHandler(ref.statement).bind(this.module));
+                }
+            })
+
             //find all options that link to another menu
             const links = []
             keys.forEach((menuKey) => {
@@ -517,7 +528,7 @@ export class MenuController{
             keys.forEach((menuKey) => {
                 //remove invalid options that are not links
                 if(menuKey!= "Top"){
-                    menuMap.set(menuKey, menuMap.get(menuKey).filter(option => suggestions.indexOf(option) > -1 || links.indexOf(option) != -1));
+                    menuMap.set(menuKey, menuMap.get(menuKey).filter(option => suggestions.indexOf(option) > -1 || links.indexOf(option) != -1 || identifiers.indexOf(option) > -1));
                 }
 
                 //remove menus with empty options

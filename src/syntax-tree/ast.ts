@@ -2440,7 +2440,17 @@ export class Module {
         root.replace(expr, this.focusedNode.indexInRoot);        
     }
 
-    referenceTable = new Array<Reference>();
+
+    getValidVariableReferences(code: CodeConstruct): Reference[]{
+        let refs = []
+
+        if(code instanceof TypedEmptyExpr){
+            refs.push(...code.getParentStatement().scope.getValidReferences(code.getSelection().startLineNumber))
+            refs = refs.filter(ref => ref.statement instanceof VarAssignmentStmt && (code.type == (ref.statement as VarAssignmentStmt).dataType || code.type == DataType.Any))
+        }
+
+        return refs;
+    }
 
     getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean>{
         const validInserts = new Map<ConstructKeys, boolean>();
