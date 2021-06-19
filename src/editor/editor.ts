@@ -115,7 +115,11 @@ export class Editor {
     }
 
     executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
-        const text = overwrite || code.getRenderText();
+        let text = overwrite;
+
+        if (overwrite == null)
+            text = code.getRenderText();
+
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
         this.addHoles(code);
