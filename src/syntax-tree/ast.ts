@@ -7,6 +7,8 @@ import { NotificationSystemController } from '../notification-system/notificatio
 import {ErrorMessage} from "../notification-system/error-msg-generator";
 import {Notification} from '../notification-system/notification'
 import { ConstructCompleter } from "../typing-system/construct-completer";
+import { MenuController } from "../suggestions/suggestions-controller";
+import {ConstructKeys, constructKeys, constructToToolboxButton, Util} from "../utilities/util"
 
 export class Callback {
     static counter: number;
@@ -2215,12 +2217,13 @@ export class Module {
 	editor: Editor;
 	eventHandler: EventHandler;
 	actionStack: ActionStack;
-	buttons: HTMLElement[];
+	variableButtons: HTMLElement[];
 	notificationSystem: NotificationSystemController;
     constructCompleter: ConstructCompleter;
+    menuController: MenuController;
 
     constructor(editorId: string) {
-        this.editor = new Editor(document.getElementById(editorId));
+        this.editor = new Editor(document.getElementById(editorId), this);
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
@@ -2236,7 +2239,10 @@ export class Module {
         this.constructCompleter = ConstructCompleter.getInstance();
         this.constructCompleter.setInstanceContext(this, this.editor);
 
-		this.buttons = [];
+		this.variableButtons = [];
+
+        this.menuController = MenuController.getInstance();
+        this.menuController.setInstance(this, this.editor);
 	}
 
     reset() {
@@ -2250,8 +2256,8 @@ export class Module {
         this.editor.reset();
         this.editor.monaco.focus();
 
-        this.buttons.forEach((button) => button.remove());
-        this.buttons = [];
+        this.variableButtons.forEach((button) => button.remove());
+        this.variableButtons = [];
 
         this.notificationSystem.clearAllNotifications();
     }
@@ -2265,7 +2271,7 @@ export class Module {
 
         button.addEventListener("click", this.addVarRefHandler(ref).bind(this))
 
-        this.buttons.push(button);
+        this.variableButtons.push(button);
     }
 
     addVarRefHandler(ref: VarAssignmentStmt){
@@ -2286,7 +2292,7 @@ export class Module {
             this.insert(new VariableReferenceExpr(ref.getIdentifier(), DataType.Number, ref.buttonId));
         });
 
-        this.buttons.push(button);
+        this.variableButtons.push(button);
     }
 
     addStatement(newStmt: Statement, index: number, lineNumber: number) {
@@ -2443,7 +2449,172 @@ export class Module {
         root.replace(expr, this.focusedNode.indexInRoot);        
     }
 
-    referenceTable = new Array<Reference>();
+
+    getValidVariableReferences(code: CodeConstruct): Reference[]{
+        let refs = []
+
+        if(code instanceof TypedEmptyExpr){
+            refs.push(...code.getParentStatement().scope.getValidReferences(code.getSelection().startLineNumber))
+            refs = refs.filter(ref => ref.statement instanceof VarAssignmentStmt && (code.type == (ref.statement as VarAssignmentStmt).dataType || code.type == DataType.Any))
+        }
+
+        return refs;
+    }
+
+    getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean>{
+        const validInserts = new Map<ConstructKeys, boolean>();
+        Object.keys(ConstructKeys).forEach(key => {
+            validInserts.set(ConstructKeys[key], this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])))
+        })
+
+        return validInserts;
+    }
+
+    getAllValidInsertsList(focusedNode: CodeConstruct): Array<ConstructKeys>{
+        const validInsertsList = [];
+        Object.keys(ConstructKeys).forEach(key => {
+            if(this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key]))){
+                validInsertsList.push(ConstructKeys[key]);
+            }
+        })
+
+        return validInsertsList;
+    }
+
+    getValidInsertsFromSet(focusedNode: CodeConstruct, insertSet: Array<ConstructKeys>){
+        const validInserts = this.getAllValidInsertsMap(focusedNode);
+		return insertSet.filter(insertionCandidate => validInserts.get(insertionCandidate));
+    }
+
+
+    //code = insert, insertInto = focusedNode
+    tryInsert(insertInto: CodeConstruct, insert: CodeConstruct){
+        if (insert instanceof MethodCallExpr) {
+            let focusedPos = this.editor.monaco.getPosition();
+            let prevItem = insertInto
+                .getParentStatement()
+                .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
+
+            if (prevItem instanceof Expression && prevItem.returns == insert.calledOn/* TODO: and check calledOn */) {
+                // will replace the expression with this
+                // and will have the expression as the first element inside the code
+                insert.indexInRoot = prevItem.indexInRoot;
+                insert.rootNode = prevItem.rootNode;
+
+                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement) {
+                    return true;
+                }
+            }
+            else if(prevItem instanceof Expression && prevItem.returns != insert.calledOn){
+                return false;
+            }
+        }
+
+		if (insert.addableType != AddableType.NotAddable && insertInto.receives.indexOf(insert.addableType) > -1) {
+			let focusedPos = insertInto.getLeftPosition();
+			let parentStatement = insertInto.getParentStatement();
+			let parentRoot = parentStatement.rootNode;
+
+			if (insertInto.receives.indexOf(AddableType.Statement) > -1) {
+				// replaces statement with the newly inserted statement
+				let statement = insert as Statement;
+
+				if (parentRoot instanceof Statement && parentRoot.hasBody()) {
+					if (insert instanceof ElseStatement && parentRoot instanceof IfStatement) {
+						if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) {
+							return true;
+                        }
+                    } else if (!(statement instanceof ElseStatement)) {
+                        return true;
+					}
+				} else if (!(statement instanceof ElseStatement)) {
+					return true;
+				}
+			} else if (insertInto.receives.indexOf(AddableType.Expression) > -1) {
+				let isValid = true;
+
+				if (insert instanceof VariableReferenceExpr) {
+					// prevent out of scope referencing of a variable
+					if (parentRoot instanceof IfStatement)
+						isValid = parentRoot.isValidReference(
+							insert.uniqueId,
+							focusedPos.lineNumber,
+							parentStatement.indexInRoot
+						);
+					else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
+						isValid = parentRoot.scope.isValidReference(insert.uniqueId, focusedPos.lineNumber);
+					}
+
+                    if(!isValid){
+                        return false;
+                    }
+                   
+                    return true;
+				}
+
+                //type checks -- different handling based on type of code construct
+                //insertInto.returns != code.returns would work, but we need more context to get the right error message
+                if(isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression){
+                    if(insertInto.rootNode instanceof BinaryBoolOperatorExpr){
+                        if(insert.returns != DataType.Boolean){
+                            return false;
+                        }
+                        return true;
+                    }
+                    //for-loop check is special since Iterable does not cover both str and list right now
+                    //can change it once the types are an array
+                    else if(insertInto.rootNode instanceof ForStatement){
+                        if(insert.returns != DataType.List && insert.returns != DataType.String){
+                            return false;
+                        }
+                        return true;
+                    }
+                    else{
+                        isValid = insertInto.type === insert.returns || insertInto.type === DataType.Any
+
+                        if(!isValid){
+                            return false;
+                        }
+                        return true;
+                    }
+                }
+
+                //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
+                let existingLiteralType = null;
+                if((insertInto.rootNode instanceof BinaryOperatorExpr || insertInto.rootNode instanceof ComparatorExpr) && insert instanceof Expression){
+                    if (!(insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression).returns;
+                    }
+                    else if(!(insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof EmptyExpr)){
+                        existingLiteralType = (insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression).returns;
+                    }
+
+                    if(!existingLiteralType && insertInto.rootNode.returns === DataType.Any){
+                        insertInto.rootNode.returns = insert.returns;
+                    }
+                    else if(existingLiteralType && insertInto.rootNode.returns === DataType.Any){
+                        insertInto.rootNode.returns = existingLiteralType;
+                    }
+
+                    if(existingLiteralType != null && existingLiteralType != insert.returns){
+                        return false;
+                    }
+                    return true;
+                }
+
+                if(insertInto.rootNode instanceof BinaryBoolOperatorExpr && insert instanceof Expression){
+                    if(insert.returns != DataType.Boolean){
+                        return false;
+                    }
+                    return true;
+                }
+
+				return true;
+			}
+		} else {
+			return false;
+		}
+    }
 
     insert(code: CodeConstruct, focusedNode?: CodeConstruct) {
         //TODO: Probably want an overload of insert to take care of this case
@@ -2742,7 +2913,7 @@ export class Module {
 		} else {
 			console.warn("Cannot insert this code construct at focused location.");
 
-            //TODO: This type of logic should not be inside the AST. It should be moved somewhere like a validator class or even the notification-system-controller.
+            //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
             //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
             if(code.addableType == AddableType.NotAddable){
                 this.notificationSystem.addHoverNotification(this.focusedNode, {}, ErrorMessage.default);

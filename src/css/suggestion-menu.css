@@ -1,0 +1,64 @@
+.suggestionMenuParent{
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    max-height: 30%;
+    width: fit-content;
+    max-width: 50%;
+    min-width: 2%;
+
+    overflow-y: scroll;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+}
+.suggestionMenuParent::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.suggestionOptionParent{
+    padding-left: 2px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    padding-right: 2px;
+    background-color: rgba(215, 215, 215, 0.7);
+    cursor: pointer;
+
+    display: grid;
+    height: fit-content;
+    column-gap: 5px;
+}
+
+:hover.suggestionOptionParent{
+    background-color: rgba(93, 149, 240, 0.7);
+}
+
+.suggestionOptionText{
+    color: black;
+    font-size: 9pt;
+    width: fit-content;
+}
+
+.selectedSuggestionOptionParent{
+    background-color: rgba(93, 149, 240, 0.7);
+}
+
+.optionArrowImage{
+    grid-column-start: 2;
+    grid-column-end: 2;
+    grid-row-start: 1;
+    grid-row-end: 1;
+
+    width: 8px;
+    height: 10px;
+    align-self: center;
+    justify-self: end;
+}
+
+.categoryHeading{
+    font-weight: bold;
+}
+
+.categoryOption{
+    padding-left: 10px;
+}

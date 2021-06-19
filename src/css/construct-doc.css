@@ -1,0 +1,65 @@
+.docParent{
+    position: absolute;
+    left: 200px;
+    top: 200px;
+
+    max-width: 50%;
+    max-height: 30%;
+    min-width: 40%;
+    min-height: 20%;
+    width: fit-content;
+    height: fit-content;
+    overflow-y: scroll;
+
+    border-style: solid;
+    border-width: 2px;
+    border-color: grey;
+
+    background-color: rgb(197, 197, 197);
+
+    padding: 2px 2px 2px 2px;
+
+    overflow-y: scroll;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+
+}
+.docParent::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+.docTitle{
+    padding: 2px;
+    margin: 0px;
+    border-bottom: solid 1px;
+    border-color: black;
+}
+
+.docBody{
+    padding-left: 1px;
+    padding-right: 1px;
+    padding-top: 1px;
+    padding-bottom: 1px;
+    font-size: 10pt;
+}
+
+.docImageParent{
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: auto;
+    column-gap: 10px;
+    row-gap: 15px;
+    margin-top: 10px;
+
+    padding-right: 10px;
+    padding-top: 2px;
+    padding-bottom: 1px;
+}
+
+.docImage{
+    max-width: 100%;
+    max-height: 100%;
+    min-width: 100%;
+    min-height: 100%;
+}

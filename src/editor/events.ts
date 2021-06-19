@@ -2,11 +2,10 @@ import * as ast from '../syntax-tree/ast';
 import * as monaco from 'monaco-editor';
 import { TAB_SPACES } from '../syntax-tree/keywords';
 import * as AST from '../syntax-tree/ast';
-import {ErrorMessage} from '../notification-system/error-msg-generator';
+import { ErrorMessage } from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
-import { ConstructCompleter } from '../typing-system/construct-completer';
-import { BinaryOperator, CodeConstruct, DataType, Statement } from '../syntax-tree/ast';
-import Hole from './hole';
+import { BinaryOperator, DataType } from '../syntax-tree/ast';
+import { ConstructKeys, Util } from '../utilities/util';
 
 export enum KeyPress {
 	// navigation:
@@ -31,11 +30,20 @@ export enum KeyPress {
 	Z = 'z',
 	Y = 'y',
 
-	Plus = "+",
-	ForwardSlash = "/",
-	Star = "*",
-	Minus = "-"
+	//Typing sys
+	Plus = '+',
+	ForwardSlash = '/',
+	Star = '*',
+	Minus = '-',
+	GreaterThan = '>',
+	LessThan = '<',
+	Equals = '=',
 
+	Escape = 'Escape',
+	Space = ' ',
+
+	//TODO: Remove later
+	P = 'p'
 }
 
 export enum EditAction {
@@ -75,6 +83,7 @@ export enum EditAction {
 
 	None,
 
+	//typing actions
 	CompleteAddition,
 	CompleteDivision,
 	CompleteMultiplication,
@@ -82,7 +91,24 @@ export enum EditAction {
 
 	CompleteIntLiteral,
 	CompleteStringLiteral,
-	CompleteBoolLiteral
+	CompleteBoolLiteral,
+
+	//displaying suggestion menu
+	DisplayGreaterThanSuggestion,
+	DisplayLessThanSuggestion,
+	DisplayEqualsSuggestion,
+
+	//suggestion management
+	SelectMenuSuggestionBelow,
+	SelectMenuSuggestionAbove,
+	SelectMenuSuggestion,
+	CloseValidInsertMenu,
+	OpenValidInsertMenu,
+	OpenSubMenu,
+	CloseSubMenu,
+
+	//TODO: Remove later
+	OpenValidInsertMenuSingleLevel
 }
 
 export class EventHandler {
@@ -104,19 +130,29 @@ export class EventHandler {
 	getKeyAction(e: KeyboardEvent) {
 		let curPos = this.module.editor.monaco.getPosition();
 
-		if (this.module.focusedNode == null){
+		if (this.module.focusedNode == null) {
 			this.module.focusedNode = this.module.locateStatementAtLine(curPos.lineNumber);
 		}
 		let inTextEditMode = this.module.focusedNode.isTextEditable;
 
 		switch (e.key) {
 			case KeyPress.ArrowUp:
+				if (this.module.menuController.isMenuOpen()) {
+					return EditAction.SelectMenuSuggestionAbove;
+				}
 				return EditAction.SelectClosestTokenAbove;
 
 			case KeyPress.ArrowDown:
+				if (this.module.menuController.isMenuOpen()) {
+					return EditAction.SelectMenuSuggestionBelow;
+				}
 				return EditAction.SelectClosestTokenBelow;
 
 			case KeyPress.ArrowLeft:
+				if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+					return EditAction.CloseSubMenu;
+				}
+
 				if (inTextEditMode) {
 					if (curPos.column == (this.module.focusedNode as ast.Token).left) return EditAction.SelectPrevToken;
 
@@ -127,6 +163,10 @@ export class EventHandler {
 				} else return EditAction.SelectPrevToken;
 
 			case KeyPress.ArrowRight:
+				if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+					return EditAction.OpenSubMenu;
+				}
+
 				if (inTextEditMode) {
 					if (
 						curPos.column == (this.module.focusedNode as ast.Token).right + 1 ||
@@ -167,6 +207,10 @@ export class EventHandler {
 				} else return EditAction.DeletePrevToken;
 
 			case KeyPress.Enter:
+				if (this.module.menuController.isMenuOpen()) {
+					return EditAction.SelectMenuSuggestion;
+				}
+
 				let curLine = this.module.locateStatement(curPos);
 				let curSelection = this.module.editor.monaco.getSelection();
 
@@ -182,26 +226,63 @@ export class EventHandler {
 						return EditAction.InsertEmptyLine;
 
 				break;
-			
+
 			case KeyPress.Plus:
-				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+				if (!inTextEditMode && e.shiftKey && e.key.length == 1) {
 					return EditAction.CompleteAddition;
-				} 
+				}
 				break;
 			case KeyPress.Star:
-				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+				if (!inTextEditMode && e.shiftKey && e.key.length == 1) {
 					return EditAction.CompleteMultiplication;
-				} 
+				}
 				break;
 			case KeyPress.Minus:
-				if(!inTextEditMode && e.key.length == 1){
+				if (!inTextEditMode && e.key.length == 1) {
 					return EditAction.CompleteSubtraction;
-				} 
+				}
 				break;
 			case KeyPress.ForwardSlash:
-				if(!inTextEditMode && e.key.length == 1){
+				if (!inTextEditMode && e.key.length == 1) {
 					return EditAction.CompleteDivision;
-				} 
+				}
+				break;
+
+			case KeyPress.GreaterThan:
+				if (!inTextEditMode && e.shiftKey && e.key.length == 1) {
+					return EditAction.DisplayGreaterThanSuggestion;
+				}
+				break;
+
+			case KeyPress.LessThan:
+				if (!inTextEditMode && e.shiftKey && e.key.length == 1) {
+					return EditAction.DisplayLessThanSuggestion;
+				}
+				break;
+
+			case KeyPress.Escape:
+				if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+					return EditAction.CloseValidInsertMenu;
+				}
+				break;
+
+			case KeyPress.Equals:
+				if (!inTextEditMode && e.key.length == 1) {
+					return EditAction.DisplayEqualsSuggestion;
+				}
+				break;
+
+			case KeyPress.Space:
+				if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
+					return EditAction.OpenValidInsertMenu;
+				}
+				break;
+
+			//TODO: Remove later
+			case KeyPress.P:
+				if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
+					return EditAction.OpenValidInsertMenuSingleLevel;
+				}
 				break;
 
 			default:
@@ -228,13 +309,11 @@ export class EventHandler {
 						return EditAction.InsertChar;
 					}
 				} else {
-					if(["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1){
+					if ([ '1', '2', '3', '4', '5', '6', '7', '8', '9', '0' ].indexOf(e.key) > -1) {
 						return EditAction.CompleteIntLiteral;
-					}
-					else if(["t", "f"].indexOf(e.key) > -1){
+					} else if ([ 't', 'f' ].indexOf(e.key) > -1) {
 						return EditAction.CompleteBoolLiteral;
-					}
-					else if(["\""].indexOf(e.key) > -1){
+					} else if ([ '"' ].indexOf(e.key) > -1) {
 						return EditAction.CompleteStringLiteral;
 					}
 					return EditAction.None;
@@ -244,6 +323,9 @@ export class EventHandler {
 
 	onKeyDown(e) {
 		let action = this.getKeyAction(e.browserEvent);
+		const selection = this.module.focusedNode.getSelection();
+		let suggestions = [];
+		let suggestionMap = null;
 
 		switch (action) {
 			case EditAction.InsertEmptyLine: {
@@ -300,20 +382,27 @@ export class EventHandler {
 					);
 					newText = curText.join('');
 				}
-				
-				if(this.module.focusedNode instanceof ast.IdentifierTkn){
+
+				if (this.module.focusedNode instanceof ast.IdentifierTkn) {
 					let newNotification = false;
 
-					if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
-						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsKeyword);
+					if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
+						this.module.notificationSystem.addHoverNotification(
+							this.module.focusedNode,
+							{ identifier: newText },
+							ErrorMessage.identifierIsKeyword
+						);
 						newNotification = true;
-					}
-					else if(Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1){
-						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsBuiltInFunc);
+					} else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
+						this.module.notificationSystem.addHoverNotification(
+							this.module.focusedNode,
+							{ identifier: newText },
+							ErrorMessage.identifierIsBuiltInFunc
+						);
 						newNotification = true;
 					}
 
-					if(!newNotification && this.module.focusedNode.notification){
+					if (!newNotification && this.module.focusedNode.notification) {
 						this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
 					}
 				}
@@ -385,19 +474,26 @@ export class EventHandler {
 
 				newText = curText.join('');
 
-				if(this.module.focusedNode instanceof ast.IdentifierTkn){
+				if (this.module.focusedNode instanceof ast.IdentifierTkn) {
 					let newNotification = false;
-					
-					if(Object.keys(keywords.PythonKeywords).indexOf(newText) > -1){
-						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsKeyword);
+
+					if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
+						this.module.notificationSystem.addHoverNotification(
+							this.module.focusedNode,
+							{ identifier: newText },
+							ErrorMessage.identifierIsKeyword
+						);
 						newNotification = true;
-					}
-					else if(Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1){
-						this.module.notificationSystem.addHoverNotification(this.module.focusedNode, {identifier: newText}, ErrorMessage.identifierIsBuiltInFunc);
+					} else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
+						this.module.notificationSystem.addHoverNotification(
+							this.module.focusedNode,
+							{ identifier: newText },
+							ErrorMessage.identifierIsBuiltInFunc
+						);
 						newNotification = true;
 					}
 
-					if(!newNotification && this.module.focusedNode.notification){
+					if (!newNotification && this.module.focusedNode.notification) {
 						this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
 					}
 				}
@@ -500,9 +596,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteAddition:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
 
 				e.preventDefault();
@@ -510,9 +603,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteSubtraction:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
 
 				e.preventDefault();
@@ -520,9 +610,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteDivision:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
 
 				e.preventDefault();
@@ -530,8 +617,8 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteMultiplication:
-				console.log(this.module.editor.holes)
-				console.log(e)
+				console.log(this.module.editor.holes);
+				console.log(e);
 
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
 
@@ -554,11 +641,127 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteBoolLiteral:
-				console.log(e)
-				this.module.constructCompleter.completeBoolLiteralConstruct(e.browserEvent.key === "t" ? 1 : 0);
+				this.module.constructCompleter.completeBoolLiteralConstruct(e.browserEvent.key === 't' ? 1 : 0);
 
 				e.preventDefault();
 				e.stopPropagation();
+				break;
+
+			case EditAction.DisplayGreaterThanSuggestion:
+				suggestions = [ ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual ];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+				this.module.menuController.buildSingleLevelMenu(
+					suggestions,
+					Util.getInstance(this.module).constructActions,
+					{
+						left: selection.startColumn * this.module.editor.computeCharWidth(),
+						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+					}
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.DisplayLessThanSuggestion:
+				suggestions = [ ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual ];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+
+				this.module.menuController.buildSingleLevelMenu(
+					suggestions,
+					Util.getInstance(this.module).constructActions,
+					{
+						left: selection.startColumn * this.module.editor.computeCharWidth(),
+						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+					}
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.DisplayEqualsSuggestion:
+				suggestions = [ ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment ];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+
+				this.module.menuController.buildSingleLevelMenu(
+					suggestions,
+					Util.getInstance(this.module).constructActions,
+					{
+						left: selection.startColumn * this.module.editor.computeCharWidth(),
+						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+					}
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.OpenValidInsertMenu:
+				if (!this.module.menuController.isMenuOpen()) {
+					this.module.menuController.buildAvailableInsertsMenu(
+						this.module.getAllValidInsertsList(this.module.focusedNode),
+						Util.getInstance(this.module).constructActions,
+						{
+							left: selection.startColumn * this.module.editor.computeCharWidth(),
+							top: selection.startLineNumber * this.module.editor.computeCharHeight()
+						}
+					);
+				} else {
+					this.module.menuController.removeMenus();
+				}
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			//TODO: Remove later
+			case EditAction.OpenValidInsertMenuSingleLevel:
+				if (!this.module.menuController.isMenuOpen()) {
+					const suggestions = this.module.getAllValidInsertsList(this.module.focusedNode);
+					this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
+				} else {
+					this.module.menuController.removeMenus();
+				}
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.SelectMenuSuggestionAbove:
+				this.module.menuController.focusOptionAbove();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.SelectMenuSuggestionBelow:
+				this.module.menuController.focusOptionBelow();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.SelectMenuSuggestion:
+				this.module.menuController.selectFocusedOption();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.CloseValidInsertMenu:
+				this.module.menuController.removeMenus();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.OpenSubMenu:
+				this.module.menuController.openSubMenu();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.CloseSubMenu:
+				this.module.menuController.closeSubMenu();
+				e.stopPropagation();
+				e.preventDefault();
 				break;
 
 			default:
@@ -574,7 +777,9 @@ export class EventHandler {
 	onButtonDown(id: string) {
 		switch (id) {
 			case 'add-var-btn':
-				this.module.insert(new AST.VarAssignmentStmt());
+				if (!(document.getElementById('add-var-btn') as HTMLButtonElement).disabled) {
+					this.module.insert(new AST.VarAssignmentStmt());
+				}
 				break;
 			case 'add-print-btn':
 				this.module.insert(
@@ -629,7 +834,7 @@ export class EventHandler {
 				break;
 
 			case 'add-true-btn':
-				this.module.insert(new AST.LiteralValExpr(AST.DataType.Boolean , 'True' ));
+				this.module.insert(new AST.LiteralValExpr(AST.DataType.Boolean, 'True'));
 				break;
 
 			case 'add-false-btn':
@@ -661,7 +866,9 @@ export class EventHandler {
 				break;
 
 			case 'add-unary-not-expr-btn':
-				this.module.insert(new AST.UnaryOperatorExpr(AST.UnaryOp.Not, AST.DataType.Boolean,  AST.DataType.Boolean));
+				this.module.insert(
+					new AST.UnaryOperatorExpr(AST.UnaryOp.Not, AST.DataType.Boolean, AST.DataType.Boolean)
+				);
 				break;
 
 			case 'add-comp-eq-expr-btn':
@@ -742,12 +949,12 @@ export class EventHandler {
 
 				varAssignStmt.replaceValue(listExpr);
 
-                this.module.addVariableButtonToToolbox(varAssignStmt);
-                this.module.scope.references.push(new AST.Reference(varAssignStmt, this.module.scope));
-                varAssignStmt.updateButton();
+				this.module.addVariableButtonToToolbox(varAssignStmt);
+				this.module.scope.references.push(new AST.Reference(varAssignStmt, this.module.scope));
+				varAssignStmt.updateButton();
 
 				this.module.insert(varAssignStmt);
-                
+
 				break;
 
 			case 'add-split-method-call-btn':
@@ -798,20 +1005,18 @@ export class EventHandler {
 				break;
 
 			case 'add-list-elem-assign-btn':
-				this.module.insert(
-					new AST.ListElementAssignment()
-				);
+				this.module.insert(new AST.ListElementAssignment());
 				break;
 
 			default:
 		}
 	}
 
-	onMouseMove(e){
+	onMouseMove(e) {
 		this.module.editor.mousePosMonaco = e.target.position;
 	}
 
-	onDidScrollChange(e){
+	onDidScrollChange(e) {
 		this.module.editor.scrollOffsetTop = e.scrollTop;
 	}
 }

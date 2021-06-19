@@ -1,9 +1,11 @@
 import * as monaco from "monaco-editor";
+import {ConstructKeys, constructKeys, constructToToolboxButton} from "../utilities/util"
 import {
     CodeConstruct,
     EditableTextTkn,
     EmptyExpr,
     IdentifierTkn,
+    Module,
     Statement,
     TypedEmptyExpr,
 } from "../syntax-tree/ast";
@@ -18,7 +20,9 @@ export default class Editor {
     scrollOffsetTop: number = 0;
     holes: Hole[];
 
-    constructor(parentEl: HTMLElement) {
+    module: Module;
+
+    constructor(parentEl: HTMLElement, module: Module) {
         this.monaco = monaco.editor.create(parentEl, {
             value: "",
             language: "python",
@@ -55,6 +59,8 @@ export default class Editor {
         // Visual
         this.cursor = new Cursor(this);
         this.holes = [];
+
+        this.module = module;
     }
 
     focusSelection(selection: monaco.Selection, code: CodeConstruct = null) {
@@ -64,6 +70,26 @@ export default class Editor {
             this.cursor.setSelection(selection, code);
             this.monaco.setSelection(selection);
         }
+
+        if(this.module.menuController.isMenuOpen()){
+            this.module.menuController.removeMenus();
+        }
+
+        const validInserts = this.module.getAllValidInsertsList(this.module.focusedNode);
+        Object.keys(ConstructKeys).forEach(construct => {
+            if(constructToToolboxButton.has(ConstructKeys[construct])){
+                if(validInserts.indexOf(ConstructKeys[construct]) == -1){
+                    const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
+                    button.disabled = true;
+                    button.classList.add("disabled");
+                }
+                else{
+                    const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
+                    button.disabled = false;
+                    button.classList.remove("disabled");
+                }
+            }
+        })
     }
 
     getLineEl(ln: number) {
