@@ -3,6 +3,8 @@
 @import url("cursor.css");
 @import url("hole.css");
 @import url("notification.css");
+@import url("suggestion-menu.css");
+@import url("construct-doc.css");
 
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&display=swap");
 
@@ -51,4 +53,27 @@ body {
 .button:active {
   box-shadow: none;
   background-color: #f3f5fa !important;
+}
+
+.button.disabled{
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+#editor-toolbox .group{
+  display: grid;
+  grid-template-columns: auto auto;
+  column-gap: 20px;
+  justify-items: start;
+}
+
+#editor-toolbox .group > p{
+  grid-column: 1 / span 2;
+  grid-row: 1 / span 1;
+  font-weight: bold;
+  font-size: 16pt;
+}
+
+#editor-toolbox .group:not(:last-child){
+  margin-bottom: 10px;
 }

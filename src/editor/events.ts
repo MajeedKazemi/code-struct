@@ -6,6 +6,7 @@ import {ErrorMessage} from '../notification-system/error-msg-generator';
 import * as keywords from '../syntax-tree/keywords';
 import { ConstructCompleter } from '../typing-system/construct-completer';
 import { BinaryOperator, CodeConstruct, DataType, Statement } from '../syntax-tree/ast';
+import { ConstructKeys, Util } from '../utilities/util';
 
 export enum KeyPress {
 	// navigation:
@@ -30,11 +31,20 @@ export enum KeyPress {
 	Z = 'z',
 	Y = 'y',
 
+	//Typing sys
 	Plus = "+",
 	ForwardSlash = "/",
 	Star = "*",
-	Minus = "-"
+	Minus = "-",
+	GreaterThan = ">",
+	LessThan = "<",
+	Equals = "=",
 
+	Escape = "Escape",
+	Space = " ",
+
+	//TODO: Remove later
+	P = "p"
 }
 
 export enum EditAction {
@@ -74,6 +84,7 @@ export enum EditAction {
 
 	None,
 
+	//typing actions
 	CompleteAddition,
 	CompleteDivision,
 	CompleteMultiplication,
@@ -81,7 +92,24 @@ export enum EditAction {
 
 	CompleteIntLiteral,
 	CompleteStringLiteral,
-	CompleteBoolLiteral
+	CompleteBoolLiteral,
+
+	//displaying suggestion menu
+	DisplayGreaterThanSuggestion,
+	DisplayLessThanSuggestion,
+	DisplayEqualsSuggestion,
+
+	//suggestion management
+	SelectMenuSuggestionBelow,
+	SelectMenuSuggestionAbove,
+	SelectMenuSuggestion,
+	CloseValidInsertMenu,
+	OpenValidInsertMenu,
+	OpenSubMenu,
+	CloseSubMenu,
+
+	//TODO: Remove later
+	OpenValidInsertMenuSingleLevel
 }
 
 export class EventHandler {
@@ -106,12 +134,22 @@ export class EventHandler {
 
 		switch (e.key) {
 			case KeyPress.ArrowUp:
+				if(this.module.menuController.isMenuOpen()){
+					return EditAction.SelectMenuSuggestionAbove;
+				}
 				return EditAction.SelectClosestTokenAbove;
 
 			case KeyPress.ArrowDown:
+				if(this.module.menuController.isMenuOpen()){
+					return EditAction.SelectMenuSuggestionBelow;
+				}
 				return EditAction.SelectClosestTokenBelow;
 
 			case KeyPress.ArrowLeft:
+				if(!inTextEditMode && this.module.menuController.isMenuOpen()){
+					return EditAction.CloseSubMenu;
+				}
+
 				if (inTextEditMode) {
 					if (curPos.column == (this.module.focusedNode as ast.Token).left) return EditAction.SelectPrevToken;
 
@@ -122,6 +160,10 @@ export class EventHandler {
 				} else return EditAction.SelectPrevToken;
 
 			case KeyPress.ArrowRight:
+				if(!inTextEditMode && this.module.menuController.isMenuOpen()){
+					return EditAction.OpenSubMenu;
+				}
+
 				if (inTextEditMode) {
 					if (
 						curPos.column == (this.module.focusedNode as ast.Token).right + 1 ||
@@ -162,6 +204,10 @@ export class EventHandler {
 				} else return EditAction.DeletePrevToken;
 
 			case KeyPress.Enter:
+				if(this.module.menuController.isMenuOpen()){
+					return EditAction.SelectMenuSuggestion;
+				}
+
 				let curLine = this.module.locateStatement(curPos);
 				let curSelection = this.module.editor.monaco.getSelection();
 
@@ -197,6 +243,43 @@ export class EventHandler {
 				if(!inTextEditMode && e.key.length == 1){
 					return EditAction.CompleteDivision;
 				} 
+				break;
+
+			case KeyPress.GreaterThan:
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+					return EditAction.DisplayGreaterThanSuggestion;
+				}
+				break;
+
+			case KeyPress.LessThan:
+				if(!inTextEditMode && e.shiftKey && e.key.length == 1){
+					return EditAction.DisplayLessThanSuggestion;
+				}
+				break;
+
+			case KeyPress.Escape:
+				if(!inTextEditMode && this.module.menuController.isMenuOpen()){
+					return EditAction.CloseValidInsertMenu;
+				}
+				break;
+
+			case KeyPress.Equals:
+				if(!inTextEditMode && e.key.length == 1){
+					return EditAction.DisplayEqualsSuggestion;
+				}
+				break;
+
+			case KeyPress.Space:
+				if(!inTextEditMode &&  e.ctrlKey && e.key.length == 1){
+					return EditAction.OpenValidInsertMenu;
+				}
+				break;
+
+			//TODO: Remove later
+			case KeyPress.P:
+				if(!inTextEditMode &&  e.ctrlKey && e.key.length == 1){
+					return EditAction.OpenValidInsertMenuSingleLevel;
+				}
 				break;
 
 			default:
@@ -239,6 +322,9 @@ export class EventHandler {
 
 	onKeyDown(e) {
 		let action = this.getKeyAction(e.browserEvent);
+		const selection = this.module.focusedNode.getSelection();
+		let suggestions = [];
+		let suggestionMap = null;
 
 		switch (action) {
 			case EditAction.InsertEmptyLine: {
@@ -495,9 +581,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteAddition:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
 
 				e.preventDefault();
@@ -505,9 +588,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteSubtraction:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
 
 				e.preventDefault();
@@ -515,9 +595,6 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteDivision:
-				console.log(this.module.editor.holes)
-				console.log(e)
-
 				this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
 
 				e.preventDefault();
@@ -549,11 +626,119 @@ export class EventHandler {
 				break;
 
 			case EditAction.CompleteBoolLiteral:
-				console.log(e)
 				this.module.constructCompleter.completeBoolLiteralConstruct(e.browserEvent.key === "t" ? 1 : 0);
 
 				e.preventDefault();
 				e.stopPropagation();
+				break;
+
+			case EditAction.DisplayGreaterThanSuggestion:
+				suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+				this.module.menuController.buildSingleLevelMenu(suggestions, Util.getInstance(this.module).constructActions, 
+																					{
+																						left: selection.startColumn * this.module.editor.computeCharWidth(),
+																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+				  																	}
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.DisplayLessThanSuggestion:
+				suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+
+				this.module.menuController.buildSingleLevelMenu(suggestions, Util.getInstance(this.module).constructActions, 
+																					{
+																						left: selection.startColumn * this.module.editor.computeCharWidth(),
+																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+																					}
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.DisplayEqualsSuggestion:
+				suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
+				suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+
+				this.module.menuController.buildSingleLevelMenu(suggestions, Util.getInstance(this.module).constructActions, 
+																					{
+																						left: selection.startColumn * this.module.editor.computeCharWidth(),
+																						top: selection.startLineNumber * this.module.editor.computeCharHeight()
+																					}
+				);
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.OpenValidInsertMenu:
+				if(!this.module.menuController.isMenuOpen()){
+					this.module.menuController.buildAvailableInsertsMenu(
+						this.module.getAllValidInsertsList(this.module.focusedNode), Util.getInstance(this.module).constructActions,
+						{left: selection.startColumn * this.module.editor.computeCharWidth(), top: selection.startLineNumber * this.module.editor.computeCharHeight()}
+					 );
+				}
+				else{
+					this.module.menuController.removeMenus();
+				}
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			//TODO: Remove later
+			case EditAction.OpenValidInsertMenuSingleLevel:
+				if(!this.module.menuController.isMenuOpen()){
+					const suggestions = this.module.getAllValidInsertsList(this.module.focusedNode)
+					this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
+				}
+				else{
+					this.module.menuController.removeMenus();
+				}
+
+				e.preventDefault();
+				e.stopPropagation();
+				break;
+
+			case EditAction.SelectMenuSuggestionAbove:
+				this.module.menuController.focusOptionAbove();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+			
+			case EditAction.SelectMenuSuggestionBelow:
+				this.module.menuController.focusOptionBelow();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.SelectMenuSuggestion:
+				this.module.menuController.selectFocusedOption();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.CloseValidInsertMenu:
+				this.module.menuController.removeMenus();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.OpenSubMenu:
+				this.module.menuController.openSubMenu();
+				e.stopPropagation();
+				e.preventDefault();
+				break;
+
+			case EditAction.CloseSubMenu:
+				this.module.menuController.closeSubMenu();
+				e.stopPropagation();
+				e.preventDefault();
 				break;
 
 			default:
@@ -569,7 +754,9 @@ export class EventHandler {
 	onButtonDown(id: string) {
 		switch (id) {
 			case 'add-var-btn':
-				this.module.insert(new AST.VarAssignmentStmt());
+				if(!(document.getElementById('add-var-btn') as HTMLButtonElement).disabled){
+					this.module.insert(new AST.VarAssignmentStmt());
+				}
 				break;
 			case 'add-print-btn':
 				this.module.insert(
