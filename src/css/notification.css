@@ -1,10 +1,10 @@
-.notificationParent{
+.notificationParent {
     display: block;
     position: absolute;
     pointer-events: none;
 }
 
-.hoverNotificationHighlight{
+.hoverNotificationHighlight {
     display: block;
     background-color: rgba(255, 191, 94, 0.3);
     position: absolute;
@@ -12,7 +12,7 @@
     pointer-events: none;
 }
 
-.hoverNotificationHover{
+.hoverNotificationHover {
     display: block;
     background-color: rgba(247, 201, 131, 1);
     position: relative;
@@ -25,7 +25,7 @@
     pointer-events: all;
 }
 
-.popUpNotification{
+.popUpNotification {
     background-color: #f7c983;
     opacity: 0.7;
     position: relative;
@@ -35,25 +35,25 @@
     max-height: 30%;
 }
 
-.identifier{
+.identifier {
     font-weight: bold;
 }
 
-.type{
+.type {
     color: rgb(46, 175, 162);
     font-weight: 500;
 }
 
-.keyword{
+.keyword {
     color: blue;
     font-weight: 500;
 }
 
-.other{
+.other {
     font-weight: 600;
 }
 
-.varScopeSuggestion{
+.varScopeSuggestion {
     width: 500px;
     height: 200px;
     padding: 10px 10px 10px 10px;

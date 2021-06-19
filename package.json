@@ -5,8 +5,7 @@
 		"build": "node node_modules/webpack/bin/webpack.js --progress"
 	},
 	"dependencies": {
-		"monaco-editor": "^0.21.0",
-		"serializr": "^2.0.5"
+		"monaco-editor": "^0.21.0"
 	},
 	"devDependencies": {
 		"css-loader": "^4.3.0",

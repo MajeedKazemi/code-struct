@@ -20,4 +20,4 @@ self.MonacoEnvironment = {
     },
 };
 
-export let nova = new AST.Module("editor");
+export const nova = new AST.Module("editor");

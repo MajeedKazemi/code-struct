@@ -1,11 +1,9 @@
-import { Module } from "../syntax-tree/ast";
 import { constructKeys, Util } from "../utilities/util";
-
 
 /**
  * Class representing a code construct's documentation that can be displayed to the user.
  */
-export class ConstructDoc{
+export class ConstructDoc {
     private docElementClass = "docParent";
     private imgElementClass = "docImageParent";
     private bodyElementClass = "docBody";
@@ -17,15 +15,20 @@ export class ConstructDoc{
     title: string;
     parentElement: HTMLDivElement;
 
-    static updateDocsLeftOffset(offset: number){
+    static updateDocsLeftOffset(offset: number) {
         constructKeys.forEach((key) => {
-            if(Util.getPopulatedInstance().constructDocs.get(key)){
+            if (Util.getPopulatedInstance().constructDocs.get(key)) {
                 Util.getPopulatedInstance().constructDocs.get(key).updateLeftOffset(offset);
             }
-        })
+        });
     }
 
-    constructor(title: string = "DOC Title", text: string = "DOC text", images: Array<string> = [], links: Array<string>[] = []){
+    constructor(
+        title: string = "DOC Title",
+        text: string = "DOC text",
+        images: Array<string> = [],
+        links: Array<string>[] = []
+    ) {
         this.images = images;
         this.text = text;
         this.title = title;
@@ -33,7 +36,7 @@ export class ConstructDoc{
 
         this.parentElement = document.createElement("div");
         this.parentElement.classList.add(this.docElementClass);
-        
+
         this.buildDoc();
         this.hide();
 
@@ -43,10 +46,10 @@ export class ConstructDoc{
 
         this.parentElement.addEventListener("mouseleave", () => {
             this.hide();
-        })
+        });
     }
 
-    private buildDoc(){
+    private buildDoc() {
         const title = document.createElement("h3");
         title.textContent = this.title;
         title.classList.add(this.titleElementClass);
@@ -58,22 +61,20 @@ export class ConstructDoc{
         this.parentElement.appendChild(title);
         this.parentElement.appendChild(body);
 
-        if(this.images.length > 0){
-            this.addImageSection();
-        }
+        if (this.images.length > 0) this.addImageSection();
 
-        if(this.links.length > 0){
-            this.addLinkSection();
-        }
+        if (this.links.length > 0) this.addLinkSection();
 
         //TODO: Should be global...
         this.parentElement.style.left = `${document.getElementById("editor").offsetLeft}px`;
-        this.parentElement.style.top = `${parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop)}px`;
+        this.parentElement.style.top = `${parseFloat(
+            window.getComputedStyle(document.getElementById("editor")).paddingTop
+        )}px`;
 
         document.getElementById("editor").appendChild(this.parentElement);
     }
 
-    private addImageSection(){
+    private addImageSection() {
         const imageParent = document.createElement("div");
         imageParent.classList.add(this.imgElementClass);
 
@@ -82,34 +83,31 @@ export class ConstructDoc{
             image.classList.add("docImage");
             image.src = imgSrc;
             imageParent.appendChild(image);
-        })
-        
+        });
 
         this.parentElement.appendChild(imageParent);
     }
 
-    private addLinkSection(){
+    private addLinkSection() {
         const linkParent = document.createElement("div");
         linkParent.classList.add("docLinkParent");
 
         this.parentElement.appendChild(linkParent);
     }
 
-    show(){
+    show() {
         this.parentElement.style.visibility = "visible";
     }
 
-    hide(){
+    hide() {
         this.parentElement.style.visibility = "hidden";
     }
 
-    updateLeftOffset(offset: number){
+    updateLeftOffset(offset: number) {
         this.parentElement.style.left = `${offset}px`;
     }
 
-    resetScroll(){
+    resetScroll() {
         this.parentElement.scrollTop = 0;
     }
 }
-
-

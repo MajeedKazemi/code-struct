@@ -1,4 +1,4 @@
-.docParent{
+.docParent {
     position: absolute;
     left: 200px;
     top: 200px;
@@ -21,22 +21,21 @@
 
     overflow-y: scroll;
     scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none;  /* Internet Explorer 10+ */
-
+    -ms-overflow-style: none; /* Internet Explorer 10+ */
 }
 .docParent::-webkit-scrollbar {
     width: 0;
     height: 0;
 }
 
-.docTitle{
+.docTitle {
     padding: 2px;
     margin: 0px;
     border-bottom: solid 1px;
     border-color: black;
 }
 
-.docBody{
+.docBody {
     padding-left: 1px;
     padding-right: 1px;
     padding-top: 1px;
@@ -44,7 +43,7 @@
     font-size: 10pt;
 }
 
-.docImageParent{
+.docImageParent {
     display: grid;
     grid-template-columns: 50% 50%;
     grid-template-rows: auto;
@@ -57,7 +56,7 @@
     padding-bottom: 1px;
 }
 
-.docImage{
+.docImage {
     max-width: 100%;
     max-height: 100%;
     min-width: 100%;

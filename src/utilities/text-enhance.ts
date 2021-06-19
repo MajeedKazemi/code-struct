@@ -1,16 +1,14 @@
-
-export enum CSSClasses{
+export enum CSSClasses {
     identifier = "identifier",
     type = "type",
     keyword = "keyword",
-    other = "other"
+    other = "other",
 }
 
-export class TextEnhance{
+export class TextEnhance {
+    constructor() {}
 
-    constructor(){}
-
-    getStyledSpan(content: string, styleClass: string) : string {
+    getStyledSpan(content: string, styleClass: string): string {
         return `<span class=${styleClass}>${content}</span>`;
     }
 }

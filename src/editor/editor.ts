@@ -1,5 +1,5 @@
 import * as monaco from "monaco-editor";
-import {ConstructKeys, constructKeys, constructToToolboxButton} from "../utilities/util"
+import { ConstructKeys, constructToToolboxButton } from "../utilities/util";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -9,18 +9,17 @@ import {
     Statement,
     TypedEmptyExpr,
 } from "../syntax-tree/ast";
-import Cursor from "./cursor";
-import Hole from "./hole";
+import { Cursor } from "./cursor";
+import { Hole } from "./hole";
 
-export default class Editor {
-    monaco: monaco.editor.IStandaloneCodeEditor;
+export class Editor {
+    module: Module;
     cursor: Cursor;
+    monaco: monaco.editor.IStandaloneCodeEditor;
+    holes: Hole[];
     mousePosMonaco: monaco.Position;
     mousePosWindow: number[] = [0, 0];
     scrollOffsetTop: number = 0;
-    holes: Hole[];
-
-    module: Module;
 
     constructor(parentEl: HTMLElement, module: Module) {
         this.monaco = monaco.editor.create(parentEl, {
@@ -56,10 +55,8 @@ export default class Editor {
             wordBasedSuggestions: false,
         });
 
-        // Visual
         this.cursor = new Cursor(this);
         this.holes = [];
-
         this.module = module;
     }
 
@@ -71,39 +68,38 @@ export default class Editor {
             this.monaco.setSelection(selection);
         }
 
-        if(this.module.menuController.isMenuOpen()){
-            this.module.menuController.removeMenus();
-        }
+        if (this.module.menuController.isMenuOpen()) this.module.menuController.removeMenus();
 
         const validInserts = this.module.getAllValidInsertsList(this.module.focusedNode);
-        Object.keys(ConstructKeys).forEach(construct => {
-            if(constructToToolboxButton.has(ConstructKeys[construct])){
-                if(validInserts.indexOf(ConstructKeys[construct]) == -1){
-                    const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
+
+        Object.keys(ConstructKeys).forEach((construct) => {
+            if (constructToToolboxButton.has(ConstructKeys[construct])) {
+                if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
+                    const button = document.getElementById(
+                        constructToToolboxButton.get(ConstructKeys[construct])
+                    ) as HTMLButtonElement;
                     button.disabled = true;
                     button.classList.add("disabled");
-                }
-                else{
-                    const button = (document.getElementById(constructToToolboxButton.get(ConstructKeys[construct])) as HTMLButtonElement);
+                } else {
+                    const button = document.getElementById(
+                        constructToToolboxButton.get(ConstructKeys[construct])
+                    ) as HTMLButtonElement;
                     button.disabled = false;
                     button.classList.remove("disabled");
                 }
             }
-        })
+        });
     }
 
     getLineEl(ln: number) {
         const lines = document.body.getElementsByClassName("view-lines")[0];
         const line = lines.children[ln - 1];
+
         return <HTMLElement>line?.children[0];
     }
 
     addHoles(code: CodeConstruct) {
-        for (const hole of this.holes) {
-            if (hole.code == code) {
-                return;
-            }
-        }
+        for (const hole of this.holes) if (hole.code == code) return;
 
         if (
             code instanceof EditableTextTkn ||
@@ -119,8 +115,7 @@ export default class Editor {
     }
 
     executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
-        let text = overwrite || code.getRenderText();
-
+        const text = overwrite || code.getRenderText();
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
         this.addHoles(code);
@@ -139,15 +134,15 @@ export default class Editor {
     computeCharHeight() {
         const lines = document.getElementsByClassName("view-lines")[0];
         const line = lines.children[0];
-        const bbox = line?.getBoundingClientRect();
+        const boundingBox = line?.getBoundingClientRect();
 
-        return bbox?.height || 0;
+        return boundingBox?.height || 0;
     }
 
     computeCharWidth(ln = 1) {
         const lines = document.getElementsByClassName("view-lines")[0];
 
-        let line = <HTMLElement>lines.children[ln - 1]?.children[0];
+        const line = <HTMLElement>lines.children[ln - 1]?.children[0];
         if (line == null) return 0;
 
         return line.getBoundingClientRect().width / line.innerText.length;

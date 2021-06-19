@@ -1,11 +1,19 @@
-import { CallbackType, CodeConstruct, Callback, LiteralValExpr, EditableTextTkn, IdentifierTkn, TypedEmptyExpr, VarAssignmentStmt, DataType, Expression } from "../syntax-tree/ast";
-import Editor from "./editor";
-import * as monaco from 'monaco-editor';
+import {
+    CallbackType,
+    CodeConstruct,
+    Callback,
+    EditableTextTkn,
+    IdentifierTkn,
+    TypedEmptyExpr,
+    VarAssignmentStmt,
+    DataType,
+} from "../syntax-tree/ast";
+import { Editor } from "./editor";
 
-export default class Hole {
+export class Hole {
     static editableHoleClass = "editableHole";
-    static inScopeHole = "inScopeHole"
-    static holes = []
+    static inScopeHole = "inScopeHole";
+    static holes = [];
 
     element: HTMLDivElement;
     editor: Editor;
@@ -17,7 +25,7 @@ export default class Hole {
         this.editor = editor;
         this.code = code;
 
-        // Dom element
+        // DOM elements
         const element = document.createElement("div");
         element.classList.add("hole");
 
@@ -28,36 +36,51 @@ export default class Hole {
         const hole = this;
 
         Hole.holes.push(hole);
-console.log(Hole.holes)
-        if(code instanceof EditableTextTkn || code instanceof IdentifierTkn){
+
+        if (code instanceof EditableTextTkn || code instanceof IdentifierTkn) {
             this.element.classList.add(Hole.editableHoleClass);
 
-            code.subscribe(CallbackType.loseFocus, new Callback(() => {
-				this.element.classList.remove(Hole.editableHoleClass);
+            code.subscribe(
+                CallbackType.loseFocus,
+                new Callback(() => {
+                    this.element.classList.remove(Hole.editableHoleClass);
 
-                if(code instanceof IdentifierTkn){
-                    Hole.holes.forEach(hole => {
-                        if(hole.element.classList.contains(Hole.inScopeHole)){
-                            hole.element.classList.remove(Hole.inScopeHole);
-                        }
-                    })
-                }
-            }))
+                    if (code instanceof IdentifierTkn) {
+                        Hole.holes.forEach((hole) => {
+                            if (hole.element.classList.contains(Hole.inScopeHole)) {
+                                hole.element.classList.remove(Hole.inScopeHole);
+                            }
+                        });
+                    }
+                })
+            );
 
-            code.subscribe(CallbackType.focus, new Callback(() => {
-				this.element.classList.add(Hole.editableHoleClass);
-               
-                if(code instanceof IdentifierTkn){
-                    Hole.holes.forEach(hole => {
-                        if( hole.code instanceof TypedEmptyExpr &&
-                           ((code.getParentStatement() as VarAssignmentStmt).dataType == (hole.code as TypedEmptyExpr).type || (hole.code as TypedEmptyExpr).type == DataType.Any) &&
-                            hole.code.getParentStatement().hasScope() && hole.code.getParentStatement().scope.isValidReference((code.getParentStatement() as VarAssignmentStmt).buttonId, hole.code.getSelection().startLineNumber)
-                          ){
-                            hole.element.classList.add(Hole.inScopeHole);
-                        }
-                    })
-                }
-            }))
+            code.subscribe(
+                CallbackType.focus,
+                new Callback(() => {
+                    this.element.classList.add(Hole.editableHoleClass);
+
+                    if (code instanceof IdentifierTkn) {
+                        Hole.holes.forEach((hole) => {
+                            if (
+                                hole.code instanceof TypedEmptyExpr &&
+                                ((code.getParentStatement() as VarAssignmentStmt).dataType ==
+                                    (hole.code as TypedEmptyExpr).type ||
+                                    (hole.code as TypedEmptyExpr).type == DataType.Any) &&
+                                hole.code.getParentStatement().hasScope() &&
+                                hole.code
+                                    .getParentStatement()
+                                    .scope.isValidReference(
+                                        (code.getParentStatement() as VarAssignmentStmt).buttonId,
+                                        hole.code.getSelection().startLineNumber
+                                    )
+                            ) {
+                                hole.element.classList.add(Hole.inScopeHole);
+                            }
+                        });
+                    }
+                })
+            );
         }
 
         code.subscribe(
@@ -80,6 +103,7 @@ console.log(Hole.holes)
             CallbackType.fail,
             new Callback(() => {
                 hole.element.style.background = `rgba(255, 0, 0, 0.06)`;
+
                 setTimeout(() => {
                     hole.element.style.background = `rgba(255, 0, 0, 0)`;
                 }, 1000);
@@ -89,12 +113,14 @@ console.log(Hole.holes)
         function loop() {
             if (hole.removed) return;
 
-            const bbox = editor.computeBoundingBox(code.getSelection());
-            if (bbox.width == 0) {
-                bbox.x -= 7;
-                bbox.width = 14;
+            const boundingBox = editor.computeBoundingBox(code.getSelection());
+
+            if (boundingBox.width == 0) {
+                boundingBox.x -= 7;
+                boundingBox.width = 14;
             }
-            hole.setTransform(bbox);
+
+            hole.setTransform(boundingBox);
             requestAnimationFrame(loop);
         }
 

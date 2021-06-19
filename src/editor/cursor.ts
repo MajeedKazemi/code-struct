@@ -1,8 +1,8 @@
 import { Selection } from "monaco-editor";
-import { CodeConstruct, Module } from "../syntax-tree/ast";
-import Editor from "./editor";
+import { CodeConstruct } from "../syntax-tree/ast";
+import { Editor } from "./editor";
 
-export default class Cursor {
+export class Cursor {
     editor: Editor;
     element: HTMLElement;
     code: CodeConstruct;
@@ -10,10 +10,8 @@ export default class Cursor {
 
     constructor(editor: Editor) {
         this.editor = editor;
-
         this.element = document.createElement("div");
         this.element.classList.add("cursor");
-
         this.container = document.querySelector(".lines-content.monaco-editor-background");
         this.container.append(this.element);
 
@@ -21,9 +19,8 @@ export default class Cursor {
 
         function loop() {
             const selection = cursor.code != null ? cursor.code.getSelection() : editor.monaco.getSelection();
-            let bbox = cursor.editor.computeBoundingBox(selection);
-
-            cursor.setTransform(bbox);
+            const boundingBox = cursor.editor.computeBoundingBox(selection);
+            cursor.setTransform(boundingBox);
             requestAnimationFrame(loop);
         }
 
@@ -33,15 +30,13 @@ export default class Cursor {
     setTransform(transform: { x: number; width: number; y: number; height: number }) {
         this.element.style.top = `${transform.y + 5}px`;
         this.element.style.left = `${transform.x}px`;
-
         this.element.style.width = `${transform.width}px`;
         this.element.style.height = `${transform.height - 5 * 2}px`;
     }
 
     setSelection(selection: Selection, code: CodeConstruct = null) {
-        const bbox = this.editor.computeBoundingBox(selection);
-        this.setTransform(bbox);
-
+        const boundingBox = this.editor.computeBoundingBox(selection);
+        this.setTransform(boundingBox);
         this.code = code;
     }
 }
