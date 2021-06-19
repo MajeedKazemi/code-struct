@@ -1958,7 +1958,7 @@ export class IdentifierTkn extends Token implements TextEditable {
     validatorRegex: RegExp;
 
     constructor(identifier?: string, root?: CodeConstruct, indexInRoot?: number) {
-        super(identifier == undefined ? "---" : identifier);
+        super(identifier == undefined ? "   " : identifier);
 
         if (identifier == undefined) {
             this.isEmpty = true;
@@ -2035,7 +2035,7 @@ export class TypedEmptyExpr extends Token {
     type: DataType;
 
     constructor(type: DataType, root?: CodeConstruct, indexInRoot?: number) {
-        super("---");
+        super("   ");
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
@@ -2050,7 +2050,7 @@ export class EmptyExpr extends Token {
     isEmpty = true;
 
     constructor(root?: CodeConstruct, indexInRoot?: number, text?: string) {
-        super(text == undefined ? "---" : text);
+        super(text == undefined ? "   " : text);
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
