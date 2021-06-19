@@ -103,6 +103,8 @@ export enum CallbackType {
     replace,
     delete,
     fail,
+    focus,
+    loseFocus
 }
 
 export interface CodeConstruct {
@@ -222,6 +224,11 @@ export interface CodeConstruct {
      * Removes all subscribes of the given type for this code construct
      */
     unsubscribe(type: CallbackType, callerId: string);
+
+    /**
+     * Calls callback of the given type if this construct is subscribed to it.
+     */
+    notify(type: CallbackType);
 }
 
 /**
@@ -264,6 +271,8 @@ export abstract class Statement implements CodeConstruct {
 	notification = null;
 
     keywordIndex = -1;
+
+    hole = null;
 
 	constructor() {
 		for (let type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -2770,11 +2779,17 @@ export class Module {
                     else{
                         isValid = this.focusedNode.type === code.returns || this.focusedNode.type === DataType.Any
 
+                        //TODO: Need to fix type inferencing so that there is a better way to do this
+                        //Currently you can insert arithmetic operators in places where only booleans are expected such as if-conditions.
+                        //Removing the inner if check will make the user unable to insert anything in the binary expression that is not a boolean.
                         //assign operand types based on argument type for expressions being used as args
                         if(!isValid && this.focusedNode instanceof TypedEmptyExpr && code instanceof BinaryOperatorExpr){
                             isValid = true;
-                            (code.tokens[code.getLeftOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
-                            (code.tokens[code.getRightOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
+
+                            if(this.focusedNode.rootNode instanceof BinaryOperatorExpr){
+                                (code.tokens[code.getLeftOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
+                                (code.tokens[code.getRightOperandIndex()] as TypedEmptyExpr).type = this.focusedNode.type;
+                            }
                         }
 
                         if(!isValid){
