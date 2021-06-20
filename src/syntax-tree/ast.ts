@@ -9,6 +9,7 @@ import { Notification } from "../notification-system/notification";
 import { ConstructCompleter } from "../typing-system/construct-completer";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { ConstructKeys, Util } from "../utilities/util";
+import { Focus, NavigationFocus } from "../editor/focus";
 
 export class Callback {
     static counter: number;
@@ -178,7 +179,7 @@ export interface CodeConstruct {
      * Finds and returns the next empty hole (name or value) in this code construct
      * @returns The found empty token or null (if nothing it didn't include any empty tokens)
      */
-    nextEmptyToken(): CodeConstruct;
+    getInitialFocus(): NavigationFocus;
 
     /**
      * Returns the textual value of the code construct (joining internal tokens for expressions and statements)
@@ -361,7 +362,7 @@ export abstract class Statement implements CodeConstruct {
 
         for (const token of this.tokens) curPos = token.build(curPos);
 
-        this.right = curPos.column - 1;
+        this.right = curPos.column;
 
         this.notify(CallbackType.change);
 
@@ -416,7 +417,7 @@ export abstract class Statement implements CodeConstruct {
     }
 
     contains(pos: monaco.Position): boolean {
-        if (this.lineNumber == pos.lineNumber && pos.column >= this.left && pos.column <= this.right + 1) return true;
+        if (this.lineNumber == pos.lineNumber && pos.column >= this.left && pos.column <= this.right) return true;
 
         return false;
     }
@@ -451,7 +452,7 @@ export abstract class Statement implements CodeConstruct {
     locate(pos: monaco.Position): CodeConstruct {
         if (pos.lineNumber == this.lineNumber) {
             if (pos.column == this.left) return this.tokens[0];
-            else if (pos.column == this.right + 1) return this.tokens[this.tokens.length - 1];
+            else if (pos.column == this.right) return this.tokens[this.tokens.length - 1];
         }
 
         if (this.contains(pos)) for (const code of this.tokens) if (code.contains(pos)) return code.locate(pos);
@@ -459,33 +460,26 @@ export abstract class Statement implements CodeConstruct {
         return null;
     }
 
-    nextEmptyToken(): CodeConstruct {
-        for (const token of this.tokens) {
+    getInitialFocus(): NavigationFocus {
+        let focus = new NavigationFocus();
+
+        for (let token of this.tokens) {
             if (token instanceof Token) {
-                if (token.isEmpty) return token;
+                if (token.isEmpty) {
+                    focus.setToken(token);
+
+                    return focus;
+                }
             } else {
-                const expr = token as Expression;
+                let expr = token as Expression;
 
-                if (expr.hasEmptyToken) return expr.nextEmptyToken();
-
-                return null;
+                if (expr.hasEmptyToken) return expr.getInitialFocus();
             }
         }
 
-        // next editable code-construct
-        for (const token of this.tokens) {
-            if (token instanceof Token) {
-                if (token.validEdits.length > 0) return token;
-            } else {
-                const expr = token as Expression;
+        focus.setPosition(new monaco.Position(this.getLineNumber(), this.right));
 
-                if (expr.validEdits.length > 0) return expr.nextEmptyToken();
-
-                return null;
-            }
-        }
-
-        // TODO: return next selectable code-construct
+        return focus;
     }
 
     /**
@@ -610,7 +604,7 @@ export abstract class Statement implements CodeConstruct {
     }
 
     getSelection(): monaco.Selection {
-        return new monaco.Selection(this.lineNumber, this.right + 1, this.lineNumber, this.left);
+        return new monaco.Selection(this.lineNumber, this.right, this.lineNumber, this.left);
     }
 
     getNextEditableToken(fromIndex?: number): CodeConstruct {
@@ -671,6 +665,27 @@ export abstract class Statement implements CodeConstruct {
         return (this.rootNode as Statement).getModule();
     }
 
+    getRootBody(): Array<Statement> {
+        if (this.rootNode instanceof Module) this.rootNode.body;
+        else if (this.rootNode instanceof Statement && this.rootNode.hasBody()) return this.rootNode.body;
+
+        throw Error("Statement must have a root body.");
+    }
+
+    getNextLine(): Statement {
+        let rootBody = this.getRootBody();
+
+        if (this.indexInRoot + 1 < rootBody.length) return rootBody[this.indexInRoot + 1];
+        else return null;
+    }
+
+    getPrevLine(): Statement {
+        let rootBody = this.getRootBody();
+
+        if (this.indexInRoot - 1 > 0) return rootBody[this.indexInRoot - 1];
+        else return null;
+    }
+
     /**
      * Return this statement's keyword if it has one. Otherwise return an empty string.
      *
@@ -711,7 +726,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
     getSelection(): monaco.Selection {
         const line = this.getLineNumber();
 
-        return new monaco.Selection(line, this.right + 1, line, this.left);
+        return new monaco.Selection(line, this.right, line, this.left);
     }
 
     getNextEditableToken(fromIndex?: number): CodeConstruct {
@@ -821,13 +836,17 @@ export abstract class Token implements CodeConstruct {
     build(pos: monaco.Position): monaco.Position {
         this.left = pos.column;
 
-        if (this.text.length == 0) this.right = pos.column;
-        else this.right = pos.column + this.text.length - 1;
+        if (this.text.length == 0) {
+            console.warn(
+                "do not use any Tokens with no textual length (i.e. all tokens should take some space in the editor)."
+            );
+            this.right = pos.column;
+        } else this.right = pos.column + this.text.length;
 
         this.notify(CallbackType.change);
 
         if (this.text.length == 0) return new monaco.Position(pos.lineNumber, this.right);
-        else return new monaco.Position(pos.lineNumber, this.right + 1);
+        else return new monaco.Position(pos.lineNumber, this.right);
     }
 
     /**
@@ -854,10 +873,18 @@ export abstract class Token implements CodeConstruct {
      * Finds and returns the next empty hole (name or value) in this code construct
      * @returns The found empty token or null (if nothing it didn't include any empty tokens)
      */
-    nextEmptyToken(): CodeConstruct {
-        if (this.isEmpty) return this;
+    getInitialFocus(): NavigationFocus {
+        let focus = new NavigationFocus();
 
-        return null;
+        if (this.isEmpty) {
+            focus.setToken(this);
+
+            return focus;
+        }
+
+        focus.setPosition(new monaco.Position(this.getLineNumber(), this.right));
+
+        return focus;
     }
 
     getRenderText(): string {
@@ -875,9 +902,8 @@ export abstract class Token implements CodeConstruct {
 
     getSelection(): monaco.Selection {
         const line = this.getLineNumber();
-        const step = this.text.length == 0 ? 0 : 1;
 
-        return new monaco.Selection(line, this.right + step, line, this.left);
+        return new monaco.Selection(line, this.right, line, this.left);
     }
 
     getNextEditableToken(fromIndex?: number): CodeConstruct {
@@ -925,32 +951,6 @@ export interface TextEditable {
     setEditedText(text: string): boolean;
 }
 
-export class Boundary {
-    topLine: number;
-    bottomLine: number;
-    left: number;
-    right: number;
-
-    constructor(topLine: number, bottomLine: number, left: number, right: number) {
-        this.topLine = topLine;
-        this.bottomLine = bottomLine;
-        this.left = left;
-        this.right = right;
-    }
-
-    contains(pos: monaco.Position): boolean {
-        if (
-            pos.lineNumber >= this.topLine &&
-            pos.lineNumber <= this.bottomLine &&
-            pos.column >= this.left &&
-            pos.column <= this.right + 1
-        )
-            return true;
-
-        return false;
-    }
-}
-
 export class WhileStatement extends Statement {
     addableType = AddableType.Statement;
     scope: Scope;
@@ -961,15 +961,10 @@ export class WhileStatement extends Statement {
 
         this.validEdits.push(EditFunctions.RemoveStatement);
 
-        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
-        this.keywordIndex = this.tokens.length;
-        this.tokens.push(new KeywordTkn("while", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("while ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
-        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
@@ -990,15 +985,10 @@ export class IfStatement extends Statement {
 
         this.validEdits.push(EditFunctions.RemoveStatement);
 
-        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
-        this.keywordIndex = this.tokens.length;
-        this.tokens.push(new KeywordTkn("if", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("if ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
-        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
@@ -1083,18 +1073,12 @@ export class ElseStatement extends Statement {
 
         this.validEdits.push(EditFunctions.RemoveStatement);
 
-        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
-        this.keywordIndex = this.tokens.length;
         if (hasCondition) {
-            this.tokens.push(new KeywordTkn("elif", this, this.tokens.length));
-            this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn("elif ", this, this.tokens.length));
             this.conditionIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
-            this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        } else this.tokens.push(new KeywordTkn("else", this, this.tokens.length));
-
-        this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
-        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
+        } else this.tokens.push(new NonEditableTkn("else:", this, this.tokens.length));
 
         this.scope = new Scope();
 
@@ -1124,20 +1108,13 @@ export class ForStatement extends Statement {
 
         this.validEdits.push(EditFunctions.RemoveStatement);
 
-        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
-        this.keywordIndex = this.tokens.length;
-        this.tokens.push(new KeywordTkn("for", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("for ", this, this.tokens.length));
         this.counterIndex = this.tokens.length;
         this.tokens.push(new IdentifierTkn(undefined, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new KeywordTkn("in", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" in ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.List || DataType.String, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(":", this, this.tokens.length));
-        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.body.push(new EmptyLineStmt(this, 1)); //TODO: Workaround for inability to navigate outside of an indented region and stay on the same line
@@ -1203,11 +1180,14 @@ export class EmptyLineStmt extends Statement {
         this.lineNumber = pos.lineNumber;
         this.left = this.right = pos.column;
 
-        return new monaco.Position(this.lineNumber, this.right + 1);
+        return new monaco.Position(this.lineNumber, this.right);
     }
 
-    nextEmptyToken(): CodeConstruct {
-        return this;
+    getInitialFocus(): NavigationFocus {
+        let focus = new NavigationFocus();
+        focus.setPosition(this.getLeftPosition());
+
+        return focus;
     }
 
     getRenderText(): string {
@@ -1279,15 +1259,11 @@ export class VarAssignmentStmt extends Statement {
 
         this.validEdits.push(EditFunctions.RemoveStatement);
 
-        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
         this.identifierIndex = this.tokens.length;
         this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new OperatorTkn("=", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
         this.valueIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -1324,7 +1300,7 @@ export class VariableReferenceExpr extends Expression {
     constructor(id: string, returns: DataType, uniqueId: string, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
 
-        const idToken = new NonEditableTextTkn(id);
+        const idToken = new NonEditableTkn(id);
         idToken.rootNode = this;
         idToken.indexInRoot = this.tokens.length;
         this.tokens.push(idToken);
@@ -1342,6 +1318,7 @@ export class FunctionCallStmt extends Expression {
      */
     private argumentsIndices = new Array<number>();
     addableType: AddableType;
+    functionName: string = "";
 
     constructor(
         functionName: string,
@@ -1354,6 +1331,7 @@ export class FunctionCallStmt extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+        this.functionName = functionName;
 
         if (this.isStatement()) {
             this.validEdits.push(EditFunctions.RemoveStatement);
@@ -1363,24 +1341,24 @@ export class FunctionCallStmt extends Expression {
             this.addableType = AddableType.Expression;
         }
 
-        if (this.isStatement()) this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
+        if (args.length > 0) {
+            this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
 
-        this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+            // TODO: handle parenthesis in a better way (to be able to highlight the other when selecting one)
 
-        for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
+            for (let i = 0; i < args.length; i++) {
+                let arg = args[i];
 
-            this.argumentsIndices.push(this.tokens.length);
-            this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
+                this.argumentsIndices.push(this.tokens.length);
+                this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
 
-            if (i + 1 < args.length) this.tokens.push(new PunctuationTkn(", ", this, this.tokens.length));
-        }
+                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
+            }
 
-        this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
-        if (this.isStatement()) this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
-        this.hasEmptyToken = true;
+            this.hasEmptyToken = true;
+        } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1388,8 +1366,7 @@ export class FunctionCallStmt extends Expression {
     }
 
     getFunctionName(): string {
-        if (this.isStatement()) return (this.tokens[1] as FunctionNameTkn).getFunctionName();
-        return (this.tokens[0] as FunctionNameTkn).getFunctionName();
+        return this.functionName;
     }
 }
 
@@ -1422,20 +1399,21 @@ export class MethodCallExpr extends Expression {
 
         this.expressionIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(".", this, this.tokens.length));
-        this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
 
-        for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
+        if (args.length > 0) {
+            this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
 
-            this.argumentsIndices.push(this.tokens.length);
-            this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
+            for (let i = 0; i < args.length; i++) {
+                let arg = args[i];
 
-            if (i + 1 < args.length) this.tokens.push(new PunctuationTkn(", ", this, this.tokens.length));
-        }
+                this.argumentsIndices.push(this.tokens.length);
+                this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
 
-        this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
+                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
+            }
+
+            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
+        } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
     }
 
     setExpression(prevItem: Expression) {
@@ -1456,17 +1434,12 @@ export class ListElementAssignment extends Statement {
 
         this.addableType = AddableType.Statement;
 
-        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("[", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("]", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new OperatorTkn("=", this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("] = ", this, this.tokens.length));
         //TODO: Python lists allow elements of different types to be added to the same list. Should we keep that functionality?
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
     }
 }
 
@@ -1479,29 +1452,23 @@ export class MethodCallStmt extends Statement {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-
-        if (args.length > 0) this.hasEmptyToken = false;
-
         this.addableType = AddableType.Statement;
 
-        this.tokens.push(new StartOfLineTkn(this, this.tokens.length));
-        // it has an empty left expression
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(".", this, this.tokens.length));
-        this.tokens.push(new FunctionNameTkn(functionName, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        if (args.length > 0) {
+            this.hasEmptyToken = false;
+            this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
 
-        for (let i = 0; i < args.length; i++) {
-            const arg = args[i];
+            for (let i = 0; i < args.length; i++) {
+                let arg = args[i];
 
-            this.argumentsIndices.push(this.tokens.length);
-            this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
+                this.argumentsIndices.push(this.tokens.length);
+                this.tokens.push(new TypedEmptyExpr(arg.type, this, this.tokens.length));
 
-            if (i + 1 < args.length) this.tokens.push(new PunctuationTkn(", ", this, this.tokens.length));
-        }
+                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
+            }
 
-        this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
-        this.tokens.push(new EndOfLineTkn(this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
+        } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1524,10 +1491,10 @@ export class MemberCallStmt extends Expression {
         this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("[", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("]", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -1549,15 +1516,13 @@ export class BinaryOperatorExpr extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -1600,12 +1565,10 @@ export class UnaryOperatorExpr extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
-        this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(operatesOn, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -1636,14 +1599,12 @@ export class BinaryBoolOperatorExpr extends Expression {
         this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -1673,15 +1634,13 @@ export class ComparatorExpr extends Expression {
         this.addableType = AddableType.Expression;
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.tokens.push(new PunctuationTkn("(", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
-        this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(" ", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new EmptyExpr(this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn(")", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -1747,12 +1706,14 @@ export class EditableTextTkn extends Token implements TextEditable {
     build(pos: monaco.Position): monaco.Position {
         this.left = pos.column;
 
-        if (this.text.length == 0) this.right = pos.column + this.text.length;
-        else this.right = pos.column + this.text.length - 1;
+        if (this.text.length == 0) {
+            console.warn("Do not use any Tokens with 0 textual length.");
+            this.right = pos.column;
+        } else this.right = pos.column + this.text.length;
 
         this.notify(CallbackType.change);
 
-        return new monaco.Position(pos.lineNumber, this.right + 1);
+        return new monaco.Position(pos.lineNumber, this.right);
     }
 }
 
@@ -1766,7 +1727,7 @@ export class LiteralValExpr extends Expression {
 
         switch (returns) {
             case DataType.String: {
-                this.tokens.push(new PunctuationTkn('"', this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
                 this.tokens.push(
                     new EditableTextTkn(
                         value == undefined ? "" : value,
@@ -1775,7 +1736,7 @@ export class LiteralValExpr extends Expression {
                         this.tokens.length
                     )
                 );
-                this.tokens.push(new PunctuationTkn('"', this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
 
                 this.allowedBinOps.push(BinaryOperator.Add);
 
@@ -1801,7 +1762,7 @@ export class LiteralValExpr extends Expression {
             }
 
             case DataType.Boolean: {
-                this.tokens.push(new NonEditableTextTkn(value, this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(value, this, this.tokens.length));
 
                 this.allowedBoolOps.push(BoolOperator.And);
                 this.allowedBoolOps.push(BoolOperator.Or);
@@ -1815,10 +1776,36 @@ export class LiteralValExpr extends Expression {
 
         this.validEdits.push(EditFunctions.RemoveExpression);
     }
+
+    getInitialFocus(): NavigationFocus {
+        let navFocus = new NavigationFocus();
+
+        switch (this.returns) {
+            case DataType.String:
+                navFocus.position = new monaco.Position(this.lineNumber, this.left + 1);
+                navFocus.token = this.tokens[1];
+                navFocus.select = false;
+
+                return navFocus;
+
+            case DataType.Number:
+                navFocus.position = new monaco.Position(this.lineNumber, this.left + 1);
+                navFocus.token = this.tokens[0];
+                navFocus.select = false;
+
+                return navFocus;
+
+            case DataType.Boolean:
+                navFocus.position = new monaco.Position(this.lineNumber, this.right);
+                navFocus.token = null;
+
+                return navFocus;
+        }
+    }
 }
 
 export class EmptyListItem extends Token {
-    isEmpty = false;
+    isEmpty = true;
     isEmptyExpression: boolean;
 
     constructor(isEmptyExpression: boolean, root?: ListLiteralExpression, indexInRoot?: number) {
@@ -1850,9 +1837,9 @@ export class ListLiteralExpression extends Expression {
 
         this.validEdits.push(EditFunctions.RemoveExpression);
 
-        this.tokens.push(new PunctuationTkn("[", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new EmptyListItem(true, this, this.tokens.length));
-        this.tokens.push(new PunctuationTkn("]", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -1899,8 +1886,7 @@ export class ListLiteralExpression extends Expression {
             this.tokens.splice(
                 index,
                 1,
-                new PunctuationTkn(",", this),
-                new PunctuationTkn(" ", this),
+                new NonEditableTkn(", ", this),
                 new EmptyListItem(false, this),
                 expr,
                 new EmptyListItem(false, this)
@@ -1915,8 +1901,7 @@ export class ListLiteralExpression extends Expression {
                 new EmptyListItem(false, this),
                 expr,
                 new EmptyListItem(false, this),
-                new PunctuationTkn(",", this),
-                new PunctuationTkn(" ", this)
+                new NonEditableTkn(", ", this)
             );
 
             insertedText = expr.getRenderText() + ", ";
@@ -1952,7 +1937,7 @@ export class IdentifierTkn extends Token implements TextEditable {
     }
 
     contains(pos: monaco.Position): boolean {
-        if (pos.column >= this.left && pos.column <= this.right + 1) return true;
+        if (pos.column >= this.left && pos.column <= this.right) return true;
 
         return false;
     }
@@ -1966,45 +1951,14 @@ export class IdentifierTkn extends Token implements TextEditable {
             this.text = text;
             (this.rootNode as Statement).rebuild(this.getLeftPosition(), this.indexInRoot);
 
+            if (this.text.length > 0) this.isEmpty = false;
+            if (this.text.length == 0) this.isEmpty = true;
+
             return true;
         } else {
             this.notify(CallbackType.fail);
             return false;
         }
-    }
-}
-
-export class NonEditableTextTkn extends Token {
-    isEmpty = false;
-
-    constructor(value: string, root?: CodeConstruct, indexInRoot?: number) {
-        super(value);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-    }
-}
-
-export class FunctionNameTkn extends Token {
-    isEmpty = false;
-
-    constructor(functionName: string, root?: CodeConstruct, indexInRoot?: number) {
-        super(functionName);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-    }
-
-    locate(pos: monaco.Position): CodeConstruct {
-        return this.rootNode;
-    }
-
-    getSelection(): monaco.Selection {
-        return this.rootNode.getSelection();
-    }
-
-    getFunctionName(): string {
-        return this.text;
     }
 }
 
@@ -2038,98 +1992,6 @@ export class EmptyExpr extends Token {
     }
 }
 
-export class EndOfLineTkn extends Token {
-    isEmpty = false;
-
-    constructor(root?: CodeConstruct, indexInRoot?: number) {
-        super("");
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-    }
-
-    getPrevEditableToken(): CodeConstruct {
-        return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
-    }
-
-    getNextEditableToken(): CodeConstruct {
-        const parentStmt = this.getParentStatement();
-
-        if (parentStmt instanceof Statement && parentStmt.hasBody())
-            // we're at the header of this compound statement:
-            return parentStmt.body[0].getStartOfLineToken();
-
-        if (parentStmt.rootNode instanceof Statement && parentStmt.rootNode.hasBody()) {
-            if (parentStmt.indexInRoot + 1 < parentStmt.rootNode.body.length)
-                return parentStmt.rootNode.body[parentStmt.indexInRoot + 1].getStartOfLineToken();
-            else {
-                // at the end of a compound statement: move to the parent's root's next statement
-                const compoundParentsRoot = parentStmt.rootNode.rootNode;
-
-                if (compoundParentsRoot instanceof Module)
-                    if (parentStmt.rootNode.indexInRoot + 1 < compoundParentsRoot.body.length)
-                        return compoundParentsRoot.body[parentStmt.rootNode.indexInRoot + 1].getStartOfLineToken();
-                    else if (compoundParentsRoot instanceof Statement && compoundParentsRoot.hasBody())
-                        if (parentStmt.rootNode.indexInRoot + 1 < compoundParentsRoot.body.length)
-                            return compoundParentsRoot.body[parentStmt.rootNode.indexInRoot + 1].getStartOfLineToken();
-
-                return this;
-            }
-        } else if (parentStmt.rootNode instanceof Module) {
-            if (parentStmt.indexInRoot + 1 < parentStmt.rootNode.body.length) {
-                const lineBelow = parentStmt.rootNode.body[parentStmt.indexInRoot + 1];
-
-                if (lineBelow instanceof EmptyLineStmt) return lineBelow;
-                else return lineBelow.getStartOfLineToken();
-            } else return this;
-        }
-    }
-
-    getSelection(): monaco.Selection {
-        const line = this.getLineNumber();
-
-        return new monaco.Selection(line, this.right + 1, line, this.right + 1);
-    }
-}
-
-export class StartOfLineTkn extends Token {
-    isEmpty = false;
-
-    constructor(root?: CodeConstruct, indexInRoot?: number) {
-        super("");
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-    }
-
-    getNextEditableToken(): CodeConstruct {
-        // should select the whole statement
-        return this.rootNode;
-    }
-
-    getPrevEditableToken(): CodeConstruct {
-        const parentStmt = this.getParentStatement();
-
-        if (parentStmt.rootNode instanceof Statement && parentStmt.rootNode.hasBody()) {
-            if (parentStmt.indexInRoot == 0) return parentStmt.rootNode.getEndOfLineToken();
-            else return parentStmt.rootNode.body[parentStmt.indexInRoot - 1].getEndOfLineToken();
-        } else if (parentStmt.rootNode instanceof Module) {
-            if (parentStmt.indexInRoot > 0) {
-                const lineAbove = parentStmt.rootNode.body[parentStmt.indexInRoot - 1];
-
-                if (lineAbove instanceof EmptyLineStmt) return lineAbove;
-                else return lineAbove.getEndOfLineToken();
-            } else return this;
-        }
-    }
-
-    getSelection(): monaco.Selection {
-        const line = this.getLineNumber();
-
-        return new monaco.Selection(line, this.left, line, this.left);
-    }
-}
-
 export class OperatorTkn extends Token {
     operator: string = "";
 
@@ -2150,7 +2012,7 @@ export class OperatorTkn extends Token {
     }
 }
 
-export class PunctuationTkn extends Token {
+export class NonEditableTkn extends Token {
     constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
         super(text);
 
@@ -2190,6 +2052,7 @@ export class KeywordTkn extends Token {
 export class Module {
     body = new Array<Statement>();
     focusedNode: CodeConstruct;
+    focus: Focus;
 
     scope: Scope;
     editor: Editor;
@@ -2208,9 +2071,9 @@ export class Module {
         this.focusedNode = this.body[0];
         this.focusedNode.build(new monaco.Position(1, 1));
         this.editor.monaco.focus();
+        this.focus = new Focus(this);
 
         this.eventHandler = new EventHandler(this);
-
         this.actionStack = new ActionStack(this);
 
         this.notificationSystem = new NotificationSystemController(this.editor, this);
@@ -2377,9 +2240,9 @@ export class Module {
 
             const range = new monaco.Range(
                 curStatement.lineNumber,
-                this.focusedNode.right + 1,
+                this.focusedNode.right,
                 curStatement.lineNumber,
-                this.focusedNode.right + 1
+                this.focusedNode.right
             );
             this.editor.executeEdits(range, null, textToAdd + spaces);
 
@@ -2637,7 +2500,7 @@ export class Module {
                     this.focusedNode,
                     {
                         objectType: prevItem.returns,
-                        method: (code.tokens[2] as FunctionNameTkn).text,
+                        method: (code.tokens[2] as NonEditableTkn).text,
                         calledOn: code.calledOn,
                     },
                     ErrorMessage.methodCallObjectTypeMismatch
@@ -2947,18 +2810,11 @@ export class Module {
 
                     this.replaceFocusedExpression(expr);
 
-                    let padding = 1;
-                    const selection = focusedNodeProvided
-                        ? this.focusedNode.getSelection()
-                        : this.editor.monaco.getSelection();
-
-                    if (selection.endColumn == selection.startColumn) padding = 0;
-
                     const range = new monaco.Range(
                         focusedPos.lineNumber,
                         this.focusedNode.left,
                         focusedPos.lineNumber,
-                        this.focusedNode.right + padding
+                        this.focusedNode.right
                     );
 
                     this.editor.executeEdits(range, expr);
@@ -2967,7 +2823,13 @@ export class Module {
 
             //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
             if (!this.focusedNode.notification) {
-                this.focusedNode = code.nextEmptyToken();
+                let navFocus = code.getInitialFocus();
+                this.focus.update(navFocus);
+
+                if (navFocus.token != null) {
+                    this.editor.focusSelection(navFocus.token.getSelection());
+                    this.focusedNode = navFocus.token;
+                }
 
                 try {
                     this.editor.focusSelection(this.focusedNode.getSelection());
