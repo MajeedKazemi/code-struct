@@ -929,30 +929,6 @@ export class EventHandler {
 
                 break;
 
-            case "add-test-array":
-                const varAssignStmt = new ast.VarAssignmentStmt("arr");
-                const listExpr = new ast.ListLiteralExpression();
-                listExpr.insertListItem(1, 30);
-                listExpr.insertListItem(1, 60);
-                listExpr.insertListItem(1, 80);
-                listExpr.insertListItem(1, 20);
-                listExpr.insertListItem(1, 50);
-                listExpr.insertListItem(1, 100);
-                listExpr.insertListItem(1, 10);
-                listExpr.insertListItem(1, 70);
-                listExpr.insertListItem(1, 90);
-                listExpr.insertListItem(1, 40);
-
-                varAssignStmt.replaceValue(listExpr);
-
-                this.module.addVariableButtonToToolbox(varAssignStmt);
-                this.module.scope.references.push(new ast.Reference(varAssignStmt, this.module.scope));
-                varAssignStmt.updateButton();
-
-                this.module.insert(varAssignStmt);
-
-                break;
-
             case "add-split-method-call-btn":
                 this.module.insert(
                     new ast.MethodCallExpr(
