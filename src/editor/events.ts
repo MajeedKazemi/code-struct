@@ -380,6 +380,10 @@ export class EventHandler {
                 if (this.module.focusedNode instanceof ast.IdentifierTkn) {
                     let newNotification = false;
 
+                    /*TODO: Change this to use the new focus.
+                     * 
+                     * This needs to use whatever code construct is used for the check in the if-statement above.
+                     */
                     if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
                         this.module.notificationSystem.addHoverNotification(
                             this.module.focusedNode,
@@ -398,6 +402,11 @@ export class EventHandler {
                     }
 
                     if (!newNotification && this.module.focusedNode.notification) {
+                        /*TODO: Change to use the new focus
+                         * 
+                         * This needs to use whatever construct is used for the check above. It should not matter whether it is Token, Statement or Expression since
+                         * all of those were a possibility before as well.
+                         */
                         this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
                     }
                 }
@@ -474,6 +483,10 @@ export class EventHandler {
                     let newNotification = false;
 
                     if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
+                         /*TODO: Change this to use the new focus.
+                        * 
+                        * This needs to use whatever code construct is used for the check in the if-statement above.
+                        */
                         this.module.notificationSystem.addHoverNotification(
                             this.module.focusedNode,
                             { identifier: newText },
@@ -490,6 +503,11 @@ export class EventHandler {
                     }
 
                     if (!newNotification && this.module.focusedNode.notification) {
+                        /*TODO: Change to use the new focus
+                         * 
+                         * This needs to use whatever construct is used for the check above. It should not matter whether it is Token, Statement or Expression since
+                         * all of those were a possibility before as well.
+                         */
                         this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
                     }
                 }
@@ -615,6 +633,14 @@ export class EventHandler {
 
             case EditAction.DisplayGreaterThanSuggestion:
                 suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
+
+                //TODO: Change focus
+                /*
+                 * Can be changed to this.module.focus.getFocusedConstruct(), it does not need a particular type of construct (Token, Statement or Expression),
+                 * getValidInsertsFromSet() will sort it out.
+                 * 
+                 * Might need to make some changes to that method to deal with new selections that are possible though. 
+                 */
                 suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
                 this.module.menuController.buildSingleLevelMenu(
                     suggestions,
@@ -631,6 +657,12 @@ export class EventHandler {
 
             case EditAction.DisplayLessThanSuggestion:
                 suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
+
+                //TODO: Change focus
+                /*
+                 * Can be changed to this.module.focus.getFocusedConstruct(), it does not need a particular type of construct (Token, Statement or Expression),
+                 * getValidInsertsFromSet() will sort it out.
+                 */
                 suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
 
                 this.module.menuController.buildSingleLevelMenu(
@@ -648,6 +680,12 @@ export class EventHandler {
 
             case EditAction.DisplayEqualsSuggestion:
                 suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
+
+                //TODO: Change focus
+                /*
+                 * Can be changed to this.module.focus.getFocusedConstruct(), it does not need a particular type of construct (Token, Statement or Expression),
+                 * getValidInsertsFromSet() will sort it out.
+                 */
                 suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
 
                 this.module.menuController.buildSingleLevelMenu(
