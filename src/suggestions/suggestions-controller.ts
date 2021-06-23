@@ -6,7 +6,7 @@ import { ConstructDoc } from "./construct-doc";
 /*
  *A tree menu that can hold options for the user and link through those options to other menus.
  */
-export class Menu {
+class Menu {
     //Menu object
     private isMenuOpen: boolean = false;
     options: MenuOption[] = [];
@@ -116,7 +116,7 @@ export class Menu {
     }
 
     //An empty option is one that does not link to another menu and also does not have a select action
-    countEmptyOptions() {
+    private countEmptyOptions() {
         let count = 0;
         
         this.options.forEach((option) => {
@@ -219,7 +219,7 @@ export class Menu {
 /**
  * An option within a menu that can link to another menu or perform an action when selected.
  */
-export class MenuOption {
+class MenuOption {
     //menu this option links to
     private childMenu: Menu;
     //menu this option is a part of
@@ -268,7 +268,7 @@ export class MenuOption {
         });
     }
 
-    addArrowImg() {
+    private addArrowImg() {
         if (this.childMenu) {
             const image = document.createElement("img");
             image.src = "./src/res/img/optionArrow.png";
@@ -630,8 +630,10 @@ export class MenuController {
                 "Top",
             ];
 
+            const context = this.module.focus.getContext();
+
             //add variable references
-            const refs = this.module.getValidVariableReferences(this.module.focusedNode);
+            const refs = this.module.getValidVariableReferences(context.token);
             const identifiers = refs.map((ref) => (ref.statement as VarAssignmentStmt).getIdentifier());
             refs.forEach((ref) => {
                 if (ref.statement instanceof VarAssignmentStmt) {
@@ -697,7 +699,7 @@ export class MenuController {
      *                  Provide an empty map if no custom actions are necessary.
      * @param pos       Initial top-left corner of the menu.
      */
-    buildMenuFromOptionMap(
+    private buildMenuFromOptionMap(
         map: Map<string, Array<string | ConstructKeys>>,
         keys: Array<string>,
         rootKey: string,
@@ -754,7 +756,7 @@ export class MenuController {
      *
      * @param pos        Initial top-left corner of the menu.
      */
-    buildMenuFromLinkageMap(
+    private buildMenuFromLinkageMap(
         menus: Array<ConstructKeys | string>[],
         linkageMap: Map<string, number[]>,
         actionMap: Map<string, Function>,
@@ -843,7 +845,7 @@ export class MenuController {
         return null;
     }
 
-    openRootMenu() {
+    private openRootMenu() {
         if (this.menus.length && this.indexOfRootMenu >= 0) {
             if (!this.menus[this.indexOfRootMenu].isOpen()) {
                 this.menus[this.indexOfRootMenu].open();

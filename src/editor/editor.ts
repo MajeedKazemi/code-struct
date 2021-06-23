@@ -60,18 +60,20 @@ export class Editor {
         this.module = module;
     }
 
-    focusSelection(selection: monaco.Selection, code: CodeConstruct = null) {
-        if (selection.startColumn == selection.endColumn) {
-            this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
-        } else {
-            this.cursor.setSelection(selection, code);
-            this.monaco.setSelection(selection);
-        }
+    focusSelection() {
+        // if (selection.startColumn == selection.endColumn) {
+        //     this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
+        // } else {
+        //     this.cursor.setSelection(selection, code);
+        //     this.monaco.setSelection(selection);
+        // }
+
+        const context = this.module.focus.getContext();
 
         if (this.module.menuController.isMenuOpen()) this.module.menuController.removeMenus();
 
-        const validInserts = this.module.getAllValidInsertsList(this.module.focusedNode);
-
+        //disable toolbox buttons based on available inserts
+        const validInserts = this.module.getAllValidInsertsList(context.token);
         Object.keys(ConstructKeys).forEach((construct) => {
             if (constructToToolboxButton.has(ConstructKeys[construct])) {
                 if (validInserts.indexOf(ConstructKeys[construct]) == -1) {

@@ -147,6 +147,9 @@ export class NotificationSystemController {
             this.notifications.splice(code.notification.index, 1);
             code.notification = null;
         }
+        else{
+            console.warn("Could not remove notification from construct: " + code)
+        }
     }
 
     clearAllNotifications() {
