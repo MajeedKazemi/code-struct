@@ -1,498 +1,603 @@
-import * as monaco from 'monaco-editor';
-import * as ast from '../syntax-tree/ast';
+import * as monaco from "monaco-editor";
+import * as ast from "../syntax-tree/ast";
 
 export class Focus {
-	module: ast.Module;
-
-	/**
-	 * If the focus is on or within a token, this will have its value, otherwise it will be null.
-	 */
-	focusedToken: ast.CodeConstruct;
-
-	/**
-	 * The statement in which we are focused in
-	 */
-	focusedStatement: ast.Statement;
-
-	// these selections occur using the mouse drag or shift arrow key
-	// multiToken; // array of tokens that the user has selected
-	// multiStatement; // array of statements that the user has selected
-
-	constructor(module: ast.Module) {
-		this.module = module;
-	}
-
-	/**
-	 * This is mostly called from the AST, for example after a code has been inserted and the cursor should focus to
-	 * the first empty hole or after the inserted code.
-	 */
-	update(navFocus: NavigationFocus) {
-		if (navFocus.position == null && navFocus.token != null) {
-			this.focusedToken = navFocus.token;
-			this.focusedStatement = navFocus.token.getParentStatement();
-
-			let selection = new monaco.Selection(
-				navFocus.token.getLineNumber(),
-				navFocus.token.right,
-				navFocus.token.getLineNumber(),
-				navFocus.token.left
-			);
-			this.module.editor.monaco.setSelection(selection);
-		} else if (navFocus.position != null && navFocus.token == null) {
-			this.focusedToken = null;
-			this.focusedStatement = null;
-
-			this.module.editor.monaco.setPosition(navFocus.position);
-		} else if (navFocus.token != null && navFocus.select == false) {
-			this.focusedToken = navFocus.token;
-			this.focusedStatement = navFocus.token.getParentStatement();
-		}
-	}
-
-	private selectFocusedToken() {
-		if (this.focusedToken != null) {
-			let selection = new monaco.Selection(
-				this.focusedToken.getLineNumber(),
-				this.focusedToken.right,
-				this.focusedToken.getLineNumber(),
-				this.focusedToken.left
-			);
-
-			this.module.editor.monaco.setSelection(selection);
-		}
-	}
-
-	navigatePos(pos: monaco.Position): NavigationFocus {
-		let navFocus = new NavigationFocus();
-		navFocus.select = true;
-		this.focusedStatement = this.getStatementAtLineNumber(pos.lineNumber);
-
-		// if what the user has clicked on is a hole => select it
-		// o.w. just set this.focusedToken to null and set the cursor to either the beginning or the end of it (based on its position)
-
-		/**
-		 * selectable items:
-		 * empty holes
-		 * 
-		 */
-
-		/**
-		 * Clicking within literals => should put the cursor right there
-		 */
-
-		// click non-selectable things:
-		// beginning
-		// ending
-
-		// clicked at an empty statement => just update focusedStatement
-		if (this.focusedStatement instanceof ast.EmptyLineStmt) {
-			navFocus.position = new monaco.Position(pos.lineNumber, this.focusedStatement.left);
-			// TODO
-			// TODO: THIS IS TEMPORARY JUST TO UPDATE FOCUSEDNODE IN AST.
-			// TODO
-			navFocus.token = this.focusedStatement;
-
-			this.focusedToken = null;
-			this.module.editor.monaco.setPosition(navFocus.position);
-
-			return navFocus;
-		}
-
-		// clicked before a statement => navigate to the beginning of the statement
-		if (pos.column <= this.focusedStatement.left) {
-			navFocus.position = new monaco.Position(pos.lineNumber, this.focusedStatement.left);
-			this.focusedToken = navFocus.token = null;
-			this.module.editor.monaco.setPosition(navFocus.position);
+    module: ast.Module;
+
+    // TODO: NYI
+    callbacks = new Array<(Context) => {}>();
+
+    constructor(module: ast.Module) {
+        this.module = module;
+    }
+
+    getTextEditableItem(): ast.TextEditable {
+        const context = this.getContext();
+        let token: ast.TextEditable;
+
+        if (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn) {
+            return token;
+        } else {
+            throw new Error("Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.");
+        }
+    }
+
+    onEndOrBeginningOfToken(): boolean {
+        const context = this.getContext();
+
+        if (context.tokenToLeft != null || context.tokenToRight != null) return true;
+    }
+
+    subscribeCallback() {}
+
+    // TODO: when changing context (through navigation) and updating focusedToken => make sure to call .notify
+
+    /**
+     * Calculates and returns the current context based on the focused position, or selected code in the editor.
+     */
+    getContext(): Context {
+        const curPosition = this.module.editor.monaco.getPosition();
+        const curSelection = this.module.editor.monaco.getSelection();
+        const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
+
+        if (curSelection.startColumn != curSelection.endColumn) {
+            return this.getContextFromSelection(curLine, curSelection.startColumn, curSelection.endColumn);
+        } else return this.getContextFromPosition(curLine, curPosition.column);
+    }
+
+    getFocusedStatement(): ast.Statement {
+        return this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber);
+    }
+
+    /**
+     * This is mostly called from the AST, for example after a code has been inserted and the cursor should focus to
+     * the first empty hole or after the inserted code.
+     */
+    updateContext(newContext: UpdatableContext) {
+        if (newContext.tokenToSelect != undefined) {
+            const selection = new monaco.Selection(
+                newContext.tokenToSelect.getLineNumber(),
+                newContext.tokenToSelect.right,
+                newContext.tokenToSelect.getLineNumber(),
+                newContext.tokenToSelect.left
+            );
+            this.module.editor.monaco.setSelection(selection);
+        } else if (newContext.positionToMove != undefined) {
+            this.module.editor.monaco.setPosition(newContext.positionToMove);
+        }
+    }
+
+    navigatePos(pos: monaco.Position) {
+        const focusedLineStatement = this.getStatementAtLineNumber(pos.lineNumber);
+
+        // clicked at an empty statement => just update focusedStatement
+        if (focusedLineStatement instanceof ast.EmptyLineStmt) {
+            this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedLineStatement.left));
+
+            return;
+        }
+
+        // clicked before a statement => navigate to the beginning of the statement
+        if (pos.column <= focusedLineStatement.left) {
+            this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedLineStatement.left));
+
+            return;
+        }
+
+        // clicked before a statement => navigate to the end of the line
+        if (pos.column >= focusedLineStatement.right) {
+            this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedLineStatement.right));
+
+            return;
+        }
+
+        // look into the tokens of the statement:
+        const focusedToken = this.getTokenAtStatementColumn(focusedLineStatement, pos.column);
+
+        if (focusedToken instanceof ast.Token && focusedToken.isEmpty) {
+            // if clicked on a hole => select the hole
+            this.selectCode(focusedToken);
+
+            return;
+        } else if (focusedToken instanceof ast.EditableTextTkn || focusedToken instanceof ast.IdentifierTkn) {
+            // if clicked on a text-editable code construct (identifier or a literal) => navigate to the clicked position
+
+            if (focusedToken.text.length != 0) {
+                // don't select it
+            }
 
-			return navFocus;
-		}
+            return;
+        } else {
+            const hitDistance = pos.column - focusedToken.left;
+            const tokenLength = focusedToken.right - focusedToken.left + 1;
 
-		// clicked before a statement => navigate to the end of the line
-		if (pos.column >= this.focusedStatement.right) {
-			navFocus.position = new monaco.Position(pos.lineNumber, this.focusedStatement.right);
-			this.focusedToken = navFocus.token = null;
-			this.module.editor.monaco.setPosition(navFocus.position);
+            if (hitDistance < tokenLength / 2) {
+                // go to the beginning (or the empty token before this)
 
-			return navFocus;
-		}
+                if (focusedToken.left - 1 > focusedLineStatement.left) {
+                    const tokenBefore = this.getTokenAtStatementColumn(focusedLineStatement, focusedToken.left - 1);
 
-		// look into the tokens of the statement:
-		this.focusedToken = this.getTokenAtStatementColumn(this.focusedStatement, pos.column);
+                    if (tokenBefore instanceof ast.Token && tokenBefore.isEmpty) {
+                        this.selectCode(tokenBefore);
+
+                        return;
+                    }
+                }
+
+                this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedToken.left));
+
+                return;
+            } else {
+                // navigate to the end (or the empty token right after this token)
 
-		if (this.focusedToken instanceof ast.Token && this.focusedToken.isEmpty) {
-			// if clicked on a hole => select the hole
-			this.selectFocusedToken();
-			navFocus.token = this.focusedToken;
-			navFocus.position = null;
+                const tokenAfter = this.getTokenAtStatementColumn(focusedLineStatement, focusedToken.right + 1);
 
-			return navFocus;
-		} else if (this.focusedToken instanceof ast.EditableTextTkn || this.focusedToken instanceof ast.IdentifierTkn) {
-			// if clicked on a text-editable code construct (identifier or a literal) => navigate to the clicked position
-			navFocus.token = this.focusedToken;
-			navFocus.position = null;
+                if (tokenAfter instanceof ast.Token && tokenAfter.isEmpty) {
+                    this.selectCode(tokenAfter);
 
-			if (this.focusedToken.text.length != 0) navFocus.select = false;
+                    return;
+                } else {
+                    this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedToken.right));
 
-			return navFocus;
-		} else {
-			let hitDistance = pos.column - this.focusedToken.left;
-			let tokenLength = this.focusedToken.right - this.focusedToken.left + 1;
+                    return;
+                }
+            }
+        }
+    }
+
+    navigateUp() {
+        const curPosition = this.module.editor.monaco.getPosition();
+
+        if (curPosition.lineNumber > 1)
+            return this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
+        else return this.navigatePos(new monaco.Position(curPosition.lineNumber, 1));
+    }
+
+    navigateDown() {
+        const navFocus = new Context();
+
+        // could try doing navigatePos(down)
+        // if null => just go to the end of the line
+
+        return navFocus;
+    }
+
+    navigateRight() {
+        if (this.onEndOfLine()) {
+            // same code as navigateDown (just to the beginning of down)
+            console.log("+ 1 is down");
+        } else {
+            const curSelection = this.module.editor.monaco.getSelection();
+            const curPos = this.module.editor.monaco.getPosition();
+            const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
+            let nextColumn = curPos.column;
+
+            if (curSelection.endColumn != curSelection.startColumn) nextColumn = curSelection.endColumn;
+
+            const tokenAfter = this.getTokenAtStatementColumn(focusedLineStatement, nextColumn);
+
+            if (tokenAfter instanceof ast.NonEditableTkn) {
+                // should skip this NonEditableTkn, and move to the next thing after it.
+
+                const tokenAfterAfter = this.getTokenAtStatementColumn(focusedLineStatement, tokenAfter.right);
+
+                if (tokenAfterAfter instanceof ast.Token && tokenAfterAfter.isEmpty) {
+                    this.selectCode(tokenAfterAfter);
+
+                    return;
+                } else if (
+                    tokenAfterAfter instanceof ast.EditableTextTkn ||
+                    tokenAfterAfter instanceof ast.IdentifierTkn
+                ) {
+                    this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfterAfter.left));
+
+                    return;
+                } else if (tokenAfterAfter != null) {
+                    // probably its another expression, but should go to the beginning of it
+                    this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfterAfter.left));
+
+                    return;
+                } else {
+                    this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfter.right));
+
+                    return;
+                }
+            } else if (tokenAfter instanceof ast.Token && tokenAfter.isEmpty) {
+                // if char[col + 1] is H => just select H
+
+                this.selectCode(tokenAfter);
+            } else if (tokenAfter instanceof ast.EditableTextTkn || tokenAfter instanceof ast.IdentifierTkn) {
+                // if char[col + 1] is a literal => go through it
+
+                this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfter.left));
+            }
+        }
+    }
+
+    navigateLeft() {
+        if (this.onBeginningOfLine()) {
+            // same code as navigateUp (just to the end of up)
+            console.log("- 1 is up");
+        } else {
+            const curSelection = this.module.editor.monaco.getSelection();
+            const curPos = this.module.editor.monaco.getPosition();
+            const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
+            let prevColumn = this.module.editor.monaco.getPosition().column - 1;
+
+            if (curSelection.endColumn != curSelection.startColumn) prevColumn = curSelection.startColumn - 1;
+
+            const tokenBefore = this.getTokenAtStatementColumn(focusedLineStatement, prevColumn);
+
+            if (tokenBefore instanceof ast.NonEditableTkn) {
+                // if char[col - 1] is N => just go to the beginning of N
+
+                const tokenBeforeBefore = this.getTokenAtStatementColumn(focusedLineStatement, tokenBefore.left - 1);
+
+                if (tokenBeforeBefore instanceof ast.Token && tokenBeforeBefore.isEmpty) {
+                    this.selectCode(tokenBeforeBefore);
+
+                    return;
+                } else if (
+                    tokenBeforeBefore instanceof ast.Token &&
+                    (tokenBeforeBefore instanceof ast.EditableTextTkn || tokenBeforeBefore instanceof ast.IdentifierTkn)
+                ) {
+                    this.module.editor.monaco.setPosition(
+                        new monaco.Position(curPos.lineNumber, tokenBeforeBefore.right)
+                    );
+
+                    return;
+                } else {
+                    this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenBefore.left));
+
+                    return;
+                }
+            } else if (tokenBefore instanceof ast.Token && tokenBefore.isEmpty) {
+                // if char[col - 1] is H => just select H
+
+                this.selectCode(tokenBefore);
+            } else if (tokenBefore instanceof ast.EditableTextTkn) {
+                // if char[col - 1] is a literal => go through it
+            }
+        }
+    }
+
+    /**
+     * Returns true if the focus is within a text editable token, otherwise, returns false.
+     */
+    isTextEditable(): boolean {
+        const context = this.getContext();
+
+        return (
+            (context.token != null && context.token.isTextEditable) ||
+            (context.tokenToLeft != null && context.tokenToLeft.isTextEditable) ||
+            (context.tokenToRight != null && context.tokenToRight.isTextEditable)
+        );
+    }
+
+    /**
+     * Returns true if the focus is on an empty line, otherwise, returns false.
+     */
+    onEmptyLine(): boolean {
+        const curSelection = this.module.editor.monaco.getSelection();
+
+        if (curSelection.startColumn == curSelection.endColumn) {
+            const curPosition = curSelection.getStartPosition();
 
-			if (hitDistance < tokenLength / 2) {
-				// go to the beginning (or the empty token before this)
+            return this.isEmptyLine(this.module.editor.monaco.getModel().getLineContent(curPosition.lineNumber));
+        }
 
-				if (this.focusedToken.left - 1 > this.focusedStatement.left) {
-					let tokenBefore = this.getTokenAtStatementColumn(this.focusedStatement, this.focusedToken.left - 1);
+        return false;
+    }
 
-					if (tokenBefore instanceof ast.Token && tokenBefore.isEmpty) {
-						this.focusedToken = tokenBefore;
+    /**
+     * Returns true if the focus is on the end of a line, otherwise, returns false.
+     */
+    onEndOfLine(): boolean {
+        const curSelection = this.module.editor.monaco.getSelection();
 
-						this.selectFocusedToken();
+        if (curSelection.startColumn == curSelection.endColumn) {
+            const curPosition = curSelection.getStartPosition();
+            const focusedLineStatement = this.getStatementAtLineNumber(curPosition.lineNumber);
 
-						navFocus.token = this.focusedToken;
-						navFocus.position = null;
+            if (focusedLineStatement != null && curPosition.column == focusedLineStatement.right + 1) return true;
+        }
 
-						return navFocus;
-					} else if (tokenBefore instanceof ast.Token && (tokenBefore instanceof ast.EditableTextTkn || tokenBefore instanceof ast.IdentifierTkn)) {
-						this.focusedToken = navFocus.token = tokenBefore;
-						navFocus.select = false;
-						navFocus.position = null;
+        return false;
+    }
 
-						return navFocus;
-					}
-				}
+    /**
+     * Returns true if the focus is on the beginning of a line, otherwise, returns false.
+     */
+    onBeginningOfLine(): boolean {
+        let curSelection = this.module.editor.monaco.getSelection();
 
-				navFocus.token = null;
-				navFocus.position = new monaco.Position(pos.lineNumber, this.focusedToken.left);
-				this.module.editor.monaco.setPosition(navFocus.position);
+        // if (curSelection.startColumn == curSelection.endColumn) {
+        // 	let curPosition = curSelection.getStartPosition();
 
-				return navFocus;
-			} else {
-				// navigate to the end (or the empty token right after this token)
+        //     if (curPosition.column == 1) return true;
 
-				let tokenAfter = this.getTokenAtStatementColumn(this.focusedStatement, this.focusedToken.right + 1);
+        // 	let lineContent = this.module.editor.monaco.getModel().getLineContent(curPosition.lineNumber);
 
-				if (tokenAfter instanceof ast.Token && tokenAfter.isEmpty) {
-					this.focusedToken = tokenAfter;
+        //     if (curPosition.column - 1 == ) return true;
+        // }
 
-					this.selectFocusedToken();
+        return false;
+    }
 
-					navFocus.token = this.focusedToken;
-					navFocus.position = null;
+    /**
+     * Returns true if a line exists above the focused line, otherwise, returns false.
+     */
+    existsLineAbove(): boolean {
+        // let curPos = this.module.editor.monaco.getPosition();
+        // let lineStmt = this.getStmtFromLine(curPos.lineNumber);
 
-					return navFocus;
-				} else {
-					navFocus.token = null;
-					navFocus.position = new monaco.Position(pos.lineNumber, this.focusedToken.right);
-					this.module.editor.monaco.setPosition(navFocus.position);
+        // if (lineStmt != null) {
 
-					return navFocus;
-				}
-			}
-		}
-	}
+        // }
 
-	navigateUp() : NavigationFocus {
-		let curPosition = this.module.editor.monaco.getPosition();
+        return false;
+    }
 
-		if (curPosition.lineNumber > 1)
-			return this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
-		else return this.navigatePos(new monaco.Position(curPosition.lineNumber, 1));
-	}
+    /**
+     * Returns true if a line exists below the focused line, otherwise, returns false.
+     */
+    existsLineBelow(): boolean {
+        return false;
+    }
 
-	navigateDown()  : NavigationFocus{
-		let navFocus = new NavigationFocus();
+    // onEmptyLine(): boolean {
+    //     // 1. checks based on current position => gets the statement
+    //     // 2. checks if the current statement instanceof EmptyStatement
+    // }
 
-		// could try doing navigatePos(down) 
-		// if null => just go to the end of the line
+    // getFocusedToken(): FocusToken {
+    //     const focusToken = new FocusToken();
 
-		return navFocus;
-	}
+    //     if (
+    //         (this.focusedToken != null && this.focusedToken instanceof ast.Token) ||
+    //         this.focusedToken instanceof ast.Expression
+    //     ) {
+    //         focusToken.token = this.focusedToken;
+    //     } else {
 
-	navigateRight()  : NavigationFocus{
-		let navFocus = new NavigationFocus();
-		navFocus.token = this.focusedToken;
+    //     const focusedStatement = this.getFocusedStatement();
+    //     const focusedPosition = this.module.editor.monaco.getPosition();
 
-		if (this.onEndOfLine()) {
-			// same code as navigateDown (just to the beginning of down)
-			console.log("+ 1 is down")
-		} else {
-			let curSelection = this.module.editor.monaco.getSelection();
-			let curPos = this.module.editor.monaco.getPosition();
-			let nextColumn = curPos.column;
+    //     	this.getTokenAtStatementColumn(focusedStatement, focusedPosition.column);
+    // 	}
 
-			if (curSelection.endColumn != curSelection.startColumn)
-				nextColumn = curSelection.endColumn;
+    //     return this.focusToken;
+    // }
 
-			let tokenAfter = this.getTokenAtStatementColumn(this.focusedStatement, nextColumn);
+    // isFocusedTokenHole(): boolean {
+    //     const focusedToken = this.getFocusedToken();
 
-			if (tokenAfter instanceof ast.NonEditableTkn) {
-				// should skip this NonEditableTkn, and move to the next thing after it.
+    //     if (focusedToken instanceof ast.Token && focusedToken.isEmpty) return true;
 
-				let tokenAfterAfter = this.getTokenAtStatementColumn(this.focusedStatement, tokenAfter.right);
+    //     return false;
+    // }
 
-				if (tokenAfterAfter instanceof ast.Token && tokenAfterAfter.isEmpty) {
-					this.focusedToken = tokenAfterAfter;
+    private getTokenAtStatementColumn(statement: ast.Statement, column: number): ast.CodeConstruct {
+        const tokensStack = new Array<ast.CodeConstruct>();
 
-					this.selectFocusedToken();
+        for (const token of statement.tokens) tokensStack.unshift(token);
 
-					navFocus.token = this.focusedToken;
-					navFocus.position = null;
+        while (tokensStack.length > 0) {
+            const curToken = tokensStack.pop();
 
-					return navFocus;
-				} else if (tokenAfterAfter instanceof ast.EditableTextTkn || tokenAfterAfter instanceof ast.IdentifierTkn) {
-					navFocus.position = new monaco.Position(curPos.lineNumber, tokenAfterAfter.left);
-					this.module.editor.monaco.setPosition(navFocus.position);
+            if (column >= curToken.left && column < curToken.right && curToken instanceof ast.Token) return curToken;
 
-					this.focusedToken = navFocus.token = tokenAfterAfter;
-					navFocus.select = false;
+            // print("Hello")
 
-					return navFocus;
-				} else if (tokenAfterAfter != null){
-					// probably its another expression, but should go to the beginning of it
-					navFocus.position = new monaco.Position(curPos.lineNumber, tokenAfterAfter.left);
-					this.module.editor.monaco.setPosition(navFocus.position);
+            if (curToken instanceof ast.Expression)
+                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+                else return curToken;
+        }
 
-					this.focusedToken = navFocus.token = null;
+        return null;
+    }
 
-					return navFocus;
-				}else {
-					navFocus.position = new monaco.Position(curPos.lineNumber, tokenAfter.right);
-					this.module.editor.monaco.setPosition(navFocus.position);
+    private getStatementAtLineNumber(line: number): ast.Statement {
+        const bodyStack = new Array<ast.Statement>();
 
-					this.focusedToken = navFocus.token = null;
+        for (const stmt of this.module.body) bodyStack.unshift(stmt);
 
-					return navFocus;
+        while (bodyStack.length > 0) {
+            const curStmt = bodyStack.pop();
 
-				}
+            if (line == curStmt.lineNumber) return curStmt;
+            else if (curStmt.hasBody()) {
+                for (const stmt of curStmt.body) bodyStack.unshift(stmt);
+            }
+        }
 
+        return null;
+    }
 
-			} else if (tokenAfter instanceof ast.Token && tokenAfter.isEmpty) {
-				// if char[col + 1] is H => just select H
-				console.log("+1 is H")
-
-				navFocus.token = tokenAfter;
-				navFocus.position = null;
-
-				this.selectFocusedToken();
-
-			} else if (tokenAfter instanceof ast.EditableTextTkn || tokenAfter instanceof ast.IdentifierTkn) {
-				// if char[col + 1] is a literal => go through it
-				console.log("+1 is L")
-
-				navFocus.position = new monaco.Position(curPos.lineNumber, tokenAfter.left);
-				this.module.editor.monaco.setPosition(navFocus.position);
-
-				this.focusedToken = navFocus.token = tokenAfter;
-				navFocus.select = false;
-			}
-		}
-
-		return navFocus;
-	}
-
-	navigateLeft() : NavigationFocus {
-		let navFocus = new NavigationFocus();
-		navFocus.token = this.focusedToken;
-
-		if (this.onBeginningOfLine()) {
-			// same code as navigateUp (just to the end of up)
-			console.log("- 1 is up")
-		} else {
-			let curSelection = this.module.editor.monaco.getSelection();
-			let curPos = this.module.editor.monaco.getPosition();
-			let prevColumn = this.module.editor.monaco.getPosition().column - 1;
-
-			if (curSelection.endColumn != curSelection.startColumn)
-				prevColumn = curSelection.startColumn - 1
-
-			let tokenBefore = this.getTokenAtStatementColumn(this.focusedStatement, prevColumn);
-
-			if (tokenBefore instanceof ast.NonEditableTkn) {
-				// if char[col - 1] is N => just go to the beginning of N
-				console.log("-1 is N")
-
-				let tokenBeforeBefore = this.getTokenAtStatementColumn(this.focusedStatement, tokenBefore.left - 1);
-
-				if (tokenBeforeBefore instanceof ast.Token && tokenBeforeBefore.isEmpty) {
-					this.focusedToken = tokenBeforeBefore;
-
-					this.selectFocusedToken();
-
-					navFocus.token = this.focusedToken;
-					navFocus.position = null;
-
-					return navFocus;
-				} else if (tokenBeforeBefore instanceof ast.Token && (tokenBeforeBefore instanceof ast.EditableTextTkn || tokenBeforeBefore instanceof ast.IdentifierTkn)) {
-					navFocus.position = new monaco.Position(curPos.lineNumber, tokenBeforeBefore.right);
-					this.module.editor.monaco.setPosition(navFocus.position);
-
-					this.focusedToken = navFocus.token = tokenBeforeBefore;
-					navFocus.select = false;
-
-					return navFocus;
-				} else {
-					this.focusedToken = navFocus.token = null;
-					navFocus.position = new monaco.Position(curPos.lineNumber, tokenBefore.left);
-					this.module.editor.monaco.setPosition(navFocus.position);
-	
-					return navFocus;
-				}
-
-
-			} else if (tokenBefore instanceof ast.Token && tokenBefore.isEmpty) {
-				// if char[col - 1] is H => just select H
-				console.log("-1 is H")
-
-				navFocus.token = tokenBefore;
-				navFocus.position = null;
-
-				this.selectFocusedToken();
-
-			} else if (tokenBefore instanceof ast.EditableTextTkn) {
-				// if char[col - 1] is a literal => go through it
-				console.log("-1 is L")
-			}
-		}
-
-		return navFocus;
-	}
-
-	/**
-	 * Returns true if the focus is within a text editable token, otherwise, returns false.
-	 */
-	isTextEditable(): boolean {
-		return this.focusedToken != null && this.focusedToken.isTextEditable;
-	}
-
-	/**
-	 * Returns true if the focus is on an empty line, otherwise, returns false.
-	 */
-	onEmptyLine(): boolean {
-		let curSelection = this.module.editor.monaco.getSelection();
-
-		if (curSelection.startColumn == curSelection.endColumn) {
-			let curPosition = curSelection.getStartPosition();
-
-			return this.isEmptyLine(this.module.editor.monaco.getModel().getLineContent(curPosition.lineNumber));
-		}
-
-		return false;
-	}
-
-	/**
-	 * Returns true if the focus is on the end of a line, otherwise, returns false.
-	 */
-	onEndOfLine(): boolean {
-		let curSelection = this.module.editor.monaco.getSelection();
-
-		if (curSelection.startColumn == curSelection.endColumn) {
-			let curPosition = curSelection.getStartPosition();
-
-			if (this.focusedStatement != null && curPosition.column == this.focusedStatement.right + 1) return true;
-		}
-
-		return false;
-	}
-
-	/**
-	 * Returns true if the focus is on the beginning of a line, otherwise, returns false.
-	 */
-	onBeginningOfLine(): boolean {
-		let curSelection = this.module.editor.monaco.getSelection();
-
-		// if (curSelection.startColumn == curSelection.endColumn) {
-		// 	let curPosition = curSelection.getStartPosition();
-
-		//     if (curPosition.column == 1) return true;
-
-		// 	let lineContent = this.module.editor.monaco.getModel().getLineContent(curPosition.lineNumber);
-
-		//     if (curPosition.column - 1 == ) return true;
-		// }
-
-		return false;
-	}
-
-	/**
-	 * Returns true if a line exists above the focused line, otherwise, returns false.
-	 */
-	existsLineAbove(): boolean {
-		// let curPos = this.module.editor.monaco.getPosition();
-		// let lineStmt = this.getStmtFromLine(curPos.lineNumber);
-
-		// if (lineStmt != null) {
-
-		// }
-
-		return false;
-	}
-
-	/**
-	 * Returns true if a line exists below the focused line, otherwise, returns false.
-	 */
-	existsLineBelow(): boolean {
-		return false;
-	}
-
-	private getTokenAtStatementColumn(statement: ast.Statement, column: number): ast.CodeConstruct {
-		let tokensStack = new Array<ast.CodeConstruct>();
-
-		for (let token of statement.tokens) tokensStack.unshift(token);
-
-		while (tokensStack.length > 0) {
-			let curToken = tokensStack.pop();
-
-			if (column >= curToken.left && column < curToken.right && curToken instanceof ast.Token) return curToken;
-
-			if (curToken instanceof ast.Expression)
-				if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
-				else return curToken;
-		}
-
-		return null;
-	}
-
-	private getStatementAtLineNumber(line: number): ast.Statement {
-		let bodyStack = new Array<ast.Statement>();
-
-		for (let stmt of this.module.body) bodyStack.push(stmt);
-
-		while (bodyStack.length > 0) {
-			let curStmt = bodyStack.pop();
-
-			if (line == curStmt.lineNumber) return curStmt;
-			else if (curStmt.hasBody()) {
-				for (let stmt of curStmt.body) bodyStack.push(stmt);
-			}
-		}
-
-		return null;
-	}
-
-	private isEmptyLine(line: string): boolean {
-		return line.trim().length == 0;
-	}
+    private isEmptyLine(line: string): boolean {
+        return line.trim().length == 0;
+    }
+
+    private selectCode(code: ast.CodeConstruct) {
+        if (code != null) {
+            const selection = new monaco.Selection(code.getLineNumber(), code.right, code.getLineNumber(), code.left);
+
+            this.module.editor.monaco.setSelection(selection);
+        }
+    }
+
+    // atEndOfExpression()
+
+    // isTextEditable()
+
+    // TODO: we can have a similar function for getContextFromSelection(statement: ast.Statement, column: number): Context {}
+
+    private getContextFromSelection(statement: ast.Statement, left: number, right: number): Context {
+        const context = new Context();
+        context.lineStatement = statement;
+        const tokensStack = new Array<ast.CodeConstruct>();
+
+        // initialize tokensStack
+        for (const token of statement.tokens) tokensStack.unshift(token);
+
+        while (tokensStack.length > 0) {
+            const curToken = tokensStack.pop();
+
+            if (curToken.left == left && curToken.right == right) {
+                context.selected = true;
+
+                if (curToken instanceof ast.Token) context.token = curToken;
+                else if (curToken instanceof ast.Expression) context.expression = curToken;
+
+                return context;
+            } else if (curToken instanceof ast.Expression) {
+                if (left == curToken.left && right == curToken.right) {
+                    context.expression = curToken;
+                    context.selected = true;
+
+                    break;
+                }
+
+                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+                else {
+                    console.warn(
+                        `getContextFromPosition(statement: ${statement}, left: ${left}, right: ${right}) -> found expression with no child tokens.`
+                    );
+                }
+            }
+        }
+
+        return context;
+    }
+
+    private getContextFromPosition(statement: ast.Statement, column: number): Context {
+        const context = new Context();
+        context.lineStatement = statement;
+        const tokensStack = new Array<ast.CodeConstruct>();
+
+        // initialize tokensStack
+        for (const token of statement.tokens) tokensStack.unshift(token);
+
+        while (tokensStack.length > 0) {
+            const curToken = tokensStack.pop();
+
+            if (curToken instanceof ast.Token) {
+                // this code assumes that there is no token with an empty text
+                if (column == curToken.left) {
+                    context.tokenToRight = curToken;
+                    context.tokenToLeft = this.searchTokenWithCheck(statement, (token) => token.right == column);
+
+                    if (context.tokenToRight != null) {
+                        context.expressionToRight = this.getExpression(
+                            context.tokenToRight,
+                            context.tokenToRight.rootNode.left == column
+                        );
+                    }
+                    if (context.tokenToLeft) {
+                        context.expressionToLeft = this.getExpression(
+                            context.tokenToLeft,
+                            context.tokenToLeft.rootNode.right == column
+                        );
+                    }
+
+                    context.lineStatement = context.tokenToRight.getParentStatement();
+                    context.token = null;
+
+                    break;
+                } else if (column == curToken.right) {
+                    context.tokenToLeft = curToken;
+                    context.tokenToRight = this.searchTokenWithCheck(statement, (token) => token.left == column);
+
+                    if (context.tokenToRight != null) {
+                        context.expressionToRight = this.getExpression(
+                            context.tokenToRight,
+                            context.tokenToRight.rootNode.left == column
+                        );
+                    }
+                    if (context.tokenToLeft) {
+                        context.expressionToLeft = this.getExpression(
+                            context.tokenToLeft,
+                            context.tokenToLeft.rootNode.right == column
+                        );
+                    }
+                    context.lineStatement = context.tokenToLeft.getParentStatement();
+                    context.token = null;
+
+                    break;
+                } else if (column > curToken.left && column < curToken.right) {
+                    context.token = curToken;
+                    // context.parentExpression = context.token.rootNode as ast.Expression;
+                    context.lineStatement = context.token.getParentStatement();
+
+                    break;
+                }
+            } else if (curToken instanceof ast.Expression) {
+                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+                else {
+                    console.warn(
+                        `getContextFromPosition(statement: ${statement}, column: ${column}) -> found expression with no child tokens.`
+                    );
+                }
+            }
+        }
+
+        return context;
+    }
+
+    private getExpression(token: ast.Token, check: boolean): ast.Expression {
+        if (token.rootNode instanceof ast.Expression && check) return token.rootNode;
+
+        return null;
+    }
+
+    /**
+     * Searches the tokens tree for a token that matches the passed check() condition.
+     */
+    private searchTokenWithCheck(statement: ast.Statement, check: (token: ast.Token) => boolean): ast.Token {
+        const tokensStack = new Array<ast.CodeConstruct>();
+
+        for (const token of statement.tokens) tokensStack.unshift(token);
+
+        while (tokensStack.length > 0) {
+            const curToken = tokensStack.pop();
+
+            if (curToken instanceof ast.Token && check(curToken)) return curToken;
+
+            if (curToken instanceof ast.Expression)
+                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+        }
+
+        return null;
+    }
 }
 
-export class NavigationFocus {
-	token?: ast.CodeConstruct = null;
-	position?: monaco.Position = null;
-	select?: boolean = false;
+export class Context {
+    // hierarchical levels:
 
-	setPosition(position: monaco.Position) {
-		this.token = null;
-		this.position = position;
-	}
+    token?: ast.Token = null;
+    tokenToLeft?: ast.Token = null;
+    tokenToRight?: ast.Token = null;
 
-	setToken(token: ast.CodeConstruct) {
-		this.token = token;
-		this.position = null;
-	}
+    /**
+     * Immediate items
+     */
+    // parentExpression?: ast.Expression = null;
+    expression?: ast.Expression = null;
+    expressionToLeft?: ast.Expression = null;
+    expressionToRight?: ast.Expression = null;
 
-	/**
-	 * token could be null in many circumstances:
-	 * - 
-	 */
-	//
+    lineStatement: ast.Statement;
+
+    selected?: boolean = false; //this should not be nullable
+    position?: monaco.Position = null;
+}
+
+export class UpdatableContext {
+    tokenToSelect?: ast.CodeConstruct;
+    positionToMove?: monaco.Position;
+
+    constructor(tokenToSelect?: ast.Token, positionToMove?: monaco.Position) {
+        this.tokenToSelect = tokenToSelect;
+        this.positionToMove = positionToMove;
+    }
 }

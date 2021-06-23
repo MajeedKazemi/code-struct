@@ -6,6 +6,7 @@ import {
     LiteralValExpr,
     Module,
     DataType,
+    Token,
 } from "../syntax-tree/ast";
 import * as monaco from "monaco-editor";
 
@@ -38,11 +39,13 @@ export class ConstructCompleter {
     }
 
     completeArithmeticConstruct(operator: BinaryOperator) {
+        console.log("Refactor me.")
+       /* const context = this.module.focus.getContext();
         //TODO: Currently locate() returns EndOfLine and StartOfLine tokens as well
         //Once that changes, need to modify this to not use the rootNode because presumably it would be returning a statement or an expression
 
         const cursorPos = this.editor.monaco.getPosition();
-        const closestConstruct = this.module.focusedNode.locate(cursorPos).rootNode as CodeConstruct;
+        const closestConstruct = (context.tokenToRight ? context.tokenToRight : context.expressionToRight);
         const parentRoot = closestConstruct.rootNode as CodeConstruct;
 
         if (!(closestConstruct instanceof Module)) {
@@ -83,8 +86,10 @@ export class ConstructCompleter {
                 );
 
                 this.editor.executeEdits(range, newConstruct);
-                this.editor.focusSelection(newLiteralValExpr.getSelection());
+                this.editor.module.focus.updateContext({tokenToSelect: newConstruct.tokens[newConstruct.getRightOperandIndex()] as Token});
+                this.editor.focusSelection();
             }
-        }
+        }*/
     }
 }
+

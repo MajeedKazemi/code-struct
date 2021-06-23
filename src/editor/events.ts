@@ -5,7 +5,6 @@ import { ErrorMessage } from "../notification-system/error-msg-generator";
 import * as keywords from "../syntax-tree/keywords";
 import { BinaryOperator, DataType } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
-import { NavigationFocus } from "./focus";
 
 export enum KeyPress {
     // navigation:
@@ -47,16 +46,16 @@ export enum KeyPress {
 }
 
 export enum EditAction {
-    Copy, // TODO: could use default or navigator.clipboard.writeText()
-    Paste, // TODO: check navigator.clipboard.readText()
+    Copy, // TODO: NYI: could use default or navigator.clipboard.writeText()
+    Paste, // TODO: NYI: check navigator.clipboard.readText()
 
     Undo,
     Redo,
 
     MoveCursorLeft,
     MoveCursorRight,
-    MoveCursorStart, // TODO
-    MoveCursorEnd, // TODO
+    MoveCursorStart, // TODO: NYI
+    MoveCursorEnd, // TODO: NYI
 
     DeleteNextChar,
     DeletePrevChar,
@@ -66,8 +65,8 @@ export enum EditAction {
 
     SelectLeft,
     SelectRight,
-    SelectToStart, // TODO
-    SelectToEnd, // TODO
+    SelectToStart, // TODO: NYI
+    SelectToEnd, // TODO: NYI
 
     SelectNextToken,
     SelectPrevToken,
@@ -107,7 +106,7 @@ export enum EditAction {
     OpenSubMenu,
     CloseSubMenu,
 
-    //TODO: Remove later
+    //TODO: Remove later (for the continuos menu with categories)
     OpenValidInsertMenuSingleLevel,
 }
 
@@ -118,24 +117,10 @@ export class EventHandler {
         this.module = module;
     }
 
-    private update(navFocus: NavigationFocus) {
-		if (navFocus.token != null && navFocus.select) this.setFocusedNode(navFocus.token);
-		else if (!navFocus.select)
-			this.module.focusedNode = navFocus.token;
-	}
-
-    setFocusedNode(code: ast.CodeConstruct) {
-        this.module.focusedNode.notify(ast.CallbackType.loseFocus);
-
-        this.module.focusedNode = code;
-		this.module.editor.focusSelection(this.module.focusedNode.getSelection());
-
-        code.notify(ast.CallbackType.focus);
-    }
-
     getKeyAction(e: KeyboardEvent) {
         const curPos = this.module.editor.monaco.getPosition();
         const inTextEditMode = this.module.focus.isTextEditable();
+        const context = this.module.focus.getContext();
 
         switch (e.key) {
             case KeyPress.ArrowUp:
@@ -152,8 +137,7 @@ export class EventHandler {
                 if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.CloseSubMenu;
 
                 if (inTextEditMode) {
-                    if (curPos.column == (this.module.focusedNode as ast.Token).left) return EditAction.SelectPrevToken;
-
+                    if (this.module.focus.onEndOrBeginningOfToken()) return EditAction.SelectPrevToken;
                     if (e.shiftKey && e.ctrlKey) return EditAction.SelectToStart;
                     else if (e.shiftKey) return EditAction.SelectLeft;
                     else if (e.ctrlKey) return EditAction.MoveCursorStart;
@@ -164,10 +148,7 @@ export class EventHandler {
                 if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.OpenSubMenu;
 
                 if (inTextEditMode) {
-                    if (
-                        curPos.column == (this.module.focusedNode as ast.Token).right ||
-                        (this.module.focusedNode as ast.Token).text == "   "
-                    ) {
+                    if (this.module.focus.onEndOrBeginningOfToken() || (context.token.isEmpty && context.selected)) {
                         return EditAction.SelectNextToken;
                     }
 
@@ -208,9 +189,9 @@ export class EventHandler {
             case KeyPress.Enter:
                 if (this.module.menuController.isMenuOpen()) return EditAction.SelectMenuSuggestion;
 
-                const curLine = this.module.locateStatement(curPos);
                 const curSelection = this.module.editor.monaco.getSelection();
-                const parent = this.module.focusedNode.getParentStatement().rootNode;
+                const curStatement = this.module.focus.getFocusedStatement();
+                const parent = curStatement.rootNode;
                 let leftPosToCheck = 1;
 
                 if (parent instanceof ast.Statement && parent.body.length > 0) {
@@ -219,7 +200,7 @@ export class EventHandler {
                 }
 
                 if (curSelection.startColumn == curSelection.endColumn) {
-                    if (curPos.column == leftPosToCheck || curPos.column == curLine.right)
+                    if (curPos.column == leftPosToCheck || curPos.column == curStatement.right)
                         return EditAction.InsertEmptyLine;
                 }
 
@@ -312,13 +293,17 @@ export class EventHandler {
                     return EditAction.None;
                 }
         }
-    }
+    }    
 
     onKeyDown(e) {
         const action = this.getKeyAction(e.browserEvent);
         const selection = this.module.editor.monaco.getSelection();
         let suggestions = [];
 
+        const context = this.module.focus.getContext();
+
+        let focusedNode = this.module.focus.onEmptyLine() ? context.lineStatement : context?.token;
+        
         switch (action) {
             case EditAction.InsertEmptyLine: {
                 this.module.insertEmptyLine();
@@ -329,7 +314,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectPrevToken: {
-                this.update(this.module.focus.navigateLeft());
+                this.module.focus.navigateLeft();
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -337,7 +322,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectNextToken: {
-                this.update(this.module.focus.navigateRight());
+                this.module.focus.navigateRight();
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -346,21 +331,8 @@ export class EventHandler {
 
             case EditAction.InsertChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
-                const selectedText = this.module.editor.monaco.getSelection();
-
-                let token: ast.TextEditable;
-
-                if (
-                    this.module.focusedNode instanceof ast.IdentifierTkn ||
-                    this.module.focusedNode instanceof ast.EditableTextTkn
-                ) {
-                    token = this.module.focusedNode;
-                } else {
-                    throw new Error(
-                        "Trying to insert-char at an incorrect token or with an incorrect isTextEditable value."
-                    );
-                }
-
+                const selectedText = this.module.editor.monaco.getSelection();                
+                const token = this.module.focus.getTextEditableItem();
                 let newText = "";
 
                 if (token.getEditableText() == "   ") {
@@ -369,7 +341,7 @@ export class EventHandler {
                 } else {
                     const curText = token.getEditableText().split("");
                     curText.splice(
-                        cursorPos.column - this.module.focusedNode.left,
+                        cursorPos.column - token.getLeft(),
                         Math.abs(selectedText.startColumn - selectedText.endColumn),
                         e.browserEvent.key
                     );
@@ -377,7 +349,8 @@ export class EventHandler {
                     newText = curText.join("");
                 }
 
-                if (this.module.focusedNode instanceof ast.IdentifierTkn) {
+                // TODO: this.module.focus.isInsideIdentifier()
+                if (context.selected && context?.token instanceof ast.IdentifierTkn) {
                     let newNotification = false;
 
                     /*TODO: Change this to use the new focus.
@@ -386,14 +359,14 @@ export class EventHandler {
                      */
                     if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
                         this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
+                            context?.token,
                             { identifier: newText },
                             ErrorMessage.identifierIsKeyword
                         );
                         newNotification = true;
                     } else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
                         this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
+                            context?.token,
                             { identifier: newText },
                             ErrorMessage.identifierIsBuiltInFunc
                         );
@@ -401,13 +374,8 @@ export class EventHandler {
                         newNotification = true;
                     }
 
-                    if (!newNotification && this.module.focusedNode.notification) {
-                        /*TODO: Change to use the new focus
-                         * 
-                         * This needs to use whatever construct is used for the check above. It should not matter whether it is Token, Statement or Expression since
-                         * all of those were a possibility before as well.
-                         */
-                        this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
+                    if (!newNotification && context?.token.notification) {
+                        this.module.notificationSystem.removeNotificationFromConstruct(context?.token);
                     }
                 }
 
@@ -443,19 +411,7 @@ export class EventHandler {
             case EditAction.DeleteNextChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-
-                let token: ast.TextEditable;
-
-                if (
-                    this.module.focusedNode instanceof ast.IdentifierTkn ||
-                    this.module.focusedNode instanceof ast.EditableTextTkn
-                ) {
-                    token = this.module.focusedNode;
-                } else {
-                    throw new Error(
-                        "Trying to insert-char at an incorrect token or with an incorrect isTextEditable value."
-                    );
-                }
+                const token = this.module.focus.getTextEditableItem();
 
                 let newText = "";
 
@@ -471,15 +427,15 @@ export class EventHandler {
 
                 curText.splice(
                     Math.min(
-                        cursorPos.column - this.module.focusedNode.left - toDeletePos,
-                        selectedText.startColumn - this.module.focusedNode.left - toDeletePos
+                        cursorPos.column - token.getLeft() - toDeletePos,
+                        selectedText.startColumn - token.getLeft() - toDeletePos
                     ),
                     toDeleteItems
                 );
 
                 newText = curText.join("");
-
-                if (this.module.focusedNode instanceof ast.IdentifierTkn) {
+            
+                if (context.selected && context?.token instanceof ast.IdentifierTkn) {
                     let newNotification = false;
 
                     if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
@@ -488,27 +444,22 @@ export class EventHandler {
                         * This needs to use whatever code construct is used for the check in the if-statement above.
                         */
                         this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
+                            context?.token,
                             { identifier: newText },
                             ErrorMessage.identifierIsKeyword
                         );
                         newNotification = true;
                     } else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
                         this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
+                            context?.token,
                             { identifier: newText },
                             ErrorMessage.identifierIsBuiltInFunc
                         );
                         newNotification = true;
                     }
 
-                    if (!newNotification && this.module.focusedNode.notification) {
-                        /*TODO: Change to use the new focus
-                         * 
-                         * This needs to use whatever construct is used for the check above. It should not matter whether it is Token, Statement or Expression since
-                         * all of those were a possibility before as well.
-                         */
-                        this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
+                    if (!newNotification && context?.token.notification) {
+                        this.module.notificationSystem.removeNotificationFromConstruct(context?.token);
                     }
                 }
 
@@ -541,7 +492,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectClosestTokenAbove: {
-                this.update(this.module.focus.navigateUp());
+                this.module.focus.navigateUp();
 
                 e.stopPropagation();
                 e.preventDefault();
@@ -550,7 +501,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectClosestTokenBelow: {
-				this.update(this.module.focus.navigateDown());
+				this.module.focus.navigateDown();
 
                 e.stopPropagation();
                 e.preventDefault();
@@ -601,9 +552,6 @@ export class EventHandler {
                 break;
 
             case EditAction.CompleteMultiplication:
-                console.log(this.module.editor.holes);
-                console.log(e);
-
                 this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
 
                 e.preventDefault();
@@ -632,47 +580,32 @@ export class EventHandler {
                 break;
 
             case EditAction.DisplayGreaterThanSuggestion:
-                suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
-
-                //TODO: Change focus
-                /*
-                 * Can be changed to this.module.focus.getFocusedConstruct(), it does not need a particular type of construct (Token, Statement or Expression),
-                 * getValidInsertsFromSet() will sort it out.
-                 * 
-                 * Might need to make some changes to that method to deal with new selections that are possible though. 
-                 */
-                suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-                this.module.menuController.buildSingleLevelMenu(
-                    suggestions,
-                    Util.getInstance(this.module).constructActions,
-                    {
-                        left: selection.startColumn * this.module.editor.computeCharWidth(),
-                        top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                    }
-                );
+                if(this.module.isAbleToInsertComparator(context)){
+                    this.module.menuController.buildSingleLevelMenu(
+                        [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
+                        Util.getInstance(this.module).constructActions,
+                        {
+                            left: selection.startColumn * this.module.editor.computeCharWidth(),
+                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
+                        }
+                    );
+                }
 
                 e.preventDefault();
                 e.stopPropagation();
                 break;
 
             case EditAction.DisplayLessThanSuggestion:
-                suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
-
-                //TODO: Change focus
-                /*
-                 * Can be changed to this.module.focus.getFocusedConstruct(), it does not need a particular type of construct (Token, Statement or Expression),
-                 * getValidInsertsFromSet() will sort it out.
-                 */
-                suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-
-                this.module.menuController.buildSingleLevelMenu(
-                    suggestions,
-                    Util.getInstance(this.module).constructActions,
-                    {
-                        left: selection.startColumn * this.module.editor.computeCharWidth(),
-                        top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                    }
-                );
+                if(this.module.isAbleToInsertComparator(context)){
+                    this.module.menuController.buildSingleLevelMenu(
+                        [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
+                        Util.getInstance(this.module).constructActions,
+                        {
+                            left: selection.startColumn * this.module.editor.computeCharWidth(),
+                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
+                        }
+                    );
+                }
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -680,13 +613,7 @@ export class EventHandler {
 
             case EditAction.DisplayEqualsSuggestion:
                 suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
-
-                //TODO: Change focus
-                /*
-                 * Can be changed to this.module.focus.getFocusedConstruct(), it does not need a particular type of construct (Token, Statement or Expression),
-                 * getValidInsertsFromSet() will sort it out.
-                 */
-                suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+                suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
 
                 this.module.menuController.buildSingleLevelMenu(
                     suggestions,
@@ -704,7 +631,7 @@ export class EventHandler {
             case EditAction.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
                     this.module.menuController.buildAvailableInsertsMenu(
-                        this.module.getAllValidInsertsList(this.module.focusedNode),
+                        this.module.getAllValidInsertsList(focusedNode),
                         Util.getInstance(this.module).constructActions,
                         {
                             left: selection.startColumn * this.module.editor.computeCharWidth(),
@@ -720,7 +647,7 @@ export class EventHandler {
             //TODO: Remove later
             case EditAction.OpenValidInsertMenuSingleLevel:
                 if (!this.module.menuController.isMenuOpen()) {
-                    const suggestions = this.module.getAllValidInsertsList(this.module.focusedNode);
+                    const suggestions = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
                 } else this.module.menuController.removeMenus();
 
@@ -730,36 +657,42 @@ export class EventHandler {
 
             case EditAction.SelectMenuSuggestionAbove:
                 this.module.menuController.focusOptionAbove();
+                
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.SelectMenuSuggestionBelow:
                 this.module.menuController.focusOptionBelow();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.SelectMenuSuggestion:
                 this.module.menuController.selectFocusedOption();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.CloseValidInsertMenu:
                 this.module.menuController.removeMenus();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.OpenSubMenu:
                 this.module.menuController.openSubMenu();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.CloseSubMenu:
                 this.module.menuController.closeSubMenu();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
@@ -771,7 +704,7 @@ export class EventHandler {
     }
 
     onMouseDown(e) {
-		this.update(this.module.focus.navigatePos(e.target.position));
+		this.module.focus.navigatePos(e.target.position);
     }
 
     onButtonDown(id: string) {
