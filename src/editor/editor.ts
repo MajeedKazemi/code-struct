@@ -73,7 +73,7 @@ export class Editor {
         if (this.module.menuController.isMenuOpen()) this.module.menuController.removeMenus();
 
         //disable toolbox buttons based on available inserts
-        const validInserts = this.module.getAllValidInsertsList(context.token);
+        /*const validInserts = this.module.getAllValidInsertsList(context.token);
         Object.keys(ConstructKeys).forEach((construct) => {
             if (constructToToolboxButton.has(ConstructKeys[construct])) {
                 if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
@@ -90,7 +90,7 @@ export class Editor {
                     button.classList.remove("disabled");
                 }
             }
-        });
+        });*/
     }
 
     getLineEl(ln: number) {

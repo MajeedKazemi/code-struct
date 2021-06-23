@@ -492,12 +492,11 @@ export abstract class Statement implements CodeConstruct {
     replace(code: CodeConstruct, index: number) {
         // Notify the token being replaced
         const toReplace = this.tokens[index];
-        if (toReplace instanceof Statement || toReplace instanceof Expression || toReplace instanceof Token) {
+        if (toReplace) {
             toReplace.notify(CallbackType.delete);
 
-            //any hole-containing tokens need to be notified so their holes are removed
-            if (toReplace instanceof Statement || toReplace instanceof Expression) {
-                toReplace.tokens.forEach((token) => {
+            if (!(toReplace instanceof Token)) {
+                (toReplace as Statement).tokens.forEach((token) => {
                     if (token instanceof Token) {
                         token.notify(CallbackType.delete);
                     }
@@ -516,6 +515,8 @@ export abstract class Statement implements CodeConstruct {
         else rebuildColumn = (this.tokens[index] as Expression).left;
 
         // replace
+        //TODO: Update focus here? It is good up until now. But once the new construct is inserted, it is not being focused.
+        //The focus goes to the end of line
         this.tokens[index] = code;
 
         if (rebuildColumn) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
@@ -2462,6 +2463,7 @@ export class Module {
     }
 
     insert(code: CodeConstruct, insertInto?: CodeConstruct) {
+        console.log(this)
         //TODO: Probably want an overload of insert to take care of this case
         let focusedNodeProvided = false;
         let focusedNode = null;

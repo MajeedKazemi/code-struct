@@ -16,7 +16,7 @@ export class Focus {
         let token: ast.TextEditable;
 
         if (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn) {
-            return token;
+            return context.token;
         } else {
             throw new Error("Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.");
         }
@@ -470,6 +470,28 @@ export class Focus {
         return context;
     }
 
+    private findNonTextualHole(statement: ast.Statement, column: number): ast.Token {
+        const tokensStack = new Array<ast.CodeConstruct>();
+
+        for (const token of statement.tokens) tokensStack.unshift(token);
+
+        while (tokensStack.length > 0) {
+            const curToken = tokensStack.pop();
+
+            if (column == curToken.left && column == curToken.right && (curToken instanceof ast.EditableTextTkn || curToken instanceof ast.LiteralValExpr || curToken instanceof ast.IdentifierTkn)) {
+                if (curToken instanceof ast.LiteralValExpr && curToken.returns == ast.DataType.Number)
+                    return curToken.tokens[0] as ast.Token;
+                else if (curToken instanceof ast.EditableTextTkn) return curToken;
+                else if (curToken instanceof ast.IdentifierTkn) return curToken;
+            }    
+
+            if (curToken instanceof ast.Expression)
+                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+        }
+
+        return null;
+    }
+
     private getContextFromPosition(statement: ast.Statement, column: number): Context {
         const context = new Context();
         context.lineStatement = statement;
@@ -483,7 +505,9 @@ export class Focus {
 
             if (curToken instanceof ast.Token) {
                 // this code assumes that there is no token with an empty text
+                
                 if (column == curToken.left) {
+                    context.token = this.findNonTextualHole(statement, column);
                     context.tokenToRight = curToken;
                     context.tokenToLeft = this.searchTokenWithCheck(statement, (token) => token.right == column);
 
@@ -501,18 +525,18 @@ export class Focus {
                     }
 
                     context.lineStatement = context.tokenToRight.getParentStatement();
-                    context.token = null;
 
                     break;
                 } else if (column == curToken.right) {
+                    context.token = this.findNonTextualHole(statement, column);
                     context.tokenToLeft = curToken;
                     context.tokenToRight = this.searchTokenWithCheck(statement, (token) => token.left == column);
-
+                    
                     if (context.tokenToRight != null) {
                         context.expressionToRight = this.getExpression(
                             context.tokenToRight,
                             context.tokenToRight.rootNode.left == column
-                        );
+                            );
                     }
                     if (context.tokenToLeft) {
                         context.expressionToLeft = this.getExpression(
@@ -521,7 +545,6 @@ export class Focus {
                         );
                     }
                     context.lineStatement = context.tokenToLeft.getParentStatement();
-                    context.token = null;
 
                     break;
                 } else if (column > curToken.left && column < curToken.right) {
