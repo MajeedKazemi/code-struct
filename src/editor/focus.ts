@@ -13,19 +13,20 @@ export class Focus {
 
     getTextEditableItem(): ast.TextEditable {
         const context = this.getContext();
-        let token: ast.TextEditable;
 
         if (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn) {
             return context.token;
-        } else {
-            throw new Error("Trying to insert-char at an incorrect token or with an incorrect isTextEditable value.");
+        } else if (
+            context.tokenToLeft instanceof ast.IdentifierTkn ||
+            context.tokenToLeft instanceof ast.EditableTextTkn
+        ) {
+            return context.tokenToLeft;
+        } else if (
+            context.tokenToRight instanceof ast.IdentifierTkn ||
+            context.tokenToRight instanceof ast.EditableTextTkn
+        ) {
+            return context.tokenToRight;
         }
-    }
-
-    onEndOrBeginningOfToken(): boolean {
-        const context = this.getContext();
-
-        if (context.tokenToLeft != null || context.tokenToRight != null) return true;
     }
 
     subscribeCallback() {}
@@ -478,12 +479,18 @@ export class Focus {
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
 
-            if (column == curToken.left && column == curToken.right && (curToken instanceof ast.EditableTextTkn || curToken instanceof ast.LiteralValExpr || curToken instanceof ast.IdentifierTkn)) {
+            if (
+                column == curToken.left &&
+                column == curToken.right &&
+                (curToken instanceof ast.EditableTextTkn ||
+                    curToken instanceof ast.LiteralValExpr ||
+                    curToken instanceof ast.IdentifierTkn)
+            ) {
                 if (curToken instanceof ast.LiteralValExpr && curToken.returns == ast.DataType.Number)
                     return curToken.tokens[0] as ast.Token;
                 else if (curToken instanceof ast.EditableTextTkn) return curToken;
                 else if (curToken instanceof ast.IdentifierTkn) return curToken;
-            }    
+            }
 
             if (curToken instanceof ast.Expression)
                 if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
@@ -505,7 +512,7 @@ export class Focus {
 
             if (curToken instanceof ast.Token) {
                 // this code assumes that there is no token with an empty text
-                
+
                 if (column == curToken.left) {
                     context.token = this.findNonTextualHole(statement, column);
                     context.tokenToRight = curToken;
@@ -531,12 +538,12 @@ export class Focus {
                     context.token = this.findNonTextualHole(statement, column);
                     context.tokenToLeft = curToken;
                     context.tokenToRight = this.searchTokenWithCheck(statement, (token) => token.left == column);
-                    
+
                     if (context.tokenToRight != null) {
                         context.expressionToRight = this.getExpression(
                             context.tokenToRight,
                             context.tokenToRight.rootNode.left == column
-                            );
+                        );
                     }
                     if (context.tokenToLeft) {
                         context.expressionToLeft = this.getExpression(

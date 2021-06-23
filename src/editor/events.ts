@@ -137,7 +137,17 @@ export class EventHandler {
                 if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.CloseSubMenu;
 
                 if (inTextEditMode) {
-                    if (this.module.focus.onEndOrBeginningOfToken()) return EditAction.SelectPrevToken;
+                    // if we're at the beginning of an editable text
+                    // or
+                    // at selected an empty editable identifier
+                    // => navigate to the previous token this.focus.navigateLeft();
+
+                    if (
+                        context.tokenToRight instanceof ast.EditableTextTkn ||
+                        context.tokenToRight instanceof ast.IdentifierTkn ||
+                        (context.token.isEmpty && context.selected)
+                    )
+                        return EditAction.SelectPrevToken;
                     if (e.shiftKey && e.ctrlKey) return EditAction.SelectToStart;
                     else if (e.shiftKey) return EditAction.SelectLeft;
                     else if (e.ctrlKey) return EditAction.MoveCursorStart;
@@ -148,7 +158,16 @@ export class EventHandler {
                 if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.OpenSubMenu;
 
                 if (inTextEditMode) {
-                    if (this.module.focus.onEndOrBeginningOfToken() || (context.token.isEmpty && context.selected)) {
+                    // if we're at the end of an editable text
+                    // or
+                    // at selected an empty editable identifier
+                    // => navigate to the previous token this.focus.navigateRight();
+
+                    if (
+                        context.tokenToLeft instanceof ast.EditableTextTkn ||
+                        context.tokenToLeft instanceof ast.IdentifierTkn ||
+                        (context.token.isEmpty && context.selected)
+                    ) {
                         return EditAction.SelectNextToken;
                     }
 
@@ -293,7 +312,7 @@ export class EventHandler {
                     return EditAction.None;
                 }
         }
-    }    
+    }
 
     onKeyDown(e) {
         const action = this.getKeyAction(e.browserEvent);
@@ -303,7 +322,7 @@ export class EventHandler {
         const context = this.module.focus.getContext();
 
         let focusedNode = this.module.focus.onEmptyLine() ? context.lineStatement : context?.token;
-        
+
         switch (action) {
             case EditAction.InsertEmptyLine: {
                 this.module.insertEmptyLine();
@@ -331,7 +350,7 @@ export class EventHandler {
 
             case EditAction.InsertChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
-                const selectedText = this.module.editor.monaco.getSelection();                
+                const selectedText = this.module.editor.monaco.getSelection();
                 const token = this.module.focus.getTextEditableItem();
                 let newText = "";
 
@@ -354,7 +373,7 @@ export class EventHandler {
                     let newNotification = false;
 
                     /*TODO: Change this to use the new focus.
-                     * 
+                     *
                      * This needs to use whatever code construct is used for the check in the if-statement above.
                      */
                     if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
@@ -434,15 +453,15 @@ export class EventHandler {
                 );
 
                 newText = curText.join("");
-            
+
                 if (context.selected && context?.token instanceof ast.IdentifierTkn) {
                     let newNotification = false;
 
                     if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
-                         /*TODO: Change this to use the new focus.
-                        * 
-                        * This needs to use whatever code construct is used for the check in the if-statement above.
-                        */
+                        /*TODO: Change this to use the new focus.
+                         *
+                         * This needs to use whatever code construct is used for the check in the if-statement above.
+                         */
                         this.module.notificationSystem.addHoverNotification(
                             context?.token,
                             { identifier: newText },
@@ -501,7 +520,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectClosestTokenBelow: {
-				this.module.focus.navigateDown();
+                this.module.focus.navigateDown();
 
                 e.stopPropagation();
                 e.preventDefault();
@@ -580,7 +599,7 @@ export class EventHandler {
                 break;
 
             case EditAction.DisplayGreaterThanSuggestion:
-                if(this.module.isAbleToInsertComparator(context)){
+                if (this.module.isAbleToInsertComparator(context)) {
                     this.module.menuController.buildSingleLevelMenu(
                         [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
                         Util.getInstance(this.module).constructActions,
@@ -596,7 +615,7 @@ export class EventHandler {
                 break;
 
             case EditAction.DisplayLessThanSuggestion:
-                if(this.module.isAbleToInsertComparator(context)){
+                if (this.module.isAbleToInsertComparator(context)) {
                     this.module.menuController.buildSingleLevelMenu(
                         [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
                         Util.getInstance(this.module).constructActions,
@@ -657,7 +676,7 @@ export class EventHandler {
 
             case EditAction.SelectMenuSuggestionAbove:
                 this.module.menuController.focusOptionAbove();
-                
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
@@ -704,7 +723,7 @@ export class EventHandler {
     }
 
     onMouseDown(e) {
-		this.module.focus.navigatePos(e.target.position);
+        this.module.focus.navigatePos(e.target.position);
     }
 
     onButtonDown(id: string) {
@@ -726,7 +745,7 @@ export class EventHandler {
                 );
 
                 break;
-                
+
             case "add-randint-btn":
                 this.module.insert(
                     new ast.FunctionCallStmt(
@@ -738,7 +757,7 @@ export class EventHandler {
                         ast.DataType.Number
                     )
                 );
-                
+
                 break;
 
             case "add-range-btn":
@@ -953,7 +972,7 @@ export class EventHandler {
 
             case "add-list-elem-assign-btn":
                 this.module.insert(new ast.ListElementAssignment());
-                
+
                 break;
 
             default:

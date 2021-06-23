@@ -397,7 +397,7 @@ export abstract class Statement implements CodeConstruct {
             }
         }
 
-        const newRight = curPos.column - 1;
+        const newRight = curPos.column;
 
         if (propagateToRoot && this.right != newRight) {
             this.right = newRight;
