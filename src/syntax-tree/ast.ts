@@ -8,7 +8,7 @@ import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { Notification } from "../notification-system/notification";
 import { ConstructCompleter } from "../typing-system/construct-completer";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { ConstructKeys, Util } from "../utilities/util";
+import { ConstructKeys, constructToToolboxButton, Util } from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
 import { Hole } from "../editor/hole";
 
@@ -2050,6 +2050,41 @@ export class Module {
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
 
+        this.focus.subscribeCallback((c: Context) => {
+            Hole.disableEditableHoleOutlines();
+            Hole.outlineTextEditableHole(c);
+        })
+
+        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to rafactor this one to 
+        //use methods like above code
+        this.focus.subscribeCallback(((c: Context) => {
+            const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
+            const validInserts = this.getAllValidInsertsList(focusedNode);
+
+            Object.keys(ConstructKeys).forEach((construct) => {
+                if (constructToToolboxButton.has(ConstructKeys[construct])) {
+                    if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
+                        const button = document.getElementById(
+                            constructToToolboxButton.get(ConstructKeys[construct])
+                        ) as HTMLButtonElement;
+                        button.disabled = true;
+                        button.classList.add("disabled");
+                    } else {
+                        const button = document.getElementById(
+                            constructToToolboxButton.get(ConstructKeys[construct])
+                        ) as HTMLButtonElement;
+                        button.disabled = false;
+                        button.classList.remove("disabled");
+                    }
+                }
+            });
+        }).bind(this))
+
+        this.focus.subscribeCallback((c: Context) => {
+            const menuController = MenuController.getInstance();
+            if (menuController.isMenuOpen()) menuController.removeMenus();
+        })
+
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
         this.body[0].build(new monaco.Position(1, 1));
@@ -2268,9 +2303,7 @@ export class Module {
 
     //Accepts context because this will not be part of Module in the future
     isAbleToInsertComparator(context: Context, insertEquals: boolean = false): boolean {
-        return
-        //focused empty hole
-        (context.selected &&
+        return (context.selected &&
             context.token instanceof TypedEmptyExpr &&
             (context.token as TypedEmptyExpr).type === DataType.Boolean) ||
             //TODO: This case needs to be extended further since this is not always possible
@@ -2285,12 +2318,21 @@ export class Module {
         //randint(1 >, ---)
         //print(1) ==> print(1 > 2)
     }
+
+    //Return a list of variable references available to be inserted into "code"
     getValidVariableReferences(code: CodeConstruct): Reference[] {
         let refs = [];
 
         try {
             if (code instanceof TypedEmptyExpr) {
-                refs.push(...code.getParentStatement().scope.getValidReferences(code.getSelection().startLineNumber));
+                const parent = code.getParentStatement() //line that contains "code"
+                if(parent.hasScope()){
+                    refs.push(...parent.scope.getValidReferences(code.getSelection().startLineNumber));
+                }
+                else{ //code lines at the very top level will not have a body so use Module's scope
+                    refs.push(...this.scope.getValidReferences(code.getSelection().startLineNumber))
+                }
+                
                 refs = refs.filter(
                     (ref) =>
                         ref.statement instanceof VarAssignmentStmt &&

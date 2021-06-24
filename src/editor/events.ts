@@ -326,7 +326,7 @@ export class EventHandler {
 
         const context = this.module.focus.getContext();
 
-        let focusedNode = this.module.focus.onEmptyLine() ? context.lineStatement : context?.token;
+        let focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
         switch (action) {
             case EditAction.InsertEmptyLine: {
@@ -534,9 +534,15 @@ export class EventHandler {
             }
 
             case EditAction.MoveCursorLeft:
+               // Hole.disableEditableHoleHighlights();
+               // this.module.focus.highlightTextEditableHole();
+
                 break;
 
             case EditAction.MoveCursorRight:
+               // Hole.disableEditableHoleHighlights();
+               // this.module.focus.highlightTextEditableHole();
+
                 break;
 
             case EditAction.SelectLeft:
@@ -583,14 +589,14 @@ export class EventHandler {
                 break;
 
             case EditAction.CompleteIntLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.Number);
+                this.module.constructCompleter.completeLiteralConstruct(DataType.Number, e.browserEvent.key);
 
                 e.preventDefault();
                 e.stopPropagation();
                 break;
 
             case EditAction.CompleteStringLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.String);
+                this.module.constructCompleter.completeLiteralConstruct(DataType.String, "");
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -729,9 +735,6 @@ export class EventHandler {
 
     onMouseDown(e) {
         this.module.focus.navigatePos(e.target.position);
-
-        Hole.disableEditableHoleHighlights();
-        this.module.focus.highlightTextEditableHole();
     }
 
     onButtonDown(id: string) {
@@ -799,7 +802,7 @@ export class EventHandler {
                 break;
 
             case "add-num-btn":
-                this.module.insert(new ast.LiteralValExpr(ast.DataType.Number));
+                this.module.insert(new ast.LiteralValExpr(ast.DataType.Number, "0"));
 
                 break;
 

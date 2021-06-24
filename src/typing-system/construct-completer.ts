@@ -30,8 +30,8 @@ export class ConstructCompleter {
         this.module = module;
     }
 
-    completeLiteralConstruct(literalType: DataType) {
-        this.module.insert(new LiteralValExpr(literalType));
+    completeLiteralConstruct(literalType: DataType, value: string) {
+        this.module.insert(new LiteralValExpr(literalType, value));
     }
 
     completeBoolLiteralConstruct(boolValue: Number) {
