@@ -67,7 +67,6 @@ export class Editor {
         //     this.cursor.setSelection(selection, code);
         //     this.monaco.setSelection(selection);
         // }
-
         const context = this.module.focus.getContext();
 
         if (this.module.menuController.isMenuOpen()) this.module.menuController.removeMenus();
