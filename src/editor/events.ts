@@ -529,9 +529,15 @@ export class EventHandler {
             }
 
             case EditAction.MoveCursorLeft:
+               // Hole.disableEditableHoleHighlights();
+               // this.module.focus.highlightTextEditableHole();
+
                 break;
 
             case EditAction.MoveCursorRight:
+               // Hole.disableEditableHoleHighlights();
+               // this.module.focus.highlightTextEditableHole();
+
                 break;
 
             case EditAction.SelectLeft:
@@ -724,9 +730,6 @@ export class EventHandler {
 
     onMouseDown(e) {
         this.module.focus.navigatePos(e.target.position);
-
-        Hole.disableEditableHoleHighlights();
-        this.module.focus.highlightTextEditableHole();
     }
 
     onButtonDown(id: string) {

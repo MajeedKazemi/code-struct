@@ -2050,6 +2050,12 @@ export class Module {
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
 
+        this.focus.subscribeCallback((c: Context) => {
+            console.log("here")
+            Hole.disableEditableHoleHighlights();
+            Hole.outlineTextEditableHole(c);
+        })
+
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
         this.body[0].build(new monaco.Position(1, 1));

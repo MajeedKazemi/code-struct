@@ -9,6 +9,7 @@ import {
     DataType,
 } from "../syntax-tree/ast";
 import { Editor } from "./editor";
+import { Context } from "./focus";
 
 export class Hole {
     static editableHoleClass = "editableHole";
@@ -146,5 +147,18 @@ export class Hole {
         Hole.holes.forEach(hole => {
             hole.element.classList.remove(Hole.editableHoleClass)
         })
+    }
+
+    static outlineTextEditableHole(context: Context){
+        console.log(context)
+        if(context.token && (context.token instanceof IdentifierTkn || context.token instanceof EditableTextTkn)){
+            context.token.notify(CallbackType.focus);
+        }
+        else if(context.tokenToRight && (context.tokenToRight instanceof IdentifierTkn || context.tokenToRight instanceof EditableTextTkn)){
+            context.tokenToRight.notify(CallbackType.focus);
+        }
+        else if(context.tokenToLeft && (context.tokenToLeft instanceof IdentifierTkn || context.tokenToLeft instanceof EditableTextTkn)){
+            context.tokenToLeft.notify(CallbackType.focus);
+        }
     }
 }
