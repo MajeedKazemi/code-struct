@@ -2080,6 +2080,11 @@ export class Module {
             });
         }).bind(this))
 
+        this.focus.subscribeCallback((c: Context) => {
+            const menuController = MenuController.getInstance();
+            if (menuController.isMenuOpen()) menuController.removeMenus();
+        })
+
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
         this.body[0].build(new monaco.Position(1, 1));

@@ -69,7 +69,6 @@ export class Editor {
         // }
         const context = this.module.focus.getContext();
 
-        if (this.module.menuController.isMenuOpen()) this.module.menuController.removeMenus();
 
     }
 
