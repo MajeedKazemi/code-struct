@@ -141,11 +141,10 @@ export class EventHandler {
                     // or
                     // at selected an empty editable identifier
                     // => navigate to the previous token this.focus.navigateLeft();
-
                     if (
                         context.tokenToRight instanceof ast.EditableTextTkn ||
                         context.tokenToRight instanceof ast.IdentifierTkn ||
-                        (context.token.isEmpty && context.selected)
+                        (context.token?.isEmpty && context.selected)
                     )
                         return EditAction.SelectPrevToken;
                     if (e.shiftKey && e.ctrlKey) return EditAction.SelectToStart;
@@ -166,7 +165,7 @@ export class EventHandler {
                     if (
                         context.tokenToLeft instanceof ast.EditableTextTkn ||
                         context.tokenToLeft instanceof ast.IdentifierTkn ||
-                        (context.token.isEmpty && context.selected)
+                        (context.token?.isEmpty && context.selected)
                     ) {
                         return EditAction.SelectNextToken;
                     }
