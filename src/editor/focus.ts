@@ -11,8 +11,8 @@ export class Focus {
         this.module = module;
     }
 
-    getTextEditableItem(): ast.TextEditable {
-        const context = this.getContext();
+    getTextEditableItem(providedContext?: Context): ast.TextEditable {
+        const context = providedContext ? providedContext : this.getContext();
 
         if (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn) {
             return context.token;
@@ -265,8 +265,8 @@ export class Focus {
     /**
      * Returns true if the focus is within a text editable token, otherwise, returns false.
      */
-    isTextEditable(): boolean {
-        const context = this.getContext();
+    isTextEditable(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.getContext();
 
         return (
             (context.token != null && context.token.isTextEditable) ||

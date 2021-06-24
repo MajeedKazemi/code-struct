@@ -118,9 +118,9 @@ export class EventHandler {
     }
 
     getKeyAction(e: KeyboardEvent) {
-        const curPos = this.module.editor.monaco.getPosition();
-        const inTextEditMode = this.module.focus.isTextEditable();
         const context = this.module.focus.getContext();
+        const curPos = this.module.editor.monaco.getPosition();
+        const inTextEditMode = this.module.focus.isTextEditable(context);
 
         switch (e.key) {
             case KeyPress.ArrowUp:
@@ -351,7 +351,7 @@ export class EventHandler {
             case EditAction.InsertChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-                const token = this.module.focus.getTextEditableItem();
+                const token = this.module.focus.getTextEditableItem(context);
                 let newText = "";
 
                 if (token.getEditableText() == "   ") {
@@ -430,7 +430,7 @@ export class EventHandler {
             case EditAction.DeleteNextChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-                const token = this.module.focus.getTextEditableItem();
+                const token = this.module.focus.getTextEditableItem(context);
 
                 let newText = "";
 
