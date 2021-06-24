@@ -2051,7 +2051,7 @@ export class Module {
         this.focus = new Focus(this);
 
         this.focus.subscribeCallback((c: Context) => {
-            Hole.disableEditableHoleHighlights();
+            Hole.disableEditableHoleOutlines();
             Hole.outlineTextEditableHole(c);
         })
 
