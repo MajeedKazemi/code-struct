@@ -584,14 +584,14 @@ export class EventHandler {
                 break;
 
             case EditAction.CompleteIntLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.Number);
+                this.module.constructCompleter.completeLiteralConstruct(DataType.Number, e.browserEvent.key);
 
                 e.preventDefault();
                 e.stopPropagation();
                 break;
 
             case EditAction.CompleteStringLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.String);
+                this.module.constructCompleter.completeLiteralConstruct(DataType.String, "");
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -797,7 +797,7 @@ export class EventHandler {
                 break;
 
             case "add-num-btn":
-                this.module.insert(new ast.LiteralValExpr(ast.DataType.Number));
+                this.module.insert(new ast.LiteralValExpr(ast.DataType.Number, "0"));
 
                 break;
 
