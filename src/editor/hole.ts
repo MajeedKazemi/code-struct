@@ -141,4 +141,10 @@ export class Hole {
         this.element.remove();
         this.removed = true;
     }
+
+    static disableEditableHoleHighlights(){
+        Hole.holes.forEach(hole => {
+            hole.element.classList.remove(Hole.editableHoleClass)
+        })
+    }
 }

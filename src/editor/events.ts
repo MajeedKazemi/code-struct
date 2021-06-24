@@ -5,6 +5,7 @@ import { ErrorMessage } from "../notification-system/error-msg-generator";
 import * as keywords from "../syntax-tree/keywords";
 import { BinaryOperator, DataType } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
+import { Hole } from "./hole";
 
 export enum KeyPress {
     // navigation:
@@ -723,6 +724,9 @@ export class EventHandler {
 
     onMouseDown(e) {
         this.module.focus.navigatePos(e.target.position);
+
+        Hole.disableEditableHoleHighlights();
+        this.module.focus.highlightTextEditableHole();
     }
 
     onButtonDown(id: string) {

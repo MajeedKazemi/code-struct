@@ -378,6 +378,17 @@ export class Focus {
     //     return false;
     // }
 
+    highlightTextEditableHole(){
+        const context = this.getContext();
+
+        if(
+           (context.token) && 
+           (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn)){
+
+            context.token.notify(ast.CallbackType.focus);
+        }
+    }
+
     private getTokenAtStatementColumn(statement: ast.Statement, column: number): ast.CodeConstruct {
         const tokensStack = new Array<ast.CodeConstruct>();
 

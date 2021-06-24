@@ -10,6 +10,7 @@ import { ConstructCompleter } from "../typing-system/construct-completer";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { ConstructKeys, Util } from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
+import { Hole } from "../editor/hole";
 
 export class Callback {
     static counter: number;
@@ -2256,9 +2257,14 @@ export class Module {
         }
     }
 
+///------------------VALIDATOR BEGIN
+
+
     //TODO: How we insert also depends on where we are in relation to the construct: to the left, to the right or within.
     // > 123 ==> --- > 123      and      123 > ==> 123 > ---      and    --- ==> --- > ---
     //I don't know if we want this function to return this type of information.
+
+    //TODO: This method will not be part of module in the future, that is why it needs a context param
 
     //Accepts context because this will not be part of Module in the future
     isAbleToInsertComparator(context: Context, insertEquals: boolean = false): boolean {
@@ -2461,6 +2467,10 @@ export class Module {
             }
         } else return false;
     }
+
+
+///------------------VALIDATOR END
+
 
     insert(code: CodeConstruct, insertInto?: CodeConstruct) {
         //TODO: Probably want an overload of insert to take care of this case
