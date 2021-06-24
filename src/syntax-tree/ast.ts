@@ -8,7 +8,7 @@ import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { Notification } from "../notification-system/notification";
 import { ConstructCompleter } from "../typing-system/construct-completer";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { ConstructKeys, Util } from "../utilities/util";
+import { ConstructKeys, constructToToolboxButton, Util } from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
 import { Hole } from "../editor/hole";
 
@@ -2054,6 +2054,31 @@ export class Module {
             Hole.disableEditableHoleOutlines();
             Hole.outlineTextEditableHole(c);
         })
+
+        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to rafactor this one to 
+        //use methods like above code
+        this.focus.subscribeCallback(((c: Context) => {
+            const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
+            const validInserts = this.getAllValidInsertsList(focusedNode);
+
+            Object.keys(ConstructKeys).forEach((construct) => {
+                if (constructToToolboxButton.has(ConstructKeys[construct])) {
+                    if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
+                        const button = document.getElementById(
+                            constructToToolboxButton.get(ConstructKeys[construct])
+                        ) as HTMLButtonElement;
+                        button.disabled = true;
+                        button.classList.add("disabled");
+                    } else {
+                        const button = document.getElementById(
+                            constructToToolboxButton.get(ConstructKeys[construct])
+                        ) as HTMLButtonElement;
+                        button.disabled = false;
+                        button.classList.remove("disabled");
+                    }
+                }
+            });
+        }).bind(this))
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();

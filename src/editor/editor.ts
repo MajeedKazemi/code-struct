@@ -71,25 +71,6 @@ export class Editor {
 
         if (this.module.menuController.isMenuOpen()) this.module.menuController.removeMenus();
 
-        //disable toolbox buttons based on available inserts
-        /*const validInserts = this.module.getAllValidInsertsList(context.token);
-        Object.keys(ConstructKeys).forEach((construct) => {
-            if (constructToToolboxButton.has(ConstructKeys[construct])) {
-                if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
-                    const button = document.getElementById(
-                        constructToToolboxButton.get(ConstructKeys[construct])
-                    ) as HTMLButtonElement;
-                    button.disabled = true;
-                    button.classList.add("disabled");
-                } else {
-                    const button = document.getElementById(
-                        constructToToolboxButton.get(ConstructKeys[construct])
-                    ) as HTMLButtonElement;
-                    button.disabled = false;
-                    button.classList.remove("disabled");
-                }
-            }
-        });*/
     }
 
     getLineEl(ln: number) {
