@@ -169,18 +169,25 @@ export class Focus {
     }
 
     navigateRight() {
+        const curPos = this.module.editor.monaco.getPosition();
+
         if (this.onEndOfLine()) {
-            // same code as navigateDown (just to the beginning of down)
-            console.log("+ 1 is down");
+            const lineBelow = this.getStatementAtLineNumber(curPos.lineNumber + 1);
+
+            if (lineBelow != null) {
+                this.module.editor.monaco.setPosition(new monaco.Position(lineBelow.lineNumber, lineBelow.left));
+            }
         } else {
             const curSelection = this.module.editor.monaco.getSelection();
-            const curPos = this.module.editor.monaco.getPosition();
             const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
             let nextColumn = curPos.column;
 
             if (curSelection.endColumn != curSelection.startColumn) nextColumn = curSelection.endColumn;
 
-            if (curSelection.startColumn != curSelection.endColumn && curSelection.endColumn == focusedLineStatement.right) {
+            if (
+                curSelection.startColumn != curSelection.endColumn &&
+                curSelection.endColumn == focusedLineStatement.right
+            ) {
                 // if selected a thing that is at the beginning of a line (usually an identifier) => nav to the beginning of the line
                 this.module.editor.monaco.setPosition(
                     new monaco.Position(curPos.lineNumber, focusedLineStatement.right)
@@ -230,12 +237,18 @@ export class Focus {
     }
 
     navigateLeft() {
+        const curPos = this.module.editor.monaco.getPosition();
+
         if (this.onBeginningOfLine()) {
-            // same code as navigateUp (just to the end of up)
-            console.log("- 1 is up");
+            if (curPos.lineNumber > 1) {
+                const lineBelow = this.getStatementAtLineNumber(curPos.lineNumber - 1);
+
+                if (lineBelow != null) {
+                    this.module.editor.monaco.setPosition(new monaco.Position(lineBelow.lineNumber, lineBelow.right));
+                }
+            } else return;
         } else {
             const curSelection = this.module.editor.monaco.getSelection();
-            const curPos = this.module.editor.monaco.getPosition();
             const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
             let prevColumn = this.module.editor.monaco.getPosition().column - 1;
 
@@ -308,7 +321,7 @@ export class Focus {
             const curPosition = curSelection.getStartPosition();
             const focusedLineStatement = this.getStatementAtLineNumber(curPosition.lineNumber);
 
-            if (focusedLineStatement != null && curPosition.column == focusedLineStatement.right + 1) return true;
+            if (focusedLineStatement != null && curPosition.column == focusedLineStatement.right) return true;
         }
 
         return false;
