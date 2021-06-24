@@ -151,11 +151,21 @@ export class Focus {
 
         if (curPosition.lineNumber > 1)
             this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
-        else this.navigatePos(new monaco.Position(curPosition.lineNumber, 1));
+        else this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, 1));
     }
 
     navigateDown() {
+        const curPosition = this.module.editor.monaco.getPosition();
 
+        const lineBelow = this.getStatementAtLineNumber(curPosition.lineNumber + 1);
+
+        if (lineBelow != null) {
+            this.navigatePos(new monaco.Position(curPosition.lineNumber + 1, curPosition.column));
+        } else {
+            // navigate to the end of current line
+            const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
+            this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, curLine.right));
+        }
     }
 
     navigateRight() {
@@ -169,6 +179,15 @@ export class Focus {
             let nextColumn = curPos.column;
 
             if (curSelection.endColumn != curSelection.startColumn) nextColumn = curSelection.endColumn;
+
+            if (curSelection.startColumn != curSelection.endColumn && curSelection.endColumn == focusedLineStatement.right) {
+                // if selected a thing that is at the beginning of a line (usually an identifier) => nav to the beginning of the line
+                this.module.editor.monaco.setPosition(
+                    new monaco.Position(curPos.lineNumber, focusedLineStatement.right)
+                );
+
+                return;
+            }
 
             const tokenAfter = this.getTokenAtStatementColumn(focusedLineStatement, nextColumn);
 
@@ -221,6 +240,15 @@ export class Focus {
             let prevColumn = this.module.editor.monaco.getPosition().column - 1;
 
             if (curSelection.endColumn != curSelection.startColumn) prevColumn = curSelection.startColumn - 1;
+
+            if (curSelection.startColumn != curSelection.endColumn && curPos.column == focusedLineStatement.left) {
+                // if selected a thing that is at the beginning of a line (usually an identifier) => nav to the beginning of the line
+                this.module.editor.monaco.setPosition(
+                    new monaco.Position(curPos.lineNumber, focusedLineStatement.left)
+                );
+
+                return;
+            }
 
             const tokenBefore = this.getTokenAtStatementColumn(focusedLineStatement, prevColumn);
 
@@ -324,18 +352,18 @@ export class Focus {
      * Returns true if the user is focused on an empty line, otherwise, returns false.
      */
     onEmptyLine(): boolean {
-        const curLine = this.getFocusedStatement()
+        const curLine = this.getFocusedStatement();
 
         return curLine instanceof ast.EmptyLineStmt;
     }
 
-    highlightTextEditableHole(){
+    highlightTextEditableHole() {
         const context = this.getContext();
 
-        if(
-           (context.token) && 
-           (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn)){
-
+        if (
+            context.token &&
+            (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn)
+        ) {
             context.token.notify(ast.CallbackType.focus);
         }
     }

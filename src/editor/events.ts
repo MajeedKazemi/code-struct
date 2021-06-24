@@ -143,6 +143,7 @@ export class EventHandler {
                     // at selected an empty editable identifier
                     // => navigate to the previous token this.focus.navigateLeft();
                     if (
+                        (context.tokenToLeft instanceof ast.IdentifierTkn && context.tokenToRight.isEmpty) ||
                         context.tokenToRight instanceof ast.EditableTextTkn ||
                         context.tokenToRight instanceof ast.IdentifierTkn ||
                         (context.token?.isEmpty && context.selected)
@@ -163,7 +164,11 @@ export class EventHandler {
                     // at selected an empty editable identifier
                     // => navigate to the previous token this.focus.navigateRight();
 
+                    // also if we're right before an editable item and need to select it with this new arrow-right key press.
                     if (
+                        ((context.tokenToRight instanceof ast.IdentifierTkn ||
+                            context.tokenToRight instanceof ast.EditableTextTkn) &&
+                            context.tokenToRight.isEmpty) ||
                         context.tokenToLeft instanceof ast.EditableTextTkn ||
                         context.tokenToLeft instanceof ast.IdentifierTkn ||
                         (context.token?.isEmpty && context.selected)
