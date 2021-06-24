@@ -2315,6 +2315,8 @@ export class Module {
         //randint(1 >, ---)
         //print(1) ==> print(1 > 2)
     }
+
+    //Return a list of variable references available to be inserted into "code"
     getValidVariableReferences(code: CodeConstruct): Reference[] {
         let refs = [];
 
