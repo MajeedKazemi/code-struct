@@ -2298,9 +2298,7 @@ export class Module {
 
     //Accepts context because this will not be part of Module in the future
     isAbleToInsertComparator(context: Context, insertEquals: boolean = false): boolean {
-        return
-        //focused empty hole
-        (context.selected &&
+        return (context.selected &&
             context.token instanceof TypedEmptyExpr &&
             (context.token as TypedEmptyExpr).type === DataType.Boolean) ||
             //TODO: This case needs to be extended further since this is not always possible
@@ -2322,7 +2320,14 @@ export class Module {
 
         try {
             if (code instanceof TypedEmptyExpr) {
-                refs.push(...code.getParentStatement().scope.getValidReferences(code.getSelection().startLineNumber));
+                const parent = code.getParentStatement() //line that contains "code"
+                if(parent.hasScope()){
+                    refs.push(...parent.scope.getValidReferences(code.getSelection().startLineNumber));
+                }
+                else{ //code lines at the very top level will not have a body so use Module's scope
+                    refs.push(...this.scope.getValidReferences(code.getSelection().startLineNumber))
+                }
+                
                 refs = refs.filter(
                     (ref) =>
                         ref.statement instanceof VarAssignmentStmt &&
