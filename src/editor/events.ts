@@ -321,7 +321,7 @@ export class EventHandler {
 
         const context = this.module.focus.getContext();
 
-        let focusedNode = this.module.focus.onEmptyLine() ? context.lineStatement : context?.token;
+        let focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
         switch (action) {
             case EditAction.InsertEmptyLine: {
