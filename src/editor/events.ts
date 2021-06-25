@@ -740,25 +740,23 @@ export class EventHandler {
     onButtonDown(id: string) {
         switch (id) {
             case "add-var-btn":
-                if (!(document.getElementById("add-var-btn") as HTMLButtonElement).disabled) {
-                    this.module.insert(new ast.VarAssignmentStmt());
-                }
+                this.pressButton(id, (() => {this.module.insert(new ast.VarAssignmentStmt())}).bind(this));
 
                 break;
 
             case "add-print-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.FunctionCallStmt(
                         "print",
                         [new ast.Argument(ast.DataType.Any, "item", false)],
                         ast.DataType.Void
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-randint-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.FunctionCallStmt(
                         "randint",
                         [
@@ -767,12 +765,12 @@ export class EventHandler {
                         ],
                         ast.DataType.Number
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-range-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.FunctionCallStmt(
                         "range",
                         [
@@ -781,181 +779,181 @@ export class EventHandler {
                         ],
                         ast.DataType.List
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-len-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.FunctionCallStmt(
                         "len",
                         [new ast.Argument(ast.DataType.List, "list", false)],
                         ast.DataType.Number
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-str-btn":
-                this.module.insert(new ast.LiteralValExpr(ast.DataType.String));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.String))}).bind(this));
 
                 break;
 
             case "add-num-btn":
-                this.module.insert(new ast.LiteralValExpr(ast.DataType.Number, "0"));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.Number, "0"))}).bind(this));
 
                 break;
 
             case "add-true-btn":
-                this.module.insert(new ast.LiteralValExpr(ast.DataType.Boolean, "True"));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.Boolean, "True"))}).bind(this));
 
                 break;
 
             case "add-false-btn":
-                this.module.insert(new ast.LiteralValExpr(ast.DataType.Boolean, "False"));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.Boolean, "False"))}).bind(this));
 
                 break;
 
             case "add-bin-add-expr-btn":
-                this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Add, ast.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Add, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-sub-expr-btn":
-                this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Subtract, ast.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Subtract, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-mul-expr-btn":
-                this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Multiply, ast.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Multiply, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-div-expr-btn":
-                this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Divide, ast.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Divide, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-and-expr-btn":
-                this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.And));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.And))}).bind(this));
 
                 break;
 
             case "add-bin-or-expr-btn":
-                this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.Or));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.Or))}).bind(this));
 
                 break;
 
             case "add-unary-not-expr-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.UnaryOperatorExpr(ast.UnaryOp.Not, ast.DataType.Boolean, ast.DataType.Boolean)
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-comp-eq-expr-btn":
-                this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.Equal));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.Equal))}).bind(this));
 
                 break;
 
             case "add-comp-neq-expr-btn":
-                this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.NotEqual));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.NotEqual))}).bind(this));
 
                 break;
 
             case "add-comp-lt-expr-btn":
-                this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThan));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThan))}).bind(this));
 
                 break;
 
             case "add-comp-lte-expr-btn":
-                this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThanEqual));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThanEqual))}).bind(this));
 
                 break;
 
             case "add-comp-gt-expr-btn":
-                this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThan));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThan))}).bind(this));
 
                 break;
 
             case "add-comp-gte-expr-btn":
-                this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThanEqual));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThanEqual))}).bind(this));
 
                 break;
 
             case "add-while-expr-btn":
-                this.module.insert(new ast.WhileStatement());
+                this.pressButton(id, (() => {this.module.insert(new ast.WhileStatement())}).bind(this));
 
                 break;
 
             case "add-if-expr-btn":
-                this.module.insert(new ast.IfStatement());
+                this.pressButton(id, (() => {this.module.insert(new ast.IfStatement())}).bind(this));
 
                 break;
 
             case "add-elif-expr-btn":
-                this.module.insert(new ast.ElseStatement(true));
+                this.pressButton(id, (() => {this.module.insert(new ast.ElseStatement(true))}).bind(this));
 
                 break;
 
             case "add-else-expr-btn":
-                this.module.insert(new ast.ElseStatement(false));
+                this.pressButton(id, (() => {this.module.insert(new ast.ElseStatement(false))}).bind(this));
 
                 break;
 
             case "add-for-expr-btn":
-                this.module.insert(new ast.ForStatement());
+                this.pressButton(id, (() => {this.module.insert(new ast.ForStatement())}).bind(this));
 
                 break;
 
             case "add-list-literal-btn":
-                this.module.insert(new ast.ListLiteralExpression());
+                this.pressButton(id, (() => {this.module.insert(new ast.ListLiteralExpression())}).bind(this));
 
                 break;
 
             case "add-list-item-btn":
-                this.module.insertListItem();
+                this.pressButton(id, (() => {this.module.insertListItem()}).bind(this));
 
                 break;
 
             case "add-list-append-stmt-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.MethodCallStmt("append", [new ast.Argument(ast.DataType.Any, "object", false)])
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-list-index-btn":
-                this.module.insert(new ast.MemberCallStmt(ast.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.MemberCallStmt(ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-split-method-call-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.MethodCallExpr(
                         "split",
                         [new ast.Argument(ast.DataType.String, "sep", false)],
                         ast.DataType.List,
                         ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-join-method-call-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.MethodCallExpr(
                         "join",
                         [new ast.Argument(ast.DataType.List, "items", false)],
                         ast.DataType.String,
                         ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-replace-method-call-btn":
-                this.module.insert(
+                this.pressButton(id, (() => { this.module.insert(
                     new ast.MethodCallExpr(
                         "replace",
                         [
@@ -965,24 +963,24 @@ export class EventHandler {
                         ast.DataType.String,
                         ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-find-method-call-btn":
-                this.module.insert(
+                this.pressButton(id, (() => {this.module.insert(
                     new ast.MethodCallExpr(
                         "find",
                         [new ast.Argument(ast.DataType.String, "item", false)],
                         ast.DataType.Number,
                         ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-list-elem-assign-btn":
-                this.module.insert(new ast.ListElementAssignment());
+                this.pressButton(id, (() => {this.module.insert(new ast.ListElementAssignment())}).bind(this));
 
                 break;
 
@@ -996,5 +994,11 @@ export class EventHandler {
 
     onDidScrollChange(e) {
         this.module.editor.scrollOffsetTop = e.scrollTop;
+    }
+
+    private pressButton(buttonId: string, callback: Function){
+        if (!(document.getElementById(buttonId) as HTMLButtonElement).disabled) {
+            callback();
+        }
     }
 }
