@@ -15,14 +15,6 @@ export class Focus {
         this.onNavChangeCallbacks.push(callback);
     }
 
-    private onChange() {
-        const context = this.getContext();
-
-        for (const callback of this.onNavChangeCallbacks) {
-            callback(context);
-        }
-    }
-
     getTextEditableItem(providedContext?: Context): ast.TextEditable {
         const context = providedContext ? providedContext : this.getContext();
 
@@ -77,7 +69,7 @@ export class Focus {
             this.module.editor.monaco.setPosition(newContext.positionToMove);
         }
 
-        this.onChange();
+        this.fireOnNavChangeCallbacks();
     }
 
     navigatePos(pos: monaco.Position) {
@@ -137,7 +129,7 @@ export class Focus {
             }
         }
 
-        this.onChange();
+        this.fireOnNavChangeCallbacks();
     }
 
     navigateUp() {
@@ -223,7 +215,7 @@ export class Focus {
             }
         }
 
-        this.onChange();
+        this.fireOnNavChangeCallbacks();
     }
 
     navigateLeft() {
@@ -283,7 +275,7 @@ export class Focus {
             }
         }
 
-        this.onChange();
+        this.fireOnNavChangeCallbacks();
     }
 
     /**
@@ -380,6 +372,17 @@ export class Focus {
         }
 
         return null;
+    }
+
+    /**
+     * This function will fire all of the subscribed nav-change callbacks.
+     */
+    private fireOnNavChangeCallbacks() {
+        const context = this.getContext();
+
+        for (const callback of this.onNavChangeCallbacks) {
+            callback(context);
+        }
     }
 
     /**
@@ -499,7 +502,7 @@ export class Focus {
                 if (column == curToken.left) {
                     context.token = this.findNonTextualHole(statement, column);
                     context.tokenToRight = curToken;
-                    context.tokenToLeft = this.searchTokenWithCheck(statement, (token) => token.right == column);
+                    context.tokenToLeft = this.searchNonEmptyTokenWithCheck(statement, (token) => token.right == column);
 
                     if (context.tokenToRight != null) {
                         context.expressionToRight = this.getExpression(
@@ -520,7 +523,7 @@ export class Focus {
                 } else if (column == curToken.right) {
                     context.token = this.findNonTextualHole(statement, column);
                     context.tokenToLeft = curToken;
-                    context.tokenToRight = this.searchTokenWithCheck(statement, (token) => token.left == column);
+                    context.tokenToRight = this.searchNonEmptyTokenWithCheck(statement, (token) => token.left == column);
 
                     if (context.tokenToRight != null) {
                         context.expressionToRight = this.getExpression(
@@ -557,6 +560,9 @@ export class Focus {
         return context;
     }
 
+    /**
+     * Finds the parent expression of a given token that meets the given 'check' condition.
+     */
     private getExpression(token: ast.Token, check: boolean): ast.Expression {
         if (token.rootNode instanceof ast.Expression && check) return token.rootNode;
 
@@ -566,7 +572,7 @@ export class Focus {
     /**
      * Searches the tokens tree for a token that matches the passed check() condition.
      */
-    private searchTokenWithCheck(statement: ast.Statement, check: (token: ast.Token) => boolean): ast.Token {
+    private searchNonEmptyTokenWithCheck(statement: ast.Statement, check: (token: ast.Token) => boolean): ast.Token {
         const tokensStack = new Array<ast.CodeConstruct>();
 
         for (const token of statement.tokens) tokensStack.unshift(token);
@@ -574,7 +580,7 @@ export class Focus {
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
 
-            if (curToken instanceof ast.Token && check(curToken)) return curToken;
+            if (curToken instanceof ast.Token && curToken.left != curToken.right && check(curToken)) return curToken;
 
             if (curToken instanceof ast.Expression)
                 if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
