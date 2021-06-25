@@ -2421,9 +2421,9 @@ export class Module {
                 const statement = insert as Statement;
 
                 if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-                    if (insert instanceof ElseStatement && parentRoot instanceof IfStatement)
+                    if (insert instanceof ElseStatement && parentRoot instanceof IfStatement){
                         if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return true;
-                        else if (!(statement instanceof ElseStatement)) return true;
+                    } else if (!(statement instanceof ElseStatement)) return true;
                 } else if (!(statement instanceof ElseStatement)) return true;
             } else if (insertInto.receives.indexOf(AddableType.Expression) > -1) {
                 let isValid = true;
