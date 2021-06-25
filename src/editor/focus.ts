@@ -104,11 +104,10 @@ export class Focus {
                 // if clicked on a hole => select the hole
                 this.selectCode(focusedToken);
             } else if (focusedToken instanceof ast.EditableTextTkn || focusedToken instanceof ast.IdentifierTkn) {
-                // if clicked on a text-editable code construct (identifier or a literal) => navigate to the clicked position
+                // if clicked on a text-editable code construct (identifier or a literal) => navigate to the clicked position (or select it if it's empty)
 
-                if (focusedToken.text.length != 0) {
-                    // don't select it
-                }
+                if (focusedToken.text.length != 0) this.module.editor.monaco.setPosition(pos);
+                else this.selectCode(focusedToken);
             } else {
                 const hitDistance = pos.column - focusedToken.left;
                 const tokenLength = focusedToken.right - focusedToken.left + 1;
