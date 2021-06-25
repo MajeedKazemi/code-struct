@@ -374,7 +374,7 @@ export class EventHandler {
                 }
 
                 // TODO: this.module.focus.isInsideIdentifier()
-                if (context.selected && context?.token instanceof ast.IdentifierTkn) {
+                if (focusedNode instanceof ast.IdentifierTkn || context.tokenToLeft instanceof ast.IdentifierTkn || context.tokenToRight instanceof ast.IdentifierTkn) {
                     let newNotification = false;
 
                     /*TODO: Change this to use the new focus.
@@ -383,14 +383,14 @@ export class EventHandler {
                      */
                     if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
                         this.module.notificationSystem.addHoverNotification(
-                            context?.token,
+                            focusedNode ?? (context.tokenToLeft ?? context.tokenToRight),
                             { identifier: newText },
                             ErrorMessage.identifierIsKeyword
                         );
                         newNotification = true;
                     } else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
                         this.module.notificationSystem.addHoverNotification(
-                            context?.token,
+                            focusedNode ?? (context.tokenToLeft ?? context.tokenToRight),
                             { identifier: newText },
                             ErrorMessage.identifierIsBuiltInFunc
                         );
