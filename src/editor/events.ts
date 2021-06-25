@@ -6,6 +6,7 @@ import * as keywords from "../syntax-tree/keywords";
 import { BinaryOperator, DataType } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
 import { Hole } from "./hole";
+import { Context } from "./focus";
 
 export enum KeyPress {
     // navigation:
@@ -373,35 +374,7 @@ export class EventHandler {
                     newText = curText.join("");
                 }
 
-                // TODO: this.module.focus.isInsideIdentifier()
-                if (focusedNode instanceof ast.IdentifierTkn || context.tokenToLeft instanceof ast.IdentifierTkn || context.tokenToRight instanceof ast.IdentifierTkn) {
-                    let newNotification = false;
-
-                    /*TODO: Change this to use the new focus.
-                     *
-                     * This needs to use whatever code construct is used for the check in the if-statement above.
-                     */
-                    if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
-                        this.module.notificationSystem.addHoverNotification(
-                            focusedNode ?? (context.tokenToLeft ?? context.tokenToRight),
-                            { identifier: newText },
-                            ErrorMessage.identifierIsKeyword
-                        );
-                        newNotification = true;
-                    } else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
-                        this.module.notificationSystem.addHoverNotification(
-                            focusedNode ?? (context.tokenToLeft ?? context.tokenToRight),
-                            { identifier: newText },
-                            ErrorMessage.identifierIsBuiltInFunc
-                        );
-
-                        newNotification = true;
-                    }
-
-                    if (!newNotification && context?.token.notification) {
-                        this.module.notificationSystem.removeNotificationFromConstruct(context?.token);
-                    }
-                }
+                this.validateIdentifier(context, newText);
 
                 // TODO: check if turns back into an empty hole
 
@@ -459,33 +432,7 @@ export class EventHandler {
 
                 newText = curText.join("");
 
-                if (context.selected && context?.token instanceof ast.IdentifierTkn) {
-                    let newNotification = false;
-
-                    if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
-                        /*TODO: Change this to use the new focus.
-                         *
-                         * This needs to use whatever code construct is used for the check in the if-statement above.
-                         */
-                        this.module.notificationSystem.addHoverNotification(
-                            context?.token,
-                            { identifier: newText },
-                            ErrorMessage.identifierIsKeyword
-                        );
-                        newNotification = true;
-                    } else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
-                        this.module.notificationSystem.addHoverNotification(
-                            context?.token,
-                            { identifier: newText },
-                            ErrorMessage.identifierIsBuiltInFunc
-                        );
-                        newNotification = true;
-                    }
-
-                    if (!newNotification && context?.token.notification) {
-                        this.module.notificationSystem.removeNotificationFromConstruct(context?.token);
-                    }
-                }
+                this.validateIdentifier(context, newText);
 
                 // TODO: check if turns back into an empty hole
 
@@ -999,6 +946,31 @@ export class EventHandler {
     private pressButton(buttonId: string, callback: Function){
         if (!(document.getElementById(buttonId) as HTMLButtonElement).disabled) {
             callback();
+        }
+    }
+
+    private validateIdentifier(context: Context, identifierText: string){
+        let focusedNode = null;
+        if(context.token && context.selected && context.token instanceof ast.IdentifierTkn){
+            focusedNode = context.token;
+        }
+        else if(context.tokenToLeft && context.tokenToLeft instanceof ast.IdentifierTkn){
+            focusedNode = context.tokenToLeft;
+        }
+        else if(context.tokenToRight && context.tokenToRight instanceof ast.IdentifierTkn){
+            focusedNode = context.tokenToRight;
+        }
+
+        if (focusedNode instanceof ast.IdentifierTkn || context.tokenToLeft instanceof ast.IdentifierTkn || context.tokenToRight instanceof ast.IdentifierTkn) {
+            const notifPos = {left: focusedNode.getLeftPosition().column * this.module.editor.computeCharWidth(),
+                              top:  (focusedNode.getLeftPosition().lineNumber) * this.module.editor.computeCharHeight()
+            }
+
+            if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
+                this.module.notificationSystem.addPopUpNotification({ identifier: identifierText }, notifPos, ErrorMessage.identifierIsKeyword);
+            } else if (Object.keys(keywords.BuiltInFunctions).indexOf(identifierText) > -1) {
+                this.module.notificationSystem.addPopUpNotification({ identifier: identifierText }, notifPos, ErrorMessage.identifierIsBuiltInFunc);
+            }
         }
     }
 }
