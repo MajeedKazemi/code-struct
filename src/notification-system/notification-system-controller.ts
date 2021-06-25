@@ -118,11 +118,21 @@ export class NotificationSystemController {
 
     /**
      * Add a pop-up notification to the editor at the specified position.
+     * 
+     * If args and errMsgType are specified, there is no need to specify text as it will be auto-generated.
      */
-    addPopUpNotification() {
-        this.notifications.push(
-            new PopUpNotification(this.editor, this.notifications.length, "Pop Up!", { left: 0, top: 0 })
-        );
+    addPopUpNotification(args: any, pos: object = {left: 0, top: 0}, errMsgType?: ErrorMessage, text?: string) {
+        if(text){
+            this.notifications.push(
+                new PopUpNotification(this.editor, this.notifications.length, text, pos)
+            );
+        }
+        else{
+            this.notifications.push(
+                new PopUpNotification(this.editor, this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args), pos)
+            );
+        }
+
         const notif = this.notifications[this.notifications.length - 1];
 
         setTimeout(() => {
@@ -146,6 +156,9 @@ export class NotificationSystemController {
             this.notifications[code.notification.index].removeNotificationFromDOM();
             this.notifications.splice(code.notification.index, 1);
             code.notification = null;
+        }
+        else{
+            console.warn("Could not remove notification from construct: " + code)
         }
     }
 

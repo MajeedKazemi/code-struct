@@ -1,11 +1,12 @@
 import * as ast from "../syntax-tree/ast";
 import * as monaco from "monaco-editor";
 import { TAB_SPACES } from "../syntax-tree/keywords";
-import * as AST from "../syntax-tree/ast";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import * as keywords from "../syntax-tree/keywords";
 import { BinaryOperator, DataType } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
+import { Hole } from "./hole";
+import { Context } from "./focus";
 
 export enum KeyPress {
     // navigation:
@@ -47,16 +48,16 @@ export enum KeyPress {
 }
 
 export enum EditAction {
-    Copy, // TODO: could use default or navigator.clipboard.writeText()
-    Paste, // TODO: check navigator.clipboard.readText()
+    Copy, // TODO: NYI: could use default or navigator.clipboard.writeText()
+    Paste, // TODO: NYI: check navigator.clipboard.readText()
 
     Undo,
     Redo,
 
     MoveCursorLeft,
     MoveCursorRight,
-    MoveCursorStart, // TODO
-    MoveCursorEnd, // TODO
+    MoveCursorStart, // TODO: NYI
+    MoveCursorEnd, // TODO: NYI
 
     DeleteNextChar,
     DeletePrevChar,
@@ -66,8 +67,8 @@ export enum EditAction {
 
     SelectLeft,
     SelectRight,
-    SelectToStart, // TODO
-    SelectToEnd, // TODO
+    SelectToStart, // TODO: NYI
+    SelectToEnd, // TODO: NYI
 
     SelectNextToken,
     SelectPrevToken,
@@ -107,7 +108,7 @@ export enum EditAction {
     OpenSubMenu,
     CloseSubMenu,
 
-    //TODO: Remove later
+    //TODO: Remove later (for the continuos menu with categories)
     OpenValidInsertMenuSingleLevel,
 }
 
@@ -118,22 +119,10 @@ export class EventHandler {
         this.module = module;
     }
 
-    setFocusedNode(code: ast.CodeConstruct) {
-        this.module.focusedNode.notify(ast.CallbackType.loseFocus);
-        this.module.focusedNode = code;
-        this.module.editor.focusSelection(this.module.focusedNode.getSelection());
-
-        code.notify(ast.CallbackType.focus);
-    }
-
     getKeyAction(e: KeyboardEvent) {
+        const context = this.module.focus.getContext();
         const curPos = this.module.editor.monaco.getPosition();
-
-        if (this.module.focusedNode == null) {
-            this.module.focusedNode = this.module.locateStatementAtLine(curPos.lineNumber);
-        }
-
-        const inTextEditMode = this.module.focusedNode.isTextEditable;
+        const inTextEditMode = this.module.focus.isTextEditable(context);
 
         switch (e.key) {
             case KeyPress.ArrowUp:
@@ -150,8 +139,17 @@ export class EventHandler {
                 if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.CloseSubMenu;
 
                 if (inTextEditMode) {
-                    if (curPos.column == (this.module.focusedNode as ast.Token).left) return EditAction.SelectPrevToken;
-
+                    // if we're at the beginning of an editable text
+                    // or
+                    // at selected an empty editable identifier
+                    // => navigate to the previous token this.focus.navigateLeft();
+                    if (
+                        (context.tokenToLeft instanceof ast.IdentifierTkn && context.tokenToRight.isEmpty) ||
+                        context.tokenToRight instanceof ast.EditableTextTkn ||
+                        context.tokenToRight instanceof ast.IdentifierTkn ||
+                        (context.token?.isEmpty && context.selected)
+                    )
+                        return EditAction.SelectPrevToken;
                     if (e.shiftKey && e.ctrlKey) return EditAction.SelectToStart;
                     else if (e.shiftKey) return EditAction.SelectLeft;
                     else if (e.ctrlKey) return EditAction.MoveCursorStart;
@@ -162,9 +160,19 @@ export class EventHandler {
                 if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.OpenSubMenu;
 
                 if (inTextEditMode) {
+                    // if we're at the end of an editable text
+                    // or
+                    // at selected an empty editable identifier
+                    // => navigate to the previous token this.focus.navigateRight();
+
+                    // also if we're right before an editable item and need to select it with this new arrow-right key press.
                     if (
-                        curPos.column == (this.module.focusedNode as ast.Token).right + 1 ||
-                        (this.module.focusedNode as ast.Token).text == "---"
+                        ((context.tokenToRight instanceof ast.IdentifierTkn ||
+                            context.tokenToRight instanceof ast.EditableTextTkn) &&
+                            context.tokenToRight.isEmpty) ||
+                        context.tokenToLeft instanceof ast.EditableTextTkn ||
+                        context.tokenToLeft instanceof ast.IdentifierTkn ||
+                        (context.token?.isEmpty && context.selected)
                     ) {
                         return EditAction.SelectNextToken;
                     }
@@ -206,9 +214,9 @@ export class EventHandler {
             case KeyPress.Enter:
                 if (this.module.menuController.isMenuOpen()) return EditAction.SelectMenuSuggestion;
 
-                const curLine = this.module.locateStatement(curPos);
                 const curSelection = this.module.editor.monaco.getSelection();
-                const parent = this.module.focusedNode.getParentStatement().rootNode;
+                const curStatement = this.module.focus.getFocusedStatement();
+                const parent = curStatement.rootNode;
                 let leftPosToCheck = 1;
 
                 if (parent instanceof ast.Statement && parent.body.length > 0) {
@@ -217,7 +225,7 @@ export class EventHandler {
                 }
 
                 if (curSelection.startColumn == curSelection.endColumn) {
-                    if (curPos.column == leftPosToCheck || curPos.column == curLine.right + 1)
+                    if (curPos.column == leftPosToCheck || curPos.column == curStatement.right)
                         return EditAction.InsertEmptyLine;
                 }
 
@@ -314,8 +322,12 @@ export class EventHandler {
 
     onKeyDown(e) {
         const action = this.getKeyAction(e.browserEvent);
-        const selection = this.module.focusedNode.getSelection();
+        const selection = this.module.editor.monaco.getSelection();
         let suggestions = [];
+
+        const context = this.module.focus.getContext();
+
+        let focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
         switch (action) {
             case EditAction.InsertEmptyLine: {
@@ -327,7 +339,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectPrevToken: {
-                this.setFocusedNode(this.module.focusedNode.getPrevEditableToken());
+                this.module.focus.navigateLeft();
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -335,7 +347,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectNextToken: {
-                this.setFocusedNode(this.module.focusedNode.getNextEditableToken());
+                this.module.focus.navigateRight();
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -345,29 +357,16 @@ export class EventHandler {
             case EditAction.InsertChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-
-                let token: ast.TextEditable;
-
-                if (
-                    this.module.focusedNode instanceof ast.IdentifierTkn ||
-                    this.module.focusedNode instanceof ast.EditableTextTkn
-                ) {
-                    token = this.module.focusedNode;
-                } else {
-                    throw new Error(
-                        "Trying to insert-char at an incorrect token or with an incorrect isTextEditable value."
-                    );
-                }
-
+                const token = this.module.focus.getTextEditableItem(context);
                 let newText = "";
 
-                if (token.getEditableText() == "---") {
+                if (token.getEditableText() == "   ") {
                     const curText = "";
                     newText = curText + e.browserEvent.key;
                 } else {
                     const curText = token.getEditableText().split("");
                     curText.splice(
-                        cursorPos.column - this.module.focusedNode.left,
+                        cursorPos.column - token.getLeft(),
                         Math.abs(selectedText.startColumn - selectedText.endColumn),
                         e.browserEvent.key
                     );
@@ -375,30 +374,7 @@ export class EventHandler {
                     newText = curText.join("");
                 }
 
-                if (this.module.focusedNode instanceof ast.IdentifierTkn) {
-                    let newNotification = false;
-
-                    if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
-                        this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
-                            { identifier: newText },
-                            ErrorMessage.identifierIsKeyword
-                        );
-                        newNotification = true;
-                    } else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
-                        this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
-                            { identifier: newText },
-                            ErrorMessage.identifierIsBuiltInFunc
-                        );
-
-                        newNotification = true;
-                    }
-
-                    if (!newNotification && this.module.focusedNode.notification) {
-                        this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
-                    }
-                }
+                this.validateIdentifier(context, newText);
 
                 // TODO: check if turns back into an empty hole
 
@@ -432,23 +408,11 @@ export class EventHandler {
             case EditAction.DeleteNextChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-
-                let token: ast.TextEditable;
-
-                if (
-                    this.module.focusedNode instanceof ast.IdentifierTkn ||
-                    this.module.focusedNode instanceof ast.EditableTextTkn
-                ) {
-                    token = this.module.focusedNode;
-                } else {
-                    throw new Error(
-                        "Trying to insert-char at an incorrect token or with an incorrect isTextEditable value."
-                    );
-                }
+                const token = this.module.focus.getTextEditableItem(context);
 
                 let newText = "";
 
-                // TODO: if it is equal to --- => just prevent default
+                // TODO: if it is equal to '   ' => just prevent default
 
                 const curText = token.getEditableText().split("");
                 const toDeleteItems =
@@ -460,37 +424,15 @@ export class EventHandler {
 
                 curText.splice(
                     Math.min(
-                        cursorPos.column - this.module.focusedNode.left - toDeletePos,
-                        selectedText.startColumn - this.module.focusedNode.left - toDeletePos
+                        cursorPos.column - token.getLeft() - toDeletePos,
+                        selectedText.startColumn - token.getLeft() - toDeletePos
                     ),
                     toDeleteItems
                 );
 
                 newText = curText.join("");
 
-                if (this.module.focusedNode instanceof ast.IdentifierTkn) {
-                    let newNotification = false;
-
-                    if (Object.keys(keywords.PythonKeywords).indexOf(newText) > -1) {
-                        this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
-                            { identifier: newText },
-                            ErrorMessage.identifierIsKeyword
-                        );
-                        newNotification = true;
-                    } else if (Object.keys(keywords.BuiltInFunctions).indexOf(newText) > -1) {
-                        this.module.notificationSystem.addHoverNotification(
-                            this.module.focusedNode,
-                            { identifier: newText },
-                            ErrorMessage.identifierIsBuiltInFunc
-                        );
-                        newNotification = true;
-                    }
-
-                    if (!newNotification && this.module.focusedNode.notification) {
-                        this.module.notificationSystem.removeNotificationFromConstruct(this.module.focusedNode);
-                    }
-                }
+                this.validateIdentifier(context, newText);
 
                 // TODO: check if turns back into an empty hole
 
@@ -521,20 +463,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectClosestTokenAbove: {
-                const curPos = this.module.editor.monaco.getPosition();
-                const parentStmt = this.module.focusedNode.getParentStatement();
-                const aboveStmt = this.module.locateStatementAtLine(curPos.lineNumber - 1);
-
-                if (aboveStmt != null) {
-                    if (curPos.column >= aboveStmt.right) {
-                        // go to the end of above stmt
-                        if (aboveStmt instanceof ast.EmptyLineStmt) this.setFocusedNode(aboveStmt);
-                        else this.setFocusedNode(aboveStmt.getEndOfLineToken());
-                    } else {
-                        const aboveNode = aboveStmt.locate(new monaco.Position(curPos.lineNumber - 1, curPos.column));
-                        this.setFocusedNode(aboveNode);
-                    }
-                } else this.setFocusedNode(parentStmt.getStartOfLineToken());
+                this.module.focus.navigateUp();
 
                 e.stopPropagation();
                 e.preventDefault();
@@ -543,20 +472,7 @@ export class EventHandler {
             }
 
             case EditAction.SelectClosestTokenBelow: {
-                const curPos = this.module.editor.monaco.getPosition();
-                const parentStmt = this.module.focusedNode.getParentStatement();
-                const belowStmt = this.module.locateStatementAtLine(curPos.lineNumber + 1);
-
-                if (belowStmt != null) {
-                    if (curPos.column >= belowStmt.right) {
-                        // go to the end of below stmt
-                        if (belowStmt instanceof ast.EmptyLineStmt) this.setFocusedNode(belowStmt);
-                        else this.setFocusedNode(belowStmt.getEndOfLineToken());
-                    } else {
-                        const aboveNode = belowStmt.locate(new monaco.Position(curPos.lineNumber + 1, curPos.column));
-                        this.setFocusedNode(aboveNode);
-                    }
-                } else this.setFocusedNode(parentStmt.getEndOfLineToken());
+                this.module.focus.navigateDown();
 
                 e.stopPropagation();
                 e.preventDefault();
@@ -565,9 +481,15 @@ export class EventHandler {
             }
 
             case EditAction.MoveCursorLeft:
+               // Hole.disableEditableHoleHighlights();
+               // this.module.focus.highlightTextEditableHole();
+
                 break;
 
             case EditAction.MoveCursorRight:
+               // Hole.disableEditableHoleHighlights();
+               // this.module.focus.highlightTextEditableHole();
+
                 break;
 
             case EditAction.SelectLeft:
@@ -607,9 +529,6 @@ export class EventHandler {
                 break;
 
             case EditAction.CompleteMultiplication:
-                console.log(this.module.editor.holes);
-                console.log(e);
-
                 this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
 
                 e.preventDefault();
@@ -617,14 +536,14 @@ export class EventHandler {
                 break;
 
             case EditAction.CompleteIntLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.Number);
+                this.module.constructCompleter.completeLiteralConstruct(DataType.Number, e.browserEvent.key);
 
                 e.preventDefault();
                 e.stopPropagation();
                 break;
 
             case EditAction.CompleteStringLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.String);
+                this.module.constructCompleter.completeLiteralConstruct(DataType.String, "");
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -638,33 +557,32 @@ export class EventHandler {
                 break;
 
             case EditAction.DisplayGreaterThanSuggestion:
-                suggestions = [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual];
-                suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-                this.module.menuController.buildSingleLevelMenu(
-                    suggestions,
-                    Util.getInstance(this.module).constructActions,
-                    {
-                        left: selection.startColumn * this.module.editor.computeCharWidth(),
-                        top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                    }
-                );
+                if (this.module.isAbleToInsertComparator(context)) {
+                    this.module.menuController.buildSingleLevelMenu(
+                        [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
+                        Util.getInstance(this.module).constructActions,
+                        {
+                            left: selection.startColumn * this.module.editor.computeCharWidth(),
+                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
+                        }
+                    );
+                }
 
                 e.preventDefault();
                 e.stopPropagation();
                 break;
 
             case EditAction.DisplayLessThanSuggestion:
-                suggestions = [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual];
-                suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
-
-                this.module.menuController.buildSingleLevelMenu(
-                    suggestions,
-                    Util.getInstance(this.module).constructActions,
-                    {
-                        left: selection.startColumn * this.module.editor.computeCharWidth(),
-                        top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                    }
-                );
+                if (this.module.isAbleToInsertComparator(context)) {
+                    this.module.menuController.buildSingleLevelMenu(
+                        [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
+                        Util.getInstance(this.module).constructActions,
+                        {
+                            left: selection.startColumn * this.module.editor.computeCharWidth(),
+                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
+                        }
+                    );
+                }
 
                 e.preventDefault();
                 e.stopPropagation();
@@ -672,7 +590,7 @@ export class EventHandler {
 
             case EditAction.DisplayEqualsSuggestion:
                 suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
-                suggestions = this.module.getValidInsertsFromSet(this.module.focusedNode, suggestions);
+                suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
 
                 this.module.menuController.buildSingleLevelMenu(
                     suggestions,
@@ -690,7 +608,7 @@ export class EventHandler {
             case EditAction.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
                     this.module.menuController.buildAvailableInsertsMenu(
-                        this.module.getAllValidInsertsList(this.module.focusedNode),
+                        this.module.getAllValidInsertsList(focusedNode),
                         Util.getInstance(this.module).constructActions,
                         {
                             left: selection.startColumn * this.module.editor.computeCharWidth(),
@@ -706,7 +624,7 @@ export class EventHandler {
             //TODO: Remove later
             case EditAction.OpenValidInsertMenuSingleLevel:
                 if (!this.module.menuController.isMenuOpen()) {
-                    const suggestions = this.module.getAllValidInsertsList(this.module.focusedNode);
+                    const suggestions = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
                 } else this.module.menuController.removeMenus();
 
@@ -716,36 +634,42 @@ export class EventHandler {
 
             case EditAction.SelectMenuSuggestionAbove:
                 this.module.menuController.focusOptionAbove();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.SelectMenuSuggestionBelow:
                 this.module.menuController.focusOptionBelow();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.SelectMenuSuggestion:
                 this.module.menuController.selectFocusedOption();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.CloseValidInsertMenu:
                 this.module.menuController.removeMenus();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.OpenSubMenu:
                 this.module.menuController.openSubMenu();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
 
             case EditAction.CloseSubMenu:
                 this.module.menuController.closeSubMenu();
+
                 e.stopPropagation();
                 e.preventDefault();
                 break;
@@ -757,280 +681,254 @@ export class EventHandler {
     }
 
     onMouseDown(e) {
-        this.setFocusedNode(this.module.locateStatement(e.target.position).locate(e.target.position));
+        this.module.focus.navigatePos(e.target.position);
     }
 
     onButtonDown(id: string) {
         switch (id) {
             case "add-var-btn":
-                if (!(document.getElementById("add-var-btn") as HTMLButtonElement).disabled) {
-                    this.module.insert(new AST.VarAssignmentStmt());
-                }
+                this.pressButton(id, (() => {this.module.insert(new ast.VarAssignmentStmt())}).bind(this));
 
                 break;
 
             case "add-print-btn":
-                this.module.insert(
-                    new AST.FunctionCallStmt(
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.FunctionCallStmt(
                         "print",
-                        [new AST.Argument(AST.DataType.Any, "item", false)],
-                        AST.DataType.Void
+                        [new ast.Argument(ast.DataType.Any, "item", false)],
+                        ast.DataType.Void
                     )
-                );
+                )}).bind(this));
 
                 break;
-                
+
             case "add-randint-btn":
-                this.module.insert(
-                    new AST.FunctionCallStmt(
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.FunctionCallStmt(
                         "randint",
                         [
-                            new AST.Argument(AST.DataType.Number, "start", false),
-                            new AST.Argument(AST.DataType.Number, "end", false),
+                            new ast.Argument(ast.DataType.Number, "start", false),
+                            new ast.Argument(ast.DataType.Number, "end", false),
                         ],
-                        AST.DataType.Number
+                        ast.DataType.Number
                     )
-                );
-                
+                )}).bind(this));
+
                 break;
 
             case "add-range-btn":
-                this.module.insert(
-                    new AST.FunctionCallStmt(
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.FunctionCallStmt(
                         "range",
                         [
-                            new AST.Argument(AST.DataType.Number, "start", false),
-                            new AST.Argument(AST.DataType.Number, "end", false),
+                            new ast.Argument(ast.DataType.Number, "start", false),
+                            new ast.Argument(ast.DataType.Number, "end", false),
                         ],
-                        AST.DataType.List
+                        ast.DataType.List
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-len-btn":
-                this.module.insert(
-                    new AST.FunctionCallStmt(
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.FunctionCallStmt(
                         "len",
-                        [new AST.Argument(AST.DataType.List, "list", false)],
-                        AST.DataType.Number
+                        [new ast.Argument(ast.DataType.List, "list", false)],
+                        ast.DataType.Number
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-str-btn":
-                this.module.insert(new AST.LiteralValExpr(AST.DataType.String));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.String))}).bind(this));
 
                 break;
 
             case "add-num-btn":
-                this.module.insert(new AST.LiteralValExpr(AST.DataType.Number));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.Number, "0"))}).bind(this));
 
                 break;
 
             case "add-true-btn":
-                this.module.insert(new AST.LiteralValExpr(AST.DataType.Boolean, "True"));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.Boolean, "True"))}).bind(this));
 
                 break;
 
             case "add-false-btn":
-                this.module.insert(new AST.LiteralValExpr(AST.DataType.Boolean, "False"));
+                this.pressButton(id, (() => {this.module.insert(new ast.LiteralValExpr(ast.DataType.Boolean, "False"))}).bind(this));
 
                 break;
 
             case "add-bin-add-expr-btn":
-                this.module.insert(new AST.BinaryOperatorExpr(AST.BinaryOperator.Add, AST.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Add, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-sub-expr-btn":
-                this.module.insert(new AST.BinaryOperatorExpr(AST.BinaryOperator.Subtract, AST.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Subtract, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-mul-expr-btn":
-                this.module.insert(new AST.BinaryOperatorExpr(AST.BinaryOperator.Multiply, AST.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Multiply, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-div-expr-btn":
-                this.module.insert(new AST.BinaryOperatorExpr(AST.BinaryOperator.Divide, AST.DataType.Any));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Divide, ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-bin-and-expr-btn":
-                this.module.insert(new AST.BinaryBoolOperatorExpr(AST.BoolOperator.And));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.And))}).bind(this));
 
                 break;
 
             case "add-bin-or-expr-btn":
-                this.module.insert(new AST.BinaryBoolOperatorExpr(AST.BoolOperator.Or));
+                this.pressButton(id, (() => {this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.Or))}).bind(this));
 
                 break;
 
             case "add-unary-not-expr-btn":
-                this.module.insert(
-                    new AST.UnaryOperatorExpr(AST.UnaryOp.Not, AST.DataType.Boolean, AST.DataType.Boolean)
-                );
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.UnaryOperatorExpr(ast.UnaryOp.Not, ast.DataType.Boolean, ast.DataType.Boolean)
+                )}).bind(this));
 
                 break;
 
             case "add-comp-eq-expr-btn":
-                this.module.insert(new AST.ComparatorExpr(AST.ComparatorOp.Equal));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.Equal))}).bind(this));
 
                 break;
 
             case "add-comp-neq-expr-btn":
-                this.module.insert(new AST.ComparatorExpr(AST.ComparatorOp.NotEqual));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.NotEqual))}).bind(this));
 
                 break;
 
             case "add-comp-lt-expr-btn":
-                this.module.insert(new AST.ComparatorExpr(AST.ComparatorOp.LessThan));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThan))}).bind(this));
 
                 break;
 
             case "add-comp-lte-expr-btn":
-                this.module.insert(new AST.ComparatorExpr(AST.ComparatorOp.LessThanEqual));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThanEqual))}).bind(this));
 
                 break;
 
             case "add-comp-gt-expr-btn":
-                this.module.insert(new AST.ComparatorExpr(AST.ComparatorOp.GreaterThan));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThan))}).bind(this));
 
                 break;
 
             case "add-comp-gte-expr-btn":
-                this.module.insert(new AST.ComparatorExpr(AST.ComparatorOp.GreaterThanEqual));
+                this.pressButton(id, (() => {this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThanEqual))}).bind(this));
 
                 break;
 
             case "add-while-expr-btn":
-                this.module.insert(new AST.WhileStatement());
+                this.pressButton(id, (() => {this.module.insert(new ast.WhileStatement())}).bind(this));
 
                 break;
 
             case "add-if-expr-btn":
-                this.module.insert(new AST.IfStatement());
+                this.pressButton(id, (() => {this.module.insert(new ast.IfStatement())}).bind(this));
 
                 break;
 
             case "add-elif-expr-btn":
-                this.module.insert(new AST.ElseStatement(true));
+                this.pressButton(id, (() => {this.module.insert(new ast.ElseStatement(true))}).bind(this));
 
                 break;
 
             case "add-else-expr-btn":
-                this.module.insert(new AST.ElseStatement(false));
+                this.pressButton(id, (() => {this.module.insert(new ast.ElseStatement(false))}).bind(this));
 
                 break;
 
             case "add-for-expr-btn":
-                this.module.insert(new AST.ForStatement());
+                this.pressButton(id, (() => {this.module.insert(new ast.ForStatement())}).bind(this));
 
                 break;
 
             case "add-list-literal-btn":
-                this.module.insert(new AST.ListLiteralExpression());
+                this.pressButton(id, (() => {this.module.insert(new ast.ListLiteralExpression())}).bind(this));
 
                 break;
 
             case "add-list-item-btn":
-                this.module.insertListItem();
+                this.pressButton(id, (() => {this.module.insertListItem()}).bind(this));
 
                 break;
 
             case "add-list-append-stmt-btn":
-                this.module.insert(
-                    new AST.MethodCallStmt("append", [new AST.Argument(AST.DataType.Any, "object", false)])
-                );
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.MethodCallStmt("append", [new ast.Argument(ast.DataType.Any, "object", false)])
+                )}).bind(this));
 
                 break;
 
             case "add-list-index-btn":
-                this.module.insert(new AST.MemberCallStmt(AST.DataType.Any));
-
-                break;
-
-            case "add-test-array":
-                const varAssignStmt = new AST.VarAssignmentStmt("arr");
-                const listExpr = new AST.ListLiteralExpression();
-                listExpr.insertListItem(1, 30);
-                listExpr.insertListItem(1, 60);
-                listExpr.insertListItem(1, 80);
-                listExpr.insertListItem(1, 20);
-                listExpr.insertListItem(1, 50);
-                listExpr.insertListItem(1, 100);
-                listExpr.insertListItem(1, 10);
-                listExpr.insertListItem(1, 70);
-                listExpr.insertListItem(1, 90);
-                listExpr.insertListItem(1, 40);
-
-                varAssignStmt.replaceValue(listExpr);
-
-                this.module.addVariableButtonToToolbox(varAssignStmt);
-                this.module.scope.references.push(new AST.Reference(varAssignStmt, this.module.scope));
-                varAssignStmt.updateButton();
-
-                this.module.insert(varAssignStmt);
+                this.pressButton(id, (() => {this.module.insert(new ast.MemberCallStmt(ast.DataType.Any))}).bind(this));
 
                 break;
 
             case "add-split-method-call-btn":
-                this.module.insert(
-                    new AST.MethodCallExpr(
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.MethodCallExpr(
                         "split",
-                        [new AST.Argument(AST.DataType.String, "sep", false)],
-                        AST.DataType.List,
-                        AST.DataType.String
+                        [new ast.Argument(ast.DataType.String, "sep", false)],
+                        ast.DataType.List,
+                        ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-join-method-call-btn":
-                this.module.insert(
-                    new AST.MethodCallExpr(
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.MethodCallExpr(
                         "join",
-                        [new AST.Argument(AST.DataType.List, "items", false)],
-                        AST.DataType.String,
-                        AST.DataType.String
+                        [new ast.Argument(ast.DataType.List, "items", false)],
+                        ast.DataType.String,
+                        ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-replace-method-call-btn":
-                this.module.insert(
-                    new AST.MethodCallExpr(
+                this.pressButton(id, (() => { this.module.insert(
+                    new ast.MethodCallExpr(
                         "replace",
                         [
-                            new AST.Argument(AST.DataType.String, "old", false),
-                            new AST.Argument(AST.DataType.String, "new", false),
+                            new ast.Argument(ast.DataType.String, "old", false),
+                            new ast.Argument(ast.DataType.String, "new", false),
                         ],
-                        AST.DataType.String,
-                        AST.DataType.String
+                        ast.DataType.String,
+                        ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-find-method-call-btn":
-                this.module.insert(
-                    new AST.MethodCallExpr(
+                this.pressButton(id, (() => {this.module.insert(
+                    new ast.MethodCallExpr(
                         "find",
-                        [new AST.Argument(AST.DataType.String, "item", false)],
-                        AST.DataType.Number,
-                        AST.DataType.String
+                        [new ast.Argument(ast.DataType.String, "item", false)],
+                        ast.DataType.Number,
+                        ast.DataType.String
                     )
-                );
+                )}).bind(this));
 
                 break;
 
             case "add-list-elem-assign-btn":
-                this.module.insert(new AST.ListElementAssignment());
-                
+                this.pressButton(id, (() => {this.module.insert(new ast.ListElementAssignment())}).bind(this));
+
                 break;
 
             default:
@@ -1043,5 +941,36 @@ export class EventHandler {
 
     onDidScrollChange(e) {
         this.module.editor.scrollOffsetTop = e.scrollTop;
+    }
+
+    private pressButton(buttonId: string, callback: Function){
+        if (!(document.getElementById(buttonId) as HTMLButtonElement).disabled) {
+            callback();
+        }
+    }
+
+    private validateIdentifier(context: Context, identifierText: string){
+        let focusedNode = null;
+        if(context.token && context.selected && context.token instanceof ast.IdentifierTkn){
+            focusedNode = context.token;
+        }
+        else if(context.tokenToLeft && context.tokenToLeft instanceof ast.IdentifierTkn){
+            focusedNode = context.tokenToLeft;
+        }
+        else if(context.tokenToRight && context.tokenToRight instanceof ast.IdentifierTkn){
+            focusedNode = context.tokenToRight;
+        }
+
+        if (focusedNode instanceof ast.IdentifierTkn || context.tokenToLeft instanceof ast.IdentifierTkn || context.tokenToRight instanceof ast.IdentifierTkn) {
+            const notifPos = {left: focusedNode.getLeftPosition().column * this.module.editor.computeCharWidth(),
+                              top:  (focusedNode.getLeftPosition().lineNumber) * this.module.editor.computeCharHeight()
+            }
+
+            if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
+                this.module.notificationSystem.addPopUpNotification({ identifier: identifierText }, notifPos, ErrorMessage.identifierIsKeyword);
+            } else if (Object.keys(keywords.BuiltInFunctions).indexOf(identifierText) > -1) {
+                this.module.notificationSystem.addPopUpNotification({ identifier: identifierText }, notifPos, ErrorMessage.identifierIsBuiltInFunc);
+            }
+        }
     }
 }

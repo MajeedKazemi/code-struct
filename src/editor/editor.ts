@@ -60,35 +60,16 @@ export class Editor {
         this.module = module;
     }
 
-    focusSelection(selection: monaco.Selection, code: CodeConstruct = null) {
-        if (selection.startColumn == selection.endColumn) {
-            this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
-        } else {
-            this.cursor.setSelection(selection, code);
-            this.monaco.setSelection(selection);
-        }
+    focusSelection() {
+        // if (selection.startColumn == selection.endColumn) {
+        //     this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
+        // } else {
+        //     this.cursor.setSelection(selection, code);
+        //     this.monaco.setSelection(selection);
+        // }
+        const context = this.module.focus.getContext();
 
-        if (this.module.menuController.isMenuOpen()) this.module.menuController.removeMenus();
 
-        const validInserts = this.module.getAllValidInsertsList(this.module.focusedNode);
-
-        Object.keys(ConstructKeys).forEach((construct) => {
-            if (constructToToolboxButton.has(ConstructKeys[construct])) {
-                if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
-                    const button = document.getElementById(
-                        constructToToolboxButton.get(ConstructKeys[construct])
-                    ) as HTMLButtonElement;
-                    button.disabled = true;
-                    button.classList.add("disabled");
-                } else {
-                    const button = document.getElementById(
-                        constructToToolboxButton.get(ConstructKeys[construct])
-                    ) as HTMLButtonElement;
-                    button.disabled = false;
-                    button.classList.remove("disabled");
-                }
-            }
-        });
     }
 
     getLineEl(ln: number) {
@@ -115,7 +96,11 @@ export class Editor {
     }
 
     executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
-        const text = overwrite || code.getRenderText();
+        let text = overwrite;
+
+        if (overwrite == null)
+            text = code.getRenderText();
+
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
         this.addHoles(code);

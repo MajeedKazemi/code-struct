@@ -1,5 +1,5 @@
 import "./css/index.css";
-import * as AST from "./syntax-tree/ast";
+import * as ast from "./syntax-tree/ast";
 
 // @ts-ignore
 self.MonacoEnvironment = {
@@ -20,4 +20,4 @@ self.MonacoEnvironment = {
     },
 };
 
-export const nova = new AST.Module("editor");
+export const nova = new ast.Module("editor");
