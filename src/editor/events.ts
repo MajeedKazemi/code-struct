@@ -232,52 +232,62 @@ export class EventHandler {
                 break;
 
             case KeyPress.Plus:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.CompleteAddition;
 
                 break;
 
             case KeyPress.Star:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.CompleteMultiplication;
 
                 break;
 
             case KeyPress.Minus:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.key.length == 1) return EditAction.CompleteSubtraction;
 
                 break;
 
             case KeyPress.ForwardSlash:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.key.length == 1) return EditAction.CompleteDivision;
 
                 break;
 
             case KeyPress.GreaterThan:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.DisplayGreaterThanSuggestion;
 
                 break;
 
             case KeyPress.LessThan:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.DisplayLessThanSuggestion;
 
                 break;
 
             case KeyPress.Escape:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.CloseValidInsertMenu;
 
                 break;
 
             case KeyPress.Equals:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.key.length == 1) return EditAction.DisplayEqualsSuggestion;
 
                 break;
 
             case KeyPress.Space:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.ctrlKey && e.key.length == 1) return EditAction.OpenValidInsertMenu;
 
                 break;
 
             //TODO: Remove later
             case KeyPress.P:
+                if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.ctrlKey && e.key.length == 1) return EditAction.OpenValidInsertMenuSingleLevel;
 
                 break;
