@@ -1585,7 +1585,7 @@ export class LiteralValExpr extends Expression {
                 this.tokens.push(
                     new EditableTextTkn(
                         value == undefined ? "" : value,
-                        RegExp("^(([0-9]*)|(([0-9]*)\\.([0-9]*)))$"),
+                        RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$"),
                         this,
                         this.tokens.length
                     )
