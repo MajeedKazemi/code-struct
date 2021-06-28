@@ -1088,14 +1088,14 @@ export class ForStatement extends Statement {
     private counterIndex: number;
     private rangeIndex: number;
 
+    loopVar: VarAssignmentStmt = null;
+
     //TODO: Statements should not have a data type?
     dataType = DataType.Any;
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
 
-        this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
-        VarAssignmentStmt.uniqueId++;
 
         this.validEdits.push(EditFunctions.RemoveStatement);
 
@@ -1276,6 +1276,10 @@ export class VarAssignmentStmt extends Statement {
 
     updateButton() {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
+    }
+
+    setIdentifier(identifier: string){
+       (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
     }
 }
 
@@ -1932,7 +1936,7 @@ export class IdentifierTkn extends Token implements TextEditable {
 
     setEditedText(text: string): boolean {
         if (this.validatorRegex.test(text)) {
-            this.text = text;
+            this.setIdentifierText(text);
             (this.rootNode as Statement).rebuild(this.getLeftPosition(), this.indexInRoot);
 
             if (this.text.length > 0) this.isEmpty = false;
@@ -1943,6 +1947,10 @@ export class IdentifierTkn extends Token implements TextEditable {
             this.notify(CallbackType.fail);
             return false;
         }
+    }
+
+    setIdentifierText(text: string){
+        this.text = text;
     }
 }
 
@@ -2170,8 +2178,13 @@ export class Module {
         }
 
         if (newStmt instanceof ForStatement) {
+            const varAssignStmt = new VarAssignmentStmt("", newStmt);
+            varAssignStmt.lineNumber = lineNumber;
+
+            newStmt.loopVar = varAssignStmt;
+
             this.addLoopVariableButtonToToolbox(newStmt);
-            newStmt.scope.references.push(new Reference(newStmt, this.scope));
+            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
     }
 
@@ -2264,8 +2277,13 @@ export class Module {
         }
 
         if (newStmt instanceof ForStatement) {
+            const varAssignStmt = new VarAssignmentStmt("", newStmt);
+            varAssignStmt.lineNumber = newStmt.lineNumber;
+
+            newStmt.loopVar = varAssignStmt;
+
             this.addLoopVariableButtonToToolbox(newStmt);
-            newStmt.scope.references.push(new Reference(newStmt, this.scope));
+            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
 
         if (newStmt.getHeight() > 1) this.rebuildBody(newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
@@ -2328,13 +2346,22 @@ export class Module {
 
         try {
             if (code instanceof TypedEmptyExpr) {
-                const parent = code.getParentStatement(); //line that contains "code"
-                if (parent.hasScope()) {
-                    refs.push(...parent.scope.getValidReferences(code.getSelection().startLineNumber));
-                } else {
-                    //code lines at the very top level will not have a body so use Module's scope
-                    refs.push(...this.scope.getValidReferences(code.getSelection().startLineNumber));
+                let scope = code.getParentStatement()?.scope; //line that contains "code"
+                let currRootNode = code.rootNode;
+
+                while(!scope){
+                    if(currRootNode.getParentStatement()?.hasScope()){
+                        scope = currRootNode.getParentStatement().scope;
+                    }
+                    else if(currRootNode.rootNode instanceof Statement){
+                        currRootNode = currRootNode.rootNode;
+                    }
+                    else if(currRootNode.rootNode instanceof Module){
+                        scope = currRootNode.rootNode.scope;
+                    }
                 }
+
+                refs.push(...scope.getValidReferences(code.getSelection().startLineNumber));
 
                 refs = refs.filter(
                     (ref) =>
@@ -3039,6 +3066,7 @@ export class Scope {
         return false;
     }
 
+    
     getValidReferences(line: number): Array<Reference> {
         let validReferences = this.references.filter((ref) => ref.line() < line);
 
