@@ -201,17 +201,7 @@ export interface CodeConstruct {
      * Returns a `Selection` object for this particular code-construct when it is selected
      */
     getSelection(): monaco.Selection;
-
-    /**
-     * Finds and returns the next editable code-construct to the right of this code-construct.
-     */
-    getNextEditableToken(fromIndex?: number): CodeConstruct;
-
-    /**
-     * Finds and returns the next editable code-construct to the left of this code-construct.
-     */
-    getPrevEditableToken(fromIndex?: number): CodeConstruct;
-
+    
     /**
      * Returns the parent statement of this code-construct (an element of the Module.body array).
      */
@@ -600,52 +590,8 @@ export abstract class Statement implements CodeConstruct {
         return new monaco.Selection(this.lineNumber, this.right, this.lineNumber, this.left);
     }
 
-    getNextEditableToken(fromIndex?: number): CodeConstruct {
-        const startIndex = fromIndex != undefined ? fromIndex : 0;
-
-        for (let i = startIndex; i < this.tokens.length; i++) {
-            if (this.tokens[i].validEdits.length > 0) {
-                if (this.tokens[i] instanceof Expression || this.tokens[i] instanceof Token) {
-                    // there is no statement that does not have any editable expression or token, so this should always return something
-                    return this.tokens[i];
-                }
-            }
-        }
-
-        return this.getEndOfLineToken();
-    }
-
-    getPrevEditableToken(fromIndex?: number): CodeConstruct {
-        if (fromIndex != undefined)
-            for (let i = fromIndex; i >= 0; i--) {
-                if (this.tokens[i].validEdits.length > 0) {
-                    if (this.tokens[i] instanceof Expression || this.tokens[i] instanceof Token) return this.tokens[i];
-                }
-            }
-
-        return this.getStartOfLineToken();
-    }
-
     getParentStatement(): Statement {
         return this;
-    }
-
-    /**
-     * Get end-of-line token for this statement
-     */
-    getEndOfLineToken(): CodeConstruct {
-        if (this instanceof EmptyLineStmt) return this;
-
-        return this.tokens[this.tokens.length - 1];
-    }
-
-    /**
-     * Get start-of-line token for this statement
-     */
-    getStartOfLineToken(): CodeConstruct {
-        if (this instanceof EmptyLineStmt) return this;
-
-        return this.tokens[0];
     }
 
     /**
@@ -720,52 +666,6 @@ export abstract class Expression extends Statement implements CodeConstruct {
         const line = this.getLineNumber();
 
         return new monaco.Selection(line, this.right, line, this.left);
-    }
-
-    getNextEditableToken(fromIndex?: number): CodeConstruct {
-        const startIndex = fromIndex != undefined ? fromIndex : 0;
-
-        for (let i = startIndex; i < this.tokens.length; i++) {
-            if (this.tokens[i].validEdits.length > 0) {
-                if (this.tokens[i] instanceof Expression || this.tokens[i] instanceof Token) return this.tokens[i];
-            }
-        }
-
-        if (this.rootNode instanceof Expression && !this.rootNode.isStatement()) {
-            return this.rootNode.getNextEditableToken(this.indexInRoot + 1);
-        } else if (this.rootNode instanceof Expression && this.rootNode.isStatement()) {
-            return (this.rootNode as Statement).getNextEditableToken(this.indexInRoot + 1);
-        } else if (this.rootNode instanceof Statement && this.rootNode.body.length == 0) {
-            return (this.rootNode as Statement).getNextEditableToken(this.indexInRoot + 1);
-        }
-
-        return this.getEndOfLineToken();
-    }
-
-    getPrevEditableToken(fromIndex?: number): CodeConstruct {
-        if (fromIndex != undefined) {
-            for (let i = fromIndex; i >= 0; i--) {
-                if (this.tokens[i].validEdits.length > 0) {
-                    if (this.tokens[i] instanceof Expression || this.tokens[i] instanceof Token) return this.tokens[i];
-                }
-            }
-        }
-
-        let prevToken: CodeConstruct = null;
-
-        if (this.rootNode instanceof Expression) prevToken = this.rootNode.getPrevEditableToken();
-        else if (this.rootNode instanceof Expression && this.rootNode.isStatement())
-            prevToken = (this.rootNode as Statement).getPrevEditableToken();
-        else if (this.rootNode instanceof Statement && this.rootNode.body.length == 0)
-            prevToken = (this.rootNode as Statement).getPrevEditableToken();
-
-        if (this.rootNode instanceof Expression) prevToken = this.rootNode as Expression;
-        else if (this.rootNode instanceof Statement && this.rootNode.body.length == 0)
-            prevToken = this.rootNode as Statement;
-
-        if (prevToken == null && this.isStatement()) prevToken = this.getStartOfLineToken();
-
-        return prevToken;
     }
 
     getParentStatement(): Statement {
@@ -889,20 +789,6 @@ export abstract class Token implements CodeConstruct {
         const line = this.getLineNumber();
 
         return new monaco.Selection(line, this.right, line, this.left);
-    }
-
-    getNextEditableToken(fromIndex?: number): CodeConstruct {
-        // should not be called when inside the characters of an editable token
-
-        return this.rootNode.getNextEditableToken(this.indexInRoot + 1);
-    }
-
-    getPrevEditableToken(): CodeConstruct {
-        // should not be called when inside the characters of an editable token
-        if (this.rootNode.validEdits.length > 0) return this.rootNode;
-        else return this.rootNode.getPrevEditableToken(this.indexInRoot - 1);
-
-        // return this.rootNode;
     }
 
     getParentStatement(): Statement {
@@ -1184,47 +1070,6 @@ export class EmptyLineStmt extends Statement {
 
     locate(pos: monaco.Position): CodeConstruct {
         return this;
-    }
-
-    getNextEditableToken(): CodeConstruct {
-        if (this.rootNode instanceof Statement && this.rootNode.hasBody()) {
-            if (this.indexInRoot + 1 < this.rootNode.body.length)
-                return this.rootNode.body[this.indexInRoot + 1].getStartOfLineToken();
-            else {
-                // find if there is another statement below this compound statement that we should jump to the first token of it
-
-                const compoundStmt = this.rootNode;
-
-                if (
-                    compoundStmt.rootNode instanceof Module &&
-                    compoundStmt.indexInRoot + 1 < compoundStmt.rootNode.body.length
-                )
-                    return compoundStmt.rootNode.body[compoundStmt.indexInRoot + 1].getStartOfLineToken();
-                else if (
-                    compoundStmt.rootNode instanceof Statement &&
-                    compoundStmt.rootNode.hasBody() &&
-                    compoundStmt.indexInRoot + 1 < compoundStmt.rootNode.body.length
-                )
-                    return compoundStmt.rootNode.body[compoundStmt.indexInRoot + 1].getStartOfLineToken();
-                else return this;
-            }
-        } else if (this.rootNode instanceof Module) {
-            const module = this.rootNode as Module;
-
-            if (this.indexInRoot + 1 < module.body.length) {
-                return module.body[this.indexInRoot + 1].getStartOfLineToken();
-            } else return this;
-        }
-    }
-
-    getPrevEditableToken(): CodeConstruct {
-        if (this.rootNode instanceof Statement && this.rootNode.hasBody()) {
-            if (this.indexInRoot == 0) return this.rootNode.getEndOfLineToken();
-            else return this.rootNode.body[this.indexInRoot - 1].getEndOfLineToken();
-        } else if (this.rootNode instanceof Module) {
-            if (this.indexInRoot == 0) return this;
-            else return this.rootNode.body[this.indexInRoot - 1].getStartOfLineToken();
-        }
     }
 }
 

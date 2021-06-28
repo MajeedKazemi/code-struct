@@ -5,7 +5,6 @@ import { ErrorMessage } from "../notification-system/error-msg-generator";
 import * as keywords from "../syntax-tree/keywords";
 import { BinaryOperator, DataType } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
-import { Hole } from "./hole";
 import { Context } from "./focus";
 
 export enum KeyPress {
