@@ -546,8 +546,14 @@ export abstract class Statement implements CodeConstruct {
         }
 
         if (newStmt instanceof ForStatement) {
+            const varAssignStmt = new VarAssignmentStmt("", newStmt);
+            varAssignStmt.lineNumber = newStmt.lineNumber;
+            newStmt.buttonId = varAssignStmt.buttonId;
+
+            newStmt.loopVar = varAssignStmt;
+
             this.getModule().addLoopVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
+            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
 
         this.rebuildBody(index + 1, curLeftPos.lineNumber + newStmt.getHeight());
@@ -2180,6 +2186,7 @@ export class Module {
         if (newStmt instanceof ForStatement) {
             const varAssignStmt = new VarAssignmentStmt("", newStmt);
             varAssignStmt.lineNumber = lineNumber;
+            newStmt.buttonId = varAssignStmt.buttonId;
 
             newStmt.loopVar = varAssignStmt;
 
@@ -2279,6 +2286,7 @@ export class Module {
         if (newStmt instanceof ForStatement) {
             const varAssignStmt = new VarAssignmentStmt("", newStmt);
             varAssignStmt.lineNumber = newStmt.lineNumber;
+            newStmt.buttonId = varAssignStmt.buttonId;
 
             newStmt.loopVar = varAssignStmt;
 
