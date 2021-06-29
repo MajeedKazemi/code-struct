@@ -1004,6 +1004,7 @@ export class IfStatement extends Statement {
 
                 if (stmt instanceof ElseStatement) break;
                 if (stmt instanceof VarAssignmentStmt && uniqueId == stmt.buttonId) return true;
+                if (stmt instanceof ForStatement && stmt.buttonId == uniqueId) return true;
             }
         }
 
