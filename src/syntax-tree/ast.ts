@@ -24,17 +24,6 @@ export class Callback {
     }
 }
 
-export enum EditFunctions {
-    InsertStatement,
-    RemoveStatement,
-    SetExpression,
-    SetLiteral,
-    ChangeLiteral,
-    RemoveExpression,
-    AddEmptyItem,
-    ChangeIdentifier,
-}
-
 export enum DataType {
     Number = "Number",
     Boolean = "Boolean",
@@ -126,11 +115,6 @@ export interface CodeConstruct {
     indexInRoot: number;
 
     /**
-     * Different types of valid edits (as a list) that could be received for a selected/focused Statement, Expression, or Token.
-     */
-    validEdits: Array<EditFunctions>;
-
-    /**
      * Different types of edits when adding this statement/expression/token.
      */
     receives: Array<AddableType>;
@@ -201,7 +185,7 @@ export interface CodeConstruct {
      * Returns a `Selection` object for this particular code-construct when it is selected
      */
     getSelection(): monaco.Selection;
-    
+
     /**
      * Returns the parent statement of this code-construct (an element of the Module.body array).
      */
@@ -229,7 +213,6 @@ export interface CodeConstruct {
 export abstract class Statement implements CodeConstruct {
     isTextEditable = false;
     addableType: AddableType;
-    validEdits = [];
     receives = new Array<AddableType>();
     lineNumber: number;
     left: number;
@@ -683,7 +666,6 @@ export abstract class Token implements CodeConstruct {
     addableType: AddableType;
     rootNode: CodeConstruct = null;
     indexInRoot: number;
-    validEdits = new Array<EditFunctions>();
     receives = new Array<AddableType>();
     left: number;
     right: number;
@@ -835,8 +817,6 @@ export class WhileStatement extends Statement {
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
 
-        this.validEdits.push(EditFunctions.RemoveStatement);
-
         this.tokens.push(new NonEditableTkn("while ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.Boolean, this, this.tokens.length));
@@ -859,8 +839,6 @@ export class IfStatement extends Statement {
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
-
-        this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new NonEditableTkn("if ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
@@ -948,8 +926,6 @@ export class ElseStatement extends Statement {
         super();
         this.hasCondition = hasCondition;
 
-        this.validEdits.push(EditFunctions.RemoveStatement);
-
         if (hasCondition) {
             this.tokens.push(new NonEditableTkn("elif ", this, this.tokens.length));
             this.conditionIndex = this.tokens.length;
@@ -981,9 +957,6 @@ export class ForStatement extends Statement {
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
-
-
-        this.validEdits.push(EditFunctions.RemoveStatement);
 
         this.tokens.push(new NonEditableTkn("for ", this, this.tokens.length));
         this.counterIndex = this.tokens.length;
@@ -1046,7 +1019,6 @@ export class EmptyLineStmt extends Statement {
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
 
-        this.validEdits.push(EditFunctions.InsertStatement, EditFunctions.RemoveStatement);
         this.receives.push(AddableType.Statement);
 
         this.rootNode = root;
@@ -1090,8 +1062,6 @@ export class VarAssignmentStmt extends Statement {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
-        this.validEdits.push(EditFunctions.RemoveStatement);
-
         this.identifierIndex = this.tokens.length;
         this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
@@ -1123,8 +1093,8 @@ export class VarAssignmentStmt extends Statement {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
     }
 
-    setIdentifier(identifier: string){
-       (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
+    setIdentifier(identifier: string) {
+        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
     }
 }
 
@@ -1170,13 +1140,8 @@ export class FunctionCallStmt extends Expression {
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
 
-        if (this.isStatement()) {
-            this.validEdits.push(EditFunctions.RemoveStatement);
-            this.addableType = AddableType.Statement;
-        } else {
-            this.validEdits.push(EditFunctions.RemoveExpression);
-            this.addableType = AddableType.Expression;
-        }
+        if (this.isStatement()) this.addableType = AddableType.Statement;
+        else this.addableType = AddableType.Expression;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1325,7 +1290,6 @@ export class MemberCallStmt extends Expression {
         this.indexInRoot = indexInRoot;
 
         this.addableType = AddableType.Expression;
-        this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
@@ -1351,7 +1315,6 @@ export class BinaryOperatorExpr extends Expression {
         this.operator = operator;
 
         this.addableType = AddableType.Expression;
-        this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
@@ -1400,7 +1363,6 @@ export class UnaryOperatorExpr extends Expression {
         this.operator = operator;
 
         this.addableType = AddableType.Expression;
-        this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
@@ -1433,7 +1395,6 @@ export class BinaryBoolOperatorExpr extends Expression {
         this.operator = operator;
 
         this.addableType = AddableType.Expression;
-        this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
@@ -1469,7 +1430,6 @@ export class ComparatorExpr extends Expression {
         this.operator = operator;
 
         this.addableType = AddableType.Expression;
-        this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
@@ -1510,8 +1470,6 @@ export class EditableTextTkn extends Token implements TextEditable {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.validatorRegex = regex;
-
-        this.validEdits.push(EditFunctions.ChangeIdentifier);
     }
 
     getSelection(): monaco.Selection {
@@ -1615,8 +1573,6 @@ export class LiteralValExpr extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-
-        this.validEdits.push(EditFunctions.RemoveExpression);
     }
 
     getInitialFocus(): UpdatableContext {
@@ -1641,7 +1597,6 @@ export class EmptyListItem extends Token {
         super("");
 
         this.isEmptyExpression = isEmptyExpression;
-        this.validEdits.push(isEmptyExpression ? EditFunctions.SetExpression : EditFunctions.AddEmptyItem);
         this.receives.push(AddableType.Expression);
 
         this.rootNode = root;
@@ -1663,8 +1618,6 @@ export class ListLiteralExpression extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-
-        this.validEdits.push(EditFunctions.RemoveExpression);
 
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new EmptyListItem(true, this, this.tokens.length));
@@ -1761,8 +1714,6 @@ export class IdentifierTkn extends Token implements TextEditable {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.validatorRegex = RegExp("^[^\\d\\W]\\w*$");
-
-        this.validEdits.push(EditFunctions.ChangeIdentifier);
     }
 
     contains(pos: monaco.Position): boolean {
@@ -1794,7 +1745,7 @@ export class IdentifierTkn extends Token implements TextEditable {
         }
     }
 
-    setIdentifierText(text: string){
+    setIdentifierText(text: string) {
         this.text = text;
     }
 }
@@ -1810,7 +1761,6 @@ export class TypedEmptyExpr extends Token {
         this.indexInRoot = indexInRoot;
         this.type = type;
 
-        this.validEdits.push(EditFunctions.SetExpression);
         this.receives.push(AddableType.Expression);
     }
 }
@@ -1824,7 +1774,6 @@ export class EmptyExpr extends Token {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
-        this.validEdits.push(EditFunctions.SetExpression);
         this.receives.push(AddableType.Expression);
     }
 }
@@ -2194,14 +2143,12 @@ export class Module {
                 let scope = code.getParentStatement()?.scope; //line that contains "code"
                 let currRootNode = code.rootNode;
 
-                while(!scope){
-                    if(currRootNode.getParentStatement()?.hasScope()){
+                while (!scope) {
+                    if (currRootNode.getParentStatement()?.hasScope()) {
                         scope = currRootNode.getParentStatement().scope;
-                    }
-                    else if(currRootNode.rootNode instanceof Statement){
+                    } else if (currRootNode.rootNode instanceof Statement) {
                         currRootNode = currRootNode.rootNode;
-                    }
-                    else if(currRootNode.rootNode instanceof Module){
+                    } else if (currRootNode.rootNode instanceof Module) {
                         scope = currRootNode.rootNode.scope;
                     }
                 }
@@ -2392,7 +2339,7 @@ export class Module {
         //TODO: Probably want an overload of insert to take care of this case
         let focusedNodeProvided = false;
         let focusedNode = null;
-        
+
         if (insertInto) {
             focusedNode = focusedNode;
             focusedNodeProvided = true;
@@ -2911,7 +2858,6 @@ export class Scope {
         return false;
     }
 
-    
     getValidReferences(line: number): Array<Reference> {
         let validReferences = this.references.filter((ref) => ref.line() < line);
 
