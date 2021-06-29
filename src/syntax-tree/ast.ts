@@ -552,7 +552,7 @@ export abstract class Statement implements CodeConstruct {
 
             newStmt.loopVar = varAssignStmt;
 
-            this.getModule().addLoopVariableButtonToToolbox(newStmt);
+            this.getModule().addVariableButtonToToolbox(varAssignStmt);
             newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
 
@@ -2157,21 +2157,6 @@ export class Module {
         };
     }
 
-    addLoopVariableButtonToToolbox(ref: ForStatement) {
-        const button = document.createElement("div");
-        button.classList.add("button");
-        button.id = ref.buttonId;
-
-        document.getElementById("variables").appendChild(button);
-
-        button.addEventListener("click", () => {
-            //TODO: This var could either be a string or an int
-            this.insert(new VariableReferenceExpr(ref.getIdentifier(), DataType.Number, ref.buttonId));
-        });
-
-        this.variableButtons.push(button);
-    }
-
     addStatement(newStmt: Statement, index: number, lineNumber: number) {
         this.body.splice(index, 0, newStmt);
         for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
@@ -2190,7 +2175,7 @@ export class Module {
 
             newStmt.loopVar = varAssignStmt;
 
-            this.addLoopVariableButtonToToolbox(newStmt);
+            this.addVariableButtonToToolbox(varAssignStmt);
             newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
     }
@@ -2290,7 +2275,7 @@ export class Module {
 
             newStmt.loopVar = varAssignStmt;
 
-            this.addLoopVariableButtonToToolbox(newStmt);
+            this.addVariableButtonToToolbox(varAssignStmt);
             newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
 
