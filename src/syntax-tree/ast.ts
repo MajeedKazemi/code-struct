@@ -12,6 +12,7 @@ import { Focus, Context, UpdatableContext } from "../editor/focus";
 import { Hole } from "../editor/hole";
 import { Validator } from "../editor/validator";
 import { ActionExecutor } from "../editor/action-executor";
+import { TypeSystem } from "./type-sys";
 
 export class Callback {
     static counter: number;
@@ -37,6 +38,12 @@ export enum DataType {
     Class = "Class",
     Void = "Void",
     Any = "Any",
+
+    //if we ever add user defined classes, these will need to become a class
+    //or some other structure that would allow for a more modular approach to nested types than an enum
+    IntegerList = "ListInt",
+    BooleanList = "ListBool",
+    StringList = "ListStr"
 }
 
 export enum BinaryOperator {
@@ -952,7 +959,7 @@ export class ForStatement extends Statement {
         this.tokens.push(new IdentifierTkn(undefined, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" in ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr(DataType.List || DataType.String, this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.StringList || DataType.IntegerList || DataType.BooleanList, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -1743,12 +1750,14 @@ export class Module {
     variableButtons: HTMLElement[];
     notificationSystem: NotificationSystemController;
     menuController: MenuController;
+    typeSystem: TypeSystem;
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
         this.validator = new Validator(this);
         this.executer = new ActionExecutor(this);
+        this.typeSystem = new TypeSystem(this);
 
         this.focus.subscribeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
@@ -1847,12 +1856,12 @@ export class Module {
 
         document.getElementById("variables").appendChild(button);
 
-        button.addEventListener("click", this.addVarRefHandler(ref).bind(this));
+        button.addEventListener("click", this.getVarRefHandler(ref).bind(this));
 
         this.variableButtons.push(button);
     }
 
-    addVarRefHandler(ref: VarAssignmentStmt) {
+    getVarRefHandler(ref: VarAssignmentStmt) {
         return function () {
             this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
         };
@@ -2236,17 +2245,8 @@ export class Module {
     ///------------------VALIDATOR END
 
     insert(code: CodeConstruct, insertInto?: CodeConstruct) {
-        //TODO: Probably want an overload of insert to take care of this case
-        let focusedNodeProvided = false;
-        let focusedNode = null;
-
-        if (insertInto) {
-            focusedNode = focusedNode;
-            focusedNodeProvided = true;
-        }
-
         const context = this.focus.getContext();
-        focusedNode = this.focus.onEmptyLine() ? context.lineStatement : context.token;
+        let focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
 
         if (focusedNode) {
             if (code instanceof MethodCallExpr) {
@@ -2571,36 +2571,21 @@ export class Module {
                         // replaces expression with the newly inserted expression
                         const expr = code as Expression;
 
-                        //update var type
-                        //originally all var ref buttons are of type any
+                        /**
+                         * Update type of variable in toolbox.
+                         * Case 1: Variable is assigned some literal val
+                         * Case 2: Variable was assigned an arithmetic expression that is now being populated with literals.
+                         *         Therefore, variable assumes type returned by the arithmetic expression.
+                         */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                            const button = document.getElementById(focusedNode.rootNode.buttonId);
-                            button.removeEventListener("click", this.addVarRefHandler(null), false);
-
-                            (focusedNode.rootNode as VarAssignmentStmt).dataType = expr.returns;
-                            button.addEventListener(
-                                "click",
-                                this.addVarRefHandler(focusedNode.rootNode as VarAssignmentStmt).bind(this)
-                            );
+                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns, this.getVarRefHandler);
                         }
-                        //this is for when the expression that is assigned to the var was originally of type Any
-                        //This is ok for BooleaExpr because they only allow booleans to be added to them anyway.
                         else if (
-                            parentStatement instanceof VarAssignmentStmt &&
-                            parentStatement.dataType == DataType.Any &&
-                            !(
-                                focusedNode.rootNode instanceof ComparatorExpr ||
-                                focusedNode.rootNode instanceof ListLiteralExpression
-                            )
+                                parentStatement instanceof VarAssignmentStmt &&
+                                parentStatement.dataType == DataType.Any && 
+                                focusedNode.rootNode instanceof BinaryOperatorExpr
                         ) {
-                            const button = document.getElementById(parentStatement.buttonId);
-                            button.removeEventListener("click", this.addVarRefHandler(null), false);
-
-                            (parentStatement as VarAssignmentStmt).dataType = expr.returns;
-                            button.addEventListener(
-                                "click",
-                                this.addVarRefHandler(parentStatement as VarAssignmentStmt).bind(this)
-                            );
+                            this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns, this.getVarRefHandler);
                         }
 
                         //update types of expressions that need an update

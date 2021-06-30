@@ -641,7 +641,7 @@ export class MenuController {
                     menuMap.get("Other").push(ref.statement.getIdentifier());
                     actionMap.set(
                         ref.statement.getIdentifier(),
-                        this.module.addVarRefHandler(ref.statement).bind(this.module)
+                        this.module.getVarRefHandler(ref.statement).bind(this.module)
                     );
                 }
             });
