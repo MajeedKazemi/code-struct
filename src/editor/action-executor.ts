@@ -4,6 +4,7 @@ import {
     DataType,
     EmptyExpr,
     IdentifierTkn,
+    LiteralValExpr,
     Module,
     NonEditableTkn,
     TypedEmptyExpr,
@@ -236,17 +237,17 @@ export class ActionExecutor {
                 break;
 
             case EditAction.CompleteIntLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.Number, pressedKey);
+                this.module.insert(new LiteralValExpr(DataType.Number, pressedKey));
 
                 break;
 
             case EditAction.CompleteStringLiteral:
-                this.module.constructCompleter.completeLiteralConstruct(DataType.String, "");
+                this.module.insert(new LiteralValExpr(DataType.String, ""));
 
                 break;
 
             case EditAction.CompleteBoolLiteral:
-                this.module.constructCompleter.completeBoolLiteralConstruct(pressedKey === "t" ? 1 : 0);
+                this.module.insert(new LiteralValExpr(DataType.Boolean, pressedKey === "t" ? "True" : "False"));
 
                 break;
 
