@@ -1318,11 +1318,29 @@ export class BinaryOperatorExpr extends Expression {
         this.addableType = AddableType.Expression;
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
+
         this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
+        if(operator == BinaryOperator.Add){
+            this.tokens.push(new TypedEmptyExpr(DataType.Number || DataType.String, this, this.tokens.length));
+            this.returns = DataType.Number || DataType.String;
+        }
+        else{
+            this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
+            this.returns = DataType.Number;
+        }
+
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+
         this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr(DataType.Any, this, this.tokens.length));
+        if(operator == BinaryOperator.Add){
+            this.tokens.push(new TypedEmptyExpr(DataType.Number || DataType.String, this, this.tokens.length));
+            this.returns = DataType.Number || DataType.String;
+        }
+        else{
+            this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
+            this.returns = DataType.Number;
+        }
+
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1342,6 +1360,16 @@ export class BinaryOperatorExpr extends Expression {
 
     getRightOperandIndex() {
         return this.rightOperandIndex;
+    }
+
+    updateOperandTypes(type: DataType){
+        this.updateOperandType(this.getRightOperandIndex(), type);
+        this.updateOperandType(this.getLeftOperandIndex(), type);
+        this.returns = type;
+    }
+
+    private updateOperandType(operandIndex: number, type: DataType){
+        (this.tokens[operandIndex] as TypedEmptyExpr).type = type;
     }
 }
 
