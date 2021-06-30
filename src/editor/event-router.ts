@@ -1,6 +1,6 @@
 import * as ast from "../syntax-tree/ast";
-import { TAB_SPACES } from "../syntax-tree/keywords";
 import { Context } from "./focus";
+import { TAB_SPACES } from "../syntax-tree/keywords";
 
 export enum KeyPress {
     // navigation:
@@ -42,7 +42,7 @@ export enum KeyPress {
     P = "p",
 }
 
-export enum EditAction {
+export enum EditActionType {
     Copy, // TODO: NYI: could use default or navigator.clipboard.writeText()
     Paste, // TODO: NYI: check navigator.clipboard.readText()
 
@@ -71,9 +71,7 @@ export enum EditAction {
     SelectClosestTokenBelow,
 
     InsertEmptyLine,
-
-    InsertEmptyLeftListItem,
-    InsertEmptyRightListItem,
+    InsertEmptyListItem,
 
     DeleteNextToken,
     DeletePrevToken,
@@ -83,14 +81,8 @@ export enum EditAction {
     None,
 
     //typing actions
-    CompleteAddition,
-    CompleteDivision,
-    CompleteMultiplication,
-    CompleteSubtraction,
-
-    CompleteIntLiteral,
-    CompleteStringLiteral,
-    CompleteBoolLiteral,
+    InsertOperator,
+    InsertLiteral,
 
     //displaying suggestion menu
     DisplayGreaterThanSuggestion,
@@ -110,6 +102,16 @@ export enum EditAction {
     OpenValidInsertMenuSingleLevel,
 }
 
+export class EditAction {
+    type: EditActionType;
+    data: any;
+
+    constructor(type: EditActionType, data?: any) {
+        this.type = type;
+        this.data = data;
+    }
+}
+
 export class EventRouter {
     module: ast.Module;
 
@@ -124,17 +126,18 @@ export class EventRouter {
 
         switch (e.key) {
             case KeyPress.ArrowUp:
-                if (this.module.menuController.isMenuOpen()) return EditAction.SelectMenuSuggestionAbove;
-
-                return EditAction.SelectClosestTokenAbove;
+                if (this.module.menuController.isMenuOpen())
+                    return new EditAction(EditActionType.SelectMenuSuggestionAbove);
+                else return new EditAction(EditActionType.SelectClosestTokenAbove);
 
             case KeyPress.ArrowDown:
-                if (this.module.menuController.isMenuOpen()) return EditAction.SelectMenuSuggestionBelow;
-
-                return EditAction.SelectClosestTokenBelow;
+                if (this.module.menuController.isMenuOpen())
+                    return new EditAction(EditActionType.SelectMenuSuggestionBelow);
+                else return new EditAction(EditActionType.SelectClosestTokenBelow);
 
             case KeyPress.ArrowLeft:
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.CloseSubMenu;
+                if (!inTextEditMode && this.module.menuController.isMenuOpen())
+                    return new EditAction(EditActionType.CloseSubMenu);
 
                 if (inTextEditMode) {
                     // if we're at the beginning of an editable text
@@ -146,16 +149,18 @@ export class EventRouter {
                         context.tokenToRight instanceof ast.EditableTextTkn ||
                         context.tokenToRight instanceof ast.IdentifierTkn ||
                         (context.token?.isEmpty && context.selected)
-                    )
-                        return EditAction.SelectPrevToken;
-                    if (e.shiftKey && e.ctrlKey) return EditAction.SelectToStart;
-                    else if (e.shiftKey) return EditAction.SelectLeft;
-                    else if (e.ctrlKey) return EditAction.MoveCursorStart;
-                    else return EditAction.MoveCursorLeft;
-                } else return EditAction.SelectPrevToken;
+                    ) {
+                        return new EditAction(EditActionType.SelectPrevToken);
+                    }
+                    if (e.shiftKey && e.ctrlKey) return new EditAction(EditActionType.SelectToStart);
+                    else if (e.shiftKey) return new EditAction(EditActionType.SelectLeft);
+                    else if (e.ctrlKey) return new EditAction(EditActionType.MoveCursorStart);
+                    else return new EditAction(EditActionType.MoveCursorLeft);
+                } else return new EditAction(EditActionType.SelectPrevToken);
 
             case KeyPress.ArrowRight:
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.OpenSubMenu;
+                if (!inTextEditMode && this.module.menuController.isMenuOpen())
+                    return new EditAction(EditActionType.OpenSubMenu);
 
                 if (inTextEditMode) {
                     // if we're at the end of an editable text
@@ -172,45 +177,45 @@ export class EventRouter {
                         context.tokenToLeft instanceof ast.IdentifierTkn ||
                         (context.token?.isEmpty && context.selected)
                     ) {
-                        return EditAction.SelectNextToken;
+                        return new EditAction(EditActionType.SelectNextToken);
                     }
 
-                    if (e.shiftKey && e.ctrlKey) return EditAction.SelectToEnd;
-                    else if (e.shiftKey) return EditAction.SelectRight;
-                    else if (e.ctrlKey) return EditAction.MoveCursorEnd;
-                    else return EditAction.MoveCursorRight;
-                } else return EditAction.SelectNextToken;
+                    if (e.shiftKey && e.ctrlKey) return new EditAction(EditActionType.SelectToEnd);
+                    else if (e.shiftKey) return new EditAction(EditActionType.SelectRight);
+                    else if (e.ctrlKey) return new EditAction(EditActionType.MoveCursorEnd);
+                    else return new EditAction(EditActionType.MoveCursorRight);
+                } else return new EditAction(EditActionType.SelectNextToken);
 
             case KeyPress.Home:
                 if (inTextEditMode) {
-                    if (e.shiftKey) return EditAction.SelectToStart;
-                    else return EditAction.MoveCursorStart;
+                    if (e.shiftKey) return new EditAction(EditActionType.SelectToStart);
+                    else return new EditAction(EditActionType.MoveCursorStart);
                 }
 
                 break;
 
             case KeyPress.End:
                 if (inTextEditMode) {
-                    if (e.shiftKey) return EditAction.SelectToEnd;
-                    else return EditAction.MoveCursorEnd;
+                    if (e.shiftKey) return new EditAction(EditActionType.SelectToEnd);
+                    else return new EditAction(EditActionType.MoveCursorEnd);
                 }
 
                 break;
 
             case KeyPress.Delete:
                 if (inTextEditMode && !(context.tokenToRight instanceof ast.NonEditableTkn)) {
-                    if (e.ctrlKey) return EditAction.DeleteToEnd;
-                    else return EditAction.DeleteNextChar;
-                } else return EditAction.DeleteNextToken;
+                    if (e.ctrlKey) return new EditAction(EditActionType.DeleteToEnd);
+                    else return new EditAction(EditActionType.DeleteNextChar);
+                } else return new EditAction(EditActionType.DeleteNextToken);
 
             case KeyPress.Backspace:
                 if (inTextEditMode && !(context.tokenToLeft instanceof ast.NonEditableTkn)) {
-                    if (e.ctrlKey) return EditAction.DeleteToStart;
-                    else return EditAction.DeletePrevChar;
-                } else return EditAction.DeletePrevToken;
+                    if (e.ctrlKey) return new EditAction(EditActionType.DeleteToStart);
+                    else return new EditAction(EditActionType.DeletePrevChar);
+                } else return new EditAction(EditActionType.DeletePrevToken);
 
             case KeyPress.Enter:
-                if (this.module.menuController.isMenuOpen()) return EditAction.SelectMenuSuggestion;
+                if (this.module.menuController.isMenuOpen()) return new EditAction(EditActionType.SelectMenuSuggestion);
 
                 const curSelection = this.module.editor.monaco.getSelection();
                 const curStatement = this.module.focus.getFocusedStatement();
@@ -223,77 +228,126 @@ export class EventRouter {
                 }
 
                 if (curSelection.startColumn == curSelection.endColumn) {
-                    if (curPos.column == leftPosToCheck || curPos.column == curStatement.right)
-                        return EditAction.InsertEmptyLine;
+                    if (curPos.column == leftPosToCheck || curPos.column == curStatement.right) {
+                        return new EditAction(EditActionType.InsertEmptyLine);
+                    }
                 }
 
                 break;
 
             case KeyPress.Comma:
-                if (this.module.validator.canAddListItemToRight(context)) return EditAction.InsertEmptyRightListItem;
-                else if (this.module.validator.canAddListItemToLeft(context)) return EditAction.InsertEmptyLeftListItem;
-                else if (inTextEditMode) return EditAction.InsertChar;
+                if (this.module.validator.canAddListItemToRight(context))
+                    return new EditAction(EditActionType.InsertEmptyListItem, { toRight: true });
+                else if (this.module.validator.canAddListItemToLeft(context))
+                    return new EditAction(EditActionType.InsertEmptyListItem, { toLeft: true });
+                else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
 
             case KeyPress.Plus:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.CompleteAddition;
+                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Add, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toRight: true,
+                        operator: ast.BinaryOperator.Add,
+                    });
+                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Add, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toLeft: true,
+                        operator: ast.BinaryOperator.Add,
+                    });
+                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
 
             case KeyPress.Star:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.CompleteMultiplication;
+                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Multiply, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toRight: true,
+                        operator: ast.BinaryOperator.Multiply,
+                    });
+                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Multiply, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toLeft: true,
+                        operator: ast.BinaryOperator.Multiply,
+                    });
+                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
 
             case KeyPress.Minus:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.key.length == 1) return EditAction.CompleteSubtraction;
+                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Subtract, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toRight: true,
+                        operator: ast.BinaryOperator.Subtract,
+                    });
+                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Subtract, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toLeft: true,
+                        operator: ast.BinaryOperator.Subtract,
+                    });
+                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
 
             case KeyPress.ForwardSlash:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.key.length == 1) return EditAction.CompleteDivision;
+                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Divide, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toRight: true,
+                        operator: ast.BinaryOperator.Divide,
+                    });
+                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Divide, context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        toLeft: true,
+                        operator: ast.BinaryOperator.Divide,
+                    });
+                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
 
             case KeyPress.GreaterThan:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.DisplayGreaterThanSuggestion;
+                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                if (!inTextEditMode && e.shiftKey && e.key.length == 1) {
+                    return new EditAction(EditActionType.DisplayGreaterThanSuggestion);
+                }
 
                 break;
 
             case KeyPress.LessThan:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.DisplayLessThanSuggestion;
+                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                if (!inTextEditMode && e.shiftKey && e.key.length == 1) {
+                    return new EditAction(EditActionType.DisplayLessThanSuggestion);
+                }
 
                 break;
 
             case KeyPress.Escape:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) return EditAction.CloseValidInsertMenu;
+                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+                    return new EditAction(EditActionType.CloseValidInsertMenu);
+                }
 
                 break;
 
             case KeyPress.Equals:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.key.length == 1) return EditAction.DisplayEqualsSuggestion;
+                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                if (!inTextEditMode && e.key.length == 1) return new EditAction(EditActionType.DisplayEqualsSuggestion);
 
                 break;
 
             case KeyPress.Space:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) return EditAction.OpenValidInsertMenu;
+                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
+                    return new EditAction(EditActionType.OpenValidInsertMenu);
+                }
 
                 break;
 
             //TODO: Remove later
             case KeyPress.P:
-                if (inTextEditMode) return EditAction.InsertChar;
-                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) return EditAction.OpenValidInsertMenuSingleLevel;
+                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
+                    return new EditAction(EditActionType.OpenValidInsertMenuSingleLevel);
+                }
 
                 break;
 
@@ -302,35 +356,36 @@ export class EventRouter {
                     if (e.key.length == 1) {
                         switch (e.key) {
                             case KeyPress.C:
-                                if (e.ctrlKey) return EditAction.Copy;
+                                if (e.ctrlKey) return new EditAction(EditActionType.Copy);
 
                                 break;
 
                             case KeyPress.V:
-                                if (e.ctrlKey) return EditAction.Paste;
+                                if (e.ctrlKey) return new EditAction(EditActionType.Paste);
 
                                 break;
 
                             case KeyPress.Z:
-                                if (e.ctrlKey) return EditAction.Undo;
+                                if (e.ctrlKey) return new EditAction(EditActionType.Undo);
 
                                 break;
 
                             case KeyPress.Y:
-                                if (e.ctrlKey) return EditAction.Redo;
+                                if (e.ctrlKey) return new EditAction(EditActionType.Redo);
 
                                 break;
                         }
 
-                        return EditAction.InsertChar;
+                        return new EditAction(EditActionType.InsertChar);
                     }
                 } else {
                     if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
-                        return EditAction.CompleteIntLiteral;
-                    } else if (["t", "f"].indexOf(e.key) > -1) return EditAction.CompleteBoolLiteral;
-                    else if (['"'].indexOf(e.key) > -1) return EditAction.CompleteStringLiteral;
-
-                    return EditAction.None;
+                        return new EditAction(EditActionType.InsertLiteral, { literalType: ast.DataType.Number });
+                    } else if (["t", "f"].indexOf(e.key) > -1) {
+                        return new EditAction(EditActionType.InsertLiteral, { literalType: ast.DataType.Boolean });
+                    } else if (['"'].indexOf(e.key) > -1) {
+                        return new EditAction(EditActionType.InsertLiteral, { literalType: ast.DataType.String });
+                    }
                 }
         }
     }
@@ -351,7 +406,7 @@ export class EventRouter {
     }
 
     onButtonDown(id: string) {
-                const context = this.module.focus.getContext();
+        const context = this.module.focus.getContext();
 
         switch (id) {
             case "add-var-btn":
@@ -667,11 +722,20 @@ export class EventRouter {
                 break;
 
             case "add-list-item-btn":
-                if (this.module.validator.canAddListItemToRight(context)) this.module.executer.execute(EditAction.InsertEmptyRightListItem, context);
-                else if (this.module.validator.canAddListItemToLeft(context)) this.module.executer.execute(EditAction.InsertEmptyLeftListItem, context);
+                if (this.module.validator.canAddListItemToRight(context)) {
+                    this.module.executer.execute(
+                        new EditAction(EditActionType.InsertEmptyListItem, { toRight: true }),
+                        context
+                    );
+                } else if (this.module.validator.canAddListItemToLeft(context)) {
+                    this.module.executer.execute(
+                        new EditAction(EditActionType.InsertEmptyListItem, { toLeft: true }),
+                        context
+                    );
+                }
 
                 this.module.editor.monaco.focus();
-                
+
                 break;
 
             case "add-list-append-stmt-btn":

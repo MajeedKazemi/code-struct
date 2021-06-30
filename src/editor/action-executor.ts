@@ -1,19 +1,10 @@
 import * as monaco from "monaco-editor";
-import {
-    BinaryOperator,
-    DataType,
-    EmptyExpr,
-    IdentifierTkn,
-    LiteralValExpr,
-    Module,
-    NonEditableTkn,
-    TypedEmptyExpr,
-} from "../syntax-tree/ast";
-import { ConstructKeys, Util } from "../utilities/util";
-import { EditAction } from "./event-router";
-import { Context } from "./focus";
 import * as keywords from "../syntax-tree/keywords";
+import { Context } from "./focus";
+import { ConstructKeys, Util } from "../utilities/util";
+import { EditAction, EditActionType } from "./event-router";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
+import { DataType, IdentifierTkn, LiteralValExpr, Module, NonEditableTkn, TypedEmptyExpr } from "../syntax-tree/ast";
 
 export class ActionExecutor {
     module: Module;
@@ -30,26 +21,26 @@ export class ActionExecutor {
         let suggestions = [];
         let preventDefaultEvent = true;
 
-        switch (action) {
-            case EditAction.InsertEmptyLine: {
+        switch (action.type) {
+            case EditActionType.InsertEmptyLine: {
                 this.module.insertEmptyLine();
 
                 break;
             }
 
-            case EditAction.SelectPrevToken: {
+            case EditActionType.SelectPrevToken: {
                 this.module.focus.navigateLeft();
 
                 break;
             }
 
-            case EditAction.SelectNextToken: {
+            case EditActionType.SelectNextToken: {
                 this.module.focus.navigateRight();
 
                 break;
             }
 
-            case EditAction.InsertChar: {
+            case EditActionType.InsertChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
                 const token = this.module.focus.getTextEditableItem(context);
@@ -96,8 +87,8 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditAction.DeletePrevChar:
-            case EditAction.DeleteNextChar: {
+            case EditActionType.DeletePrevChar:
+            case EditActionType.DeleteNextChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
                 const token = this.module.focus.getTextEditableItem(context);
@@ -112,7 +103,7 @@ export class ActionExecutor {
                         ? 1
                         : Math.abs(selectedText.startColumn - selectedText.endColumn);
 
-                const toDeletePos = action == EditAction.DeleteNextChar ? 0 : 1;
+                const toDeletePos = action.type == EditActionType.DeleteNextChar ? 0 : 1;
 
                 curText.splice(
                     Math.min(
@@ -152,106 +143,96 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditAction.InsertEmptyRightListItem: {
-                const code = [new NonEditableTkn(", "), new TypedEmptyExpr(DataType.Any)];
-                this.module.insertAfterIndex(context.tokenToRight, context.tokenToRight.indexInRoot, code);
-                this.module.editor.insertAtCurPos(code);
-                this.module.focus.updateContext({ tokenToSelect: code[1] });
+            case EditActionType.InsertOperator:
+                if (action.data.toRight) {
+                    const code = [new NonEditableTkn(` ${action.data.operator} `), new TypedEmptyExpr(DataType.Any)];
+                    this.module.insertAfterIndex(context.expressionToLeft, context.expressionToLeft.indexInRoot + 1, code);
+                    this.module.editor.insertAtCurPos(code);
+                    this.module.focus.updateContext({ tokenToSelect: code[1] });
+                } else if (action.data.toLeft) {
+                    const code = [new TypedEmptyExpr(DataType.Any), new NonEditableTkn(` ${action.data.operator} `)];
+                    this.module.insertAfterIndex(context.expressionToRight, context.expressionToRight.indexInRoot, code);
+                    this.module.editor.insertAtCurPos(code);
+                    this.module.focus.updateContext({ tokenToSelect: code[0] });
+                }
+
+                break;
+
+            case EditActionType.InsertEmptyListItem: {
+                if (action.data.toRight) {
+                    const code = [new NonEditableTkn(", "), new TypedEmptyExpr(DataType.Any)];
+                    this.module.insertAfterIndex(context.tokenToRight, context.tokenToRight.indexInRoot, code);
+                    this.module.editor.insertAtCurPos(code);
+                    this.module.focus.updateContext({ tokenToSelect: code[1] });
+                } else if (action.data.toLeft) {
+                    const code = [new TypedEmptyExpr(DataType.Any), new NonEditableTkn(", ")];
+                    this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
+                    this.module.editor.insertAtCurPos(code);
+                    this.module.focus.updateContext({ tokenToSelect: code[0] });
+                }
 
                 break;
             }
 
-            case EditAction.InsertEmptyLeftListItem: {
-                const code = [new TypedEmptyExpr(DataType.Any), new NonEditableTkn(", ")];
-                this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
-                this.module.editor.insertAtCurPos(code);
-                this.module.focus.updateContext({ tokenToSelect: code[0] });
-
-                break;
-            }
-
-            case EditAction.SelectClosestTokenAbove: {
+            case EditActionType.SelectClosestTokenAbove: {
                 this.module.focus.navigateUp();
 
                 break;
             }
 
-            case EditAction.SelectClosestTokenBelow: {
+            case EditActionType.SelectClosestTokenBelow: {
                 this.module.focus.navigateDown();
 
                 break;
             }
 
-            case EditAction.MoveCursorLeft:
+            case EditActionType.MoveCursorLeft:
                 preventDefaultEvent = false;
                 // Hole.disableEditableHoleHighlights();
                 // this.module.focus.highlightTextEditableHole();
 
                 break;
 
-            case EditAction.MoveCursorRight:
+            case EditActionType.MoveCursorRight:
                 preventDefaultEvent = false;
                 // Hole.disableEditableHoleHighlights();
                 // this.module.focus.highlightTextEditableHole();
 
                 break;
 
-            case EditAction.SelectLeft:
+            case EditActionType.SelectLeft:
                 preventDefaultEvent = false;
                 break;
 
-            case EditAction.SelectRight:
+            case EditActionType.SelectRight:
                 preventDefaultEvent = false;
                 break;
 
-            case EditAction.SelectToStart:
+            case EditActionType.SelectToStart:
                 preventDefaultEvent = false;
                 break;
 
-            case EditAction.SelectToEnd:
+            case EditActionType.SelectToEnd:
                 preventDefaultEvent = false;
                 break;
 
-            case EditAction.Copy:
+            case EditActionType.Copy:
                 preventDefaultEvent = false;
                 break;
 
-            case EditAction.CompleteAddition:
-                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
+            case EditActionType.InsertLiteral: {
+                if (action.data.literalType == DataType.Number) {
+                    this.module.insert(new LiteralValExpr(DataType.Number, pressedKey));
+                } else if (action.data.literalType == DataType.String) {
+                    this.module.insert(new LiteralValExpr(DataType.String, ""));
+                } else if (action.data.literalType == DataType.Boolean) {
+                    this.module.insert(new LiteralValExpr(DataType.Boolean, pressedKey === "t" ? "True" : "False"));
+                }
 
                 break;
+            }
 
-            case EditAction.CompleteSubtraction:
-                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
-
-                break;
-
-            case EditAction.CompleteDivision:
-                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
-
-                break;
-
-            case EditAction.CompleteMultiplication:
-                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
-
-                break;
-
-            case EditAction.CompleteIntLiteral:
-                this.module.insert(new LiteralValExpr(DataType.Number, pressedKey));
-
-                break;
-
-            case EditAction.CompleteStringLiteral:
-                this.module.insert(new LiteralValExpr(DataType.String, ""));
-
-                break;
-
-            case EditAction.CompleteBoolLiteral:
-                this.module.insert(new LiteralValExpr(DataType.Boolean, pressedKey === "t" ? "True" : "False"));
-
-                break;
-
-            case EditAction.DisplayGreaterThanSuggestion:
+            case EditActionType.DisplayGreaterThanSuggestion:
                 if (this.module.isAbleToInsertComparator(context)) {
                     this.module.menuController.buildSingleLevelMenu(
                         [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
@@ -265,7 +246,7 @@ export class ActionExecutor {
 
                 break;
 
-            case EditAction.DisplayLessThanSuggestion:
+            case EditActionType.DisplayLessThanSuggestion:
                 if (this.module.isAbleToInsertComparator(context)) {
                     this.module.menuController.buildSingleLevelMenu(
                         [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
@@ -279,7 +260,7 @@ export class ActionExecutor {
 
                 break;
 
-            case EditAction.DisplayEqualsSuggestion:
+            case EditActionType.DisplayEqualsSuggestion:
                 suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
                 suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
 
@@ -294,7 +275,7 @@ export class ActionExecutor {
 
                 break;
 
-            case EditAction.OpenValidInsertMenu:
+            case EditActionType.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
                     this.module.menuController.buildAvailableInsertsMenu(
                         this.module.getAllValidInsertsList(focusedNode),
@@ -309,7 +290,7 @@ export class ActionExecutor {
                 break;
 
             //TODO: Remove later
-            case EditAction.OpenValidInsertMenuSingleLevel:
+            case EditActionType.OpenValidInsertMenuSingleLevel:
                 if (!this.module.menuController.isMenuOpen()) {
                     const suggestions = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
@@ -317,32 +298,32 @@ export class ActionExecutor {
 
                 break;
 
-            case EditAction.SelectMenuSuggestionAbove:
+            case EditActionType.SelectMenuSuggestionAbove:
                 this.module.menuController.focusOptionAbove();
 
                 break;
 
-            case EditAction.SelectMenuSuggestionBelow:
+            case EditActionType.SelectMenuSuggestionBelow:
                 this.module.menuController.focusOptionBelow();
 
                 break;
 
-            case EditAction.SelectMenuSuggestion:
+            case EditActionType.SelectMenuSuggestion:
                 this.module.menuController.selectFocusedOption();
 
                 break;
 
-            case EditAction.CloseValidInsertMenu:
+            case EditActionType.CloseValidInsertMenu:
                 this.module.menuController.removeMenus();
 
                 break;
 
-            case EditAction.OpenSubMenu:
+            case EditActionType.OpenSubMenu:
                 this.module.menuController.openSubMenu();
 
                 break;
 
-            case EditAction.CloseSubMenu:
+            case EditActionType.CloseSubMenu:
                 this.module.menuController.closeSubMenu();
 
                 break;

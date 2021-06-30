@@ -1805,9 +1805,9 @@ export class Module {
         this.menuController.setInstance(this, this.editor);
     }
 
-    insertAfterIndex(before: CodeConstruct, index: number, items: Array<CodeConstruct>) {
-        if (before instanceof Token) {
-            const root = before.rootNode;
+    insertAfterIndex(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
+        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
+            const root = focusedCode.rootNode;
 
             if (root instanceof Expression && root.tokens.length > 0) {
                 root.tokens.splice(index, 0, ...items);
