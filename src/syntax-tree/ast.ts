@@ -12,6 +12,7 @@ import { ConstructKeys, constructToToolboxButton, Util } from "../utilities/util
 import { Focus, Context, UpdatableContext } from "../editor/focus";
 import { Hole } from "../editor/hole";
 import { Validator } from "../editor/validator";
+import { ActionExecutor } from "../editor/action-executor";
 
 export class Callback {
     static counter: number;
@@ -1807,6 +1808,7 @@ export class Module {
     body = new Array<Statement>();
     focus: Focus;
     validator: Validator;
+    executer: ActionExecutor;
 
     scope: Scope;
     editor: Editor;
@@ -1821,6 +1823,7 @@ export class Module {
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
         this.validator = new Validator(this);
+        this.executer = new ActionExecutor(this);
 
         this.focus.subscribeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
