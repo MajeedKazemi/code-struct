@@ -1,6 +1,7 @@
 import * as ast from "../syntax-tree/ast";
 import { Context } from "./focus";
 import { TAB_SPACES } from "../syntax-tree/keywords";
+import { TypeSystem } from "../syntax-tree/type-sys";
 
 export enum KeyPress {
     // navigation:
@@ -482,7 +483,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.FunctionCallStmt(
                                 "len",
-                                [new ast.Argument(DataType.AnyList || DataType.StringList || DataType.BooleanList || DataType.NumberList, "list", false)],
+                                [new ast.Argument(ast.DataType.AnyList || ast.DataType.StringList || ast.DataType.BooleanList || ast.DataType.NumberList, "list", false)],
                                 ast.DataType.Number
                             )
                         );
@@ -786,7 +787,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.MethodCallExpr(
                                 "join",
-                                [new ast.Argument(ast.DataType.AnyList || DataType.StringList || DataType.NumberList || DataType.BooleanList, "items", false)],
+                                [new ast.Argument(ast.DataType.AnyList || ast.DataType.StringList || ast.DataType.NumberList || ast.DataType.BooleanList, "items", false)],
                                 ast.DataType.String,
                                 ast.DataType.String
                             )

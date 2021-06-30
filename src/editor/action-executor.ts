@@ -5,6 +5,7 @@ import { ConstructKeys, Util } from "../utilities/util";
 import { EditAction, EditActionType } from "./event-router";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { DataType, IdentifierTkn, LiteralValExpr, Module, NonEditableTkn, TypedEmptyExpr } from "../syntax-tree/ast";
+import { TypeSystem } from "../syntax-tree/type-sys";
 
 export class ActionExecutor {
     module: Module;
@@ -61,6 +62,9 @@ export class ActionExecutor {
                 }
 
                 this.validateIdentifier(context, newText);
+
+                //var type map needs to be update when identifier changes
+                TypeSystem.updateVarTypeInMap(token.getEditableText(), newText);
 
                 // TODO: check if turns back into an empty hole
 
