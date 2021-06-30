@@ -388,6 +388,8 @@ export class EventRouter {
                     }
                 }
         }
+
+        return new EditAction(EditActionType.None);
     }
 
     onKeyDown(e) {

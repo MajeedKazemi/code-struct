@@ -327,6 +327,12 @@ export class ActionExecutor {
                 this.module.menuController.closeSubMenu();
 
                 break;
+
+            case EditActionType.None: {
+                preventDefaultEvent = true;
+
+                break;
+            }
         }
 
         return preventDefaultEvent;
