@@ -347,29 +347,24 @@ export class EventHandler {
 
         let focusedNode = context.token && context.selected ? context.token : context.lineStatement;
         let suggestions = [];
+        let preventDefaultEvent = true;
 
         switch (action) {
             case EditAction.InsertEmptyLine: {
                 this.module.insertEmptyLine();
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
             }
 
             case EditAction.SelectPrevToken: {
                 this.module.focus.navigateLeft();
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
             }
 
             case EditAction.SelectNextToken: {
                 this.module.focus.navigateRight();
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
             }
 
@@ -416,9 +411,6 @@ export class EventHandler {
 
                     this.module.editor.executeEdits(editRange, null, e.browserEvent.key);
                 }
-
-                e.preventDefault();
-                e.stopPropagation();
 
                 break;
             }
@@ -473,9 +465,7 @@ export class EventHandler {
                     }
 
                     this.module.editor.executeEdits(editRange, null, "");
-                } else {
-                    e.stopPropagation();
-                    e.preventDefault();
+                    preventDefaultEvent = false;
                 }
 
                 break;
@@ -487,9 +477,6 @@ export class EventHandler {
                 this.module.editor.insertAtCurPos(code);
                 this.module.focus.updateContext({ tokenToSelect: builtCode[1] });
 
-                e.stopPropagation();
-                e.preventDefault();
-
                 break;
             }
 
@@ -499,17 +486,11 @@ export class EventHandler {
                 this.module.editor.insertAtCurPos(code);
                 this.module.focus.updateContext({ tokenToSelect: builtCode[0] });
 
-                e.stopPropagation();
-                e.preventDefault();
-
                 break;
             }
 
             case EditAction.SelectClosestTokenAbove: {
                 this.module.focus.navigateUp();
-
-                e.stopPropagation();
-                e.preventDefault();
 
                 break;
             }
@@ -517,86 +498,76 @@ export class EventHandler {
             case EditAction.SelectClosestTokenBelow: {
                 this.module.focus.navigateDown();
 
-                e.stopPropagation();
-                e.preventDefault();
-
                 break;
             }
 
             case EditAction.MoveCursorLeft:
+                preventDefaultEvent = false;
                 // Hole.disableEditableHoleHighlights();
                 // this.module.focus.highlightTextEditableHole();
 
                 break;
 
             case EditAction.MoveCursorRight:
+                preventDefaultEvent = false;
                 // Hole.disableEditableHoleHighlights();
                 // this.module.focus.highlightTextEditableHole();
 
                 break;
 
             case EditAction.SelectLeft:
+                preventDefaultEvent = false;
                 break;
 
             case EditAction.SelectRight:
+                preventDefaultEvent = false;
                 break;
 
             case EditAction.SelectToStart:
+                preventDefaultEvent = false;
                 break;
 
             case EditAction.SelectToEnd:
+                preventDefaultEvent = false;
                 break;
 
             case EditAction.Copy:
+                preventDefaultEvent = false;
                 break;
 
             case EditAction.CompleteAddition:
                 this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.CompleteSubtraction:
                 this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.CompleteDivision:
                 this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.CompleteMultiplication:
                 this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.CompleteIntLiteral:
                 this.module.constructCompleter.completeLiteralConstruct(DataType.Number, e.browserEvent.key);
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.CompleteStringLiteral:
                 this.module.constructCompleter.completeLiteralConstruct(DataType.String, "");
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.CompleteBoolLiteral:
                 this.module.constructCompleter.completeBoolLiteralConstruct(e.browserEvent.key === "t" ? 1 : 0);
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.DisplayGreaterThanSuggestion:
@@ -611,8 +582,6 @@ export class EventHandler {
                     );
                 }
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.DisplayLessThanSuggestion:
@@ -627,8 +596,6 @@ export class EventHandler {
                     );
                 }
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.DisplayEqualsSuggestion:
@@ -644,8 +611,6 @@ export class EventHandler {
                     }
                 );
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.OpenValidInsertMenu:
@@ -660,8 +625,6 @@ export class EventHandler {
                     );
                 } else this.module.menuController.removeMenus();
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             //TODO: Remove later
@@ -671,55 +634,43 @@ export class EventHandler {
                     this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
                 } else this.module.menuController.removeMenus();
 
-                e.preventDefault();
-                e.stopPropagation();
                 break;
 
             case EditAction.SelectMenuSuggestionAbove:
                 this.module.menuController.focusOptionAbove();
 
-                e.stopPropagation();
-                e.preventDefault();
                 break;
 
             case EditAction.SelectMenuSuggestionBelow:
                 this.module.menuController.focusOptionBelow();
 
-                e.stopPropagation();
-                e.preventDefault();
                 break;
 
             case EditAction.SelectMenuSuggestion:
                 this.module.menuController.selectFocusedOption();
 
-                e.stopPropagation();
-                e.preventDefault();
                 break;
 
             case EditAction.CloseValidInsertMenu:
                 this.module.menuController.removeMenus();
 
-                e.stopPropagation();
-                e.preventDefault();
                 break;
 
             case EditAction.OpenSubMenu:
                 this.module.menuController.openSubMenu();
 
-                e.stopPropagation();
-                e.preventDefault();
                 break;
 
             case EditAction.CloseSubMenu:
                 this.module.menuController.closeSubMenu();
 
-                e.stopPropagation();
-                e.preventDefault();
                 break;
 
-            default:
-                e.preventDefault();
-                e.stopPropagation();
+        }
+
+        if (preventDefaultEvent) {
+            e.preventDefault();
+            e.stopPropagation();
         }
     }
 
