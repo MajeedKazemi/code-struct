@@ -519,8 +519,14 @@ export abstract class Statement implements CodeConstruct {
         }
 
         if (newStmt instanceof ForStatement) {
-            this.getModule().addLoopVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
+            const varAssignStmt = new VarAssignmentStmt("", newStmt);
+            varAssignStmt.lineNumber = newStmt.lineNumber;
+            newStmt.buttonId = varAssignStmt.buttonId;
+
+            newStmt.loopVar = varAssignStmt;
+
+            this.getModule().addVariableButtonToToolbox(varAssignStmt);
+            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
 
         this.rebuildBody(index + 1, curLeftPos.lineNumber + newStmt.getHeight());
@@ -862,6 +868,7 @@ export class IfStatement extends Statement {
 
                 if (stmt instanceof ElseStatement) break;
                 if (stmt instanceof VarAssignmentStmt && uniqueId == stmt.buttonId) return true;
+                if (stmt instanceof ForStatement && stmt.buttonId == uniqueId) return true;
             }
         }
 
@@ -1945,21 +1952,6 @@ export class Module {
         };
     }
 
-    addLoopVariableButtonToToolbox(ref: ForStatement) {
-        const button = document.createElement("div");
-        button.classList.add("button");
-        button.id = ref.buttonId;
-
-        document.getElementById("variables").appendChild(button);
-
-        button.addEventListener("click", () => {
-            //TODO: This var could either be a string or an int
-            this.insert(new VariableReferenceExpr(ref.getIdentifier(), DataType.Number, ref.buttonId));
-        });
-
-        this.variableButtons.push(button);
-    }
-
     addStatement(newStmt: Statement, index: number, lineNumber: number) {
         this.body.splice(index, 0, newStmt);
         for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
@@ -1974,10 +1966,11 @@ export class Module {
         if (newStmt instanceof ForStatement) {
             const varAssignStmt = new VarAssignmentStmt("", newStmt);
             varAssignStmt.lineNumber = lineNumber;
+            newStmt.buttonId = varAssignStmt.buttonId;
 
             newStmt.loopVar = varAssignStmt;
 
-            this.addLoopVariableButtonToToolbox(newStmt);
+            this.addVariableButtonToToolbox(varAssignStmt);
             newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
     }
@@ -2073,10 +2066,11 @@ export class Module {
         if (newStmt instanceof ForStatement) {
             const varAssignStmt = new VarAssignmentStmt("", newStmt);
             varAssignStmt.lineNumber = newStmt.lineNumber;
+            newStmt.buttonId = varAssignStmt.buttonId;
 
             newStmt.loopVar = varAssignStmt;
 
-            this.addLoopVariableButtonToToolbox(newStmt);
+            this.addVariableButtonToToolbox(varAssignStmt);
             newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
         }
 
