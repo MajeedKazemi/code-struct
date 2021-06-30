@@ -991,6 +991,10 @@ export class ForStatement extends Statement {
     updateButton() {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
     }
+
+    getIterableCodeObject(): CodeConstruct{
+        return this.tokens[this.rangeIndex];
+    }
 }
 
 export class Argument {
@@ -2427,42 +2431,7 @@ export class Module {
                         //for-loop check is special since Iterable does not cover both str and list right now
                         //can change it once the types are an array
                         else if (focusedNode.rootNode instanceof ForStatement) {
-                            if (code.returns != DataType.AnyList && code.returns != DataType.StringList && code.returns != DataType.NumberList && code.returns != DataType.BooleanList && code.returns != DataType.String) {
-                                isValid = false;
-
-                                //TODO: Notif message needs to be fixed to contain every type
-                                this.notificationSystem.addHoverNotification(
-                                    focusedNode,
-                                    {
-                                        addedType: code.returns,
-                                        constructName: (focusedNode.rootNode as Statement).getKeyword(),
-                                        expectedType: focusedNode.type,
-                                    },
-                                    ErrorMessage.exprTypeMismatch
-                                );
-                            }
-                            else if(focusedNode.rootNode.getIdentifier() != ""){ //type of for-loop var needs to be updated, but only if the var has been previously declared
-                                let newType = null;
-                                switch(code.returns){
-                                    case DataType.AnyList:
-                                        newType = DataType.Any
-                                        break;
-                                    case DataType.StringList:
-                                        newType = DataType.String
-                                        break;
-                                    case DataType.BooleanList:
-                                        newType = DataType.Boolean
-                                        break;
-                                    case DataType.NumberList:
-                                        newType = DataType.Number
-                                        break;
-                                    default:
-                                        newType = DataType.Any
-                                }
-                                
-                                TypeSystem.varTypeMap.set(focusedNode.rootNode.getIdentifier(), newType);
-                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.loopVar, newType, this.getVarRefHandler);
-                            }
+                            isValid = this.typeSystem.checkForLoopIterableType(code, focusedNode, true);
                         } else {
                             isValid = focusedNode.type === code.returns || focusedNode.type === DataType.Any;
 
