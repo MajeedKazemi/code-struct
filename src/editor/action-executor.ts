@@ -1,5 +1,13 @@
 import * as monaco from "monaco-editor";
-import { BinaryOperator, DataType, EmptyExpr, IdentifierTkn, Module, NonEditableTkn } from "../syntax-tree/ast";
+import {
+    BinaryOperator,
+    DataType,
+    EmptyExpr,
+    IdentifierTkn,
+    Module,
+    NonEditableTkn,
+    TypedEmptyExpr,
+} from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
 import { EditAction } from "./event-router";
 import { Context } from "./focus";
@@ -13,8 +21,8 @@ export class ActionExecutor {
         this.module = module;
     }
 
-    execute(action: EditAction, providedContext?: Context, pressedKey?: string) : boolean{
-        const context = providedContext ? providedContext: this.module.focus.getContext();
+    execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
         const selection = this.module.editor.monaco.getSelection();
 
         let focusedNode = context.token && context.selected ? context.token : context.lineStatement;
@@ -144,7 +152,7 @@ export class ActionExecutor {
             }
 
             case EditAction.InsertEmptyRightListItem: {
-                const code = [new NonEditableTkn(", "), new EmptyExpr()];
+                const code = [new NonEditableTkn(", "), new TypedEmptyExpr(DataType.Any)];
                 this.module.insertAfterIndex(context.tokenToRight, context.tokenToRight.indexInRoot, code);
                 this.module.editor.insertAtCurPos(code);
                 this.module.focus.updateContext({ tokenToSelect: code[1] });
@@ -153,7 +161,7 @@ export class ActionExecutor {
             }
 
             case EditAction.InsertEmptyLeftListItem: {
-                const code = [new EmptyExpr(), new NonEditableTkn(", ")];
+                const code = [new TypedEmptyExpr(DataType.Any), new NonEditableTkn(", ")];
                 this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                 this.module.editor.insertAtCurPos(code);
                 this.module.focus.updateContext({ tokenToSelect: code[0] });
@@ -337,13 +345,11 @@ export class ActionExecutor {
                 this.module.menuController.closeSubMenu();
 
                 break;
-
         }
 
         return preventDefaultEvent;
     }
 
-    
     private validateIdentifier(context: Context, identifierText: string) {
         let focusedNode = null;
         if (context.token && context.selected && context.token instanceof IdentifierTkn) {
