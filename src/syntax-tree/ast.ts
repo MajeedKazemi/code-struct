@@ -2573,14 +2573,14 @@ export class Module {
                          *         Therefore, variable assumes type returned by the arithmetic expression.
                          */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns, this.getVarRefHandler);
+                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
                         }
                         else if (
                                 parentStatement instanceof VarAssignmentStmt &&
                                 parentStatement.dataType == DataType.Any && 
                                 focusedNode.rootNode instanceof BinaryOperatorExpr
                         ) {
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns, this.getVarRefHandler);
+                            this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns);
                         }
 
                         //update types of expressions that need an update
