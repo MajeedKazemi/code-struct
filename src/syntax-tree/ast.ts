@@ -103,8 +103,8 @@ export enum CallbackType {
     replace,
     delete,
     fail,
-    focus,
-    loseFocus,
+    focusEditableHole,
+    showAvailableVars
 }
 
 export interface CodeConstruct {
@@ -1797,7 +1797,9 @@ export class Module {
 
         this.focus.subscribeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
+            Hole.disableVarHighlights();
             Hole.outlineTextEditableHole(c);
+            Hole.highlightValidVarHoles(c);
         });
 
         //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to rafactor this one to
@@ -2080,7 +2082,7 @@ export class Module {
     }
 
     //Return a list of variable references available to be inserted into "code"
-    getValidVariableReferences(code: CodeConstruct): Reference[] {
+    static getValidVariableReferences(code: CodeConstruct): Reference[] {
         let refs = [];
 
         try {
