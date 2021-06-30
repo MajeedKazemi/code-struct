@@ -72,9 +72,8 @@ export class Hole {
                         Hole.holes.forEach((hole) => {
                             if (
                                 hole.code instanceof TypedEmptyExpr &&
-                                ((code.getParentStatement() as VarAssignmentStmt).dataType ==
-                                    (hole.code as TypedEmptyExpr).type ||
-                                    (hole.code as TypedEmptyExpr).type == DataType.Any) &&
+                                ((hole.code as TypedEmptyExpr).type.indexOf((code.getParentStatement() as VarAssignmentStmt).dataType) > -1 ||
+                                 (hole.code as TypedEmptyExpr).type.indexOf(DataType.Any) > -1) &&
                                 hole.code.getParentStatement().hasScope() &&
                                 hole.code
                                     .getParentStatement()

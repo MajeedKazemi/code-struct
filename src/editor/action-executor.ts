@@ -149,27 +149,25 @@ export class ActionExecutor {
 
             case EditActionType.InsertOperator:
                 if (action.data.toRight) {
-                    const code = [new NonEditableTkn(` ${action.data.operator} `), new TypedEmptyExpr(DataType.Any)];
+                    const code = [new NonEditableTkn(` ${action.data.operator} `), new TypedEmptyExpr([DataType.Any])];
                     this.module.insertAfterIndex(context.expressionToLeft, context.expressionToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[1] });
                 } else if (action.data.toLeft) {
-                    const code = [new TypedEmptyExpr(DataType.Any), new NonEditableTkn(` ${action.data.operator} `)];
+                    const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(` ${action.data.operator} `)];
                     this.module.insertAfterIndex(context.expressionToRight, context.expressionToRight.indexInRoot, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
                 }
 
-                break;
-
             case EditActionType.InsertEmptyListItem: {
                 if (action.data.toRight) {
-                    const code = [new NonEditableTkn(", "), new TypedEmptyExpr(DataType.Any)];
+                    const code = [new NonEditableTkn(", "), new TypedEmptyExpr([DataType.Any])];
                     this.module.insertAfterIndex(context.tokenToRight, context.tokenToRight.indexInRoot, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[1] });
                 } else if (action.data.toLeft) {
-                    const code = [new TypedEmptyExpr(DataType.Any), new NonEditableTkn(", ")];
+                    const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(", ")];
                     this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
