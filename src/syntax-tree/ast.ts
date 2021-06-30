@@ -6,7 +6,6 @@ import { EventStack as EventStack } from "../editor/event-stack";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { Notification } from "../notification-system/notification";
-import { ConstructCompleter } from "../typing-system/construct-completer";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { ConstructKeys, constructToToolboxButton, Util } from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
@@ -1743,7 +1742,6 @@ export class Module {
     eventStack: EventStack;
     variableButtons: HTMLElement[];
     notificationSystem: NotificationSystemController;
-    constructCompleter: ConstructCompleter;
     menuController: MenuController;
 
     constructor(editorId: string) {
@@ -1800,8 +1798,6 @@ export class Module {
         this.eventStack = new EventStack(this);
 
         this.notificationSystem = new NotificationSystemController(this.editor, this);
-        this.constructCompleter = ConstructCompleter.getInstance();
-        this.constructCompleter.setInstanceContext(this, this.editor);
 
         this.variableButtons = [];
 

@@ -217,22 +217,22 @@ export class ActionExecutor {
                 break;
 
             case EditAction.CompleteAddition:
-                this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
+                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Add);
 
                 break;
 
             case EditAction.CompleteSubtraction:
-                this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
+                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Subtract);
 
                 break;
 
             case EditAction.CompleteDivision:
-                this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
+                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Divide);
 
                 break;
 
             case EditAction.CompleteMultiplication:
-                this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
+                // this.module.constructCompleter.completeArithmeticConstruct(BinaryOperator.Multiply);
 
                 break;
 
