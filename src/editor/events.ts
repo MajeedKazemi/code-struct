@@ -473,18 +473,18 @@ export class EventHandler {
 
             case EditAction.InsertEmptyRightListItem: {
                 const code = [new ast.NonEditableTkn(", "), new ast.EmptyExpr()];
-                const builtCode = this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot, code);
+                this.module.insertAfterIndex(context.tokenToRight, context.tokenToRight.indexInRoot, code);
                 this.module.editor.insertAtCurPos(code);
-                this.module.focus.updateContext({ tokenToSelect: builtCode[1] });
+                this.module.focus.updateContext({ tokenToSelect: code[1] });
 
                 break;
             }
 
             case EditAction.InsertEmptyLeftListItem: {
                 const code = [new ast.EmptyExpr(), new ast.NonEditableTkn(", ")];
-                const builtCode = this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
+                this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                 this.module.editor.insertAtCurPos(code);
-                this.module.focus.updateContext({ tokenToSelect: builtCode[0] });
+                this.module.focus.updateContext({ tokenToSelect: code[0] });
 
                 break;
             }

@@ -1879,12 +1879,12 @@ export class Module {
         this.menuController.setInstance(this, this.editor);
     }
 
-    insertAfterIndex(before: CodeConstruct, index: number, items: Array<CodeConstruct>): Array<CodeConstruct> {
+    insertAfterIndex(before: CodeConstruct, index: number, items: Array<CodeConstruct>) {
         if (before instanceof Token) {
             const root = before.rootNode;
 
             if (root instanceof Expression && root.tokens.length > 0) {
-                root.tokens.splice(before.indexInRoot, 0, ...items);
+                root.tokens.splice(index, 0, ...items);
 
                 for (let i = 0; i < root.tokens.length; i++) {
                     root.tokens[i].indexInRoot = i;
@@ -1892,8 +1892,6 @@ export class Module {
                 }
 
                 root.rebuild(root.getLeftPosition(), 0);
-
-                return items;
             }
         }
     }
