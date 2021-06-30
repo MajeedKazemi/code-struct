@@ -1,8 +1,8 @@
 import * as monaco from "monaco-editor";
-import { EventHandler } from "../editor/events";
+import { EventRouter } from "../editor/event-router";
 import { TAB_SPACES } from "./keywords";
 import { Editor } from "../editor/editor";
-import { ActionStack } from "../actions";
+import { EventStack as EventStack } from "../editor/event-stack";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { Notification } from "../notification-system/notification";
@@ -1810,8 +1810,8 @@ export class Module {
 
     scope: Scope;
     editor: Editor;
-    eventHandler: EventHandler;
-    actionStack: ActionStack;
+    eventRouter: EventRouter;
+    eventStack: EventStack;
     variableButtons: HTMLElement[];
     notificationSystem: NotificationSystemController;
     constructCompleter: ConstructCompleter;
@@ -1866,8 +1866,8 @@ export class Module {
         this.focus.updateContext({ tokenToSelect: this.body[0] });
         this.editor.monaco.focus();
 
-        this.eventHandler = new EventHandler(this);
-        this.actionStack = new ActionStack(this);
+        this.eventRouter = new EventRouter(this);
+        this.eventStack = new EventStack(this);
 
         this.notificationSystem = new NotificationSystemController(this.editor, this);
         this.constructCompleter = ConstructCompleter.getInstance();

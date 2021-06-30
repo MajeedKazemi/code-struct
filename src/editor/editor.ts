@@ -1,5 +1,6 @@
 import * as monaco from "monaco-editor";
-import { ConstructKeys, constructToToolboxButton } from "../utilities/util";
+import { Cursor } from "./cursor";
+import { Hole } from "./hole";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -9,8 +10,6 @@ import {
     Statement,
     TypedEmptyExpr,
 } from "../syntax-tree/ast";
-import { Cursor } from "./cursor";
-import { Hole } from "./hole";
 
 export class Editor {
     module: Module;
@@ -68,8 +67,6 @@ export class Editor {
         //     this.monaco.setSelection(selection);
         // }
         const context = this.module.focus.getContext();
-
-
     }
 
     getLineEl(ln: number) {
@@ -98,8 +95,7 @@ export class Editor {
     executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
         let text = overwrite;
 
-        if (overwrite == null)
-            text = code.getRenderText();
+        if (overwrite == null) text = code.getRenderText();
 
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
@@ -111,13 +107,12 @@ export class Editor {
         let text = "";
 
         for (const code of codeList) text += code.getRenderText();
-        
+
         const range = new monaco.Range(curPos.lineNumber, curPos.column, curPos.lineNumber, curPos.column);
 
-        this.monaco.executeEdits("module", [{range: range, text, forceMoveMarkers: true}])
+        this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
-        for (const code of codeList)
-            this.addHoles(code);
+        for (const code of codeList) this.addHoles(code);
     }
 
     computeBoundingBox(selection: monaco.Selection) {

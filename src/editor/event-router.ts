@@ -115,7 +115,7 @@ export enum EditAction {
     OpenValidInsertMenuSingleLevel,
 }
 
-export class EventHandler {
+export class EventRouter {
     module: ast.Module;
 
     constructor(module: ast.Module) {

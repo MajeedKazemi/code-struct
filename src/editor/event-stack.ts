@@ -1,8 +1,8 @@
-import { Module } from "./syntax-tree/ast";
+import { Module } from "../syntax-tree/ast";
 
 const navigationKeys = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"];
 
-enum ActionType {
+enum EventType {
     OnKeyDown,
     OnMouseDown,
     OnButtonDown,
@@ -10,17 +10,17 @@ enum ActionType {
     OnDidScrollChange,
 }
 
-export class Action {
-    type: ActionType;
+export class EventAction {
+    type: EventType;
     event: any;
 
-    constructor(type: ActionType, event: any) {
+    constructor(type: EventType, event: any) {
         this.type = type;
         this.event = event;
     }
 }
 
-export class ActionStack {
+export class EventStack {
     stack = [];
     module: Module;
 
@@ -37,7 +37,7 @@ export class ActionStack {
     undo() {
         // Undo the 'ctrl' press after 'ctrl + z'
         if (
-            this.stack[this.stack.length - 1].type === ActionType.OnKeyDown &&
+            this.stack[this.stack.length - 1].type === EventType.OnKeyDown &&
             this.stack[this.stack.length - 1].event.ctrlKey
         ) {
             this.stack.pop();
@@ -63,7 +63,7 @@ export class ActionStack {
         // TODO: Dynamic buttons create by variable assignment
         for (const button of buttons) {
             button.addEventListener("click", () => {
-                const action = new Action(ActionType.OnButtonDown, button.id);
+                const action = new EventAction(EventType.OnButtonDown, button.id);
                 this.stack.push(action);
                 this.apply(action);
             });
@@ -74,7 +74,7 @@ export class ActionStack {
         const module = this.module;
 
         module.editor.monaco.onMouseDown((e) => {
-            const action = new Action(ActionType.OnMouseDown, e);
+            const action = new EventAction(EventType.OnMouseDown, e);
             this.stack.push(action);
             this.apply(action);
         });
@@ -90,7 +90,7 @@ export class ActionStack {
                 return;
             }
 
-            const action = new Action(ActionType.OnKeyDown, e);
+            const action = new EventAction(EventType.OnKeyDown, e);
 
             //exclude navigation
             if (navigationKeys.indexOf(e.code) === -1) this.stack.push(action);
@@ -104,7 +104,7 @@ export class ActionStack {
 
         //position of mouse inside of editor (line + column)
         module.editor.monaco.onMouseMove((e) => {
-            const action = new Action(ActionType.OnMouseMove, e);
+            const action = new EventAction(EventType.OnMouseMove, e);
             this.apply(action);
         });
 
@@ -119,35 +119,35 @@ export class ActionStack {
         const module = this.module;
 
         module.editor.monaco.onDidScrollChange((e) => {
-            const action = new Action(ActionType.OnDidScrollChange, e);
+            const action = new EventAction(EventType.OnDidScrollChange, e);
             this.apply(action);
         });
     }
 
     apply(action) {
         switch (action.type) {
-            case ActionType.OnKeyDown:
-                this.module.eventHandler.onKeyDown(action.event);
+            case EventType.OnKeyDown:
+                this.module.eventRouter.onKeyDown(action.event);
 
                 break;
 
-            case ActionType.OnButtonDown:
-                this.module.eventHandler.onButtonDown(action.event);
+            case EventType.OnButtonDown:
+                this.module.eventRouter.onButtonDown(action.event);
 
                 break;
 
-            case ActionType.OnMouseDown:
-                this.module.eventHandler.onMouseDown(action.event);
+            case EventType.OnMouseDown:
+                this.module.eventRouter.onMouseDown(action.event);
 
                 break;
 
-            case ActionType.OnMouseMove:
-                this.module.eventHandler.onMouseMove(action.event);
+            case EventType.OnMouseMove:
+                this.module.eventRouter.onMouseMove(action.event);
 
                 break;
 
-            case ActionType.OnDidScrollChange:
-                this.module.eventHandler.onDidScrollChange(action.event);
+            case EventType.OnDidScrollChange:
+                this.module.eventRouter.onDidScrollChange(action.event);
 
                 break;
 
