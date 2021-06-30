@@ -1594,79 +1594,6 @@ export class ListLiteralExpression extends Expression {
 
         this.hasEmptyToken = true;
     }
-
-    // rebuildTokensIndices() {
-    //     for (let i = 0; i < this.tokens.length; i++) this.tokens[i].indexInRoot = i;
-    // }
-
-    // replace(code: CodeConstruct, index: number) {
-    //     const curToken = this.tokens[index];
-
-    //     // replace with: empty + expr + empty
-    //     if (curToken instanceof EmptyListItem && curToken.isEmptyExpression) {
-    //         let rebuildColumn: number;
-
-    //         if (this.tokens[index] instanceof Token || (this.tokens[index] as Expression))
-    //             rebuildColumn = this.tokens[index].left;
-
-    //         code.rootNode = this;
-    //         this.tokens.splice(index, 1, new EmptyListItem(false, this), code, new EmptyListItem(false, this));
-
-    //         this.rebuildTokensIndices();
-    //         this.updateHasEmptyToken(code);
-
-    //         if (rebuildColumn != undefined) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
-
-    //         this.notify(CallbackType.replace);
-    //     } else super.replace(code, index);
-    // }
-
-    // insertListItem(index: number, value?: number): string {
-    //     let expr;
-    //     let insertedText = "";
-    //     let rebuildColumn: number;
-
-    //     if (this.tokens[index] instanceof Token || (this.tokens[index] as Expression))
-    //         rebuildColumn = this.tokens[index].left;
-
-    //     if (value != undefined) expr = new LiteralValExpr(DataType.Number, value.toString(), this);
-    //     else expr = new EmptyExpr(this);
-
-    //     if (index + 2 == this.tokens.length) {
-    //         // if emptyList right before closing bracket => replace emptyList with: separator + empty + expr + empty
-    //         this.tokens.splice(
-    //             index,
-    //             1,
-    //             new NonEditableTkn(", ", this),
-    //             new EmptyListItem(false, this),
-    //             expr,
-    //             new EmptyListItem(false, this)
-    //         );
-
-    //         insertedText = ", " + expr.getRenderText();
-    //     } else {
-    //         // o.w. => replace emptyList with: empty + expr + empty + separator
-    //         this.tokens.splice(
-    //             index,
-    //             1,
-    //             new EmptyListItem(false, this),
-    //             expr,
-    //             new EmptyListItem(false, this),
-    //             new NonEditableTkn(", ", this)
-    //         );
-
-    //         insertedText = expr.getRenderText() + ", ";
-    //     }
-
-    //     this.rebuildTokensIndices();
-    //     this.updateHasEmptyToken(expr);
-
-    //     if (rebuildColumn != undefined) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
-
-    //     this.notify(CallbackType.change);
-
-    //     return insertedText;
-    // }
 }
 
 export class IdentifierTkn extends Token implements TextEditable {
@@ -2667,7 +2594,6 @@ export class Module {
                             parentStatement.dataType == DataType.Any &&
                             !(
                                 focusedNode.rootNode instanceof ComparatorExpr ||
-                                // focusedNode instanceof EmptyListItem ||
                                 focusedNode.rootNode instanceof ListLiteralExpression
                             )
                         ) {
@@ -2788,29 +2714,6 @@ export class Module {
             this.editor.monaco.focus();
         }
     }
-
-    // insertListItem() {
-    //     const focusedNode = this.focus.getContext()?.token;
-
-    //     if (focusedNode instanceof EmptyListItem) {
-    //         let padding = 1;
-    //         const listExpr = focusedNode.rootNode as ListLiteralExpression;
-    //         const text = listExpr.insertListItem(focusedNode.indexInRoot);
-    //         const selection = this.editor.monaco.getSelection();
-    //         const focusedPos = this.editor.monaco.getPosition();
-
-    //         if (selection.endColumn == selection.startColumn) padding = 0;
-
-    //         const range = new monaco.Range(
-    //             focusedPos.lineNumber,
-    //             focusedNode.left,
-    //             focusedPos.lineNumber,
-    //             focusedNode.right + padding
-    //         );
-
-    //         this.editor.executeEdits(range, listExpr, text);
-    //     }
-    // }
 }
 
 /**
