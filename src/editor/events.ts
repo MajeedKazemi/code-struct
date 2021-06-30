@@ -31,6 +31,7 @@ export enum KeyPress {
     Y = "y",
 
     //Typing sys
+    Comma = ",",
     Plus = "+",
     ForwardSlash = "/",
     Star = "*",
@@ -76,6 +77,9 @@ export enum EditAction {
 
     InsertEmptyLine,
 
+    InsertEmptyLeftListItem,
+    InsertEmptyRightListItem,
+
     DeleteNextToken,
     DeletePrevToken,
 
@@ -118,8 +122,8 @@ export class EventHandler {
         this.module = module;
     }
 
-    getKeyAction(e: KeyboardEvent) {
-        const context = this.module.focus.getContext();
+    getKeyAction(e: KeyboardEvent, providedContext?: Context): EditAction {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
         const curPos = this.module.editor.monaco.getPosition();
         const inTextEditMode = this.module.focus.isTextEditable(context);
 
@@ -230,6 +234,13 @@ export class EventHandler {
 
                 break;
 
+            case KeyPress.Comma:
+                if (this.module.validator.canAddListItemToRight(context)) return EditAction.InsertEmptyRightListItem;
+                else if (this.module.validator.canAddListItemToLeft(context)) return EditAction.InsertEmptyLeftListItem;
+                else if (inTextEditMode) return EditAction.InsertChar;
+
+                break;
+
             case KeyPress.Plus:
                 if (inTextEditMode) return EditAction.InsertChar;
                 if (!inTextEditMode && e.shiftKey && e.key.length == 1) return EditAction.CompleteAddition;
@@ -330,13 +341,12 @@ export class EventHandler {
     }
 
     onKeyDown(e) {
-        const action = this.getKeyAction(e.browserEvent);
-        const selection = this.module.editor.monaco.getSelection();
-        let suggestions = [];
-
         const context = this.module.focus.getContext();
+        const action = this.getKeyAction(e.browserEvent, context);
+        const selection = this.module.editor.monaco.getSelection();
 
         let focusedNode = context.token && context.selected ? context.token : context.lineStatement;
+        let suggestions = [];
 
         switch (action) {
             case EditAction.InsertEmptyLine: {
@@ -467,6 +477,30 @@ export class EventHandler {
                     e.stopPropagation();
                     e.preventDefault();
                 }
+
+                break;
+            }
+
+            case EditAction.InsertEmptyRightListItem: {
+                const code = [new ast.NonEditableTkn(", "), new ast.EmptyExpr()];
+                const builtCode = this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot, code);
+                this.module.editor.insertAtCurPos(code);
+                this.module.focus.updateContext({ tokenToSelect: builtCode[1] });
+
+                e.stopPropagation();
+                e.preventDefault();
+
+                break;
+            }
+
+            case EditAction.InsertEmptyLeftListItem: {
+                const code = [new ast.EmptyExpr(), new ast.NonEditableTkn(", ")];
+                const builtCode = this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
+                this.module.editor.insertAtCurPos(code);
+                this.module.focus.updateContext({ tokenToSelect: builtCode[0] });
+
+                e.stopPropagation();
+                e.preventDefault();
 
                 break;
             }
@@ -1008,12 +1042,12 @@ export class EventHandler {
                 break;
 
             case "add-list-item-btn":
-                this.pressButton(
-                    id,
-                    (() => {
-                        this.module.insertListItem();
-                    }).bind(this)
-                );
+                // this.pressButton(
+                //     id,
+                //     (() => {
+                //         this.module.insertListItem();
+                //     }).bind(this)
+                // );
 
                 break;
 

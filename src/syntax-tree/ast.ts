@@ -11,6 +11,7 @@ import { MenuController } from "../suggestions/suggestions-controller";
 import { ConstructKeys, constructToToolboxButton, Util } from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
 import { Hole } from "../editor/hole";
+import { Validator } from "../editor/validator";
 
 export class Callback {
     static counter: number;
@@ -350,42 +351,23 @@ export abstract class Statement implements CodeConstruct {
      */
     rebuild(pos: monaco.Position, fromIndex: number) {
         let curPos = pos;
-        let propagateToRoot = true;
 
         // rebuild siblings:
         for (let i = fromIndex; i < this.tokens.length; i++) {
             if (this.tokens[i] instanceof Token) curPos = this.tokens[i].build(curPos);
             else curPos = (this.tokens[i] as Expression).build(curPos);
+        }
 
-            if (i == fromIndex && i + 1 < this.tokens.length) {
-                // has siblings
-                let firstSiblingLeft: number;
+        this.right = curPos.column;
 
-                if (this.tokens[i] instanceof Token) firstSiblingLeft = this.tokens[i + 1].left;
-                else firstSiblingLeft = (this.tokens[i + 1] as Expression).left;
-
-                if (firstSiblingLeft == curPos.column) {
-                    propagateToRoot = false;
-                    break;
-                }
+        if (this.rootNode != undefined && this.indexInRoot != undefined) {
+            if (
+                (this.rootNode instanceof Expression || this.rootNode instanceof Statement) &&
+                this.rootNode.lineNumber == this.lineNumber
+            ) {
+                this.rootNode.rebuild(curPos, this.indexInRoot + 1);
             }
-        }
-
-        const newRight = curPos.column;
-
-        if (propagateToRoot && this.right != newRight) {
-            this.right = newRight;
-
-            // check if parent's siblings should be rebuilt
-            if (this.rootNode != undefined && this.indexInRoot != undefined) {
-                if (
-                    (this.rootNode instanceof Expression || this.rootNode instanceof Statement) &&
-                    this.rootNode.lineNumber == this.lineNumber
-                ) {
-                    this.rootNode.rebuild(curPos, this.indexInRoot + 1);
-                }
-            } else console.warn("node did not have rootNode or indexInRoot: ", this.tokens);
-        }
+        } else console.warn("node did not have rootNode or indexInRoot: ", this.tokens);
 
         this.notify(CallbackType.change);
     }
@@ -1589,27 +1571,6 @@ export class LiteralValExpr extends Expression {
     }
 }
 
-export class EmptyListItem extends Token {
-    isEmpty = true;
-    isEmptyExpression: boolean;
-
-    constructor(isEmptyExpression: boolean, root?: ListLiteralExpression, indexInRoot?: number) {
-        super("");
-
-        this.isEmptyExpression = isEmptyExpression;
-        this.receives.push(AddableType.Expression);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-    }
-
-    getSelection(): monaco.Selection {
-        const line = this.getLineNumber();
-
-        return new monaco.Selection(line, this.left, line, this.right);
-    }
-}
-
 export class ListLiteralExpression extends Expression {
     addableType = AddableType.Expression;
 
@@ -1620,84 +1581,84 @@ export class ListLiteralExpression extends Expression {
         this.indexInRoot = indexInRoot;
 
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
-        this.tokens.push(new EmptyListItem(true, this, this.tokens.length));
+        this.tokens.push(new EmptyExpr(this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
 
-    rebuildTokensIndices() {
-        for (let i = 0; i < this.tokens.length; i++) this.tokens[i].indexInRoot = i;
-    }
+    // rebuildTokensIndices() {
+    //     for (let i = 0; i < this.tokens.length; i++) this.tokens[i].indexInRoot = i;
+    // }
 
-    replace(code: CodeConstruct, index: number) {
-        const curToken = this.tokens[index];
+    // replace(code: CodeConstruct, index: number) {
+    //     const curToken = this.tokens[index];
 
-        // replace with: empty + expr + empty
-        if (curToken instanceof EmptyListItem && curToken.isEmptyExpression) {
-            let rebuildColumn: number;
+    //     // replace with: empty + expr + empty
+    //     if (curToken instanceof EmptyListItem && curToken.isEmptyExpression) {
+    //         let rebuildColumn: number;
 
-            if (this.tokens[index] instanceof Token || (this.tokens[index] as Expression))
-                rebuildColumn = this.tokens[index].left;
+    //         if (this.tokens[index] instanceof Token || (this.tokens[index] as Expression))
+    //             rebuildColumn = this.tokens[index].left;
 
-            code.rootNode = this;
-            this.tokens.splice(index, 1, new EmptyListItem(false, this), code, new EmptyListItem(false, this));
+    //         code.rootNode = this;
+    //         this.tokens.splice(index, 1, new EmptyListItem(false, this), code, new EmptyListItem(false, this));
 
-            this.rebuildTokensIndices();
-            this.updateHasEmptyToken(code);
+    //         this.rebuildTokensIndices();
+    //         this.updateHasEmptyToken(code);
 
-            if (rebuildColumn != undefined) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
+    //         if (rebuildColumn != undefined) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
 
-            this.notify(CallbackType.replace);
-        } else super.replace(code, index);
-    }
+    //         this.notify(CallbackType.replace);
+    //     } else super.replace(code, index);
+    // }
 
-    insertListItem(index: number, value?: number): string {
-        let expr;
-        let insertedText = "";
-        let rebuildColumn: number;
+    // insertListItem(index: number, value?: number): string {
+    //     let expr;
+    //     let insertedText = "";
+    //     let rebuildColumn: number;
 
-        if (this.tokens[index] instanceof Token || (this.tokens[index] as Expression))
-            rebuildColumn = this.tokens[index].left;
+    //     if (this.tokens[index] instanceof Token || (this.tokens[index] as Expression))
+    //         rebuildColumn = this.tokens[index].left;
 
-        if (value != undefined) expr = new LiteralValExpr(DataType.Number, value.toString(), this);
-        else expr = new EmptyExpr(this);
+    //     if (value != undefined) expr = new LiteralValExpr(DataType.Number, value.toString(), this);
+    //     else expr = new EmptyExpr(this);
 
-        if (index + 2 == this.tokens.length) {
-            // if emptyList right before closing bracket => replace emptyList with: separator + empty + expr + empty
-            this.tokens.splice(
-                index,
-                1,
-                new NonEditableTkn(", ", this),
-                new EmptyListItem(false, this),
-                expr,
-                new EmptyListItem(false, this)
-            );
+    //     if (index + 2 == this.tokens.length) {
+    //         // if emptyList right before closing bracket => replace emptyList with: separator + empty + expr + empty
+    //         this.tokens.splice(
+    //             index,
+    //             1,
+    //             new NonEditableTkn(", ", this),
+    //             new EmptyListItem(false, this),
+    //             expr,
+    //             new EmptyListItem(false, this)
+    //         );
 
-            insertedText = ", " + expr.getRenderText();
-        } else {
-            // o.w. => replace emptyList with: empty + expr + empty + separator
-            this.tokens.splice(
-                index,
-                1,
-                new EmptyListItem(false, this),
-                expr,
-                new EmptyListItem(false, this),
-                new NonEditableTkn(", ", this)
-            );
+    //         insertedText = ", " + expr.getRenderText();
+    //     } else {
+    //         // o.w. => replace emptyList with: empty + expr + empty + separator
+    //         this.tokens.splice(
+    //             index,
+    //             1,
+    //             new EmptyListItem(false, this),
+    //             expr,
+    //             new EmptyListItem(false, this),
+    //             new NonEditableTkn(", ", this)
+    //         );
 
-            insertedText = expr.getRenderText() + ", ";
-        }
+    //         insertedText = expr.getRenderText() + ", ";
+    //     }
 
-        this.rebuildTokensIndices();
-        this.updateHasEmptyToken(expr);
+    //     this.rebuildTokensIndices();
+    //     this.updateHasEmptyToken(expr);
 
-        if (rebuildColumn != undefined) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
+    //     if (rebuildColumn != undefined) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
 
-        this.notify(CallbackType.change);
+    //     this.notify(CallbackType.change);
 
-        return insertedText;
-    }
+    //     return insertedText;
+    // }
 }
 
 export class IdentifierTkn extends Token implements TextEditable {
@@ -1838,6 +1799,7 @@ export class KeywordTkn extends Token {
 export class Module {
     body = new Array<Statement>();
     focus: Focus;
+    validator: Validator;
 
     scope: Scope;
     editor: Editor;
@@ -1851,6 +1813,7 @@ export class Module {
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
+        this.validator = new Validator(this);
 
         this.focus.subscribeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
@@ -1907,6 +1870,25 @@ export class Module {
 
         this.menuController = MenuController.getInstance();
         this.menuController.setInstance(this, this.editor);
+    }
+
+    insertAfterIndex(before: CodeConstruct, index: number, items: Array<CodeConstruct>): Array<CodeConstruct> {
+        if (before instanceof Token) {
+            const root = before.rootNode;
+
+            if (root instanceof Expression && root.tokens.length > 0) {
+                root.tokens.splice(before.indexInRoot, 0, ...items);
+
+                for (let i = 0; i < root.tokens.length; i++) {
+                    root.tokens[i].indexInRoot = i;
+                    root.tokens[i].rootNode = root;
+                }
+
+                root.rebuild(root.getLeftPosition(), 0);
+
+                return items;
+            }
+        }
     }
 
     reset() {
@@ -2690,7 +2672,7 @@ export class Module {
                             parentStatement.dataType == DataType.Any &&
                             !(
                                 focusedNode.rootNode instanceof ComparatorExpr ||
-                                focusedNode instanceof EmptyListItem ||
+                                // focusedNode instanceof EmptyListItem ||
                                 focusedNode.rootNode instanceof ListLiteralExpression
                             )
                         ) {
@@ -2812,28 +2794,28 @@ export class Module {
         }
     }
 
-    insertListItem() {
-        const focusedNode = this.focus.getContext()?.token;
+    // insertListItem() {
+    //     const focusedNode = this.focus.getContext()?.token;
 
-        if (focusedNode instanceof EmptyListItem) {
-            let padding = 1;
-            const listExpr = focusedNode.rootNode as ListLiteralExpression;
-            const text = listExpr.insertListItem(focusedNode.indexInRoot);
-            const selection = this.editor.monaco.getSelection();
-            const focusedPos = this.editor.monaco.getPosition();
+    //     if (focusedNode instanceof EmptyListItem) {
+    //         let padding = 1;
+    //         const listExpr = focusedNode.rootNode as ListLiteralExpression;
+    //         const text = listExpr.insertListItem(focusedNode.indexInRoot);
+    //         const selection = this.editor.monaco.getSelection();
+    //         const focusedPos = this.editor.monaco.getPosition();
 
-            if (selection.endColumn == selection.startColumn) padding = 0;
+    //         if (selection.endColumn == selection.startColumn) padding = 0;
 
-            const range = new monaco.Range(
-                focusedPos.lineNumber,
-                focusedNode.left,
-                focusedPos.lineNumber,
-                focusedNode.right + padding
-            );
+    //         const range = new monaco.Range(
+    //             focusedPos.lineNumber,
+    //             focusedNode.left,
+    //             focusedPos.lineNumber,
+    //             focusedNode.right + padding
+    //         );
 
-            this.editor.executeEdits(range, listExpr, text);
-        }
-    }
+    //         this.editor.executeEdits(range, listExpr, text);
+    //     }
+    // }
 }
 
 /**

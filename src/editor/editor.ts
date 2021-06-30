@@ -106,6 +106,20 @@ export class Editor {
         this.addHoles(code);
     }
 
+    insertAtCurPos(codeList: Array<CodeConstruct>) {
+        const curPos = this.monaco.getPosition();
+        let text = "";
+
+        for (const code of codeList) text += code.getRenderText();
+        
+        const range = new monaco.Range(curPos.lineNumber, curPos.column, curPos.lineNumber, curPos.column);
+
+        this.monaco.executeEdits("module", [{range: range, text, forceMoveMarkers: true}])
+
+        for (const code of codeList)
+            this.addHoles(code);
+    }
+
     computeBoundingBox(selection: monaco.Selection) {
         const x = this.monaco.getOffsetForColumn(selection.startLineNumber, selection.startColumn);
         const y = this.monaco.getTopForLineNumber(selection.startLineNumber);
