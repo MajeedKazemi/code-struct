@@ -28,39 +28,13 @@ export class TypeSystem{
     }
 
     /**
-     * Verifies that insertionCode is a valid insertion into insertInto when insertInto's parent is a ForStatement. 
-     * Optionally updates the type of insertInto's parent's counter variable to be the type of insertionCode.returns
-     * when updateType is true.
+     * Validates wether insertionCode can be inserted into the second hole of a for-loop/
      * 
-     * 
-     * @param insertionCode code to check the type against
-     * @param insertInto    the second hole of a for-loop
-     * @param updateType    T/F based on whether a type updated is required
-     * @returns true if insertionCode can be inserted into insertInto, false otherwise.
+     * @param insertionCode expression to be inserted
+     * @returns T/F based on whether the insertion is allowed or not
      */
-    checkForLoopIterableType(insertionCode: Expression, insertInto: TypedEmptyExpr, updateType: boolean = false){
-        const parentStatement = insertInto.rootNode as ForStatement;
-
-        if (insertionCode.returns != DataType.AnyList && insertionCode.returns != DataType.StringList && insertionCode.returns != DataType.NumberList && insertionCode.returns != DataType.BooleanList && insertionCode.returns != DataType.String) {
-            //TODO: Notif message needs to be fixed to contain every type
-            this.module.notificationSystem.addHoverNotification(
-                insertInto,
-                {
-                    addedType: insertionCode.returns,
-                    constructName: parentStatement.getKeyword(),
-                    expectedType: insertInto.type,
-                },
-                ErrorMessage.exprTypeMismatch
-            );
-
-            return false;
-        }
-
-        if(updateType){
-            this.updateForLoopVarType(parentStatement, insertionCode);
-        }
-
-        return true;
+    validateForLoopIterableInsertion(insertionCode: Expression){
+        return [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String].indexOf(insertionCode.returns) > -1
     }
 
 
@@ -89,7 +63,7 @@ export class TypeSystem{
      * @param forLoop for loop statement
      * @param code    expression the type of which will be used
      */
-    private updateForLoopVarType(forLoop: ForStatement, code: Expression){
+    updateForLoopVarType(forLoop: ForStatement, code: Expression){
         const newType = this.getListElementType(code.returns);
         TypeSystem.varTypeMap.set(forLoop.getIdentifier(), newType);
         this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);

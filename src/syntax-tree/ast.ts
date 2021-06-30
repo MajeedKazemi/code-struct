@@ -2224,10 +2224,7 @@ export class Module {
                     //for-loop check is special since Iterable does not cover both str and list right now
                     //can change it once the types are an array
                     else if (insertInto.rootNode instanceof ForStatement) {
-                        if (insert.returns != DataType.AnyList && insert.returns != DataType.StringList && insert.returns != DataType.NumberList && insert.returns != DataType.BooleanList && insert.returns != DataType.String) {
-                            return false;
-                        }
-                        return true;
+                        return this.typeSystem.validateForLoopIterableInsertion(insert);
                     } else {
                         isValid = insertInto.type.indexOf(insert.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1;
 
@@ -2462,7 +2459,22 @@ export class Module {
                         //for-loop check is special since Iterable does not cover both str and list right now
                         //can change it once the types are an array
                         else if (focusedNode.rootNode instanceof ForStatement) {
-                            isValid = this.typeSystem.checkForLoopIterableType(code, focusedNode, true);
+                            isValid = this.typeSystem.validateForLoopIterableInsertion(code);
+
+                            if(!isValid){
+                                this.notificationSystem.addHoverNotification(
+                                    insertInto,
+                                    {
+                                        addedType: code.returns,
+                                        constructName: parentStatement.getKeyword(),
+                                        expectedType: focusedNode.type,
+                                    },
+                                    ErrorMessage.exprTypeMismatch
+                                );
+                            }
+                            else{
+                                this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code);
+                            }
                         } else {
                             isValid = focusedNode.type.indexOf(code.returns) > -1 || focusedNode.type.indexOf(DataType.Any) > -1;
 
