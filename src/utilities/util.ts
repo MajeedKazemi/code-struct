@@ -218,12 +218,12 @@ export class Util {
                 new FunctionCallStmt(
                     "range",
                     [new Argument(DataType.Number, "start", false), new Argument(DataType.Number, "end", false)],
-                    DataType.List
+                    DataType.NumberList
                 ),
             ],
             [
                 ConstructKeys.LenCall,
-                new FunctionCallStmt("len", [new Argument(DataType.List, "list", false)], DataType.Number),
+                new FunctionCallStmt("len", [new Argument(DataType.AnyList || DataType.StringList || DataType.BooleanList || DataType.NumberList, "list", false)], DataType.Number),
             ],
             [ConstructKeys.StringLiteral, new LiteralValExpr(DataType.String)],
             [ConstructKeys.NumberLiteral, new LiteralValExpr(DataType.Number)],
@@ -255,7 +255,7 @@ export class Util {
                 new MethodCallExpr(
                     "split",
                     [new Argument(DataType.String, "sep", false)],
-                    DataType.List,
+                    DataType.StringList,
                     DataType.String
                 ),
             ],
@@ -263,7 +263,7 @@ export class Util {
                 ConstructKeys.JoinCall,
                 new MethodCallExpr(
                     "join",
-                    [new Argument(DataType.List, "items", false)],
+                    [new Argument(DataType.AnyList || DataType.StringList || DataType.NumberList || DataType.BooleanList, "items", false)],
                     DataType.String,
                     DataType.String
                 ),
@@ -331,7 +331,7 @@ export class Util {
                                 new Argument(DataType.Number, "start", false),
                                 new Argument(DataType.Number, "end", false),
                             ],
-                            DataType.List
+                            DataType.NumberList
                         )
                     );
                 },
@@ -340,7 +340,7 @@ export class Util {
                 ConstructKeys.LenCall,
                 () => {
                     this.module.insert(
-                        new FunctionCallStmt("len", [new Argument(DataType.List, "list", false)], DataType.Number)
+                        new FunctionCallStmt("len", [new Argument(DataType.AnyList || DataType.StringList || DataType.BooleanList || DataType.NumberList, "list", false)], DataType.Number)
                     );
                 },
             ],
@@ -501,7 +501,7 @@ export class Util {
                         new MethodCallExpr(
                             "split",
                             [new Argument(DataType.String, "sep", false)],
-                            DataType.List,
+                            DataType.StringList,
                             DataType.String
                         )
                     );
@@ -513,7 +513,7 @@ export class Util {
                     this.module.insert(
                         new MethodCallExpr(
                             "join",
-                            [new Argument(DataType.List, "items", false)],
+                            [new Argument(DataType.AnyList || DataType.StringList || DataType.BooleanList || DataType.NumberList, "items", false)],
                             DataType.String,
                             DataType.String
                         )

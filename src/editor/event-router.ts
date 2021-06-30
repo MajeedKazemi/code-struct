@@ -467,7 +467,7 @@ export class EventRouter {
                                     new ast.Argument(ast.DataType.Number, "start", false),
                                     new ast.Argument(ast.DataType.Number, "end", false),
                                 ],
-                                ast.DataType.List
+                                ast.DataType.NumberList
                             )
                         );
                     }).bind(this)
@@ -482,7 +482,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.FunctionCallStmt(
                                 "len",
-                                [new ast.Argument(ast.DataType.List, "list", false)],
+                                [new ast.Argument(DataType.AnyList || DataType.StringList || DataType.BooleanList || DataType.NumberList, "list", false)],
                                 ast.DataType.Number
                             )
                         );
@@ -770,7 +770,7 @@ export class EventRouter {
                             new ast.MethodCallExpr(
                                 "split",
                                 [new ast.Argument(ast.DataType.String, "sep", false)],
-                                ast.DataType.List,
+                                ast.DataType.StringList,
                                 ast.DataType.String
                             )
                         );
@@ -786,7 +786,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.MethodCallExpr(
                                 "join",
-                                [new ast.Argument(ast.DataType.List, "items", false)],
+                                [new ast.Argument(ast.DataType.AnyList || DataType.StringList || DataType.NumberList || DataType.BooleanList, "items", false)],
                                 ast.DataType.String,
                                 ast.DataType.String
                             )

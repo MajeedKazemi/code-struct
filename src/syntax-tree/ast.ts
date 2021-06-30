@@ -32,16 +32,17 @@ export enum DataType {
     String = "String",
     Fractional = "Float",
     Iterator = "Iterator",
-    List = "List",
+    AnyList = "ListAny",
     Set = "Set",
     Dict = "Dict",
     Class = "Class",
     Void = "Void",
     Any = "Any",
 
-    //if we ever add user defined classes, these will need to become a class
-    //or some other structure that would allow for a more modular approach to nested types than an enum
-    IntegerList = "ListInt",
+    //TODO: If there is ever time then DataType needs to be changed to a class to support nested types like these.
+    //There are cases where we want to know what is inside the list such as for for-loop counter vars. They need to know
+    //what they are iterating over otherwise no type can be assigned to them
+    NumberList = "ListInt",
     BooleanList = "ListBool",
     StringList = "ListStr"
 }
@@ -959,7 +960,7 @@ export class ForStatement extends Statement {
         this.tokens.push(new IdentifierTkn(undefined, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" in ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr(DataType.StringList || DataType.IntegerList || DataType.BooleanList, this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.AnyList || DataType.StringList || DataType.NumberList || DataType.BooleanList, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -1232,7 +1233,7 @@ export class ListElementAssignment extends Statement {
 
         this.addableType = AddableType.Statement;
 
-        this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.AnyList || DataType.NumberList || DataType.StringList || DataType.BooleanList, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("] = ", this, this.tokens.length));
@@ -1287,7 +1288,7 @@ export class MemberCallStmt extends Expression {
 
         this.addableType = AddableType.Expression;
 
-        this.tokens.push(new TypedEmptyExpr(DataType.List, this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr(DataType.AnyList || DataType.NumberList || DataType.StringList || DataType.BooleanList, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr(DataType.Number, this, this.tokens.length));
@@ -1589,7 +1590,7 @@ export class ListLiteralExpression extends Expression {
     addableType = AddableType.Expression;
 
     constructor(root?: CodeConstruct, indexInRoot?: number) {
-        super(DataType.List);
+        super(DataType.AnyList);
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
@@ -2188,8 +2189,9 @@ export class Module {
                     //for-loop check is special since Iterable does not cover both str and list right now
                     //can change it once the types are an array
                     else if (insertInto.rootNode instanceof ForStatement) {
-                        if (insert.returns != DataType.List && insert.returns != DataType.String) return false;
-
+                        if (insert.returns != DataType.AnyList && insert.returns != DataType.StringList && insert.returns != DataType.NumberList && insert.returns != DataType.BooleanList && insert.returns != DataType.String) {
+                            return false;
+                        }
                         return true;
                     } else {
                         isValid = insertInto.type === insert.returns || insertInto.type === DataType.Any;
@@ -2425,8 +2427,10 @@ export class Module {
                         //for-loop check is special since Iterable does not cover both str and list right now
                         //can change it once the types are an array
                         else if (focusedNode.rootNode instanceof ForStatement) {
-                            if (code.returns != DataType.List && code.returns != DataType.String) {
+                            if (code.returns != DataType.AnyList && code.returns != DataType.StringList && code.returns != DataType.NumberList && code.returns != DataType.BooleanList && code.returns != DataType.String) {
                                 isValid = false;
+
+                                //TODO: Notif message needs to be fixed to contain every type
                                 this.notificationSystem.addHoverNotification(
                                     focusedNode,
                                     {
@@ -2436,6 +2440,28 @@ export class Module {
                                     },
                                     ErrorMessage.exprTypeMismatch
                                 );
+                            }
+                            else if(focusedNode.rootNode.getIdentifier() != ""){ //type of for-loop var needs to be updated, but only if the var has been previously declared
+                                let newType = null;
+                                switch(code.returns){
+                                    case DataType.AnyList:
+                                        newType = DataType.Any
+                                        break;
+                                    case DataType.StringList:
+                                        newType = DataType.String
+                                        break;
+                                    case DataType.BooleanList:
+                                        newType = DataType.Boolean
+                                        break;
+                                    case DataType.NumberList:
+                                        newType = DataType.Number
+                                        break;
+                                    default:
+                                        newType = DataType.Any
+                                }
+                                
+                                TypeSystem.varTypeMap.set(focusedNode.rootNode.getIdentifier(), newType);
+                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.loopVar, newType, this.getVarRefHandler);
                             }
                         } else {
                             isValid = focusedNode.type === code.returns || focusedNode.type === DataType.Any;
