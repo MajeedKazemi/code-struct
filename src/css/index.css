@@ -60,6 +60,12 @@ body {
     cursor: not-allowed;
 }
 
+.button.varButtonDisabled{
+    pointer-events: none;
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
 #editor-toolbox .group {
     display: grid;
     grid-template-columns: auto auto;

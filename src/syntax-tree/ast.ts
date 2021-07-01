@@ -1783,7 +1783,7 @@ export class Module {
     editor: Editor;
     eventRouter: EventRouter;
     eventStack: EventStack;
-    variableButtons: HTMLElement[];
+    variableButtons: HTMLDivElement[] = [];
     notificationSystem: NotificationSystemController;
     menuController: MenuController;
     typeSystem: TypeSystem;
@@ -1808,24 +1808,35 @@ export class Module {
             ((c: Context) => {
                 const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
                 const validInserts = this.getAllValidInsertsList(focusedNode);
+                const validVarIds: string[] = Module.getValidVariableReferences(focusedNode).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
 
+                //disable/enable toolbox construct buttons based on context
                 Object.keys(ConstructKeys).forEach((construct) => {
                     if (constructToToolboxButton.has(ConstructKeys[construct])) {
+                        const button = document.getElementById(
+                            constructToToolboxButton.get(ConstructKeys[construct])
+                        ) as HTMLButtonElement;
+
                         if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
-                            const button = document.getElementById(
-                                constructToToolboxButton.get(ConstructKeys[construct])
-                            ) as HTMLButtonElement;
                             button.disabled = true;
                             button.classList.add("disabled");
                         } else {
-                            const button = document.getElementById(
-                                constructToToolboxButton.get(ConstructKeys[construct])
-                            ) as HTMLButtonElement;
                             button.disabled = false;
                             button.classList.remove("disabled");
                         }
                     }
                 });
+
+                //disable/enable toolbox var buttons based on context
+                this.variableButtons.forEach(button => {
+                    if(validVarIds.indexOf(button.id) > -1){
+                        button.classList.remove("varButtonDisabled");
+                    }
+                    else{
+                        button.classList.add("varButtonDisabled");
+                    }
+                })
+
             }).bind(this)
         );
 

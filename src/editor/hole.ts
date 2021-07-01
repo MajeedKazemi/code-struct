@@ -58,10 +58,10 @@ export class Hole {
         }
         else if(code instanceof TypedEmptyExpr){
             code.subscribe(CallbackType.showAvailableVars, new Callback(() => {
-                const validIdentifierTkns = Module.getValidVariableReferences(code).map(ref => ref.statement.tokens[0]);
+                const validIdentifierIds = Module.getValidVariableReferences(code).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
                 
                 for(const hole of Hole.holes){
-                    if(validIdentifierTkns.indexOf(hole.code) > -1){
+                    if(hole.code.rootNode instanceof VarAssignmentStmt && validIdentifierIds.indexOf(hole.code.rootNode.buttonId) > -1){
                         hole.element.classList.add(Hole.availableVarHoleClass);
                     }
                 }
