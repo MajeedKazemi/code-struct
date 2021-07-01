@@ -4,7 +4,15 @@ import { Context } from "./focus";
 import { ConstructKeys, Util } from "../utilities/util";
 import { EditAction, EditActionType } from "./event-router";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { DataType, IdentifierTkn, LiteralValExpr, Module, NonEditableTkn, TypedEmptyExpr } from "../syntax-tree/ast";
+import {
+    Module,
+    DataType,
+    IdentifierTkn,
+    LiteralValExpr,
+    NonEditableTkn,
+    TypedEmptyExpr,
+    ListLiteralExpression,
+} from "../syntax-tree/ast";
 import { TypeSystem } from "../syntax-tree/type-sys";
 
 export class ActionExecutor {
@@ -164,6 +172,12 @@ export class ActionExecutor {
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
                 }
+
+                break;
+            }
+
+            case EditActionType.InsertEmptyList: {
+                this.module.insert(new ListLiteralExpression());
 
                 break;
             }

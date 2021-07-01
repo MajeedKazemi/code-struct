@@ -27,6 +27,7 @@ export enum KeyPress {
     Y = "y",
 
     //Typing sys
+    OpenBracket = "[",
     Comma = ",",
     Plus = "+",
     ForwardSlash = "/",
@@ -72,6 +73,7 @@ export enum EditActionType {
     SelectClosestTokenBelow,
 
     InsertEmptyLine,
+    InsertEmptyList,
     InsertEmptyListItem,
 
     DeleteNextToken,
@@ -236,12 +238,20 @@ export class EventRouter {
 
                 break;
 
+            case KeyPress.OpenBracket: {
+                if (this.module.validator.canInsertEmptyList(context)) {
+                    return new EditAction(EditActionType.InsertEmptyList);
+                }
+
+                break;
+            }
+
             case KeyPress.Comma:
-                if (this.module.validator.canAddListItemToRight(context))
+                if (this.module.validator.canAddListItemToRight(context)) {
                     return new EditAction(EditActionType.InsertEmptyListItem, { toRight: true });
-                else if (this.module.validator.canAddListItemToLeft(context))
+                } else if (this.module.validator.canAddListItemToLeft(context)) {
                     return new EditAction(EditActionType.InsertEmptyListItem, { toLeft: true });
-                else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
 
@@ -483,7 +493,19 @@ export class EventRouter {
                         this.module.insert(
                             new ast.FunctionCallStmt(
                                 "len",
-                                [new ast.Argument([ast.DataType.AnyList, ast.DataType.StringList, ast.DataType.BooleanList, ast.DataType.NumberList, ast.DataType.String], "list", false)],
+                                [
+                                    new ast.Argument(
+                                        [
+                                            ast.DataType.AnyList,
+                                            ast.DataType.StringList,
+                                            ast.DataType.BooleanList,
+                                            ast.DataType.NumberList,
+                                            ast.DataType.String,
+                                        ],
+                                        "list",
+                                        false
+                                    ),
+                                ],
                                 ast.DataType.Number
                             )
                         );
@@ -787,7 +809,18 @@ export class EventRouter {
                         this.module.insert(
                             new ast.MethodCallExpr(
                                 "join",
-                                [new ast.Argument([ast.DataType.AnyList, ast.DataType.StringList, ast.DataType.NumberList, ast.DataType.BooleanList], "items", false)],
+                                [
+                                    new ast.Argument(
+                                        [
+                                            ast.DataType.AnyList,
+                                            ast.DataType.StringList,
+                                            ast.DataType.NumberList,
+                                            ast.DataType.BooleanList,
+                                        ],
+                                        "items",
+                                        false
+                                    ),
+                                ],
                                 ast.DataType.String,
                                 ast.DataType.String
                             )
