@@ -66,7 +66,7 @@ export const constructKeys = [
     "For",
     "List Literal",
     ".append()",
-    "Member Call",
+    "List Element Access",
     ".split()",
     ".join()",
     ".replace()",
@@ -116,7 +116,7 @@ export enum ConstructKeys {
     JoinCall = ".join()",
     ReplaceCall = ".replace()",
     FindCall = ".find()",
-    MemberCall = "Member Call",
+    MemberCall = "List Element Access",
     ListElementAssignment = "List Element Assignment",
 }
 
