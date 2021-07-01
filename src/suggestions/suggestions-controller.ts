@@ -1,4 +1,5 @@
 import { Editor } from "../editor/editor";
+import { Validator } from "../editor/validator";
 import { Module, VarAssignmentStmt } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
 import { ConstructDoc } from "./construct-doc";
@@ -118,7 +119,7 @@ class Menu {
     //An empty option is one that does not link to another menu and also does not have a select action
     private countEmptyOptions() {
         let count = 0;
-        
+
         this.options.forEach((option) => {
             if (!option.selectAction && !option.hasChild()) count++;
         });
@@ -170,18 +171,18 @@ class Menu {
 
         //some options might remain, but not link to a menu or have an action associated with them. These need to be removed
         //this is due to the fact that buildAvailableInsertsMenu() does not recursively check the menuMap for empty options
-        let optionsToRemove = []
-        this.options.forEach(option => {
-            if(!option.hasChild() && !option.selectAction){
-                optionsToRemove.push(option)
+        let optionsToRemove = [];
+        this.options.forEach((option) => {
+            if (!option.hasChild() && !option.selectAction) {
+                optionsToRemove.push(option);
             }
-        })
-        optionsToRemove.forEach(option => {
+        });
+        optionsToRemove.forEach((option) => {
             option.removeFromDOM();
-        })
-        optionsToRemove = optionsToRemove.map(option => option.text)
-        
-        this.options = this.options.filter(option => optionsToRemove.indexOf(option.text) == -1)
+        });
+        optionsToRemove = optionsToRemove.map((option) => option.text);
+
+        this.options = this.options.filter((option) => optionsToRemove.indexOf(option.text) == -1);
 
         this.children.forEach((child) => {
             child.removeEmptyChildren();
@@ -650,7 +651,7 @@ export class MenuController {
 
             //add variable references
             const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
-            const refs = Module.getValidVariableReferences(focusedNode);
+            const refs = Validator.getValidVariableReferences(focusedNode);
             const identifiers = refs.map((ref) => (ref.statement as VarAssignmentStmt).getIdentifier());
             refs.forEach((ref) => {
                 if (ref.statement instanceof VarAssignmentStmt) {
@@ -687,7 +688,7 @@ export class MenuController {
                     );
                 }
 
-                //remove menus with empty options 
+                //remove menus with empty options
                 //(is not recursive so won't catch an option that links to a menu whose options were all removed which exists within another menu)
                 if (menuMap.get(menuKey).length == 0) {
                     menuMap.delete(menuKey);
@@ -898,7 +899,7 @@ export class MenuController {
         }
 
         options[this.focusedOptionIndex].setFocus();
-        if(options[this.focusedOptionIndex].hasChild()){
+        if (options[this.focusedOptionIndex].hasChild()) {
             this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
 
@@ -927,7 +928,7 @@ export class MenuController {
         if (this.focusedOptionIndex < 0) this.focusedOptionIndex = options.length - 1;
 
         options[this.focusedOptionIndex].setFocus();
-        if(options[this.focusedOptionIndex].hasChild()){
+        if (options[this.focusedOptionIndex].hasChild()) {
             this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
 
