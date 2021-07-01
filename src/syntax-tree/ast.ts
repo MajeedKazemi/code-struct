@@ -2483,6 +2483,16 @@ export class Module {
                         }
                     }
 
+                    //update type of list based on value inserted
+                    if(isValid && focusedNode.rootNode instanceof ListLiteralExpression && focusedNode instanceof EmptyExpr && code instanceof Expression){
+                        focusedNode.rootNode.returns = code.returns;
+
+                        if(focusedNode.rootNode.rootNode && focusedNode.rootNode.rootNode instanceof VarAssignmentStmt){
+                            const newType = this.typeSystem.getListTypeFromElementType(code.returns);
+                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
+                        }
+                    }
+
                     //type checks -- different handling based on type of code construct
                     //focusedNode.returns != code.returns would work, but we need more context to get the right error message
                     if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
@@ -2551,8 +2561,8 @@ export class Module {
                     }
 
                     //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
+                    //this is for insertions of expressions inside of the empty holes of an arithmetic or comp op
                     let existingLiteralType = null;
-
                     if (
                         (focusedNode.rootNode instanceof BinaryOperatorExpr || focusedNode.rootNode instanceof ComparatorExpr) 
                         &&
@@ -2607,6 +2617,17 @@ export class Module {
                                 );
                             }
                         }
+                    }
+                    //inserting a bin op within a bin op (excluding bool bin op)
+                    if((focusedNode.rootNode instanceof BinaryOperatorExpr || focusedNode.rootNode instanceof ComparatorExpr) 
+                             &&
+                            (focusedNode.rootNode?.rootNode  instanceof BinaryOperatorExpr || focusedNode.rootNode?.rootNode  instanceof ComparatorExpr)
+                             &&
+                             code instanceof Expression
+                        )
+                    {
+                        console.log("HERE")
+                        this.typeSystem.setAllHolesToType(focusedNode.rootNode.rootNode, [code.returns]);
                     }
 
                     if (isValid) {

@@ -1,5 +1,5 @@
 import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { DataType, Expression, ForStatement, Module, Statement, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
+import { BinaryOperatorExpr, CodeConstruct, DataType, Expression, ForStatement, Module, Statement, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
 
 
 export class TypeSystem{
@@ -33,8 +33,19 @@ export class TypeSystem{
      * @param insertionCode expression to be inserted
      * @returns T/F based on whether the insertion is allowed or not
      */
-    validateForLoopIterableInsertion(insertionCode: Expression){
+    validateForLoopIterableInsertionType(insertionCode: Expression){
         return [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String].indexOf(insertionCode.returns) > -1
+    }
+
+    setAllHolesToType(parentConstruct: Statement, newTypes: DataType[]){
+        for(const tkn of parentConstruct.tokens){
+            if(tkn instanceof BinaryOperatorExpr){
+                this.setAllHolesToType(tkn, newTypes);
+            }
+            else if(tkn instanceof TypedEmptyExpr){
+                tkn.type = newTypes;
+            }
+        }
     }
 
 
@@ -67,6 +78,21 @@ export class TypeSystem{
         const newType = this.getListElementType(code.returns);
         TypeSystem.varTypeMap.set(forLoop.getIdentifier(), newType);
         this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);
+
+        console.log(newType)
+    }
+
+    getListTypeFromElementType(type: DataType){
+        switch(type){
+            case DataType.String:
+                return DataType.StringList
+            case DataType.Number:
+                return DataType.NumberList
+            case DataType.Boolean:
+                return DataType.BooleanList
+            default:
+                return DataType.AnyList
+        }
     }
 
     /**
