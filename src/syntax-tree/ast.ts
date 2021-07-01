@@ -1360,19 +1360,36 @@ export class BinaryOperatorExpr extends Expression {
         return this.rightOperandIndex;
     }
 
-    updateOperandTypes(type: DataType, removeType?: DataType){
+    //set both operands to return type and add it to type array if it is not there
+    updateOperandTypes(type: DataType){
         //in this case the type arrays will always only contain a single type unless it is the + operator
         const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type
         const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type
-        if(removeType){
-            leftOperandTypes.splice(leftOperandTypes.indexOf(removeType), 1)
-            rightOperandTypes.splice(rightOperandTypes.indexOf(removeType), 1)
+
+        if(leftOperandTypes.indexOf(type) == -1){
+            leftOperandTypes.push(type)
         }
 
-        leftOperandTypes.push(type)
-        rightOperandTypes.push(type)
+        if(rightOperandTypes.indexOf(type) == -1){
+            rightOperandTypes.push(type)
+        }
 
         this.returns = type;
+    }
+
+    //remove type from operands' type arrays
+    removeTypeFromOperands(type: DataType){
+        //in this case the type arrays will always only contain a single type unless it is the + operator
+        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type
+        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type
+        
+        if(leftOperandTypes.indexOf(type) > -1){
+            leftOperandTypes.splice(leftOperandTypes.indexOf(type), 1)
+        }
+
+        if(rightOperandTypes.indexOf(type) > -1){
+            rightOperandTypes.splice(rightOperandTypes.indexOf(type), 1)
+        }
     }
 }
 
@@ -2226,6 +2243,12 @@ export class Module {
                     return true;
                 }
 
+                //special case for BinaryOperatorExpression +
+                //because it can return either a string or a number, we need to determine what it returns during insertion
+                if(isValid && insert instanceof BinaryOperatorExpr && insert.operator == BinaryOperator.Add && insertInto instanceof TypedEmptyExpr && (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1)){
+                    return true;
+                }
+
                 //type checks -- different handling based on type of code construct
                 //insertInto.returns != code.returns would work, but we need more context to get the right error message
                 if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
@@ -2453,6 +2476,20 @@ export class Module {
 
                         if (isValid && focusedNode.notification) {
                             this.notificationSystem.removeNotificationFromConstruct(focusedNode);
+                        }
+                    }
+
+                    //special case for BinaryOperatorExpression +
+                    //because it can return either a string or a number, we need to determine what it returns during insertion
+                    if(isValid && code instanceof BinaryOperatorExpr && code.operator == BinaryOperator.Add && focusedNode instanceof TypedEmptyExpr && (focusedNode.type.indexOf(DataType.String) > -1 || focusedNode.type.indexOf(DataType.Number) > -1)){
+                        code.returns = focusedNode.type[0]// in these cases it is safe to do so since empty holes that accept a number or a string have only one type
+                        code.updateOperandTypes(focusedNode.type[0]);
+
+                        if(focusedNode.type.indexOf(DataType.String) > -1){
+                            code.removeTypeFromOperands(DataType.Number);
+                        }
+                        else{
+                            code.removeTypeFromOperands(DataType.String);
                         }
                     }
 
