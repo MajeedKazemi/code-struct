@@ -66,7 +66,7 @@ export const constructKeys = [
     "For",
     "List Literal",
     ".append()",
-    "Member Call",
+    "List Element Access",
     ".split()",
     ".join()",
     ".replace()",
@@ -116,7 +116,7 @@ export enum ConstructKeys {
     JoinCall = ".join()",
     ReplaceCall = ".replace()",
     FindCall = ".find()",
-    MemberCall = "Member Call",
+    MemberCall = "List Element Access",
     ListElementAssignment = "List Element Assignment",
 }
 
@@ -203,13 +203,13 @@ export class Util {
             [ConstructKeys.VariableAssignment, new VarAssignmentStmt()],
             [
                 ConstructKeys.PrintCall,
-                new FunctionCallStmt("print", [new Argument(DataType.Any, "item", false)], DataType.Void),
+                new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void),
             ],
             [
                 ConstructKeys.RandintCall,
                 new FunctionCallStmt(
                     "randint",
-                    [new Argument(DataType.Number, "start", false), new Argument(DataType.Number, "end", false)],
+                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
                     DataType.Number
                 ),
             ],
@@ -217,13 +217,13 @@ export class Util {
                 ConstructKeys.RangeCall,
                 new FunctionCallStmt(
                     "range",
-                    [new Argument(DataType.Number, "start", false), new Argument(DataType.Number, "end", false)],
-                    DataType.List
+                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
+                    DataType.NumberList
                 ),
             ],
             [
                 ConstructKeys.LenCall,
-                new FunctionCallStmt("len", [new Argument(DataType.List, "list", false)], DataType.Number),
+                new FunctionCallStmt("len", [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList], "list", false)], DataType.Number),
             ],
             [ConstructKeys.StringLiteral, new LiteralValExpr(DataType.String)],
             [ConstructKeys.NumberLiteral, new LiteralValExpr(DataType.Number)],
@@ -248,14 +248,14 @@ export class Util {
             [ConstructKeys.Else, new ElseStatement(false)],
             [ConstructKeys.For, new ForStatement()],
             [ConstructKeys.ListLiteral, new ListLiteralExpression()],
-            [ConstructKeys.AppendCall, new MethodCallStmt("append", [new Argument(DataType.Any, "object", false)])],
-            [ConstructKeys.MemberCall, new MemberCallStmt(DataType.Any)],
+            [ConstructKeys.AppendCall, new MethodCallStmt("append", [new Argument([DataType.Any], "object", false)])],
+            [ConstructKeys.MemberCall, new MemberCallStmt(DataType.AnyList)],
             [
                 ConstructKeys.SplitCall,
                 new MethodCallExpr(
                     "split",
-                    [new Argument(DataType.String, "sep", false)],
-                    DataType.List,
+                    [new Argument([DataType.String], "sep", false)],
+                    DataType.StringList,
                     DataType.String
                 ),
             ],
@@ -263,7 +263,7 @@ export class Util {
                 ConstructKeys.JoinCall,
                 new MethodCallExpr(
                     "join",
-                    [new Argument(DataType.List, "items", false)],
+                    [new Argument([DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList], "items", false)],
                     DataType.String,
                     DataType.String
                 ),
@@ -272,7 +272,7 @@ export class Util {
                 ConstructKeys.ReplaceCall,
                 new MethodCallExpr(
                     "replace",
-                    [new Argument(DataType.String, "old", false), new Argument(DataType.String, "new", false)],
+                    [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
                     DataType.String,
                     DataType.String
                 ),
@@ -281,7 +281,7 @@ export class Util {
                 ConstructKeys.FindCall,
                 new MethodCallExpr(
                     "find",
-                    [new Argument(DataType.String, "item", false)],
+                    [new Argument([DataType.String], "item", false)],
                     DataType.Number,
                     DataType.String
                 ),
@@ -302,7 +302,7 @@ export class Util {
                 ConstructKeys.PrintCall,
                 () => {
                     this.module.insert(
-                        new FunctionCallStmt("print", [new Argument(DataType.Any, "item", false)], DataType.Void)
+                        new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void)
                     );
                 },
             ],
@@ -313,8 +313,8 @@ export class Util {
                         new FunctionCallStmt(
                             "randint",
                             [
-                                new Argument(DataType.Number, "start", false),
-                                new Argument(DataType.Number, "end", false),
+                                new Argument([DataType.Number], "start", false),
+                                new Argument([DataType.Number], "end", false),
                             ],
                             DataType.Number
                         )
@@ -328,10 +328,10 @@ export class Util {
                         new FunctionCallStmt(
                             "range",
                             [
-                                new Argument(DataType.Number, "start", false),
-                                new Argument(DataType.Number, "end", false),
+                                new Argument([DataType.Number], "start", false),
+                                new Argument([DataType.Number], "end", false),
                             ],
-                            DataType.List
+                            DataType.NumberList
                         )
                     );
                 },
@@ -340,7 +340,7 @@ export class Util {
                 ConstructKeys.LenCall,
                 () => {
                     this.module.insert(
-                        new FunctionCallStmt("len", [new Argument(DataType.List, "list", false)], DataType.Number)
+                        new FunctionCallStmt("len", [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList, DataType.String], "list", false)], DataType.Number)
                     );
                 },
             ],
@@ -485,13 +485,13 @@ export class Util {
             [
                 ConstructKeys.AppendCall,
                 () => {
-                    this.module.insert(new MethodCallStmt("append", [new Argument(DataType.Any, "object", false)]));
+                    this.module.insert(new MethodCallStmt("append", [new Argument([DataType.Any], "object", false)]));
                 },
             ],
             [
                 ConstructKeys.MemberCall,
                 () => {
-                    this.module.insert(new MemberCallStmt(DataType.Any));
+                    this.module.insert(new MemberCallStmt(DataType.AnyList));
                 },
             ],
             [
@@ -500,8 +500,8 @@ export class Util {
                     this.module.insert(
                         new MethodCallExpr(
                             "split",
-                            [new Argument(DataType.String, "sep", false)],
-                            DataType.List,
+                            [new Argument([DataType.String], "sep", false)],
+                            DataType.StringList,
                             DataType.String
                         )
                     );
@@ -513,7 +513,7 @@ export class Util {
                     this.module.insert(
                         new MethodCallExpr(
                             "join",
-                            [new Argument(DataType.List, "items", false)],
+                            [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList], "items", false)],
                             DataType.String,
                             DataType.String
                         )
@@ -526,7 +526,7 @@ export class Util {
                     this.module.insert(
                         new MethodCallExpr(
                             "replace",
-                            [new Argument(DataType.String, "old", false), new Argument(DataType.String, "new", false)],
+                            [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
                             DataType.String,
                             DataType.String
                         )
@@ -539,7 +539,7 @@ export class Util {
                     this.module.insert(
                         new MethodCallExpr(
                             "find",
-                            [new Argument(DataType.String, "item", false)],
+                            [new Argument([DataType.String], "item", false)],
                             DataType.Number,
                             DataType.String
                         )

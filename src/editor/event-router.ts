@@ -1,6 +1,7 @@
 import * as ast from "../syntax-tree/ast";
 import { Context } from "./focus";
 import { TAB_SPACES } from "../syntax-tree/keywords";
+import { TypeSystem } from "../syntax-tree/type-sys";
 
 export enum KeyPress {
     // navigation:
@@ -428,7 +429,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.FunctionCallStmt(
                                 "print",
-                                [new ast.Argument(ast.DataType.Any, "item", false)],
+                                [new ast.Argument([ast.DataType.Any], "item", false)],
                                 ast.DataType.Void
                             )
                         );
@@ -445,8 +446,8 @@ export class EventRouter {
                             new ast.FunctionCallStmt(
                                 "randint",
                                 [
-                                    new ast.Argument(ast.DataType.Number, "start", false),
-                                    new ast.Argument(ast.DataType.Number, "end", false),
+                                    new ast.Argument([ast.DataType.Number], "start", false),
+                                    new ast.Argument([ast.DataType.Number], "end", false),
                                 ],
                                 ast.DataType.Number
                             )
@@ -464,10 +465,10 @@ export class EventRouter {
                             new ast.FunctionCallStmt(
                                 "range",
                                 [
-                                    new ast.Argument(ast.DataType.Number, "start", false),
-                                    new ast.Argument(ast.DataType.Number, "end", false),
+                                    new ast.Argument([ast.DataType.Number], "start", false),
+                                    new ast.Argument([ast.DataType.Number], "end", false),
                                 ],
-                                ast.DataType.List
+                                ast.DataType.NumberList
                             )
                         );
                     }).bind(this)
@@ -482,7 +483,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.FunctionCallStmt(
                                 "len",
-                                [new ast.Argument(ast.DataType.List, "list", false)],
+                                [new ast.Argument([ast.DataType.AnyList, ast.DataType.StringList, ast.DataType.BooleanList, ast.DataType.NumberList, ast.DataType.String], "list", false)],
                                 ast.DataType.Number
                             )
                         );
@@ -745,7 +746,7 @@ export class EventRouter {
                     id,
                     (() => {
                         this.module.insert(
-                            new ast.MethodCallStmt("append", [new ast.Argument(ast.DataType.Any, "object", false)])
+                            new ast.MethodCallStmt("append", [new ast.Argument([ast.DataType.Any], "object", false)])
                         );
                     }).bind(this)
                 );
@@ -769,8 +770,8 @@ export class EventRouter {
                         this.module.insert(
                             new ast.MethodCallExpr(
                                 "split",
-                                [new ast.Argument(ast.DataType.String, "sep", false)],
-                                ast.DataType.List,
+                                [new ast.Argument([ast.DataType.String], "sep", false)],
+                                ast.DataType.StringList,
                                 ast.DataType.String
                             )
                         );
@@ -786,7 +787,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.MethodCallExpr(
                                 "join",
-                                [new ast.Argument(ast.DataType.List, "items", false)],
+                                [new ast.Argument([ast.DataType.AnyList, ast.DataType.StringList, ast.DataType.NumberList, ast.DataType.BooleanList], "items", false)],
                                 ast.DataType.String,
                                 ast.DataType.String
                             )
@@ -804,8 +805,8 @@ export class EventRouter {
                             new ast.MethodCallExpr(
                                 "replace",
                                 [
-                                    new ast.Argument(ast.DataType.String, "old", false),
-                                    new ast.Argument(ast.DataType.String, "new", false),
+                                    new ast.Argument([ast.DataType.String], "old", false),
+                                    new ast.Argument([ast.DataType.String], "new", false),
                                 ],
                                 ast.DataType.String,
                                 ast.DataType.String
@@ -823,7 +824,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.MethodCallExpr(
                                 "find",
-                                [new ast.Argument(ast.DataType.String, "item", false)],
+                                [new ast.Argument([ast.DataType.String], "item", false)],
                                 ast.DataType.Number,
                                 ast.DataType.String
                             )
