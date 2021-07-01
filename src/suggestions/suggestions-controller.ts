@@ -898,6 +898,9 @@ export class MenuController {
         }
 
         options[this.focusedOptionIndex].setFocus();
+        if(options[this.focusedOptionIndex].hasChild()){
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
+        }
 
         if (this.focusedOptionIndex == 0) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop = 0;
@@ -924,6 +927,9 @@ export class MenuController {
         if (this.focusedOptionIndex < 0) this.focusedOptionIndex = options.length - 1;
 
         options[this.focusedOptionIndex].setFocus();
+        if(options[this.focusedOptionIndex].hasChild()){
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
+        }
 
         if (this.focusedOptionIndex == options.length - 1) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop =
