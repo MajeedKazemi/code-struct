@@ -128,6 +128,7 @@ class Menu {
 
     //Removes menu's that only serve as links (have a single option that links to another menu)
     static collapseSingleLinkMenus(root: Menu) {
+        //this will collapse a menu that links to a single option as long as it is not the root menu
         if (root.parentMenu && root.options.length == 1 && root.children.length == 1) {
             const child = root.children[0];
 
@@ -166,6 +167,21 @@ class Menu {
                 this.parentMenu.removeChild(this);
             }
         }
+
+        //some options might remain, but not link to a menu or have an action associated with them. These need to be removed
+        //this is due to the fact that buildAvailableInsertsMenu() does not recursively check the menuMap for empty options
+        let optionsToRemove = []
+        this.options.forEach(option => {
+            if(!option.hasChild() && !option.selectAction){
+                optionsToRemove.push(option)
+            }
+        })
+        optionsToRemove.forEach(option => {
+            option.removeFromDOM();
+        })
+        optionsToRemove = optionsToRemove.map(option => option.text)
+        
+        this.options = this.options.filter(option => optionsToRemove.indexOf(option.text) == -1)
 
         this.children.forEach((child) => {
             child.removeEmptyChildren();
@@ -656,7 +672,7 @@ export class MenuController {
 
             //menuMap.get(menuKey) is the array of options for that menu
             keys.forEach((menuKey) => {
-                //remove invalid options that are not links
+                //add menu options based on suggestions, options that are not in suggestions will not be included
                 if (menuKey != "Top") {
                     menuMap.set(
                         menuKey,
@@ -671,7 +687,8 @@ export class MenuController {
                     );
                 }
 
-                //remove menus with empty options
+                //remove menus with empty options 
+                //(is not recursive so won't catch an option that links to a menu whose options were all removed which exists within another menu)
                 if (menuMap.get(menuKey).length == 0) {
                     menuMap.delete(menuKey);
                     keys = keys.filter((keyToKeep) => keyToKeep != menuKey);
