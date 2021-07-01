@@ -1242,7 +1242,7 @@ export class ListElementAssignment extends Statement {
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("] = ", this, this.tokens.length));
         //TODO: Python lists allow elements of different types to be added to the same list. Should we keep that functionality?
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
     }
 }
 
@@ -2632,7 +2632,6 @@ export class Module {
                              code instanceof Expression
                         )
                     {
-                        console.log("HERE")
                         this.typeSystem.setAllHolesToType(focusedNode.rootNode.rootNode, [code.returns]);
                     }
 
@@ -2651,7 +2650,6 @@ export class Module {
                          *         Therefore, variable assumes type returned by the arithmetic expression.
                          */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                            console.log(expr.returns)
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
                         }
                         else if (
