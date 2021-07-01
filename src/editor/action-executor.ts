@@ -63,9 +63,6 @@ export class ActionExecutor {
 
                 this.validateIdentifier(context, newText);
 
-                //var type map needs to be update when identifier changes
-                TypeSystem.updateVarIdentifierInMap(token.getEditableText(), newText);
-
                 // TODO: check if turns back into an empty hole
 
                 if (token.setEditedText(newText)) {

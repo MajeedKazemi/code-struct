@@ -1825,7 +1825,7 @@ export class Module {
             ((c: Context) => {
                 const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
                 const validInserts = this.getAllValidInsertsList(focusedNode);
-                const validVarIds: string[] = Module.getValidVariableReferences(focusedNode).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
+                const validVarIds: string[] = Validator.getValidVariableReferences(focusedNode).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
 
                 //disable/enable toolbox construct buttons based on context
                 Object.keys(ConstructKeys).forEach((construct) => {
@@ -2107,40 +2107,6 @@ export class Module {
 
         //randint(1 >, ---)
         //print(1) ==> print(1 > 2)
-    }
-
-    //Return a list of variable references available to be inserted into "code"
-    static getValidVariableReferences(code: CodeConstruct): Reference[] {
-        let refs = [];
-
-        try {
-            if (code instanceof TypedEmptyExpr) {
-                let scope = code.getParentStatement()?.scope; //line that contains "code"
-                let currRootNode = code.rootNode;
-
-                while (!scope) {
-                    if (currRootNode.getParentStatement()?.hasScope()) {
-                        scope = currRootNode.getParentStatement().scope;
-                    } else if (currRootNode.rootNode instanceof Statement) {
-                        currRootNode = currRootNode.rootNode;
-                    } else if (currRootNode.rootNode instanceof Module) {
-                        scope = currRootNode.rootNode.scope;
-                    }
-                }
-
-                refs.push(...scope.getValidReferences(code.getSelection().startLineNumber));
-
-                refs = refs.filter(
-                    (ref) =>
-                        ref.statement instanceof VarAssignmentStmt &&
-                        (code.type.indexOf((ref.statement as VarAssignmentStmt).dataType ) > -1 || code.type.indexOf(DataType.Any) > -1)
-                );
-            }
-        } catch (e) {
-            console.error("Unable to get valid variable references for " + code + "\n\n" + e);
-        } finally {
-            return refs;
-        }
     }
 
     getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean> {

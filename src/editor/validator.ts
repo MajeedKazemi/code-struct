@@ -1,4 +1,4 @@
-import { BinaryOperator, DataType, Module, NonEditableTkn } from "../syntax-tree/ast";
+import { BinaryOperator, CodeConstruct, DataType, Module, NonEditableTkn, Reference, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
 import { Context } from "./focus";
 
 export class Validator {
@@ -43,5 +43,38 @@ export class Validator {
         // TODO: if (context.expressionToRight.returns == DataType.String && operator == BinaryOperator.Add) return true; else return false;
 
         return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
+    }
+
+    static getValidVariableReferences(code: CodeConstruct): Reference[] {
+        let refs = [];
+
+        try {
+            if (code instanceof TypedEmptyExpr) {
+                let scope = code.getParentStatement()?.scope; //line that contains "code"
+                let currRootNode = code.rootNode;
+
+                while (!scope) {
+                    if (currRootNode.getParentStatement()?.hasScope()) {
+                        scope = currRootNode.getParentStatement().scope;
+                    } else if (currRootNode.rootNode instanceof Statement) {
+                        currRootNode = currRootNode.rootNode;
+                    } else if (currRootNode.rootNode instanceof Module) {
+                        scope = currRootNode.rootNode.scope;
+                    }
+                }
+
+                refs.push(...scope.getValidReferences(code.getSelection().startLineNumber));
+
+                refs = refs.filter(
+                    (ref) =>
+                        ref.statement instanceof VarAssignmentStmt &&
+                        (code.type.indexOf((ref.statement as VarAssignmentStmt).dataType ) > -1 || code.type.indexOf(DataType.Any) > -1)
+                );
+            }
+        } catch (e) {
+            console.error("Unable to get valid variable references for " + code + "\n\n" + e);
+        } finally {
+            return refs;
+        }
     }
 }

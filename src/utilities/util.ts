@@ -340,7 +340,7 @@ export class Util {
                 ConstructKeys.LenCall,
                 () => {
                     this.module.insert(
-                        new FunctionCallStmt("len", [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList], "list", false)], DataType.Number)
+                        new FunctionCallStmt("len", [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList, DataType.String], "list", false)], DataType.Number)
                     );
                 },
             ],

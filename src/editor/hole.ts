@@ -6,12 +6,11 @@ import {
     IdentifierTkn,
     TypedEmptyExpr,
     VarAssignmentStmt,
-    DataType,
     ForStatement,
-    Module,
 } from "../syntax-tree/ast";
 import { Editor } from "./editor";
 import { Context } from "./focus";
+import { Validator } from "./validator";
 
 export class Hole {
     static editableHoleClass = "editableHole";
@@ -58,7 +57,7 @@ export class Hole {
         }
         else if(code instanceof TypedEmptyExpr){
             code.subscribe(CallbackType.showAvailableVars, new Callback(() => {
-                const validIdentifierIds = Module.getValidVariableReferences(code).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
+                const validIdentifierIds = Validator.getValidVariableReferences(code).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
                 
                 for(const hole of Hole.holes){
                     if((hole.code.rootNode instanceof VarAssignmentStmt || hole.code.rootNode instanceof ForStatement) && validIdentifierIds.indexOf(hole.code.rootNode.buttonId) > -1 && hole.code instanceof IdentifierTkn){

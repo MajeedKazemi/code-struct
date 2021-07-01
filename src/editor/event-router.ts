@@ -483,7 +483,7 @@ export class EventRouter {
                         this.module.insert(
                             new ast.FunctionCallStmt(
                                 "len",
-                                [new ast.Argument([ast.DataType.AnyList, ast.DataType.StringList, ast.DataType.BooleanList, ast.DataType.NumberList], "list", false)],
+                                [new ast.Argument([ast.DataType.AnyList, ast.DataType.StringList, ast.DataType.BooleanList, ast.DataType.NumberList, ast.DataType.String], "list", false)],
                                 ast.DataType.Number
                             )
                         );
