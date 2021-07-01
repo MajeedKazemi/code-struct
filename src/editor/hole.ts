@@ -61,7 +61,7 @@ export class Hole {
                 const validIdentifierIds = Module.getValidVariableReferences(code).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
                 
                 for(const hole of Hole.holes){
-                    if((hole.code.rootNode instanceof VarAssignmentStmt || hole.code.rootNode instanceof ForStatement) && validIdentifierIds.indexOf(hole.code.rootNode.buttonId) > -1){
+                    if((hole.code.rootNode instanceof VarAssignmentStmt || hole.code.rootNode instanceof ForStatement) && validIdentifierIds.indexOf(hole.code.rootNode.buttonId) > -1 && hole.code instanceof IdentifierTkn){
                         hole.element.classList.add(Hole.availableVarHoleClass);
                     }
                 }
