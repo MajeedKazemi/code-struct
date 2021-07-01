@@ -2560,6 +2560,12 @@ export class Module {
                         }
                     }
 
+                    //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
+                    if(focusedNode.rootNode instanceof MemberCallStmt && focusedNode.rootNode.rootNode instanceof VarAssignmentStmt && focusedNode instanceof TypedEmptyExpr){
+                        const newType = this.typeSystem.getElementTypeFromListType((code as Expression).returns);
+                        this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
+                    }
+
                     //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
                     //this is for insertions of expressions inside of the empty holes of an arithmetic or comp op
                     let existingLiteralType = null;

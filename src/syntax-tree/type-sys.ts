@@ -75,7 +75,7 @@ export class TypeSystem{
      * @param code    expression the type of which will be used
      */
     updateForLoopVarType(forLoop: ForStatement, code: Expression){
-        const newType = this.getListElementType(code.returns);
+        const newType = this.getElementTypeFromListType(code.returns);
         TypeSystem.varTypeMap.set(forLoop.getIdentifier(), newType);
         this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);
 
@@ -101,7 +101,7 @@ export class TypeSystem{
      * @param listType type of list
      * @returns type of elements contained in listType
      */
-    private getListElementType(listType: DataType){
+    getElementTypeFromListType(listType: DataType){
         switch(listType){
             case DataType.AnyList:
                 return DataType.Any
