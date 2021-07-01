@@ -1,4 +1,15 @@
-import { BinaryOperator, CodeConstruct, DataType, Module, NonEditableTkn, Reference, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import {
+    BinaryOperator,
+    CodeConstruct,
+    DataType,
+    ListLiteralExpression,
+    Module,
+    NonEditableTkn,
+    Reference,
+    Statement,
+    TypedEmptyExpr,
+    VarAssignmentStmt,
+} from "../syntax-tree/ast";
 import { Context } from "./focus";
 
 export class Validator {
@@ -14,6 +25,7 @@ export class Validator {
         // [asd|] [asd, fgh|] [asd|, fgh] => , ---
         return (
             context.tokenToRight instanceof NonEditableTkn &&
+            context.tokenToRight.rootNode instanceof ListLiteralExpression &&
             (context.tokenToRight.text == "]" || context.tokenToRight.text == ", ")
         );
     }
@@ -25,6 +37,7 @@ export class Validator {
 
         return (
             context.tokenToLeft instanceof NonEditableTkn &&
+            context.tokenToRight.rootNode instanceof ListLiteralExpression &&
             (context.tokenToLeft.text == "[" || context.tokenToLeft.text == ", ")
         );
     }
@@ -68,7 +81,8 @@ export class Validator {
                 refs = refs.filter(
                     (ref) =>
                         ref.statement instanceof VarAssignmentStmt &&
-                        (code.type.indexOf((ref.statement as VarAssignmentStmt).dataType ) > -1 || code.type.indexOf(DataType.Any) > -1)
+                        (code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
+                            code.type.indexOf(DataType.Any) > -1)
                 );
             }
         } catch (e) {
