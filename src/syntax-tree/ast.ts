@@ -998,11 +998,11 @@ export class ForStatement extends Statement {
 }
 
 export class Argument {
-    type: DataType;
+    type: DataType[];
     name: string;
     isOptional: boolean;
 
-    constructor(type: DataType, name: string, isOptional: boolean) {
+    constructor(type: DataType[], name: string, isOptional: boolean) {
         this.type = type;
         this.name = name;
         this.isOptional = isOptional;
@@ -1153,7 +1153,7 @@ export class FunctionCallStmt extends Expression {
                 let arg = args[i];
 
                 this.argumentsIndices.push(this.tokens.length);
-                this.tokens.push(new TypedEmptyExpr([arg.type], this, this.tokens.length));
+                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1210,7 +1210,7 @@ export class MethodCallExpr extends Expression {
                 let arg = args[i];
 
                 this.argumentsIndices.push(this.tokens.length);
-                this.tokens.push(new TypedEmptyExpr([arg.type], this, this.tokens.length));
+                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1265,7 +1265,7 @@ export class MethodCallStmt extends Statement {
                 let arg = args[i];
 
                 this.argumentsIndices.push(this.tokens.length);
-                this.tokens.push(new TypedEmptyExpr([arg.type], this, this.tokens.length));
+                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -2645,6 +2645,7 @@ export class Module {
                          *         Therefore, variable assumes type returned by the arithmetic expression.
                          */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
+                            console.log(expr.returns)
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
                         }
                         else if (
