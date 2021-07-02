@@ -2599,7 +2599,6 @@ export class Module {
                         )
                     {
                         this.typeSystem.setAllHolesToType(focusedNode.rootNode.rootNode, [code.returns]);
-                        console.log(focusedNode.rootNode.rootNode)
                     }
 
                     if (isValid) {
@@ -2618,7 +2617,6 @@ export class Module {
                          */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
-                            console.log(focusedNode.rootNode.dataType)
                         }
                         else if (
                                 parentStatement instanceof VarAssignmentStmt &&
@@ -2626,7 +2624,6 @@ export class Module {
                                 focusedNode.rootNode instanceof BinaryOperatorExpr
                         ) {
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns);
-                            console.log(parentStatement.dataType)
                         }
 
                         //update types of expressions that need an update
