@@ -1,5 +1,5 @@
 #editor-toolbox {
-    padding: 0rem 4rem;
+    padding: 2rem;
     display: flex;
     flex-direction: column;
 
@@ -7,7 +7,6 @@
 
     overflow-y: scroll;
     overflow-x: hidden;
-    padding-top: 4rem;
     min-width: -webkit-fit-content;
     min-width: -moz-fit-content;
     min-width: fit-content;
