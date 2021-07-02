@@ -1067,7 +1067,7 @@ export class VarAssignmentStmt extends Statement {
         this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
         this.valueIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
 
         this.hasEmptyToken = true;
     }
@@ -2599,6 +2599,7 @@ export class Module {
                         )
                     {
                         this.typeSystem.setAllHolesToType(focusedNode.rootNode.rootNode, [code.returns]);
+                        console.log(focusedNode.rootNode.rootNode)
                     }
 
                     if (isValid) {
@@ -2617,6 +2618,7 @@ export class Module {
                          */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
+                            console.log(focusedNode.rootNode.dataType)
                         }
                         else if (
                                 parentStatement instanceof VarAssignmentStmt &&
@@ -2624,6 +2626,7 @@ export class Module {
                                 focusedNode.rootNode instanceof BinaryOperatorExpr
                         ) {
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns);
+                            console.log(parentStatement.dataType)
                         }
 
                         //update types of expressions that need an update
