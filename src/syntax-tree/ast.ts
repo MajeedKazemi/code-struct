@@ -2551,12 +2551,16 @@ export class Module {
                         //if existingLiteralType is null here that means both operands are still empty holes
                         //otherwise, if the return type of the BinOp or CompOp does not match the contents of existingLiteralType, then need to update
                         //based on type of insertion. Otherwise set to existingLiteralType
-                        if (!existingLiteralType && focusedNode.rootNode.returns === DataType.Any) {
-                            focusedNode.rootNode.returns = code.returns;
+                        if (!existingLiteralType && (focusedNode.rootNode.returns === DataType.Any|| focusedNode.rootNode.returns === DataType.Boolean)) {
+                            if(!(focusedNode.rootNode.returns === DataType.Boolean)){
+                                focusedNode.rootNode.returns = code.returns;
+                            }
                             (focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] as TypedEmptyExpr).type = [code.returns];
                             (focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] as TypedEmptyExpr).type = [code.returns];
-                        } else if (existingLiteralType && focusedNode.rootNode.returns === DataType.Any) {
-                            focusedNode.rootNode.returns = existingLiteralType;
+                        } else if (existingLiteralType && (focusedNode.rootNode.returns === DataType.Any || focusedNode.rootNode.returns === DataType.Boolean)) {
+                            if(!(focusedNode.rootNode.returns === DataType.Boolean)){
+                                focusedNode.rootNode.returns = existingLiteralType
+                            }
                             (focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] as TypedEmptyExpr).type = [existingLiteralType];
                             (focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] as TypedEmptyExpr).type = [existingLiteralType];
                         }
