@@ -44,7 +44,7 @@ export enum DataType {
     //what they are iterating over otherwise no type can be assigned to them
     NumberList = "ListInt",
     BooleanList = "ListBool",
-    StringList = "ListStr"
+    StringList = "ListStr",
 }
 
 export enum BinaryOperator {
@@ -104,7 +104,7 @@ export enum CallbackType {
     delete,
     fail,
     focusEditableHole,
-    showAvailableVars
+    showAvailableVars,
 }
 
 export interface CodeConstruct {
@@ -960,7 +960,13 @@ export class ForStatement extends Statement {
         this.tokens.push(new IdentifierTkn(undefined, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" in ", this, this.tokens.length));
         this.rangeIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String], this, this.tokens.length));
+        this.tokens.push(
+            new TypedEmptyExpr(
+                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String],
+                this,
+                this.tokens.length
+            )
+        );
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -992,7 +998,7 @@ export class ForStatement extends Statement {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
     }
 
-    getIterableCodeObject(): CodeConstruct{
+    getIterableCodeObject(): CodeConstruct {
         return this.tokens[this.rangeIndex];
     }
 }
@@ -1201,7 +1207,7 @@ export class MethodCallExpr extends Expression {
         this.addableType = AddableType.ExpressionModifier;
 
         this.expressionIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
@@ -1237,7 +1243,13 @@ export class ListElementAssignment extends Statement {
 
         this.addableType = AddableType.Statement;
 
-        this.tokens.push(new TypedEmptyExpr([DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList], this, this.tokens.length));
+        this.tokens.push(
+            new TypedEmptyExpr(
+                [DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList],
+                this,
+                this.tokens.length
+            )
+        );
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("] = ", this, this.tokens.length));
@@ -1292,7 +1304,13 @@ export class MemberCallStmt extends Expression {
 
         this.addableType = AddableType.Expression;
 
-        this.tokens.push(new TypedEmptyExpr([DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList], this, this.tokens.length));
+        this.tokens.push(
+            new TypedEmptyExpr(
+                [DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList],
+                this,
+                this.tokens.length
+            )
+        );
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
@@ -1320,10 +1338,9 @@ export class BinaryOperatorExpr extends Expression {
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
 
         this.leftOperandIndex = this.tokens.length;
-        if(operator == BinaryOperator.Add){
+        if (operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-        }
-        else{
+        } else {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.returns = DataType.Number;
         }
@@ -1331,10 +1348,9 @@ export class BinaryOperatorExpr extends Expression {
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
 
         this.rightOperandIndex = this.tokens.length;
-        if(operator == BinaryOperator.Add){
+        if (operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-        }
-        else{
+        } else {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.returns = DataType.Number;
         }
@@ -1361,34 +1377,34 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     //set both operands to return type and add it to type array if it is not there
-    updateOperandTypes(type: DataType){
+    updateOperandTypes(type: DataType) {
         //in this case the type arrays will always only contain a single type unless it is the + operator
-        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type
-        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type
+        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type;
+        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type;
 
-        if(leftOperandTypes.indexOf(type) == -1){
-            leftOperandTypes.push(type)
+        if (leftOperandTypes.indexOf(type) == -1) {
+            leftOperandTypes.push(type);
         }
 
-        if(rightOperandTypes.indexOf(type) == -1){
-            rightOperandTypes.push(type)
+        if (rightOperandTypes.indexOf(type) == -1) {
+            rightOperandTypes.push(type);
         }
 
         this.returns = type;
     }
 
     //remove type from operands' type arrays
-    removeTypeFromOperands(type: DataType){
+    removeTypeFromOperands(type: DataType) {
         //in this case the type arrays will always only contain a single type unless it is the + operator
-        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type
-        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type
-        
-        if(leftOperandTypes.indexOf(type) > -1){
-            leftOperandTypes.splice(leftOperandTypes.indexOf(type), 1)
+        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type;
+        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type;
+
+        if (leftOperandTypes.indexOf(type) > -1) {
+            leftOperandTypes.splice(leftOperandTypes.indexOf(type), 1);
         }
 
-        if(rightOperandTypes.indexOf(type) > -1){
-            rightOperandTypes.splice(rightOperandTypes.indexOf(type), 1)
+        if (rightOperandTypes.indexOf(type) > -1) {
+            rightOperandTypes.splice(rightOperandTypes.indexOf(type), 1);
         }
     }
 }
@@ -1447,10 +1463,10 @@ export class BinaryBoolOperatorExpr extends Expression {
 
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1648,7 +1664,7 @@ export class ListLiteralExpression extends Expression {
         this.indexInRoot = indexInRoot;
 
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
-        this.tokens.push(new EmptyExpr(this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1715,19 +1731,6 @@ export class TypedEmptyExpr extends Token {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.type = type;
-
-        this.receives.push(AddableType.Expression);
-    }
-}
-
-export class EmptyExpr extends Token {
-    isEmpty = true;
-
-    constructor(root?: CodeConstruct, indexInRoot?: number, text?: string) {
-        super(text == undefined ? "   " : text);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
 
         this.receives.push(AddableType.Expression);
     }
@@ -1825,7 +1828,9 @@ export class Module {
             ((c: Context) => {
                 const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
                 const validInserts = this.getAllValidInsertsList(focusedNode);
-                const validVarIds: string[] = Validator.getValidVariableReferences(focusedNode).map(ref => (ref.statement as VarAssignmentStmt).buttonId);
+                const validVarIds: string[] = Validator.getValidVariableReferences(focusedNode).map(
+                    (ref) => (ref.statement as VarAssignmentStmt).buttonId
+                );
 
                 //disable/enable toolbox construct buttons based on context
                 Object.keys(ConstructKeys).forEach((construct) => {
@@ -1845,15 +1850,13 @@ export class Module {
                 });
 
                 //disable/enable toolbox var buttons based on context
-                this.variableButtons.forEach(button => {
-                    if(validVarIds.indexOf(button.id) > -1){
+                this.variableButtons.forEach((button) => {
+                    if (validVarIds.indexOf(button.id) > -1) {
                         button.classList.remove("varButtonDisabled");
-                    }
-                    else{
+                    } else {
                         button.classList.add("varButtonDisabled");
                     }
-                })
-
+                });
             }).bind(this)
         );
 
@@ -2094,7 +2097,7 @@ export class Module {
         return (
             (context.selected &&
                 context.token instanceof TypedEmptyExpr &&
-                (context.token as TypedEmptyExpr).type.indexOf(DataType.Boolean) > -1 ) ||
+                (context.token as TypedEmptyExpr).type.indexOf(DataType.Boolean) > -1) ||
             //TODO: This case needs to be extended further since this is not always possible
             //      For example: randint(1, 2) cannot become randint(1 > 2, 2)
             //      Parent needs to be involved in the check
@@ -2211,7 +2214,13 @@ export class Module {
 
                 //special case for BinaryOperatorExpression +
                 //because it can return either a string or a number, we need to determine what it returns during insertion
-                if(isValid && insert instanceof BinaryOperatorExpr && insert.operator == BinaryOperator.Add && insertInto instanceof TypedEmptyExpr && (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1)){
+                if (
+                    isValid &&
+                    insert instanceof BinaryOperatorExpr &&
+                    insert.operator == BinaryOperator.Add &&
+                    insertInto instanceof TypedEmptyExpr &&
+                    (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1)
+                ) {
                     return true;
                 }
 
@@ -2228,7 +2237,9 @@ export class Module {
                     else if (insertInto.rootNode instanceof ForStatement) {
                         return this.typeSystem.validateForLoopIterableInsertionType(insert);
                     } else {
-                        return insertInto.type.indexOf(insert.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1;
+                        return (
+                            insertInto.type.indexOf(insert.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1
+                        );
                     }
                 }
 
@@ -2239,16 +2250,19 @@ export class Module {
                         insertInto.rootNode instanceof ComparatorExpr) &&
                     insert instanceof Expression
                 ) {
-
-                    if(insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression){
-                        existingLiteralType = (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression).returns;
+                    if (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression) {
+                        existingLiteralType = (
+                            insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression
+                        ).returns;
+                    } else if (
+                        insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof Expression
+                    ) {
+                        existingLiteralType = (
+                            insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression
+                        ).returns;
                     }
-                    else if(insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof Expression){
-                        existingLiteralType = (insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression).returns;
-                    }
 
-                    return (existingLiteralType != null && existingLiteralType != insert.returns)
-
+                    return existingLiteralType != null && existingLiteralType != insert.returns;
                 }
 
                 if (insertInto.rootNode instanceof BinaryBoolOperatorExpr && insert instanceof Expression) {
@@ -2431,29 +2445,40 @@ export class Module {
 
                     //binary ops and comparators need to adjust their type based on contents
                     //TODO: Should go after below if
-                   /* if(code instanceof BinaryOperatorExpr || code instanceof ComparatorExpr){
+                    /* if(code instanceof BinaryOperatorExpr || code instanceof ComparatorExpr){
                         this.typeSystem.updateNestedExpressionType(focusedNode, null);
                     }*/
 
                     //special case for BinaryOperatorExpression +
                     //because it can return either a string or a number, we need to determine which of the two based on where it is inserted
-                    if(isValid && code instanceof BinaryOperatorExpr && code.operator == BinaryOperator.Add && focusedNode instanceof TypedEmptyExpr && (focusedNode.type.indexOf(DataType.String) > -1 || focusedNode.type.indexOf(DataType.Number) > -1)){
-                        code.returns = focusedNode.type[0]// in these cases it is safe to do so since empty holes that accept a number or a string have only one type
+                    if (
+                        isValid &&
+                        code instanceof BinaryOperatorExpr &&
+                        code.operator == BinaryOperator.Add &&
+                        focusedNode instanceof TypedEmptyExpr &&
+                        (focusedNode.type.indexOf(DataType.String) > -1 ||
+                            focusedNode.type.indexOf(DataType.Number) > -1)
+                    ) {
+                        code.returns = focusedNode.type[0]; // in these cases it is safe to do so since empty holes that accept a number or a string have only one type
                         code.updateOperandTypes(focusedNode.type[0]);
 
-                        if(focusedNode.type.indexOf(DataType.String) > -1){
+                        if (focusedNode.type.indexOf(DataType.String) > -1) {
                             code.removeTypeFromOperands(DataType.Number);
-                        }
-                        else{
-                            code.removeTypeFromOperands(DataType.String);
-                        }
+                        } else code.removeTypeFromOperands(DataType.String);
                     }
 
                     //update type of list based on value inserted
-                    if(isValid && focusedNode.rootNode instanceof ListLiteralExpression && focusedNode instanceof EmptyExpr && code instanceof Expression){
+                    if (
+                        isValid &&
+                        focusedNode.rootNode instanceof ListLiteralExpression &&
+                        code instanceof Expression
+                    ) {
                         focusedNode.rootNode.returns = code.returns;
 
-                        if(focusedNode.rootNode.rootNode && focusedNode.rootNode.rootNode instanceof VarAssignmentStmt){
+                        if (
+                            focusedNode.rootNode.rootNode &&
+                            focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
+                        ) {
                             const newType = this.typeSystem.getListTypeFromElementType(code.returns);
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
                         }
@@ -2463,7 +2488,10 @@ export class Module {
                     //focusedNode.returns != code.returns would work, but we need more context to get the right error message
                     if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
                         //boolean ops operate exclusively on boolean types
-                        if (focusedNode.rootNode instanceof BinaryBoolOperatorExpr && code.returns != DataType.Boolean) {
+                        if (
+                            focusedNode.rootNode instanceof BinaryBoolOperatorExpr &&
+                            code.returns != DataType.Boolean
+                        ) {
                             isValid = false;
                             this.notificationSystem.addHoverNotification(
                                 focusedNode,
@@ -2471,13 +2499,13 @@ export class Module {
                                 ErrorMessage.boolOpArgTypeMismatch
                             );
                         }
-                        
+
                         //ensures that whatever we are inserting in the second hole of a for-loop can actually be inserted there
                         //in the case that it can be, it updates the loop var's type
                         else if (focusedNode.rootNode instanceof ForStatement) {
                             isValid = this.typeSystem.validateForLoopIterableInsertionType(code);
 
-                            if(!isValid){
+                            if (!isValid) {
                                 this.notificationSystem.addHoverNotification(
                                     insertInto,
                                     {
@@ -2487,15 +2515,13 @@ export class Module {
                                     },
                                     ErrorMessage.exprTypeMismatch
                                 );
-                            }
-                            else{
+                            } else {
                                 this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code);
                             }
-                        } 
-                        
-
-                        else {
-                            isValid = focusedNode.type.indexOf(code.returns) > -1 || focusedNode.type.indexOf(DataType.Any) > -1;
+                        } else {
+                            isValid =
+                                focusedNode.type.indexOf(code.returns) > -1 ||
+                                focusedNode.type.indexOf(DataType.Any) > -1;
 
                             if (!isValid) {
                                 //within method arguments
@@ -2527,7 +2553,11 @@ export class Module {
                     }
 
                     //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
-                    if(focusedNode.rootNode instanceof MemberCallStmt && focusedNode.rootNode.rootNode instanceof VarAssignmentStmt && focusedNode instanceof TypedEmptyExpr){
+                    if (
+                        focusedNode.rootNode instanceof MemberCallStmt &&
+                        focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
+                        focusedNode instanceof TypedEmptyExpr
+                    ) {
                         const newType = this.typeSystem.getElementTypeFromListType((code as Expression).returns);
                         this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
                     }
@@ -2536,33 +2566,66 @@ export class Module {
                     //this is for insertions of expressions inside of the empty holes of an arithmetic or comp op
                     let existingLiteralType = null;
                     if (
-                        (focusedNode.rootNode instanceof BinaryOperatorExpr || focusedNode.rootNode instanceof ComparatorExpr) 
-                        &&
+                        (focusedNode.rootNode instanceof BinaryOperatorExpr ||
+                            focusedNode.rootNode instanceof ComparatorExpr) &&
                         code instanceof Expression
                     ) {
                         //Something has already been inserted and the operand is not an empty hole anymore
-                        if(focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] instanceof Expression){
-                            existingLiteralType = (focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] as Expression).returns;
-                        }
-                        else if(focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] instanceof Expression){
-                            existingLiteralType = (focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] as Expression).returns;
+                        if (
+                            focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] instanceof
+                            Expression
+                        ) {
+                            existingLiteralType = (
+                                focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] as Expression
+                            ).returns;
+                        } else if (
+                            focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] instanceof
+                            Expression
+                        ) {
+                            existingLiteralType = (
+                                focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] as Expression
+                            ).returns;
                         }
 
                         //if existingLiteralType is null here that means both operands are still empty holes
                         //otherwise, if the return type of the BinOp or CompOp does not match the contents of existingLiteralType, then need to update
                         //based on type of insertion. Otherwise set to existingLiteralType
-                        if (!existingLiteralType && (focusedNode.rootNode.returns === DataType.Any|| focusedNode.rootNode.returns === DataType.Boolean)) {
-                            if(!(focusedNode.rootNode.returns === DataType.Boolean)){
+                        if (
+                            !existingLiteralType &&
+                            (focusedNode.rootNode.returns === DataType.Any ||
+                                focusedNode.rootNode.returns === DataType.Boolean)
+                        ) {
+                            if (!(focusedNode.rootNode.returns === DataType.Boolean)) {
                                 focusedNode.rootNode.returns = code.returns;
                             }
-                            (focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] as TypedEmptyExpr).type = [code.returns];
-                            (focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] as TypedEmptyExpr).type = [code.returns];
-                        } else if (existingLiteralType && (focusedNode.rootNode.returns === DataType.Any || focusedNode.rootNode.returns === DataType.Boolean)) {
-                            if(!(focusedNode.rootNode.returns === DataType.Boolean)){
-                                focusedNode.rootNode.returns = existingLiteralType
+                            (
+                                focusedNode.rootNode.tokens[
+                                    focusedNode.rootNode.getLeftOperandIndex()
+                                ] as TypedEmptyExpr
+                            ).type = [code.returns];
+                            (
+                                focusedNode.rootNode.tokens[
+                                    focusedNode.rootNode.getRightOperandIndex()
+                                ] as TypedEmptyExpr
+                            ).type = [code.returns];
+                        } else if (
+                            existingLiteralType &&
+                            (focusedNode.rootNode.returns === DataType.Any ||
+                                focusedNode.rootNode.returns === DataType.Boolean)
+                        ) {
+                            if (!(focusedNode.rootNode.returns === DataType.Boolean)) {
+                                focusedNode.rootNode.returns = existingLiteralType;
                             }
-                            (focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] as TypedEmptyExpr).type = [existingLiteralType];
-                            (focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] as TypedEmptyExpr).type = [existingLiteralType];
+                            (
+                                focusedNode.rootNode.tokens[
+                                    focusedNode.rootNode.getLeftOperandIndex()
+                                ] as TypedEmptyExpr
+                            ).type = [existingLiteralType];
+                            (
+                                focusedNode.rootNode.tokens[
+                                    focusedNode.rootNode.getRightOperandIndex()
+                                ] as TypedEmptyExpr
+                            ).type = [existingLiteralType];
                         }
 
                         //attempting to insert code that has a different type from what is expected according to existingLiteralType
@@ -2595,13 +2658,13 @@ export class Module {
                         }
                     }
                     //inserting a bin op within a bin op (excluding bool bin op)
-                    if((focusedNode.rootNode instanceof BinaryOperatorExpr || focusedNode.rootNode instanceof ComparatorExpr) 
-                             &&
-                            (focusedNode.rootNode?.rootNode  instanceof BinaryOperatorExpr || focusedNode.rootNode?.rootNode  instanceof ComparatorExpr)
-                             &&
-                             code instanceof Expression
-                        )
-                    {
+                    if (
+                        (focusedNode.rootNode instanceof BinaryOperatorExpr ||
+                            focusedNode.rootNode instanceof ComparatorExpr) &&
+                        (focusedNode.rootNode?.rootNode instanceof BinaryOperatorExpr ||
+                            focusedNode.rootNode?.rootNode instanceof ComparatorExpr) &&
+                        code instanceof Expression
+                    ) {
                         this.typeSystem.setAllHolesToType(focusedNode.rootNode.rootNode, [code.returns]);
                     }
 
@@ -2621,11 +2684,10 @@ export class Module {
                          */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
-                        }
-                        else if (
-                                parentStatement instanceof VarAssignmentStmt &&
-                                parentStatement.dataType == DataType.Any && 
-                                focusedNode.rootNode instanceof BinaryOperatorExpr
+                        } else if (
+                            parentStatement instanceof VarAssignmentStmt &&
+                            parentStatement.dataType == DataType.Any &&
+                            focusedNode.rootNode instanceof BinaryOperatorExpr
                         ) {
                             this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns);
                         }

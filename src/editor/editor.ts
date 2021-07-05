@@ -4,7 +4,6 @@ import { Hole } from "./hole";
 import {
     CodeConstruct,
     EditableTextTkn,
-    EmptyExpr,
     IdentifierTkn,
     Module,
     Statement,
@@ -82,7 +81,6 @@ export class Editor {
         if (
             code instanceof EditableTextTkn ||
             code instanceof TypedEmptyExpr ||
-            code instanceof EmptyExpr ||
             code instanceof IdentifierTkn
         ) {
             this.holes.push(new Hole(this, code));

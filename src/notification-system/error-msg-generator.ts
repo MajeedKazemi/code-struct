@@ -1,4 +1,4 @@
-import { EmptyExpr, IdentifierTkn, TypedEmptyExpr } from "../syntax-tree/ast";
+import { IdentifierTkn, TypedEmptyExpr } from "../syntax-tree/ast";
 import { TextEnhance, CSSClasses } from "../utilities/text-enhance";
 
 export enum ErrorMessage {
@@ -233,12 +233,6 @@ export class ErrorMessageGenerator {
                                 CSSClasses.keyword
                             )} is a control flow statement that I can only put a range
                                 of values into. For this particular hole I should be using a variable name that is used to represent an element of the reange I am looping over.`;
-                        } else if (args.focusedNode instanceof EmptyExpr) {
-                            return `${this.textEnhancer.getStyledSpan(
-                                args.constructName,
-                                CSSClasses.keyword
-                            )} is a control flow statement that I can only put a range
-                                of values into. Here I should use some iterable object such as a number range, a string or a list.`;
                         }
                     }
                 }
