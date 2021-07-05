@@ -2,7 +2,6 @@ import {
     BinaryOperator,
     CodeConstruct,
     DataType,
-    EmptyExpr,
     ListLiteralExpression,
     Module,
     NonEditableTkn,
@@ -24,7 +23,6 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return (
-            context.token instanceof EmptyExpr ||
             (context.token instanceof TypedEmptyExpr &&
                 context.token.isEmpty &&
                 (context.token.type.indexOf(DataType.Any) >= 0 || context.token.type.indexOf(DataType.AnyList) >= 0))
