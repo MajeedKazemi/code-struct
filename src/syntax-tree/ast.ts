@@ -236,6 +236,7 @@ export abstract class Statement implements CodeConstruct {
     notification = null;
     keywordIndex = -1;
     hole = null;
+    typeOfHoles = new Map<number, Array<DataType>>();
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -816,6 +817,7 @@ export class WhileStatement extends Statement {
         this.tokens.push(new NonEditableTkn("while ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -839,6 +841,7 @@ export class IfStatement extends Statement {
         this.tokens.push(new NonEditableTkn("if ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -927,6 +930,7 @@ export class ElseStatement extends Statement {
             this.tokens.push(new NonEditableTkn("elif ", this, this.tokens.length));
             this.conditionIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
             this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
         } else this.tokens.push(new NonEditableTkn("else:", this, this.tokens.length));
 
@@ -967,6 +971,13 @@ export class ForStatement extends Statement {
                 this.tokens.length
             )
         );
+        this.typeOfHoles[this.tokens.length - 1] = [
+            DataType.AnyList,
+            DataType.StringList,
+            DataType.NumberList,
+            DataType.BooleanList,
+            DataType.String,
+        ];
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -1074,6 +1085,7 @@ export class VarAssignmentStmt extends Statement {
         this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
         this.valueIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
         this.hasEmptyToken = true;
     }
@@ -1160,6 +1172,7 @@ export class FunctionCallStmt extends Expression {
 
                 this.argumentsIndices.push(this.tokens.length);
                 this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1208,6 +1221,7 @@ export class MethodCallExpr extends Expression {
 
         this.expressionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
@@ -1217,6 +1231,7 @@ export class MethodCallExpr extends Expression {
 
                 this.argumentsIndices.push(this.tokens.length);
                 this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1250,11 +1265,19 @@ export class ListElementAssignment extends Statement {
                 this.tokens.length
             )
         );
+        this.typeOfHoles[this.tokens.length - 1] = [
+            DataType.AnyList,
+            DataType.NumberList,
+            DataType.StringList,
+            DataType.BooleanList,
+        ];
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn("] = ", this, this.tokens.length));
         //TODO: Python lists allow elements of different types to be added to the same list. Should we keep that functionality?
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
     }
 }
 
@@ -1278,6 +1301,7 @@ export class MethodCallStmt extends Statement {
 
                 this.argumentsIndices.push(this.tokens.length);
                 this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1311,9 +1335,16 @@ export class MemberCallStmt extends Expression {
                 this.tokens.length
             )
         );
+        this.typeOfHoles[this.tokens.length - 1] = [
+            DataType.AnyList,
+            DataType.NumberList,
+            DataType.StringList,
+            DataType.BooleanList,
+        ];
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1340,8 +1371,10 @@ export class BinaryOperatorExpr extends Expression {
         this.leftOperandIndex = this.tokens.length;
         if (operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
         } else {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
             this.returns = DataType.Number;
         }
 
@@ -1350,8 +1383,10 @@ export class BinaryOperatorExpr extends Expression {
         this.rightOperandIndex = this.tokens.length;
         if (operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
         } else {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
             this.returns = DataType.Number;
         }
 
@@ -1432,6 +1467,7 @@ export class UnaryOperatorExpr extends Expression {
         this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([operatesOn], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [operatesOn];
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1464,9 +1500,11 @@ export class BinaryBoolOperatorExpr extends Expression {
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1499,9 +1537,11 @@ export class ComparatorExpr extends Expression {
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1665,6 +1705,7 @@ export class ListLiteralExpression extends Expression {
 
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
