@@ -1463,10 +1463,10 @@ export class BinaryBoolOperatorExpr extends Expression {
 
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
