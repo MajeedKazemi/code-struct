@@ -65,7 +65,6 @@ export class ActionExecutor {
 
             case EditActionType.DeleteCurLine: {
                 this.module.deleteLine(context.lineStatement);
-
                 this.module.editor.executeEdits(
                     new monaco.Range(
                         context.lineStatement.lineNumber,
@@ -81,8 +80,15 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeletePrevLine: {
-                // TODO: NYI
-                console.log(`DeletePrevLine + ${context.lineStatement}`);
+                const prevLine = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
+                const deleteRange = new monaco.Range(
+                    prevLine.lineNumber,
+                    prevLine.left,
+                    prevLine.lineNumber + 1,
+                    prevLine.left
+                );
+                this.module.deleteLine(prevLine);
+                this.module.editor.executeEdits(deleteRange, null, "");
 
                 break;
             }
