@@ -2427,7 +2427,6 @@ export class Module {
         return insertSet.filter((insertionCandidate) => validInserts.get(insertionCandidate));
     }
 
-    //code = insert, insertInto = focusedNode
     tryInsert(insertInto: CodeConstruct, insert: CodeConstruct): InsertionType {
         if (!insertInto || !insert) {
             console.error(
