@@ -37,9 +37,21 @@ export class ActionExecutor {
 
         switch (action.type) {
             case EditActionType.DeleteNextToken: {
+                const replacementRange = this.getBoundaries(context.expressionToRight);
+                const replacement = this.module.removeItem(context.expressionToRight);
+                this.module.editor.executeEdits(replacementRange, replacement);
+                this.module.focus.updateContext({ tokenToSelect: replacement });
+
+                break;
+            }
+
+            case EditActionType.DeletePrevToken: {
                 // TODO: NYI
-                console.log(`DeleteNextToken + ${context.expressionToRight}`);
-                
+                const replacementRange = this.getBoundaries(context.expressionToLeft);
+                const replacement = this.module.removeItem(context.expressionToLeft);
+                this.module.editor.executeEdits(replacementRange, replacement);
+                this.module.focus.updateContext({ tokenToSelect: replacement });
+
                 break;
             }
 
@@ -57,12 +69,6 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.DeletePrevToken: {
-                // TODO: NYI
-                console.log(`DeletePrevToken + ${context.expressionToLeft}`);
-
-                break;
-            }
 
             case EditActionType.IndentBackwards: {
                 // TODO: NYI

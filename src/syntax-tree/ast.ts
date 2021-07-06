@@ -1924,6 +1924,42 @@ export class Module {
         this.menuController.setInstance(this, this.editor);
     }
 
+    recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
+        if (code instanceof Expression) {
+            const codeStack = new Array<CodeConstruct>();
+            codeStack.unshift(...code.tokens);
+
+            while (codeStack.length > 0) {
+                const curCode = codeStack.pop();
+                curCode.notify(callbackType);
+
+                if (curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
+            }
+        }
+    }
+
+    removeItem(item: CodeConstruct): CodeConstruct {
+        const root = item.rootNode;
+
+        if (root instanceof Statement) {
+            const replacedItem = new TypedEmptyExpr(root.typeOfHoles[item.indexInRoot]);
+            this.recursiveNotify(item, CallbackType.delete);
+
+            root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
+
+            for (let i = 0; i < root.tokens.length; i++) {
+                root.tokens[i].indexInRoot = i;
+                root.tokens[i].rootNode = root;
+            }
+
+            root.rebuild(root.getLeftPosition(), 0);
+
+            return replacedItem;
+        }
+
+        return null;
+    }
+
     insertAfterIndex(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
             const root = focusedCode.rootNode;
