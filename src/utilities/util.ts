@@ -198,11 +198,26 @@ export class Util {
     dummyToolboxConstructs: Map<string, CodeConstruct>;
     constructActions: Map<string, Function>;
     constructDocs: Map<string, ConstructDoc>;
+    typeConversionMap: Map<DataType, Array<DataType>>;
     module: Module;
 
     private constructor(module: Module) {
         this.module = module;
-        //this cannot exist on its own, need to wrap it in a class. Otherwise it does not see the imports for the construct classes.
+
+        //these cannot exist on their own, need to wrap them in a class. Otherwise they does not see the imports for the construct classes.
+
+        //stores information about what types an object or literal of a given type can be converted to either through casting or 
+        //some other manipulation such as [number] or number === --- or accessing some property such as list.length > 0
+        this.typeConversionMap = new Map<DataType, Array<DataType>>([
+            [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
+            [DataType.String, [DataType.StringList, DataType.Boolean]],
+            [DataType.Boolean, []], //empty list means it cannot be converted into anything
+            [DataType.AnyList, [DataType.Boolean]],
+            [DataType.NumberList, [DataType.Boolean]],
+            [DataType.BooleanList, [DataType.Boolean]],
+            [DataType.StringList, [DataType.Boolean]]
+        ]);
+
         this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
             [ConstructKeys.VariableAssignment, new VarAssignmentStmt()],
             [
@@ -575,4 +590,18 @@ export class Util {
     static getPopulatedInstance() {
         return Util.instance;
     }
+}
+
+
+/**
+ * Return whether list1 contains at least one item from list2.
+ */
+export function hasMatch(list1: any[], list2: any[]){
+    if(list2.length == 0 || list1.length == 0) return false;
+
+    for(const item of list2){
+        if(list1.indexOf(item)) return true;
+    }
+
+    return false;
 }

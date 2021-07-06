@@ -4,12 +4,14 @@ import { BinaryOperatorExpr, CodeConstruct, DataType, Expression, ForStatement, 
 
 export class TypeSystem{
     static varTypeMap: Map<string, DataType>;
+    static listTypes;
 
     module: Module;
 
     constructor(module: Module){
         if(!TypeSystem.varTypeMap){
             TypeSystem.varTypeMap = new Map<string, DataType>();
+            TypeSystem.listTypes = [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String]
         }
 
         this.module = module;
@@ -34,7 +36,7 @@ export class TypeSystem{
      * @returns T/F based on whether the insertion is allowed or not
      */
     validateForLoopIterableInsertionType(insertionCode: Expression){
-        return [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String].indexOf(insertionCode.returns) > -1
+        return TypeSystem.listTypes.indexOf(insertionCode.returns) > -1
     }
 
     /**
