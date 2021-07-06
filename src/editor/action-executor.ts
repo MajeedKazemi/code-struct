@@ -65,10 +65,13 @@ export class ActionExecutor {
             case EditActionType.DeleteStatement: {
                 // TODO: NYI
                 console.log(`DeleteStatement + ${context.lineStatement}`);
+                const replacementRange = this.getBoundaries(context.lineStatement);
+                const replacement = this.module.removeLine(context.lineStatement);
+                this.module.editor.executeEdits(replacementRange, replacement);
+                this.module.focus.updateContext({ tokenToSelect: replacement });
 
                 break;
             }
-
 
             case EditActionType.IndentBackwards: {
                 // TODO: NYI

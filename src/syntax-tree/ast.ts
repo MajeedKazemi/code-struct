@@ -1938,6 +1938,21 @@ export class Module {
         }
     }
 
+    removeLine(line: Statement): CodeConstruct {
+        const root = line.rootNode;
+
+        if (root instanceof Module || root instanceof Statement) {
+            const replacement = new EmptyLineStmt(root, line.indexInRoot)
+            this.recursiveNotify(line, CallbackType.delete);
+            root.body.splice(line.indexInRoot, 1, replacement);
+            replacement.build(line.getLeftPosition());
+
+            return replacement;
+        }
+
+        return null;
+    }
+
     removeItem(item: CodeConstruct): CodeConstruct {
         const root = item.rootNode;
 
