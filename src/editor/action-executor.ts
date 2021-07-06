@@ -421,8 +421,9 @@ export class ActionExecutor {
 
             case EditActionType.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
+                    const validInserts = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildAvailableInsertsMenu(
-                        this.module.getAllValidInsertsList(focusedNode),
+                        validInserts,
                         Util.getInstance(this.module).constructActions,
                         {
                             left: selection.startColumn * this.module.editor.computeCharWidth(),

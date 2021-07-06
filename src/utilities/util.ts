@@ -186,6 +186,10 @@ export const constructToToolboxButton = new Map<ConstructKeys, string>([
     [ConstructKeys.FindCall, "add-find-method-call-btn"],
 
     [ConstructKeys.ListElementAssignment, "add-list-elem-assign-btn"],
+
+    [ConstructKeys.AppendCall, "add-list-append-stmt-btn"],
+
+    [ConstructKeys.MemberCall, "add-list-index-btn"]
 ]);
 
 export class Util {

@@ -7,7 +7,7 @@ import { NotificationSystemController } from "../notification-system/notificatio
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { Notification } from "../notification-system/notification";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { ConstructKeys, constructToToolboxButton, Util } from "../utilities/util";
+import { constructKeys, ConstructKeys, constructToToolboxButton, Util } from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
 import { Hole } from "../editor/hole";
 import { Validator } from "../editor/validator";
@@ -24,6 +24,13 @@ export class Callback {
         this.callerId = "caller-id-" + Callback.counter;
         Callback.counter++;
     }
+}
+
+export enum InsertionType{
+    Valid,         //insertion can be made
+    Invalid,       //insertion cannot be made
+    DraftMode,     //insertion will trigger draft mode
+
 }
 
 export enum DataType {
@@ -1881,9 +1888,14 @@ export class Module {
             ((c: Context) => {
                 const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
                 const validInserts = this.getAllValidInsertsList(focusedNode);
-                const validVarIds: string[] = Validator.getValidVariableReferences(focusedNode).map(
-                    (ref) => (ref.statement as VarAssignmentStmt).buttonId
+                const validRefs = Validator.getValidVariableReferences(focusedNode);
+                const validVarIds: string[] = validRefs.map(
+                    (ref) => (ref[0].statement as VarAssignmentStmt).buttonId
                 );
+
+                //mark draft mode buttons
+                this.updateDraftModeToolboxButtons(focusedNode, validInserts);
+                this.updateDraftModeToolboxVarButtons(validRefs);
 
                 //disable/enable toolbox construct buttons based on context
                 Object.keys(ConstructKeys).forEach((construct) => {
@@ -1895,6 +1907,7 @@ export class Module {
                         if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
                             button.disabled = true;
                             button.classList.add("disabled");
+                            button.classList.remove(Module.draftModeButtonClass)
                         } else {
                             button.disabled = false;
                             button.classList.remove("disabled");
@@ -1908,6 +1921,7 @@ export class Module {
                         button.classList.remove("varButtonDisabled");
                     } else {
                         button.classList.add("varButtonDisabled");
+                        button.classList.remove(Module.draftModeButtonClass)
                     }
                 });
             }).bind(this)
@@ -2316,18 +2330,57 @@ export class Module {
             (context.expressionToLeft && context.expressionToRight && insertEquals)
         );
 
-        //randint(1 >, ---)
-        //print(1) ==> print(1 > 2)
     }
 
+    /**
+     * Visually mark toolbox buttons of constructs the insertion of which into insertInto will trigger draft mode.
+     * 
+     * @param insertInto construct to validate insertion against
+     * @param constructs list of possible insertions
+     */
+    updateDraftModeToolboxButtons(insertInto: CodeConstruct, constructs: Array<ConstructKeys>){
+        const dummyConstructs = Util.getInstance(this).dummyToolboxConstructs;
+        for(const construct of constructs){
+            const constructButton = document.getElementById(constructToToolboxButton.get(construct));
+            
+            if(this.tryInsert(insertInto, dummyConstructs.get(construct)) === InsertionType.DraftMode){
+                constructButton.classList.add(Module.draftModeButtonClass);
+            }
+            else{
+                constructButton.classList.remove(Module.draftModeButtonClass);
+            }
+        }
+    }
+
+    updateDraftModeToolboxVarButtons(refs: any[]){
+        for(const ref of refs){
+            const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
+            if(ref[1] === InsertionType.DraftMode){
+                button.classList.add(Module.draftModeButtonClass);
+            }
+            else{
+                button.classList.remove(Module.draftModeButtonClass);
+            }
+        }
+    }
+
+    /**
+     * Produce a map of Util.ConstructKeys to boolean stating whether a given construct is available for insertion
+     * or a draft mode insertion into focusedNode.
+     * 
+     * @param focusedNode code construct that is used to test insertions against.
+     * @returns           A mapping from code construct to whether it can be inserted at the given focusedNode. 
+     */
     getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean> {
         const validInserts = new Map<ConstructKeys, boolean>();
 
         try {
             Object.keys(ConstructKeys).forEach((key) => {
+                const insertionType = this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key]));
+                
                 validInserts.set(
                     ConstructKeys[key],
-                    this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key]))
+                    insertionType === InsertionType.Invalid ? false : true
                 );
             });
         } catch (e) {
@@ -2337,13 +2390,19 @@ export class Module {
         }
     }
 
+    /**
+     * Produce a list of all code constructs that can be inserted into focusedNode or can be inserted by activating draft mode.
+     * 
+     * @param focusedNode code construct to test insertions against.
+     * @returns           a list of ConstructKeys.
+     */
     getAllValidInsertsList(focusedNode: CodeConstruct): Array<ConstructKeys> {
         const validInsertsList = [];
 
         try {
             Object.keys(ConstructKeys).forEach((key) => {
                 if (
-                    this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key]))
+                    this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])) !== InsertionType.Invalid
                 ) {
                     validInsertsList.push(ConstructKeys[key]);
                 }
@@ -2355,6 +2414,13 @@ export class Module {
         }
     }
 
+    /**
+     * Filter insertSet to contain only code constructs that can be inserted into focusedNode and constructs that will cause draft mode to be activated upon insertion.
+     * 
+     * @param focusedNode code construct to test insertions against.
+     * @param insertSet   a list of ConstructKeys representing code constructs to filter.
+     * @returns           a list of ConstructKeys.
+     */
     getValidInsertsFromSet(focusedNode: CodeConstruct, insertSet: Array<ConstructKeys>) {
         const validInserts = this.getAllValidInsertsMap(focusedNode);
 
@@ -2362,12 +2428,12 @@ export class Module {
     }
 
     //code = insert, insertInto = focusedNode
-    tryInsert(insertInto: CodeConstruct, insert: CodeConstruct) {
+    tryInsert(insertInto: CodeConstruct, insert: CodeConstruct): InsertionType {
         if (!insertInto || !insert) {
             console.error(
                 "Failed to perform insertion check on\n   insertInto: " + insertInto + "\n   insert: " + insert
             );
-            return;
+            return null;
         }
 
         if (insert instanceof MethodCallExpr) {
@@ -2382,8 +2448,8 @@ export class Module {
                 insert.indexInRoot = prevItem.indexInRoot;
                 insert.rootNode = prevItem.rootNode;
 
-                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement) return true;
-            } else if (prevItem instanceof Expression && prevItem.returns != insert.calledOn) return false;
+                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement) return InsertionType.Valid;
+            } else if (prevItem instanceof Expression && prevItem.returns != insert.calledOn) return InsertionType.Invalid;
         }
 
         if (insert.addableType != AddableType.NotAddable && insertInto.receives.indexOf(insert.addableType) > -1) {
@@ -2397,9 +2463,9 @@ export class Module {
 
                 if (parentRoot instanceof Statement && parentRoot.hasBody()) {
                     if (insert instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                        if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return true;
-                    } else if (!(statement instanceof ElseStatement)) return true;
-                } else if (!(statement instanceof ElseStatement)) return true;
+                        if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return InsertionType.Valid;
+                    } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
+                } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
             } else if (insertInto.receives.indexOf(AddableType.Expression) > -1) {
                 let isValid = true;
 
@@ -2415,72 +2481,134 @@ export class Module {
                         isValid = parentRoot.scope.isValidReference(insert.uniqueId, focusedPos.lineNumber);
                     }
 
-                    if (!isValid) return false;
+                    if (!isValid) return InsertionType.Invalid;
 
-                    return true;
+                    return InsertionType.Valid;
                 }
 
-                //special case for BinaryOperatorExpression +
-                //because it can return either a string or a number, we need to determine what it returns during insertion
-                //Insertion of a BinaryOperatorExpr into a TypedEmptyExpr
-                if (
-                    isValid &&
-                    insert instanceof BinaryOperatorExpr &&
-                    insert.operator == BinaryOperator.Add &&
-                    insertInto instanceof TypedEmptyExpr &&
-                    (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1)
-                ) {
-                    return true;
-                }
-
-                //type checks -- different handling based on type of code construct
-                //insertInto.returns != code.returns would work, but we need more context to get the right error message
-                //Insertion of an Expression into a TypedEmptyExpr contained within some other Expression or Statement
-                if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
-                    //inserting an Expression into a TypedEmptyExpr of a BinaryBoolOperatorExpr
-                    if (insertInto.rootNode instanceof BinaryBoolOperatorExpr) {
-                        if (insert.returns != DataType.Boolean) return false;
-
-                        return true;
-                    }
-                    //for-loop check is special since Iterable does not cover both str and list right now
-                    //can change it once the types are an array
-                    //inserting an Expression into the second hole of a for-loop
-                    else if (insertInto.rootNode instanceof ForStatement) {
-                        return this.typeSystem.validateForLoopIterableInsertionType(insert);
-                    } else {
-                        return (
-                            insertInto.type.indexOf(insert.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1
-                        );
-                    }
-                }
-
-                //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
-                let existingLiteralType = null;
-                if (
-                    (insertInto.rootNode instanceof BinaryOperatorExpr ||
-                        insertInto.rootNode instanceof ComparatorExpr) &&
-                    insert instanceof Expression
-                ) {
-                    //record the type of any hole that is already filled
-                    if (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression) {
-                        existingLiteralType = (
-                            insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression
-                        ).returns;
-                    } else if (
-                        insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof Expression
+                if(insertInto.draftModeEnabled){
+                    //special case for BinaryOperatorExpression +
+                    //because it can return either a string or a number, we need to determine what it returns during insertion
+                    //Insertion of a BinaryOperatorExpr into a TypedEmptyExpr
+                    if (
+                        isValid &&
+                        insert instanceof BinaryOperatorExpr &&
+                        insert.operator == BinaryOperator.Add &&
+                        insertInto instanceof TypedEmptyExpr &&
+                        (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1 || insertInto.type.indexOf(DataType.Any) > -1)
                     ) {
-                        existingLiteralType = (
-                            insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression
-                        ).returns;
+                        return InsertionType.Valid;
                     }
 
-                    return existingLiteralType != null && existingLiteralType != insert.returns;
-                }
+                    //type checks -- different handling based on type of code construct
+                    //insertInto.returns != code.returns would work, but we need more context to get the right error message
+                    //Insertion of an Expression into a TypedEmptyExpr contained within some other Expression or Statement
+                    if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
+                        //inserting an Expression into a TypedEmptyExpr of a BinaryBoolOperatorExpr
+                        if (insertInto.rootNode instanceof BinaryBoolOperatorExpr) {
+                            if (insert.returns != DataType.Boolean) return InsertionType.Invalid;
 
-                return true;
+                            return InsertionType.Valid;
+                        }
+                        //for-loop check is special since Iterable does not cover both str and list right now
+                        //can change it once the types are an array
+                        //inserting an Expression into the second hole of a for-loop
+                        else if (insertInto.rootNode instanceof ForStatement) {
+                            return this.typeSystem.validateForLoopIterableInsertionType(insert) ? InsertionType.Valid : InsertionType.Invalid;
+                        } else {
+                            return (
+                                (insertInto.type.indexOf(insert.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1) ? InsertionType.Valid : InsertionType.Invalid
+                            );
+                        }
+                    }
+
+                    //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
+                    let existingLiteralType = null;
+                    if (
+                        (insertInto.rootNode instanceof BinaryOperatorExpr ||
+                            insertInto.rootNode instanceof ComparatorExpr) &&
+                        insert instanceof Expression
+                    ) {
+                        //record the type of any hole that is already filled
+                        if (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression) {
+                            existingLiteralType = (
+                                insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression
+                            ).returns;
+                        } else if (
+                            insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof Expression
+                        ) {
+                            existingLiteralType = (
+                                insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression
+                            ).returns;
+                        }
+
+                        return (existingLiteralType != null && existingLiteralType != insert.returns) ? InsertionType.Valid : InsertionType.Invalid;
+                    }
+
+                    return InsertionType.Valid;
+                }
+                else{
+                    //special case for BinaryOperatorExpression +
+                    //because it can return either a string or a number, we need to determine what it returns during insertion
+                    //Insertion of a BinaryOperatorExpr into a TypedEmptyExpr
+                    if (
+                        isValid &&
+                        insert instanceof BinaryOperatorExpr &&
+                        insert.operator == BinaryOperator.Add &&
+                        insertInto instanceof TypedEmptyExpr
+                    ) {
+                        return (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1 || insertInto.type.indexOf(DataType.Any) > -1 ? InsertionType.Valid : InsertionType.DraftMode)
+                    }
+
+                    //type checks -- different handling based on type of code construct
+                    //insertInto.returns != code.returns would work, but we need more context to get the right error message
+                    //Insertion of an Expression into a TypedEmptyExpr contained within some other Expression or Statement
+                    if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
+                        //inserting an Expression into a TypedEmptyExpr of a BinaryBoolOperatorExpr
+                        if (insertInto.rootNode instanceof BinaryBoolOperatorExpr) {
+                            if (insert.returns != DataType.Boolean) return InsertionType.DraftMode;
+
+                            return InsertionType.Valid;
+                        }
+                        //for-loop check is special since Iterable does not cover both str and list right now
+                        //can change it once the types are an array
+                        //inserting an Expression into the second hole of a for-loop
+                        else if (insertInto.rootNode instanceof ForStatement) {
+                            return this.typeSystem.validateForLoopIterableInsertionType(insert) ? InsertionType.Valid : InsertionType.DraftMode;
+                        } else {
+                            return (
+                                (insertInto.type.indexOf(insert.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1) ? InsertionType.Valid : InsertionType.DraftMode
+                            );
+                        }
+                    }
+
+                    //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
+                    let existingLiteralType = null;
+                    if (
+                        (insertInto.rootNode instanceof BinaryOperatorExpr ||
+                            insertInto.rootNode instanceof ComparatorExpr) &&
+                        insert instanceof Expression
+                    ) {
+                        //record the type of any hole that is already filled
+                        if (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression) {
+                            existingLiteralType = (
+                                insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression
+                            ).returns;
+                        } else if (
+                            insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof Expression
+                        ) {
+                            existingLiteralType = (
+                                insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression
+                            ).returns;
+                        }
+
+                        return (existingLiteralType != null && existingLiteralType != insert.returns) ? InsertionType.Valid : InsertionType.DraftMode;
+                    }
+
+                    return InsertionType.Valid;
+                }
             }
-        } else return false;
+        } else return InsertionType.Invalid;
     }
 
     ///------------------VALIDATOR END

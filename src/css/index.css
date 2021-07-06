@@ -66,6 +66,10 @@ body {
     cursor: not-allowed;
 }
 
+.button.draftModeButton{
+    background-color: rgba(255, 127, 80, 0.8);
+}
+
 #editor-toolbox .group {
     display: grid;
     grid-template-columns: auto auto;

@@ -1,6 +1,6 @@
 import { Editor } from "../editor/editor";
 import { Validator } from "../editor/validator";
-import { Module, VarAssignmentStmt } from "../syntax-tree/ast";
+import { Module, Reference, VarAssignmentStmt } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
 import { ConstructDoc } from "./construct-doc";
 
@@ -652,13 +652,13 @@ export class MenuController {
             //add variable references
             const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
             const refs = Validator.getValidVariableReferences(focusedNode);
-            const identifiers = refs.map((ref) => (ref.statement as VarAssignmentStmt).getIdentifier());
+            const identifiers = refs.map((ref) => (ref[0].statement as VarAssignmentStmt).getIdentifier());
             refs.forEach((ref) => {
-                if (ref.statement instanceof VarAssignmentStmt) {
-                    menuMap.get("Other").push(ref.statement.getIdentifier());
+                if ((ref[0] as Reference).statement instanceof VarAssignmentStmt) {
+                    menuMap.get("Other").push(((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier());
                     actionMap.set(
-                        ref.statement.getIdentifier(),
-                        this.module.getVarRefHandler(ref.statement).bind(this.module)
+                        ((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier(),
+                        this.module.getVarRefHandler((ref[0] as Reference).statement as VarAssignmentStmt).bind(this.module)
                     );
                 }
             });

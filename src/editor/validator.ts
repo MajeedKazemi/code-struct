@@ -3,6 +3,7 @@ import {
     CodeConstruct,
     DataType,
     EmptyLineStmt,
+    InsertionType,
     ListLiteralExpression,
     Module,
     NonEditableTkn,
@@ -223,8 +224,9 @@ export class Validator {
         return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
     }
 
-    static getValidVariableReferences(code: CodeConstruct): Reference[] {
-        let refs = [];
+    static getValidVariableReferences(code: CodeConstruct): any[] {
+        const refs = [];
+        const mappedRefs = [];
 
         try {
             if (code instanceof TypedEmptyExpr) {
@@ -243,17 +245,22 @@ export class Validator {
 
                 refs.push(...scope.getValidReferences(code.getSelection().startLineNumber));
 
-                refs = refs.filter(
-                    (ref) =>
-                        ref.statement instanceof VarAssignmentStmt &&
-                        (code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
-                            code.type.indexOf(DataType.Any) > -1)
-                );
+                for(const ref of refs){
+                    if(ref.statement instanceof VarAssignmentStmt){
+                        if((code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
+                            code.type.indexOf(DataType.Any) > -1)){
+                                mappedRefs.push([ref, InsertionType.Valid])
+                        }
+                        else{
+                            mappedRefs.push([ref, InsertionType.DraftMode])
+                        }
+                    }
+                }
             }
         } catch (e) {
             console.error("Unable to get valid variable references for " + code + "\n\n" + e);
         } finally {
-            return refs;
+            return mappedRefs;
         }
     }
 }
