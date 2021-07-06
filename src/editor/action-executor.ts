@@ -12,14 +12,19 @@ import {
     NonEditableTkn,
     TypedEmptyExpr,
     ListLiteralExpression,
+    CodeConstruct,
 } from "../syntax-tree/ast";
-import { TypeSystem } from "../syntax-tree/type-sys";
 
 export class ActionExecutor {
     module: Module;
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    private getBoundaries(code: CodeConstruct): monaco.Range {
+        const lineNumber = code.getLineNumber();
+        return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
     }
 
     execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
@@ -31,6 +36,48 @@ export class ActionExecutor {
         let preventDefaultEvent = true;
 
         switch (action.type) {
+            case EditActionType.DeleteNextToken: {
+                // TODO: NYI
+                console.log(`DeleteNextToken + ${context.expressionToRight}`);
+                
+                break;
+            }
+
+            case EditActionType.DeleteCurLine: {
+                // TODO: NYI
+                console.log(`DeleteCurLine + ${context.lineStatement}`);
+
+                break;
+            }
+
+            case EditActionType.DeleteStatement: {
+                // TODO: NYI
+                console.log(`DeleteStatement + ${context.lineStatement}`);
+
+                break;
+            }
+
+            case EditActionType.DeletePrevToken: {
+                // TODO: NYI
+                console.log(`DeletePrevToken + ${context.expressionToLeft}`);
+
+                break;
+            }
+
+            case EditActionType.IndentBackwards: {
+                // TODO: NYI
+                console.log(`IndentBackwards + ${context.lineStatement}`);
+
+                break;
+            }
+
+            case EditActionType.DeletePrevLine: {
+                // TODO: NYI
+                console.log(`DeletePrevLine + ${context.lineStatement}`);
+
+                break;
+            }
+
             case EditActionType.InsertEmptyLine: {
                 this.module.insertEmptyLine();
 

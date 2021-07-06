@@ -324,12 +324,12 @@ export class Focus {
     }
 
     /**
-     * Returns true if a line exists above the focused line, otherwise, returns false.
+     * Returns true if focused within a line that is inside the body of another statement.
      */
-    existsLineAbove(): boolean {
-        const curPos = this.module.editor.monaco.getPosition();
+    inTabbedLine(providedContext?: Context): boolean {
+        const curLine = providedContext? providedContext.lineStatement: this.getFocusedStatement();
 
-        return curPos.lineNumber > 1;
+        return curLine.getLeftPosition().column > 1;
     }
 
     /**
@@ -390,7 +390,7 @@ export class Focus {
      * @param line the given line number to search for.
      * @returns the ast.Statement object of that line.
      */
-    private getStatementAtLineNumber(line: number): ast.Statement {
+    getStatementAtLineNumber(line: number): ast.Statement {
         const bodyStack = new Array<ast.Statement>();
 
         for (const stmt of this.module.body) bodyStack.unshift(stmt);
