@@ -2412,6 +2412,7 @@ export class Module {
 
                 //special case for BinaryOperatorExpression +
                 //because it can return either a string or a number, we need to determine what it returns during insertion
+                //Insertion of a BinaryOperatorExpr into a TypedEmptyExpr
                 if (
                     isValid &&
                     insert instanceof BinaryOperatorExpr &&
@@ -2424,7 +2425,9 @@ export class Module {
 
                 //type checks -- different handling based on type of code construct
                 //insertInto.returns != code.returns would work, but we need more context to get the right error message
+                //Insertion of an Expression into a TypedEmptyExpr contained within some other Expression or Statement
                 if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
+                    //inserting an Expression into a TypedEmptyExpr of a BinaryBoolOperatorExpr
                     if (insertInto.rootNode instanceof BinaryBoolOperatorExpr) {
                         if (insert.returns != DataType.Boolean) return false;
 
@@ -2432,6 +2435,7 @@ export class Module {
                     }
                     //for-loop check is special since Iterable does not cover both str and list right now
                     //can change it once the types are an array
+                    //inserting an Expression into the second hole of a for-loop
                     else if (insertInto.rootNode instanceof ForStatement) {
                         return this.typeSystem.validateForLoopIterableInsertionType(insert);
                     } else {
@@ -2448,6 +2452,7 @@ export class Module {
                         insertInto.rootNode instanceof ComparatorExpr) &&
                     insert instanceof Expression
                 ) {
+                    //record the type of any hole that is already filled
                     if (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression) {
                         existingLiteralType = (
                             insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression
@@ -2461,12 +2466,6 @@ export class Module {
                     }
 
                     return existingLiteralType != null && existingLiteralType != insert.returns;
-                }
-
-                if (insertInto.rootNode instanceof BinaryBoolOperatorExpr && insert instanceof Expression) {
-                    if (insert.returns != DataType.Boolean) return false;
-
-                    return true;
                 }
 
                 return true;
