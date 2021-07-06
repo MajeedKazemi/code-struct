@@ -149,6 +149,12 @@ export interface CodeConstruct {
     notification: Notification;
 
     /**
+     * Whether this code construct is in draft mode or not. Always false for Tokens
+     */
+    draftModeEnabled: boolean;
+
+
+    /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
      * @param pos the left position to start building the nodes from
      * @returns the final right position of the whole node (calculated after building all of the children nodes)
@@ -237,6 +243,7 @@ export abstract class Statement implements CodeConstruct {
     keywordIndex = -1;
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();
+    draftModeEnabled = false;
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -672,6 +679,7 @@ export abstract class Token implements CodeConstruct {
     isEmpty: boolean = false;
     callbacks = new Map<string, Array<Callback>>();
     notification = null;
+    draftModeEnabled = false;
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -1837,6 +1845,8 @@ export class KeywordTkn extends Token {
  * The main body of the code which includes an array of statements.
  */
 export class Module {
+    static draftModeButtonClass = "draftModeButton";
+
     body = new Array<Statement>();
     focus: Focus;
     validator: Validator;
