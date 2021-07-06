@@ -37,6 +37,12 @@ export class TypeSystem{
         return [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String].indexOf(insertionCode.returns) > -1
     }
 
+    /**
+     * Set all empty holes (TypedEmptyExpr) in an expression to the provided type newTypes.
+     * 
+     * @param parentConstruct parent Statement of the expression
+     * @param newTypes        types to use
+     */
     setAllHolesToType(parentConstruct: Statement, newTypes: DataType[]){
         for(const tkn of parentConstruct.tokens){
             if(tkn instanceof BinaryOperatorExpr){
@@ -47,7 +53,6 @@ export class TypeSystem{
             }
         }
     }
-
 
     /**
      * Update the toolbox button associated with a variable to create a reference of a new type.
@@ -82,6 +87,12 @@ export class TypeSystem{
         console.log(newType)
     }
 
+    /**
+     * Return the corresponding type of list given the type of element.
+     * 
+     * @param type element type
+     * @returns    corresponding list type (one of: StringList, NumberList, BooleanList, AnyList)
+     */
     getListTypeFromElementType(type: DataType){
         switch(type){
             case DataType.String:
