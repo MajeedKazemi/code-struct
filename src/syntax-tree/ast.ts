@@ -2465,6 +2465,7 @@ export class Module {
                         if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return InsertionType.Valid;
                     } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
                 } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
+                else{return InsertionType.Invalid}
             } else if (insertInto.receives.indexOf(AddableType.Expression) > -1) {
                 let isValid = true;
 

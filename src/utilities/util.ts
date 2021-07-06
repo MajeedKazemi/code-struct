@@ -211,7 +211,7 @@ export class Util {
         this.typeConversionMap = new Map<DataType, Array<DataType>>([
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
             [DataType.String, [DataType.StringList, DataType.Boolean]],
-            [DataType.Boolean, []], //empty list means it cannot be converted into anything
+            [DataType.Boolean, [DataType.BooleanList]],
             [DataType.AnyList, [DataType.Boolean]],
             [DataType.NumberList, [DataType.Boolean]],
             [DataType.BooleanList, [DataType.Boolean]],
@@ -600,7 +600,7 @@ export function hasMatch(list1: any[], list2: any[]){
     if(list2.length == 0 || list1.length == 0) return false;
 
     for(const item of list2){
-        if(list1.indexOf(item)) return true;
+        if(list1.indexOf(item) > -1) return true;
     }
 
     return false;
