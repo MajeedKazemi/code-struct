@@ -236,8 +236,6 @@ export class EventRouter {
                     return new EditAction(EditActionType.IndentBackwards);
                 } else if (this.module.validator.canDeletePrevToken(context)) {
                     return new EditAction(EditActionType.DeletePrevToken);
-                } else if (this.module.validator.canDeleteCurLine(context)) {
-                    return new EditAction(EditActionType.DeleteCurLine);
                 }
 
                 break;

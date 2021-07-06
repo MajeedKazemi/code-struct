@@ -311,6 +311,8 @@ export abstract class Statement implements CodeConstruct {
         let lineNumber = startLineNumber;
 
         for (let i = fromIndex; i < this.body.length; i++) {
+            this.body[i].indexInRoot = i;
+
             if (i == 0) {
                 this.setLineNumber(lineNumber);
                 lineNumber++;
@@ -1938,7 +1940,7 @@ export class Module {
         }
     }
 
-    removeLine(line: Statement): CodeConstruct {
+    removeStatement(line: Statement): CodeConstruct {
         const root = line.rootNode;
 
         if (root instanceof Module || root instanceof Statement) {
@@ -1951,6 +1953,16 @@ export class Module {
         }
 
         return null;
+    }
+
+    deleteLine(line: Statement) { 
+        const root = line.rootNode;
+
+        if (root instanceof Module || root instanceof Statement) {
+            this.recursiveNotify(line, CallbackType.delete);
+            root.body.splice(line.indexInRoot, 1);
+            this.rebuildBody(0, 1);
+        }
     }
 
     removeItem(item: CodeConstruct): CodeConstruct {
@@ -2157,9 +2169,11 @@ export class Module {
         let lineNumber = startLineNumber;
 
         for (let i = fromIndex; i < this.body.length; i++) {
+            this.body[i].indexInRoot = i;
+
             if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
             else this.body[i].setLineNumber(lineNumber);
-
+            
             lineNumber += this.body[i].getHeight();
         }
     }

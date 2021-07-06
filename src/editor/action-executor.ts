@@ -46,7 +46,6 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeletePrevToken: {
-                // TODO: NYI
                 const replacementRange = this.getBoundaries(context.expressionToLeft);
                 const replacement = this.module.removeItem(context.expressionToLeft);
                 this.module.editor.executeEdits(replacementRange, replacement);
@@ -55,27 +54,28 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.DeleteCurLine: {
-                // TODO: NYI
-                console.log(`DeleteCurLine + ${context.lineStatement}`);
-
-                break;
-            }
-
             case EditActionType.DeleteStatement: {
-                // TODO: NYI
-                console.log(`DeleteStatement + ${context.lineStatement}`);
                 const replacementRange = this.getBoundaries(context.lineStatement);
-                const replacement = this.module.removeLine(context.lineStatement);
+                const replacement = this.module.removeStatement(context.lineStatement);
                 this.module.editor.executeEdits(replacementRange, replacement);
                 this.module.focus.updateContext({ tokenToSelect: replacement });
 
                 break;
             }
 
-            case EditActionType.IndentBackwards: {
-                // TODO: NYI
-                console.log(`IndentBackwards + ${context.lineStatement}`);
+            case EditActionType.DeleteCurLine: {
+                this.module.deleteLine(context.lineStatement);
+
+                this.module.editor.executeEdits(
+                    new monaco.Range(
+                        context.lineStatement.lineNumber,
+                        context.lineStatement.left,
+                        context.lineStatement.lineNumber + 1,
+                        context.lineStatement.left
+                    ),
+                    null,
+                    ""
+                );
 
                 break;
             }
@@ -83,6 +83,13 @@ export class ActionExecutor {
             case EditActionType.DeletePrevLine: {
                 // TODO: NYI
                 console.log(`DeletePrevLine + ${context.lineStatement}`);
+
+                break;
+            }
+
+            case EditActionType.IndentBackwards: {
+                // TODO: NYI
+                console.log(`IndentBackwards + ${context.lineStatement}`);
 
                 break;
             }

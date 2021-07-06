@@ -20,18 +20,23 @@ export class Validator {
         this.module = module;
     }
 
+    // canBackspaceCurLine()
+
     /**
      * logic: checks if currently at an empty line.
-     * AND is not the only line of the body of a compound statement.
+     * AND is not the only line of the body of a compound statement or Module.
+     * AND is not the last line (in the Module or in a compound statement)
      */
     canDeleteCurLine(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         if (context.lineStatement instanceof EmptyLineStmt) {
-            if (context.lineStatement.rootNode instanceof Statement && context.lineStatement.rootNode.body.length == 1)
-                return false;
-
-            return true;
+            return (
+                (context.lineStatement.rootNode instanceof Statement ||
+                    context.lineStatement.rootNode instanceof Module) &&
+                context.lineStatement.rootNode.body.length != 1 &&
+                context.lineStatement.indexInRoot != context.lineStatement.rootNode.body.length - 1
+            );
         }
 
         return false;
