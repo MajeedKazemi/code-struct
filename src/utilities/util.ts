@@ -215,7 +215,8 @@ export class Util {
             [DataType.AnyList, [DataType.Boolean]],
             [DataType.NumberList, [DataType.Boolean]],
             [DataType.BooleanList, [DataType.Boolean]],
-            [DataType.StringList, [DataType.Boolean]]
+            [DataType.StringList, [DataType.Boolean]],
+            [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]]
         ]);
 
         this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
