@@ -1927,7 +1927,7 @@ export class Module {
     }
 
     recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
-        if (code instanceof Expression) {
+        if (code instanceof Expression || code instanceof Statement) {
             const codeStack = new Array<CodeConstruct>();
             codeStack.unshift(...code.tokens);
 
@@ -1936,6 +1936,7 @@ export class Module {
                 curCode.notify(callbackType);
 
                 if (curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
+                if (curCode instanceof Statement && curCode.hasBody()) codeStack.unshift(...curCode.body);
             }
         }
     }
@@ -2024,7 +2025,6 @@ export class Module {
                 aboveMultilineStmt.body.push(removedItem[0]);
 
                 this.rebuildBody(0, 1);
-
             }
         }
     }
