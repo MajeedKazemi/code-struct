@@ -65,16 +65,29 @@ export class ActionExecutor {
 
             case EditActionType.DeleteCurLine: {
                 this.module.deleteLine(context.lineStatement);
-                this.module.editor.executeEdits(
-                    new monaco.Range(
+                let range: monaco.Range;
+
+                if (action.data.pressedBackspace) {
+                    const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
+                    this.module.focus.updateContext({
+                        positionToMove: new monaco.Position(lineAbove.lineNumber, lineAbove.right),
+                    });
+                    range = new monaco.Range(
+                        context.lineStatement.lineNumber,
+                        context.lineStatement.left,
+                        lineAbove.lineNumber,
+                        lineAbove.right
+                    );
+                } else {
+                    range = new monaco.Range(
                         context.lineStatement.lineNumber,
                         context.lineStatement.left,
                         context.lineStatement.lineNumber + 1,
                         context.lineStatement.left
-                    ),
-                    null,
-                    ""
-                );
+                    );
+                }
+
+                this.module.editor.executeEdits(range, null, "");
 
                 break;
             }

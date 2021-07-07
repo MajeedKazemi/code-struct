@@ -42,6 +42,20 @@ export class Validator {
         return false;
     }
 
+    canBackspaceCurEmptyLine(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.lineStatement instanceof EmptyLineStmt) {
+            return (
+                (context.lineStatement.rootNode instanceof Statement ||
+                    context.lineStatement.rootNode instanceof Module) &&
+                context.lineStatement.rootNode.body.length != 1
+            );
+        }
+
+        return false;
+    }
+
     /**
      * logic: checks if the above line is an empty line.
      */
@@ -153,7 +167,7 @@ export class Validator {
             if (context.lineStatement.lineNumber > 2) {
                 const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
 
-                return (lineAbove.left != context.lineStatement.left)
+                return lineAbove.left != context.lineStatement.left;
             }
         }
 

@@ -83,10 +83,10 @@ export enum EditActionType {
     DeletePrevLine,
     DeleteCurLine,
     DeleteStatement,
-    
+
     IndentBackwards,
     IndentForwards,
-    
+
     InsertChar,
 
     None,
@@ -240,6 +240,8 @@ export class EventRouter {
                     return new EditAction(EditActionType.IndentBackwards);
                 } else if (this.module.validator.canDeletePrevToken(context)) {
                     return new EditAction(EditActionType.DeletePrevToken);
+                } else if (this.module.validator.canBackspaceCurEmptyLine(context)) {
+                    return new EditAction(EditActionType.DeleteCurLine, { pressedBackspace: true });
                 }
 
                 break;
@@ -252,7 +254,6 @@ export class EventRouter {
 
                 break;
             }
-
 
             case KeyPress.Enter:
                 if (this.module.menuController.isMenuOpen()) return new EditAction(EditActionType.SelectMenuSuggestion);
