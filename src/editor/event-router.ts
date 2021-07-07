@@ -13,6 +13,8 @@ export enum KeyPress {
     Home = "Home",
     End = "End",
 
+    Tab = "Tab",
+
     // delete:
     Delete = "Delete",
     Backspace = "Backspace",
@@ -78,11 +80,13 @@ export enum EditActionType {
 
     DeleteNextToken,
     DeletePrevToken,
-    IndentBackwards,
     DeletePrevLine,
     DeleteCurLine,
     DeleteStatement,
-
+    
+    IndentBackwards,
+    IndentForwards,
+    
     InsertChar,
 
     None,
@@ -240,6 +244,15 @@ export class EventRouter {
 
                 break;
             }
+
+            case KeyPress.Tab: {
+                if (this.module.validator.canIndentForward(context)) {
+                    return new EditAction(EditActionType.IndentForwards);
+                }
+
+                break;
+            }
+
 
             case KeyPress.Enter:
                 if (this.module.menuController.isMenuOpen()) return new EditAction(EditActionType.SelectMenuSuggestion);

@@ -141,6 +141,25 @@ export class Validator {
         return false;
     }
 
+    /**
+     * logic:
+     * checks if at the beginning of a line
+     * AND if the above line is an indented line.
+     */
+    canIndentForward(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (this.module.focus.onBeginningOfLine()) {
+            if (context.lineStatement.lineNumber > 2) {
+                const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
+
+                return (lineAbove.left != context.lineStatement.left)
+            }
+        }
+
+        return false;
+    }
+
     canInsertEmptyList(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 

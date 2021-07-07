@@ -94,33 +94,15 @@ export class ActionExecutor {
             }
 
             case EditActionType.IndentBackwards: {
-                this.module.editor.executeEdits(
-                    new monaco.Range(
-                        context.lineStatement.lineNumber,
-                        context.lineStatement.left,
-                        context.lineStatement.lineNumber,
-                        context.lineStatement.left - keywords.TAB_SPACES
-                    ),
-                    null,
-                    ""
-                );
-
-                if (context.lineStatement.hasBody()) {
-                    for (const stmt of context.lineStatement.body) {
-                        this.module.editor.executeEdits(
-                            new monaco.Range(
-                                stmt.lineNumber,
-                                stmt.left,
-                                stmt.lineNumber,
-                                stmt.left - keywords.TAB_SPACES
-                            ),
-                            null,
-                            ""
-                        );
-                    }
-                }
-
+                this.module.editor.indentRecursively(context.lineStatement, { backward: true });
                 this.module.indentBackStatement(context.lineStatement);
+
+                break;
+            }
+
+            case EditActionType.IndentForwards: {
+                this.module.editor.indentRecursively(context.lineStatement, { backward: false });
+                this.module.indentForwardStatement(context.lineStatement);
 
                 break;
             }

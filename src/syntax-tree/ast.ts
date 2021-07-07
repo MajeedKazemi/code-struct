@@ -1971,13 +1971,60 @@ export class Module {
                 removedItem[0].indexInRoot = root.indexInRoot + 1;
                 removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
 
-                for (const stmt of removedItem[0].body) {
-                    stmt.build(new monaco.Position(stmt.lineNumber, stmt.left - TAB_SPACES));
+                const stmtStack = new Array<Statement>();
+                stmtStack.unshift(...removedItem[0].body);
+
+                while (stmtStack.length > 0) {
+                    const curStmt = stmtStack.pop();
+                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left - TAB_SPACES));
+
+                    if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
                 }
 
                 outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
 
                 this.rebuildBody(0, 1);
+            }
+        }
+    }
+
+    indentForwardStatement(line: Statement) {
+        const root = line.rootNode;
+
+        if (root instanceof Statement || root instanceof Module) {
+            if (!line.hasBody()) {
+                const aboveMultilineStmt = root.body[line.indexInRoot - 1];
+                const removedItem = root.body.splice(line.indexInRoot, 1);
+
+                removedItem[0].rootNode = aboveMultilineStmt;
+                removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+
+                aboveMultilineStmt.body.push(removedItem[0]);
+
+                this.rebuildBody(0, 1);
+            } else {
+                const aboveMultilineStmt = root.body[line.indexInRoot - 1];
+                const removedItem = root.body.splice(line.indexInRoot, 1);
+
+                removedItem[0].rootNode = aboveMultilineStmt;
+                removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+
+                const stmtStack = new Array<Statement>();
+                stmtStack.unshift(...removedItem[0].body);
+
+                while (stmtStack.length > 0) {
+                    const curStmt = stmtStack.pop();
+                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left + TAB_SPACES));
+
+                    if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
+                }
+
+                aboveMultilineStmt.body.push(removedItem[0]);
+
+                this.rebuildBody(0, 1);
+
             }
         }
     }
