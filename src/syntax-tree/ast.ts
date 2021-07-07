@@ -1931,11 +1931,13 @@ export class Module {
             const codeStack = new Array<CodeConstruct>();
             codeStack.unshift(...code.tokens);
 
+            if (code instanceof Statement && code.hasBody()) codeStack.unshift(...code.body);
+
             while (codeStack.length > 0) {
                 const curCode = codeStack.pop();
                 curCode.notify(callbackType);
 
-                if (curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
+                if (curCode instanceof Statement || curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
                 if (curCode instanceof Statement && curCode.hasBody()) codeStack.unshift(...curCode.body);
             }
         }
@@ -2037,6 +2039,7 @@ export class Module {
             this.recursiveNotify(line, CallbackType.delete);
             root.body.splice(line.indexInRoot, 1, replacement);
             replacement.build(line.getLeftPosition());
+            this.rebuildBody(0, 1);
 
             return replacement;
         }

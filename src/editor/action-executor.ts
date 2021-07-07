@@ -13,7 +13,11 @@ import {
     TypedEmptyExpr,
     ListLiteralExpression,
     CodeConstruct,
+    Statement,
+    Expression,
+    Token,
 } from "../syntax-tree/ast";
+import { Cursor } from "./cursor";
 
 export class ActionExecutor {
     module: Module;
@@ -24,7 +28,28 @@ export class ActionExecutor {
 
     private getBoundaries(code: CodeConstruct): monaco.Range {
         const lineNumber = code.getLineNumber();
-        return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
+
+        if (code instanceof Expression || code instanceof Token) {
+            return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
+        } else if (code instanceof Statement && code.hasBody()) {
+            const stmtStack = new Array<Statement>();
+            stmtStack.unshift(...code.body);
+            let endLineNumber = 0;
+            let endColumn = 0;
+
+            while (stmtStack.length > 0) {
+                const curStmt = stmtStack.pop();
+
+                if (curStmt instanceof Statement && curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
+
+                if (endLineNumber < curStmt.lineNumber) {
+                    endLineNumber = curStmt.lineNumber;
+                    endColumn = curStmt.right;
+                }
+            }
+
+            return new monaco.Range(lineNumber, code.left, endLineNumber, endColumn);
+        }
     }
 
     execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
@@ -67,7 +92,7 @@ export class ActionExecutor {
                 this.module.deleteLine(context.lineStatement);
                 let range: monaco.Range;
 
-                if (action.data.pressedBackspace) {
+                if (action.data?.pressedBackspace) {
                     const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
                     this.module.focus.updateContext({
                         positionToMove: new monaco.Position(lineAbove.lineNumber, lineAbove.right),
