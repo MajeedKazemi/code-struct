@@ -94,8 +94,15 @@ export class ActionExecutor {
             }
 
             case EditActionType.IndentBackwards: {
-                // TODO: NYI
-                console.log(`IndentBackwards + ${context.lineStatement}`);
+                const deleteRange = new monaco.Range(
+                    context.lineStatement.lineNumber,
+                    context.lineStatement.left,
+                    context.lineStatement.lineNumber,
+                    context.lineStatement.left - keywords.TAB_SPACES,
+                );
+
+                this.module.indentBackStatement(context.lineStatement);
+                this.module.editor.executeEdits(deleteRange, null, "");
 
                 break;
             }

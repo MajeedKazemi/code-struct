@@ -1940,11 +1940,32 @@ export class Module {
         }
     }
 
+    indentBackStatement(line: Statement) {
+        const root = line.rootNode;
+
+        if (root instanceof Statement) {
+            const removedItem = root.body.splice(line.indexInRoot, 1);
+
+            let outerBody: Array<Statement>;
+
+            if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
+            else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
+
+            removedItem[0].rootNode = root.rootNode;
+            removedItem[0].indexInRoot = root.indexInRoot + 1;
+            removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+
+            outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
+
+            this.rebuildBody(0, 1);
+        }
+    }
+
     removeStatement(line: Statement): CodeConstruct {
         const root = line.rootNode;
 
         if (root instanceof Module || root instanceof Statement) {
-            const replacement = new EmptyLineStmt(root, line.indexInRoot)
+            const replacement = new EmptyLineStmt(root, line.indexInRoot);
             this.recursiveNotify(line, CallbackType.delete);
             root.body.splice(line.indexInRoot, 1, replacement);
             replacement.build(line.getLeftPosition());
@@ -1955,7 +1976,7 @@ export class Module {
         return null;
     }
 
-    deleteLine(line: Statement) { 
+    deleteLine(line: Statement) {
         const root = line.rootNode;
 
         if (root instanceof Module || root instanceof Statement) {
@@ -2173,7 +2194,7 @@ export class Module {
 
             if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
             else this.body[i].setLineNumber(lineNumber);
-            
+
             lineNumber += this.body[i].getHeight();
         }
     }
