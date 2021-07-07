@@ -225,9 +225,10 @@ export class Validator {
         return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
     }
 
-    static getValidVariableReferences(code: CodeConstruct): any[] {
-        const refs = [];
-        const mappedRefs = [];
+    //returns a nested list [[Reference, InsertionType], ...]
+    static getValidVariableReferences(code: CodeConstruct): Array<(Reference | InsertionType)[]> {
+        const refs: Reference[] = [];
+        const mappedRefs: Array<(Reference | InsertionType)[]> = []; //no point of making this a map since we don't have access to the refs whereever this method is used. Otherwise would have to use buttonId or uniqueId as keys into the map.
 
         try {
             if (code instanceof TypedEmptyExpr || code instanceof EmptyLineStmt) {
