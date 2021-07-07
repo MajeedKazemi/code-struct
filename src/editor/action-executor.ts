@@ -94,15 +94,33 @@ export class ActionExecutor {
             }
 
             case EditActionType.IndentBackwards: {
-                const deleteRange = new monaco.Range(
-                    context.lineStatement.lineNumber,
-                    context.lineStatement.left,
-                    context.lineStatement.lineNumber,
-                    context.lineStatement.left - keywords.TAB_SPACES,
+                this.module.editor.executeEdits(
+                    new monaco.Range(
+                        context.lineStatement.lineNumber,
+                        context.lineStatement.left,
+                        context.lineStatement.lineNumber,
+                        context.lineStatement.left - keywords.TAB_SPACES
+                    ),
+                    null,
+                    ""
                 );
 
+                if (context.lineStatement.hasBody()) {
+                    for (const stmt of context.lineStatement.body) {
+                        this.module.editor.executeEdits(
+                            new monaco.Range(
+                                stmt.lineNumber,
+                                stmt.left,
+                                stmt.lineNumber,
+                                stmt.left - keywords.TAB_SPACES
+                            ),
+                            null,
+                            ""
+                        );
+                    }
+                }
+
                 this.module.indentBackStatement(context.lineStatement);
-                this.module.editor.executeEdits(deleteRange, null, "");
 
                 break;
             }

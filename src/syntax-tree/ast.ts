@@ -1944,20 +1944,41 @@ export class Module {
         const root = line.rootNode;
 
         if (root instanceof Statement) {
-            const removedItem = root.body.splice(line.indexInRoot, 1);
+            if (!line.hasBody()) {
+                const removedItem = root.body.splice(line.indexInRoot, 1);
 
-            let outerBody: Array<Statement>;
+                let outerBody: Array<Statement>;
 
-            if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
-            else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
+                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
+                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
 
-            removedItem[0].rootNode = root.rootNode;
-            removedItem[0].indexInRoot = root.indexInRoot + 1;
-            removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+                removedItem[0].rootNode = root.rootNode;
+                removedItem[0].indexInRoot = root.indexInRoot + 1;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
 
-            outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
+                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
 
-            this.rebuildBody(0, 1);
+                this.rebuildBody(0, 1);
+            } else {
+                const removedItem = root.body.splice(line.indexInRoot, 1);
+
+                let outerBody: Array<Statement>;
+
+                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
+                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
+
+                removedItem[0].rootNode = root.rootNode;
+                removedItem[0].indexInRoot = root.indexInRoot + 1;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+
+                for (const stmt of removedItem[0].body) {
+                    stmt.build(new monaco.Position(stmt.lineNumber, stmt.left - TAB_SPACES));
+                }
+
+                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
+
+                this.rebuildBody(0, 1);
+            }
         }
     }
 
