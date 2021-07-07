@@ -1867,6 +1867,7 @@ export class Module {
     notificationSystem: NotificationSystemController;
     menuController: MenuController;
     typeSystem: TypeSystem;
+    draftExpressions: Expression[];
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
@@ -1874,6 +1875,8 @@ export class Module {
         this.validator = new Validator(this);
         this.executer = new ActionExecutor(this);
         this.typeSystem = new TypeSystem(this);
+
+        this.draftExpressions = [];
 
         this.focus.subscribeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
@@ -1890,7 +1893,7 @@ export class Module {
                 const validInserts = this.getAllValidInsertsList(focusedNode);
                 const validRefs = Validator.getValidVariableReferences(focusedNode);
                 const validVarIds: string[] = validRefs.map(
-                    (ref) => (ref[0].statement as VarAssignmentStmt).buttonId
+                    (ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId
                 );
 
                 //mark draft mode buttons
@@ -2408,7 +2411,9 @@ export class Module {
                 }
             });
         } catch (e) {
-            console.error("Unable to get valid inserts list for " + focusedNode + "\n\n" + e);
+            console.error("Unable to get valid inserts list for:");
+            console.error(focusedNode)
+            console.error(e);
         } finally {
             return validInsertsList;
         }
@@ -2559,19 +2564,23 @@ export class Module {
 
     insert(code: CodeConstruct, insertInto?: CodeConstruct) {
         const context = this.focus.getContext();
-        let focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
+        const focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
+
+        const insertionType = code instanceof VariableReferenceExpr ? 
+                Validator.getValidVariableReferences(focusedNode)
+                         .filter(record => ((record[0] as Reference).statement as VarAssignmentStmt).buttonId === (code as VariableReferenceExpr).uniqueId)
+                         .map(record => record[1])[0] as InsertionType
+            : 
+                this.tryInsert(focusedNode, code) as InsertionType;
+
+        let isValid = false;
 
         if (focusedNode) {
-            if (code instanceof MethodCallExpr) {
-                //const focusedPos = this.editor.monaco.getPosition();
+            if (code instanceof MethodCallExpr  && insertionType === InsertionType.Valid) {
                 const focusedPos = context.position;
                 const prevItem = context.token
                     .getParentStatement()
                     .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
-
-                /*const prevItem = this.focusedNode
-                    .getParentStatement()
-                    .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));*/
 
                 if (prevItem instanceof Expression && prevItem.returns == code.calledOn) {
                     // will replace the expression with this
@@ -2617,9 +2626,7 @@ export class Module {
                 }
             }
 
-            if (code.addableType != AddableType.NotAddable && focusedNode.receives.indexOf(code.addableType) > -1) {
-                //const focusedPos = this.focusedNode.getLeftPosition();
-
+            if (code.addableType != AddableType.NotAddable && focusedNode.receives.indexOf(code.addableType) > -1  && insertionType === InsertionType.Valid) {
                 //we don't always insert into a token, sometimes it may be an empty line
                 const focusedPos = this.focus.onEmptyLine()
                     ? context.lineStatement.getLeftPosition()
@@ -2628,7 +2635,6 @@ export class Module {
                 // TODO: validations => context.token.isEmpty
 
                 const parentStatement = context.lineStatement;
-                //const parentStatement = this.focusedNode.getParentStatement();
                 const parentRoot = parentStatement.rootNode;
 
                 if (focusedNode.receives.indexOf(AddableType.Statement) > -1) {
@@ -2689,8 +2695,8 @@ export class Module {
 
                         this.editor.executeEdits(range, statement);
                     }
-                } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-                    let isValid = true;
+                } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1  && insertionType === InsertionType.Valid) {
+                    isValid = true;
 
                     if (code instanceof VariableReferenceExpr) {
                         // prevent out of scope referencing of a variable
@@ -2723,11 +2729,6 @@ export class Module {
                     }
 
                     //binary ops and comparators need to adjust their type based on contents
-                    //TODO: Should go after below if
-                    /* if(code instanceof BinaryOperatorExpr || code instanceof ComparatorExpr){
-                        this.typeSystem.updateNestedExpressionType(focusedNode, null);
-                    }*/
-
                     //special case for BinaryOperatorExpression +
                     //because it can return either a string or a number, we need to determine which of the two based on where it is inserted
                     if (
@@ -2993,25 +2994,19 @@ export class Module {
                 if (!focusedNode.notification) {
                     const newContext = code.getInitialFocus();
                     this.focus.updateContext(newContext);
-
-                    if (newContext.tokenToSelect != null) this.editor.focusSelection();
-
-                    // TODO: remove this when done merging the nav.
-                    try {
-                        this.editor.focusSelection();
-                    } catch (e) {
-                        console.error("Could not focus selection:\n" + e);
-                        this.editor.focusSelection();
-                    }
                 }
             } else {
-                console.warn("Cannot insert this code construct at focused location.");
 
                 //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
                 //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
                 if (code.addableType == AddableType.NotAddable) {
+                    console.warn("Cannot insert this code construct at focused location.");
+
                     this.notificationSystem.addHoverNotification(focusedNode, {}, ErrorMessage.default);
-                } else if (focusedNode.receives.indexOf(code.addableType) == -1) {
+                } 
+                else if (focusedNode.receives.indexOf(code.addableType) == -1 && insertionType == InsertionType.Invalid) {
+                    console.warn("Cannot insert this code construct at focused location.");
+
                     if (focusedNode.rootNode instanceof Statement) {
                         if (focusedNode.rootNode.getKeyword() != "") {
                             //for, while, if, elseif
@@ -3065,14 +3060,40 @@ export class Module {
                                 }
                             }
                         }
-                    } else {
-                        //Token
-                        this.notificationSystem.addHoverNotification(
-                            focusedNode,
-                            { addedType: code.addableType },
-                            ErrorMessage.addableTypeMismatchEmptyLine
-                        );
-                    }
+                    } 
+                }
+                else if(insertionType  === InsertionType.DraftMode && code instanceof Expression){
+                    //TODO: Should we include the parent too?
+                    code.draftModeEnabled = true;
+                    this.draftExpressions.push(code);
+                    
+                    const expr = code as Expression;
+
+                    const focusedPos = this.focus.onEmptyLine()
+                    ? context.lineStatement.getLeftPosition()
+                    : context.token.getLeftPosition();
+
+                    this.replaceFocusedExpression(expr);
+
+                    const range = new monaco.Range(
+                        focusedPos.lineNumber,
+                        focusedNode.left,
+                        focusedPos.lineNumber,
+                        focusedNode.right
+                    );
+
+                    this.editor.executeEdits(range, expr);
+                }
+            
+                else { 
+                    console.warn("Cannot insert this code construct at focused location.");
+
+                    this.notificationSystem.addHoverNotification(
+                        focusedNode,
+                        { addedType: code.addableType },
+                        ErrorMessage.addableTypeMismatchEmptyLine
+                    );
+                    
                 }
             }
             this.editor.monaco.focus();
