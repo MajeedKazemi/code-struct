@@ -655,11 +655,11 @@ export abstract class Expression extends Statement implements CodeConstruct {
     getLineNumber(): number {
         if (this.isStatement()) return this.lineNumber;
         else if (this.rootNode instanceof Statement) return this.rootNode.getLineNumber();
-        else return (this.rootNode as Expression).getLineNumber();
+        else if(this.rootNode instanceof Expression) return (this.rootNode).getLineNumber();
     }
 
     getSelection(): monaco.Selection {
-        const line = this.getLineNumber();
+        const line = this.lineNumber >= 0 ? this.lineNumber : this.getLineNumber();
 
         return new monaco.Selection(line, this.right, line, this.left);
     }
@@ -1867,7 +1867,7 @@ export class Module {
     notificationSystem: NotificationSystemController;
     menuController: MenuController;
     typeSystem: TypeSystem;
-    draftExpressions: Expression[];
+    draftExpressions: DraftRecord[];
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
@@ -3063,18 +3063,21 @@ export class Module {
                     } 
                 }
                 else if(insertionType  === InsertionType.DraftMode && code instanceof Expression){
-                    //TODO: Should we include the parent too?
-                    code.draftModeEnabled = true;
-                    this.draftExpressions.push(code);
-                    
-                    const expr = code as Expression;
-
                     const focusedPos = this.focus.onEmptyLine()
                     ? context.lineStatement.getLeftPosition()
                     : context.token.getLeftPosition();
 
-                    this.replaceFocusedExpression(expr);
+                    if(code instanceof VariableReferenceExpr && focusedNode instanceof EmptyLineStmt ){
+                        this.replaceFocusedStatement(code);
+                    }
+                    else{
+                        this.replaceFocusedExpression(code);
+                    }
 
+                    //TODO: Should we include the parent too?
+                    code.draftModeEnabled = true;
+                    this.draftExpressions.push(new DraftRecord(code, this));
+                    
                     const range = new monaco.Range(
                         focusedPos.lineNumber,
                         focusedNode.left,
@@ -3082,7 +3085,7 @@ export class Module {
                         focusedNode.right
                     );
 
-                    this.editor.executeEdits(range, expr);
+                    this.editor.executeEdits(range, code);
                 }
             
                 else { 
@@ -3162,3 +3165,42 @@ function emptySpaces(count: number) {
 
     return spaces;
 }
+
+
+export class DraftRecord{
+    code: Expression;
+    highlightElement: HTMLDivElement;
+
+    private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
+
+    constructor(code: Expression, module: Module){
+        this.code =  code;
+        this.module = module;
+
+        this.addHighlight();
+    }
+
+    private addHighlight(){
+        this.highlightElement = document.createElement("div");
+        this.highlightElement.classList.add("draftModeLine");
+
+        const selection = this.code.getSelection();
+
+        //TODO: duplicate functionality from Notification.ts consider wrapping in class that contains this functionality and has a div element
+        const transform = this.module.editor.computeBoundingBox(selection);
+
+        console.log(this.code)
+        console.log(this.code.getSelection())
+        console.log(transform)
+        console.log(this.code.getSelection().startLineNumber * this.module.editor.computeCharHeight())
+
+        this.highlightElement.style.top = `${transform.y + 10}px`;
+        this.highlightElement.style.left = `${transform.x}px`;
+
+        this.highlightElement.style.width = `${transform.width > 0 ? transform.width: (selection.endColumn - selection.startColumn) * this.module.editor.computeCharWidth()}px`;
+        this.highlightElement.style.height = `${transform.height > 0 ? transform.height - 15 : this.module.editor.computeCharHeight()}px`;
+
+        document.querySelector(".lines-content.monaco-editor-background").appendChild(this.highlightElement);
+    }
+}
+
