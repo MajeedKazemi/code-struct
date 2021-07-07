@@ -180,8 +180,6 @@ export class ActionExecutor {
 
                 let newText = "";
 
-                // TODO: if it is equal to '   ' => just prevent default
-
                 const curText = token.getEditableText().split("");
                 const toDeleteItems =
                     selectedText.startColumn == selectedText.endColumn
@@ -202,7 +200,55 @@ export class ActionExecutor {
 
                 this.validateIdentifier(context, newText);
 
-                // TODO: check if turns back into an empty hole
+                // check if it needs to turn back into a hole:
+                if (newText.length == 0) {
+                    let literalExpr: LiteralValExpr = null;
+
+                    if (context.expression instanceof LiteralValExpr) {
+                        literalExpr = context.expression;
+                    } else if (context.expressionToLeft instanceof LiteralValExpr) {
+                        literalExpr = context.expressionToLeft;
+                    } else if (context.expressionToRight instanceof LiteralValExpr) {
+                        literalExpr = context.expressionToRight;
+                    }
+
+                    if (literalExpr != null) {
+                        const replacementRange = this.getBoundaries(literalExpr);
+                        const replacement = this.module.removeItem(literalExpr);
+                        this.module.editor.executeEdits(replacementRange, replacement);
+                        this.module.focus.updateContext({ tokenToSelect: replacement });
+
+                        break;
+                    }
+
+                    let identifier: IdentifierTkn = null;
+                    if (context.tokenToLeft instanceof IdentifierTkn) {
+                        identifier = context.tokenToLeft;
+                    } else if (context.tokenToRight instanceof IdentifierTkn) {
+                        identifier = context.tokenToRight;
+                    } else if (context.token instanceof IdentifierTkn) {
+                        identifier = context.token;
+                    }
+
+                    if (identifier != null) {
+                        identifier.text = "   ";
+                        identifier.isEmpty = true;
+                        this.module.editor.executeEdits(
+                            new monaco.Range(
+                                cursorPos.lineNumber,
+                                identifier.left,
+                                cursorPos.lineNumber,
+                                identifier.right
+                            ),
+                            null,
+                            "   "
+                        );
+                        context.lineStatement.build(context.lineStatement.getLeftPosition());
+                        this.module.focus.updateContext({ tokenToSelect: identifier });
+
+                        break;
+                    }
+                }
 
                 if (token.setEditedText(newText)) {
                     let editRange = new monaco.Range(
