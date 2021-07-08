@@ -12,14 +12,44 @@ import {
     NonEditableTkn,
     TypedEmptyExpr,
     ListLiteralExpression,
+    CodeConstruct,
+    Statement,
+    Expression,
+    Token,
 } from "../syntax-tree/ast";
-import { TypeSystem } from "../syntax-tree/type-sys";
+import { Cursor } from "./cursor";
 
 export class ActionExecutor {
     module: Module;
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    private getBoundaries(code: CodeConstruct): monaco.Range {
+        const lineNumber = code.getLineNumber();
+
+        if (code instanceof Expression || code instanceof Token) {
+            return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
+        } else if (code instanceof Statement && code.hasBody()) {
+            const stmtStack = new Array<Statement>();
+            stmtStack.unshift(...code.body);
+            let endLineNumber = 0;
+            let endColumn = 0;
+
+            while (stmtStack.length > 0) {
+                const curStmt = stmtStack.pop();
+
+                if (curStmt instanceof Statement && curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
+
+                if (endLineNumber < curStmt.lineNumber) {
+                    endLineNumber = curStmt.lineNumber;
+                    endColumn = curStmt.right;
+                }
+            }
+
+            return new monaco.Range(lineNumber, code.left, endLineNumber, endColumn);
+        }
     }
 
     execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
@@ -31,6 +61,90 @@ export class ActionExecutor {
         let preventDefaultEvent = true;
 
         switch (action.type) {
+            case EditActionType.DeleteNextToken: {
+                const replacementRange = this.getBoundaries(context.expressionToRight);
+                const replacement = this.module.removeItem(context.expressionToRight);
+                this.module.editor.executeEdits(replacementRange, replacement);
+                this.module.focus.updateContext({ tokenToSelect: replacement });
+
+                break;
+            }
+
+            case EditActionType.DeletePrevToken: {
+                const replacementRange = this.getBoundaries(context.expressionToLeft);
+                const replacement = this.module.removeItem(context.expressionToLeft);
+                this.module.editor.executeEdits(replacementRange, replacement);
+                this.module.focus.updateContext({ tokenToSelect: replacement });
+
+                break;
+            }
+
+            case EditActionType.DeleteStatement: {
+                const replacementRange = this.getBoundaries(context.lineStatement);
+                const replacement = this.module.removeStatement(context.lineStatement);
+                this.module.editor.executeEdits(replacementRange, replacement);
+                this.module.focus.updateContext({ tokenToSelect: replacement });
+
+                break;
+            }
+
+            case EditActionType.DeleteCurLine: {
+                this.module.deleteLine(context.lineStatement);
+                let range: monaco.Range;
+
+                if (action.data?.pressedBackspace) {
+                    const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
+                    this.module.focus.updateContext({
+                        positionToMove: new monaco.Position(lineAbove.lineNumber, lineAbove.right),
+                    });
+                    range = new monaco.Range(
+                        context.lineStatement.lineNumber,
+                        context.lineStatement.left,
+                        lineAbove.lineNumber,
+                        lineAbove.right
+                    );
+                } else {
+                    range = new monaco.Range(
+                        context.lineStatement.lineNumber,
+                        context.lineStatement.left,
+                        context.lineStatement.lineNumber + 1,
+                        context.lineStatement.left
+                    );
+                }
+
+                this.module.editor.executeEdits(range, null, "");
+
+                break;
+            }
+
+            case EditActionType.DeletePrevLine: {
+                const prevLine = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
+                const deleteRange = new monaco.Range(
+                    prevLine.lineNumber,
+                    prevLine.left,
+                    prevLine.lineNumber + 1,
+                    prevLine.left
+                );
+                this.module.deleteLine(prevLine);
+                this.module.editor.executeEdits(deleteRange, null, "");
+
+                break;
+            }
+
+            case EditActionType.IndentBackwards: {
+                this.module.editor.indentRecursively(context.lineStatement, { backward: true });
+                this.module.indentBackStatement(context.lineStatement);
+
+                break;
+            }
+
+            case EditActionType.IndentForwards: {
+                this.module.editor.indentRecursively(context.lineStatement, { backward: false });
+                this.module.indentForwardStatement(context.lineStatement);
+
+                break;
+            }
+
             case EditActionType.InsertEmptyLine: {
                 this.module.insertEmptyLine();
 
@@ -104,8 +218,6 @@ export class ActionExecutor {
 
                 let newText = "";
 
-                // TODO: if it is equal to '   ' => just prevent default
-
                 const curText = token.getEditableText().split("");
                 const toDeleteItems =
                     selectedText.startColumn == selectedText.endColumn
@@ -126,7 +238,55 @@ export class ActionExecutor {
 
                 this.validateIdentifier(context, newText);
 
-                // TODO: check if turns back into an empty hole
+                // check if it needs to turn back into a hole:
+                if (newText.length == 0) {
+                    let literalExpr: LiteralValExpr = null;
+
+                    if (context.expression instanceof LiteralValExpr) {
+                        literalExpr = context.expression;
+                    } else if (context.expressionToLeft instanceof LiteralValExpr) {
+                        literalExpr = context.expressionToLeft;
+                    } else if (context.expressionToRight instanceof LiteralValExpr) {
+                        literalExpr = context.expressionToRight;
+                    }
+
+                    if (literalExpr != null) {
+                        const replacementRange = this.getBoundaries(literalExpr);
+                        const replacement = this.module.removeItem(literalExpr);
+                        this.module.editor.executeEdits(replacementRange, replacement);
+                        this.module.focus.updateContext({ tokenToSelect: replacement });
+
+                        break;
+                    }
+
+                    let identifier: IdentifierTkn = null;
+                    if (context.tokenToLeft instanceof IdentifierTkn) {
+                        identifier = context.tokenToLeft;
+                    } else if (context.tokenToRight instanceof IdentifierTkn) {
+                        identifier = context.tokenToRight;
+                    } else if (context.token instanceof IdentifierTkn) {
+                        identifier = context.token;
+                    }
+
+                    if (identifier != null) {
+                        identifier.text = "   ";
+                        identifier.isEmpty = true;
+                        this.module.editor.executeEdits(
+                            new monaco.Range(
+                                cursorPos.lineNumber,
+                                identifier.left,
+                                cursorPos.lineNumber,
+                                identifier.right
+                            ),
+                            null,
+                            "   "
+                        );
+                        context.lineStatement.build(context.lineStatement.getLeftPosition());
+                        this.module.focus.updateContext({ tokenToSelect: identifier });
+
+                        break;
+                    }
+                }
 
                 if (token.setEditedText(newText)) {
                     let editRange = new monaco.Range(

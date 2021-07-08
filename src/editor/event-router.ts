@@ -13,6 +13,8 @@ export enum KeyPress {
     Home = "Home",
     End = "End",
 
+    Tab = "Tab",
+
     // delete:
     Delete = "Delete",
     Backspace = "Backspace",
@@ -78,6 +80,12 @@ export enum EditActionType {
 
     DeleteNextToken,
     DeletePrevToken,
+    DeletePrevLine,
+    DeleteCurLine,
+    DeleteStatement,
+
+    IndentBackwards,
+    IndentForwards,
 
     InsertChar,
 
@@ -205,17 +213,47 @@ export class EventRouter {
 
                 break;
 
-            case KeyPress.Delete:
+            case KeyPress.Delete: {
                 if (inTextEditMode && !(context.tokenToRight instanceof ast.NonEditableTkn)) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToEnd);
                     else return new EditAction(EditActionType.DeleteNextChar);
-                } else return new EditAction(EditActionType.DeleteNextToken);
+                } else if (this.module.validator.canDeleteNextStatement(context)) {
+                    return new EditAction(EditActionType.DeleteStatement);
+                } else if (this.module.validator.canDeleteCurLine(context)) {
+                    return new EditAction(EditActionType.DeleteCurLine);
+                } else if (this.module.validator.canDeleteNextToken(context)) {
+                    return new EditAction(EditActionType.DeleteNextToken);
+                }
 
-            case KeyPress.Backspace:
+                break;
+            }
+
+            case KeyPress.Backspace: {
                 if (inTextEditMode && !(context.tokenToLeft instanceof ast.NonEditableTkn)) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToStart);
                     else return new EditAction(EditActionType.DeletePrevChar);
-                } else return new EditAction(EditActionType.DeletePrevToken);
+                } else if (this.module.validator.canDeletePrevStatement(context)) {
+                    return new EditAction(EditActionType.DeleteStatement);
+                } else if (this.module.validator.canDeletePrevLine(context)) {
+                    return new EditAction(EditActionType.DeletePrevLine);
+                } else if (this.module.validator.canIndentBack(context)) {
+                    return new EditAction(EditActionType.IndentBackwards);
+                } else if (this.module.validator.canDeletePrevToken(context)) {
+                    return new EditAction(EditActionType.DeletePrevToken);
+                } else if (this.module.validator.canBackspaceCurEmptyLine(context)) {
+                    return new EditAction(EditActionType.DeleteCurLine, { pressedBackspace: true });
+                }
+
+                break;
+            }
+
+            case KeyPress.Tab: {
+                if (this.module.validator.canIndentForward(context)) {
+                    return new EditAction(EditActionType.IndentForwards);
+                }
+
+                break;
+            }
 
             case KeyPress.Enter:
                 if (this.module.menuController.isMenuOpen()) return new EditAction(EditActionType.SelectMenuSuggestion);

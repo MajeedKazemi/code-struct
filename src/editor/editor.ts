@@ -1,14 +1,8 @@
 import * as monaco from "monaco-editor";
 import { Cursor } from "./cursor";
 import { Hole } from "./hole";
-import {
-    CodeConstruct,
-    EditableTextTkn,
-    IdentifierTkn,
-    Module,
-    Statement,
-    TypedEmptyExpr,
-} from "../syntax-tree/ast";
+import { CodeConstruct, EditableTextTkn, IdentifierTkn, Module, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
+import { TAB_SPACES } from "../syntax-tree/keywords";
 
 export class Editor {
     module: Module;
@@ -78,11 +72,7 @@ export class Editor {
     addHoles(code: CodeConstruct) {
         for (const hole of this.holes) if (hole.code == code) return;
 
-        if (
-            code instanceof EditableTextTkn ||
-            code instanceof TypedEmptyExpr ||
-            code instanceof IdentifierTkn
-        ) {
+        if (code instanceof EditableTextTkn || code instanceof TypedEmptyExpr || code instanceof IdentifierTkn) {
             this.holes.push(new Hole(this, code));
         } else if (code instanceof Statement) {
             const statement = <Statement>code;
@@ -98,6 +88,42 @@ export class Editor {
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
         this.addHoles(code);
+    }
+
+    indentRecursively(statement: Statement, { backward = false }) {
+        this.module.editor.executeEdits(
+            new monaco.Range(
+                statement.lineNumber,
+                statement.left,
+                statement.lineNumber,
+                statement.left - (backward ? TAB_SPACES : 0)
+            ),
+            null,
+            backward ? "" : "    "
+        );
+
+        if (statement.hasBody()) {
+            const stmtStack = new Array<Statement>();
+
+            stmtStack.unshift(...statement.body);
+
+            while (stmtStack.length > 0) {
+                const curStmt = stmtStack.pop();
+
+                this.module.editor.executeEdits(
+                    new monaco.Range(
+                        curStmt.lineNumber,
+                        curStmt.left,
+                        curStmt.lineNumber,
+                        curStmt.left - (backward ? TAB_SPACES : 0)
+                    ),
+                    null,
+                    backward ? "" : "    "
+                );
+
+                if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
+            }
+        }
     }
 
     insertAtCurPos(codeList: Array<CodeConstruct>) {

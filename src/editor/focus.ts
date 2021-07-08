@@ -324,12 +324,12 @@ export class Focus {
     }
 
     /**
-     * Returns true if a line exists above the focused line, otherwise, returns false.
+     * Returns true if focused within a line that is inside the body of another statement.
      */
-    existsLineAbove(): boolean {
-        const curPos = this.module.editor.monaco.getPosition();
+    inTabbedLine(providedContext?: Context): boolean {
+        const curLine = providedContext ? providedContext.lineStatement : this.getFocusedStatement();
 
-        return curPos.lineNumber > 1;
+        return curLine.getLeftPosition().column > 1;
     }
 
     /**
@@ -359,7 +359,7 @@ export class Focus {
     private getTokenAtStatementColumn(statement: ast.Statement, column: number): ast.CodeConstruct {
         const tokensStack = new Array<ast.CodeConstruct>();
 
-        for (const token of statement.tokens) tokensStack.unshift(token);
+        tokensStack.unshift(...statement.tokens);
 
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
@@ -367,7 +367,7 @@ export class Focus {
             if (column >= curToken.left && column < curToken.right && curToken instanceof ast.Token) return curToken;
 
             if (curToken instanceof ast.Expression)
-                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+                if (curToken.tokens.length > 0) tokensStack.unshift(...curToken.tokens);
                 else return curToken;
         }
 
@@ -390,18 +390,16 @@ export class Focus {
      * @param line the given line number to search for.
      * @returns the ast.Statement object of that line.
      */
-    private getStatementAtLineNumber(line: number): ast.Statement {
+    getStatementAtLineNumber(line: number): ast.Statement {
         const bodyStack = new Array<ast.Statement>();
 
-        for (const stmt of this.module.body) bodyStack.unshift(stmt);
+        bodyStack.unshift(...this.module.body);
 
         while (bodyStack.length > 0) {
             const curStmt = bodyStack.pop();
 
             if (line == curStmt.lineNumber) return curStmt;
-            else if (curStmt.hasBody()) {
-                for (const stmt of curStmt.body) bodyStack.unshift(stmt);
-            }
+            else if (curStmt.hasBody()) bodyStack.unshift(...curStmt.body);
         }
 
         return null;
@@ -425,7 +423,7 @@ export class Focus {
         const tokensStack = new Array<ast.CodeConstruct>();
 
         // initialize tokensStack
-        for (const token of statement.tokens) tokensStack.unshift(token);
+        tokensStack.unshift(...statement.tokens);
 
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
@@ -445,7 +443,7 @@ export class Focus {
                     break;
                 }
 
-                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+                if (curToken.tokens.length > 0) tokensStack.unshift(...curToken.tokens);
                 else {
                     console.warn(
                         `getContextFromSelection(statement: ${statement}, left: ${left}, right: ${right}) -> found expression with no child tokens.`
@@ -502,7 +500,10 @@ export class Focus {
                 if (column == curToken.left) {
                     context.token = this.findNonTextualHole(statement, column);
                     context.tokenToRight = curToken;
-                    context.tokenToLeft = this.searchNonEmptyTokenWithCheck(statement, (token) => token.right == column);
+                    context.tokenToLeft = this.searchNonEmptyTokenWithCheck(
+                        statement,
+                        (token) => token.right == column
+                    );
 
                     if (context.tokenToRight != null) {
                         context.expressionToRight = this.getExpression(
@@ -523,7 +524,10 @@ export class Focus {
                 } else if (column == curToken.right) {
                     context.token = this.findNonTextualHole(statement, column);
                     context.tokenToLeft = curToken;
-                    context.tokenToRight = this.searchNonEmptyTokenWithCheck(statement, (token) => token.left == column);
+                    context.tokenToRight = this.searchNonEmptyTokenWithCheck(
+                        statement,
+                        (token) => token.left == column
+                    );
 
                     if (context.tokenToRight != null) {
                         context.expressionToRight = this.getExpression(
@@ -548,7 +552,7 @@ export class Focus {
                     break;
                 }
             } else if (curToken instanceof ast.Expression) {
-                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+                if (curToken.tokens.length > 0) tokensStack.unshift(...curToken.tokens);
                 else {
                     console.warn(
                         `getContextFromPosition(statement: ${statement}, column: ${column}) -> found expression with no child tokens.`
@@ -575,15 +579,16 @@ export class Focus {
     private searchNonEmptyTokenWithCheck(statement: ast.Statement, check: (token: ast.Token) => boolean): ast.Token {
         const tokensStack = new Array<ast.CodeConstruct>();
 
-        for (const token of statement.tokens) tokensStack.unshift(token);
+        tokensStack.unshift(...statement.tokens);
 
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
 
             if (curToken instanceof ast.Token && curToken.left != curToken.right && check(curToken)) return curToken;
 
-            if (curToken instanceof ast.Expression)
-                if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
+            if (curToken instanceof ast.Expression) {
+                if (curToken.tokens.length > 0) tokensStack.unshift(...curToken.tokens);
+            }
         }
 
         return null;

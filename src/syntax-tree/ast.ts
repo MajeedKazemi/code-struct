@@ -236,6 +236,7 @@ export abstract class Statement implements CodeConstruct {
     notification = null;
     keywordIndex = -1;
     hole = null;
+    typeOfHoles = new Map<number, Array<DataType>>();
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -310,6 +311,8 @@ export abstract class Statement implements CodeConstruct {
         let lineNumber = startLineNumber;
 
         for (let i = fromIndex; i < this.body.length; i++) {
+            this.body[i].indexInRoot = i;
+
             if (i == 0) {
                 this.setLineNumber(lineNumber);
                 lineNumber++;
@@ -816,6 +819,7 @@ export class WhileStatement extends Statement {
         this.tokens.push(new NonEditableTkn("while ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -839,6 +843,7 @@ export class IfStatement extends Statement {
         this.tokens.push(new NonEditableTkn("if ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -927,6 +932,7 @@ export class ElseStatement extends Statement {
             this.tokens.push(new NonEditableTkn("elif ", this, this.tokens.length));
             this.conditionIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
             this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
         } else this.tokens.push(new NonEditableTkn("else:", this, this.tokens.length));
 
@@ -967,6 +973,13 @@ export class ForStatement extends Statement {
                 this.tokens.length
             )
         );
+        this.typeOfHoles[this.tokens.length - 1] = [
+            DataType.AnyList,
+            DataType.StringList,
+            DataType.NumberList,
+            DataType.BooleanList,
+            DataType.String,
+        ];
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -1074,6 +1087,7 @@ export class VarAssignmentStmt extends Statement {
         this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
         this.valueIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
         this.hasEmptyToken = true;
     }
@@ -1160,6 +1174,7 @@ export class FunctionCallStmt extends Expression {
 
                 this.argumentsIndices.push(this.tokens.length);
                 this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1208,6 +1223,7 @@ export class MethodCallExpr extends Expression {
 
         this.expressionIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
@@ -1217,6 +1233,7 @@ export class MethodCallExpr extends Expression {
 
                 this.argumentsIndices.push(this.tokens.length);
                 this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1250,11 +1267,19 @@ export class ListElementAssignment extends Statement {
                 this.tokens.length
             )
         );
+        this.typeOfHoles[this.tokens.length - 1] = [
+            DataType.AnyList,
+            DataType.NumberList,
+            DataType.StringList,
+            DataType.BooleanList,
+        ];
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn("] = ", this, this.tokens.length));
         //TODO: Python lists allow elements of different types to be added to the same list. Should we keep that functionality?
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
     }
 }
 
@@ -1278,6 +1303,7 @@ export class MethodCallStmt extends Statement {
 
                 this.argumentsIndices.push(this.tokens.length);
                 this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
 
                 if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
             }
@@ -1311,9 +1337,16 @@ export class MemberCallStmt extends Expression {
                 this.tokens.length
             )
         );
+        this.typeOfHoles[this.tokens.length - 1] = [
+            DataType.AnyList,
+            DataType.NumberList,
+            DataType.StringList,
+            DataType.BooleanList,
+        ];
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1340,8 +1373,10 @@ export class BinaryOperatorExpr extends Expression {
         this.leftOperandIndex = this.tokens.length;
         if (operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
         } else {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
             this.returns = DataType.Number;
         }
 
@@ -1350,8 +1385,10 @@ export class BinaryOperatorExpr extends Expression {
         this.rightOperandIndex = this.tokens.length;
         if (operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
         } else {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
             this.returns = DataType.Number;
         }
 
@@ -1432,6 +1469,7 @@ export class UnaryOperatorExpr extends Expression {
         this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([operatesOn], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [operatesOn];
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1464,9 +1502,11 @@ export class BinaryBoolOperatorExpr extends Expression {
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1499,9 +1539,11 @@ export class ComparatorExpr extends Expression {
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
         this.leftOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
         this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1665,6 +1707,7 @@ export class ListLiteralExpression extends Expression {
 
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
@@ -1883,6 +1926,159 @@ export class Module {
         this.menuController.setInstance(this, this.editor);
     }
 
+    recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
+        if (code instanceof Expression || code instanceof Statement) {
+            const codeStack = new Array<CodeConstruct>();
+            codeStack.unshift(...code.tokens);
+
+            if (code instanceof Statement && code.hasBody()) codeStack.unshift(...code.body);
+
+            while (codeStack.length > 0) {
+                const curCode = codeStack.pop();
+                curCode.notify(callbackType);
+
+                if (curCode instanceof Statement || curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
+                if (curCode instanceof Statement && curCode.hasBody()) codeStack.unshift(...curCode.body);
+            }
+        }
+    }
+
+    indentBackStatement(line: Statement) {
+        const root = line.rootNode;
+
+        if (root instanceof Statement) {
+            if (!line.hasBody()) {
+                const removedItem = root.body.splice(line.indexInRoot, 1);
+
+                let outerBody: Array<Statement>;
+
+                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
+                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
+
+                removedItem[0].rootNode = root.rootNode;
+                removedItem[0].indexInRoot = root.indexInRoot + 1;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+
+                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
+
+                this.rebuildBody(0, 1);
+            } else {
+                const removedItem = root.body.splice(line.indexInRoot, 1);
+
+                let outerBody: Array<Statement>;
+
+                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
+                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
+
+                removedItem[0].rootNode = root.rootNode;
+                removedItem[0].indexInRoot = root.indexInRoot + 1;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+
+                const stmtStack = new Array<Statement>();
+                stmtStack.unshift(...removedItem[0].body);
+
+                while (stmtStack.length > 0) {
+                    const curStmt = stmtStack.pop();
+                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left - TAB_SPACES));
+
+                    if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
+                }
+
+                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
+
+                this.rebuildBody(0, 1);
+            }
+        }
+    }
+
+    indentForwardStatement(line: Statement) {
+        const root = line.rootNode;
+
+        if (root instanceof Statement || root instanceof Module) {
+            if (!line.hasBody()) {
+                const aboveMultilineStmt = root.body[line.indexInRoot - 1];
+                const removedItem = root.body.splice(line.indexInRoot, 1);
+
+                removedItem[0].rootNode = aboveMultilineStmt;
+                removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+
+                aboveMultilineStmt.body.push(removedItem[0]);
+
+                this.rebuildBody(0, 1);
+            } else {
+                const aboveMultilineStmt = root.body[line.indexInRoot - 1];
+                const removedItem = root.body.splice(line.indexInRoot, 1);
+
+                removedItem[0].rootNode = aboveMultilineStmt;
+                removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
+                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+
+                const stmtStack = new Array<Statement>();
+                stmtStack.unshift(...removedItem[0].body);
+
+                while (stmtStack.length > 0) {
+                    const curStmt = stmtStack.pop();
+                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left + TAB_SPACES));
+
+                    if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
+                }
+
+                aboveMultilineStmt.body.push(removedItem[0]);
+
+                this.rebuildBody(0, 1);
+            }
+        }
+    }
+
+    removeStatement(line: Statement): CodeConstruct {
+        const root = line.rootNode;
+
+        if (root instanceof Module || root instanceof Statement) {
+            const replacement = new EmptyLineStmt(root, line.indexInRoot);
+            this.recursiveNotify(line, CallbackType.delete);
+            root.body.splice(line.indexInRoot, 1, replacement);
+            replacement.build(line.getLeftPosition());
+            this.rebuildBody(0, 1);
+
+            return replacement;
+        }
+
+        return null;
+    }
+
+    deleteLine(line: Statement) {
+        const root = line.rootNode;
+
+        if (root instanceof Module || root instanceof Statement) {
+            this.recursiveNotify(line, CallbackType.delete);
+            root.body.splice(line.indexInRoot, 1);
+            this.rebuildBody(0, 1);
+        }
+    }
+
+    removeItem(item: CodeConstruct): CodeConstruct {
+        const root = item.rootNode;
+
+        if (root instanceof Statement) {
+            const replacedItem = new TypedEmptyExpr(root.typeOfHoles[item.indexInRoot]);
+            this.recursiveNotify(item, CallbackType.delete);
+
+            root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
+
+            for (let i = 0; i < root.tokens.length; i++) {
+                root.tokens[i].indexInRoot = i;
+                root.tokens[i].rootNode = root;
+            }
+
+            root.rebuild(root.getLeftPosition(), 0);
+
+            return replacedItem;
+        }
+
+        return null;
+    }
+
     insertAfterIndex(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
             const root = focusedCode.rootNode;
@@ -2065,6 +2261,8 @@ export class Module {
         let lineNumber = startLineNumber;
 
         for (let i = fromIndex; i < this.body.length; i++) {
+            this.body[i].indexInRoot = i;
+
             if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
             else this.body[i].setLineNumber(lineNumber);
 
