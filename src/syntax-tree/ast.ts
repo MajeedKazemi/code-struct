@@ -5,7 +5,7 @@ import { Editor } from "../editor/editor";
 import { EventStack as EventStack } from "../editor/event-stack";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { Notification } from "../notification-system/notification";
+import { HoverNotification, Notification } from "../notification-system/notification";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { constructKeys, ConstructKeys, constructToToolboxButton, Util, hasMatch} from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
@@ -3091,7 +3091,7 @@ export class Module {
 
                     //TODO: Should we include the parent too?
                     code.draftModeEnabled = true;
-                    this.notificationSystem.addHoverNotification(code, {}, "Placeholder Text");
+                    this.draftExpressions.push(new DraftRecord(code, this));
                     code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
                     
                     const range = new monaco.Range(
@@ -3123,7 +3123,8 @@ export class Module {
     closeConstructDraftRecord(code: CodeConstruct){
         if(code.draftModeEnabled){
             code.draftModeEnabled = false;
-            this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)
+            const removedRecord = this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)
+            
             code.draftRecord = null;
         }
         else{
@@ -3193,3 +3194,24 @@ function emptySpaces(count: number) {
 
     return spaces;
 }
+
+
+export class DraftRecord{
+    code: Expression;
+    warning: HoverNotification;
+
+    private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
+
+    constructor(code: Expression, module: Module){
+        this.code =  code;
+        this.module = module;
+
+        this.warning = this.module.notificationSystem.addHoverNotification(code, {}, "Placeholder Text");
+        this.code.notification = this.warning;
+    }
+
+    removeNotification(){
+        this.module.notificationSystem.removeNotificationFromConstruct(this.code);
+    }
+}
+

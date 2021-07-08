@@ -74,21 +74,23 @@ export class NotificationSystemController {
      * @param errMsgType type of error message the notification should display when hovered over
      */
     addHoverNotification(code: CodeConstruct, args: any, warningText?: string, errMsgType?: ErrorMessage, highlightColour: [number, number, number, number] = defaultHighlightColour) {
-        if (!code.notification) {
-            const notif = new HoverNotification(
-                this.editor,
-                code,
-                this.msgGenerator.generateMsg(errMsgType, args) ?? (warningText ?? "Placeholder Text"),
-                highlightColour,
-                this.notifications.length
-            );
+        const notif = new HoverNotification(
+            this.editor,
+            code,
+            this.msgGenerator.generateMsg(errMsgType, args) ?? (warningText ?? "Placeholder Text"),
+            highlightColour,
+            this.notifications.length
+        );
 
+        if (!code.notification) {
             this.notifications.push(notif);
             code.notification = this.notifications[this.notifications.length - 1];
         } else {
             this.removeNotificationFromConstruct(code);
             this.addHoverNotification(code, args, warningText, errMsgType, highlightColour);
         }
+
+        return notif;
     }
 
     /**
