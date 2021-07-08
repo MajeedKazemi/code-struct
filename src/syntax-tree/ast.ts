@@ -3185,20 +3185,19 @@ export class DraftRecord{
         this.highlightElement.classList.add("draftModeLine");
 
         const selection = this.code.getSelection();
-
-        //TODO: duplicate functionality from Notification.ts consider wrapping in class that contains this functionality and has a div element
+        const text = this.code.getRenderText();
         const transform = this.module.editor.computeBoundingBox(selection);
 
-        console.log(this.code)
-        console.log(this.code.getSelection())
-        console.log(transform)
-        console.log(this.code.getSelection().startLineNumber * this.module.editor.computeCharHeight())
+        const top = (this.code.getHeight() - 1) * this.module.editor.computeCharHeight();
+        const left = transform.x;
+        const height = this.module.editor.computeCharHeight() - Math.floor(this.module.editor.computeCharHeight() * 0.05);
+        const width = text.length * this.module.editor.computeCharWidth();
 
-        this.highlightElement.style.top = `${transform.y + 10}px`;
-        this.highlightElement.style.left = `${transform.x}px`;
+        this.highlightElement.style.top = `${top}px`;
+        this.highlightElement.style.left = `${left}px`;
 
-        this.highlightElement.style.width = `${transform.width > 0 ? transform.width: (selection.endColumn - selection.startColumn) * this.module.editor.computeCharWidth()}px`;
-        this.highlightElement.style.height = `${transform.height > 0 ? transform.height - 15 : this.module.editor.computeCharHeight()}px`;
+        this.highlightElement.style.width = `${width}px`;
+        this.highlightElement.style.height = `${height}px`;
 
         document.querySelector(".lines-content.monaco-editor-background").appendChild(this.highlightElement);
     }

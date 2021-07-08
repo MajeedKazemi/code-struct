@@ -1,9 +1,10 @@
 
 
 .draftModeLine{
-    background-color: rgba(255, 0, 0, 0.575);
+    background-color: rgba(255, 0, 0, 0.3);
     position: absolute;
     pointer-events: none;
+    border-radius: 5px;
 }
 
 
