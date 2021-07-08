@@ -47,6 +47,8 @@ const longTestText =
 const shortTestText =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 
+const defaultHighlightColour: [number,number, number, number] = [255, 191, 94, 0.3];
+
 /**
  * Class representing the main entry point of the code into the NotificationSystem.
  * Top-level class for handling workflow; notification system logic is in NotificationSystem.
@@ -71,49 +73,22 @@ export class NotificationSystemController {
      * @param args       context for constructing appropriate message. See error-msg-generator.ts for more info
      * @param errMsgType type of error message the notification should display when hovered over
      */
-    addHoverNotification(code: CodeConstruct, args: any, errMsgType: ErrorMessage) {
+    addHoverNotification(code: CodeConstruct, args: any, warningText?: string, errMsgType?: ErrorMessage, highlightColour: [number, number, number, number] = defaultHighlightColour) {
         if (!code.notification) {
             const notif = new HoverNotification(
                 this.editor,
-                code.getSelection(),
-                this.notifications.length,
-                this.msgGenerator.generateMsg(errMsgType, args)
+                code,
+                this.msgGenerator.generateMsg(errMsgType, args) ?? (warningText ?? "Placeholder Text"),
+                highlightColour,
+                this.notifications.length
             );
 
             this.notifications.push(notif);
             code.notification = this.notifications[this.notifications.length - 1];
-
-            //subscribe to changes to the code construct of this notification because we might need to change position
-            const callback = new Callback(() => {
-                notif.updateParentElementPosition(code);
-            });
-            
-            notif.callerId = callback.callerId;
-            code.subscribe(CallbackType.change, callback);
         } else {
             this.removeNotificationFromConstruct(code);
-            this.addHoverNotification(code, args, errMsgType);
+            this.addHoverNotification(code, args, warningText, errMsgType, highlightColour);
         }
-    }
-
-    /**
-     * Add a hover notification for attempting to use a variable out of scope with suggestions of in-scope variables.
-     *
-     * @param focusedCode code construct where the reference was attempted to be added
-     * @param args        context for constructing appropriate message. See error-msg-generator.ts for more info
-     * @param errMsgType  type of error message the notification should display when hovered over
-     * @param scope       scope of available variables
-     * @param focusedPos  position within the editor (line and column) of where the variable was attempted to be referenced
-     */
-    addHoverNotifVarOutOfScope(
-        focusedCode: CodeConstruct,
-        args: any,
-        errMsgType: ErrorMessage,
-        scope: Scope,
-        focusedPos: Position
-    ) {
-        this.addHoverNotification(focusedCode, args, errMsgType);
-        focusedCode.notification.addInScopeVarsArea(scope, this.module, focusedCode, focusedPos);
     }
 
     /**
@@ -121,23 +96,23 @@ export class NotificationSystemController {
      * 
      * If args and errMsgType are specified, there is no need to specify text as it will be auto-generated.
      */
-    addPopUpNotification(args: any, pos: object = {left: 0, top: 0}, errMsgType?: ErrorMessage, text?: string) {
+    addPopUpNotification(code: CodeConstruct, args: any, errMsgType?: ErrorMessage, text?: string) {
         if(text){
             this.notifications.push(
-                new PopUpNotification(this.editor, this.notifications.length, text, pos)
+                new PopUpNotification(this.editor, code, this.msgGenerator.generateMsg(errMsgType, args) ?? text, this.notifications.length)
             );
         }
         else{
             this.notifications.push(
-                new PopUpNotification(this.editor, this.notifications.length, this.msgGenerator.generateMsg(errMsgType, args), pos)
+                new PopUpNotification(this.editor, code, this.msgGenerator.generateMsg(errMsgType, args) ?? text, this.notifications.length, )
             );
         }
 
         const notif = this.notifications[this.notifications.length - 1];
 
         setTimeout(() => {
-            document.querySelector(".lines-content.monaco-editor-background").removeChild(notif.parentElement);
-            this.notifications.splice(notif.index);
+            document.querySelector(".lines-content.monaco-editor-background").removeChild(notif.domElement);
+            this.notifications.splice(notif.systemIndex);
         }, popUpNotificationTime);
     }
 
@@ -148,13 +123,8 @@ export class NotificationSystemController {
      */
     removeNotificationFromConstruct(code: CodeConstruct) {
         if (code?.notification) {
-            //notifications are subscribed to changed in position, so need to unsub
-            if (code.notification.callerId !== "") {
-                code.unsubscribe(CallbackType.change, code.notification.callerId);
-            }
-
-            this.notifications[code.notification.index].removeNotificationFromDOM();
-            this.notifications.splice(code.notification.index, 1);
+            this.notifications[code.notification.systemIndex].removeFromDOM();
+            this.notifications.splice(code.notification.systemIndex, 1);
             code.notification = null;
         }
         else{
@@ -164,7 +134,7 @@ export class NotificationSystemController {
 
     clearAllNotifications() {
         this.notifications.forEach((notification) => {
-            notification.removeNotificationFromDOM();
+            notification.removeFromDOM();
         });
 
         this.notifications = [];

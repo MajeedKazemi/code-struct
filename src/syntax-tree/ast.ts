@@ -2633,6 +2633,7 @@ export class Module {
                             method: (code.tokens[2] as NonEditableTkn).text,
                             calledOn: code.calledOn,
                         },
+                        "",
                         ErrorMessage.methodCallObjectTypeMismatch
                     );
                 }
@@ -2723,16 +2724,8 @@ export class Module {
                         }
 
                         if (!isValid) {
-                            //TODO: Refactor to have this be built in an easier way. So for this line, make it shorter and maybe also use Builder in Notificaiton.ts
-                            this.notificationSystem.addHoverNotifVarOutOfScope(
-                                focusedNode,
-                                { identifier: code.identifier },
-                                ErrorMessage.outOfScopeVarReference,
-                                parentRoot instanceof Module || parentRoot instanceof Statement
-                                    ? parentRoot.scope
-                                    : null,
-                                focusedPos
-                            );
+                            //TODO: Used to hold notif for variable out of scope reference, but it was not refactored with the new refactoring. Look at any older code to add it back when there is time.
+                            
                         }
 
                         if (isValid && focusedNode.notification) {
@@ -2788,6 +2781,7 @@ export class Module {
                             this.notificationSystem.addHoverNotification(
                                 focusedNode,
                                 { binOp: focusedNode.rootNode.operator, argType1: code.returns },
+                                "",
                                 ErrorMessage.boolOpArgTypeMismatch
                             );
                         }
@@ -2805,6 +2799,7 @@ export class Module {
                                         constructName: parentStatement.getKeyword(),
                                         expectedType: focusedNode.type,
                                     },
+                                    "",
                                     ErrorMessage.exprTypeMismatch
                                 );
                             } else {
@@ -2825,6 +2820,7 @@ export class Module {
                                             argType2: code.returns,
                                             methodName: focusedNode.rootNode.getFunctionName(),
                                         },
+                                        "",
                                         ErrorMessage.methodArgTypeMismatch
                                     );
                                 }
@@ -2837,6 +2833,7 @@ export class Module {
                                             constructName: (focusedNode.rootNode as Statement).getKeyword(),
                                             expectedType: focusedNode.type,
                                         },
+                                        "",
                                         ErrorMessage.exprTypeMismatch
                                     );
                                 }
@@ -2934,6 +2931,7 @@ export class Module {
                                         argType1: existingLiteralType,
                                         argType2: code.returns,
                                     },
+                                    "",
                                     ErrorMessage.binOpArgTypeMismatch
                                 );
                             } else if (focusedNode.rootNode instanceof ComparatorExpr) {
@@ -2944,6 +2942,7 @@ export class Module {
                                         argType1: existingLiteralType,
                                         argType2: code.returns,
                                     },
+                                    "",
                                     ErrorMessage.compOpArgTypeMismatch
                                 );
                             }
@@ -3014,7 +3013,7 @@ export class Module {
                 if (code.addableType == AddableType.NotAddable) {
                     console.warn("Cannot insert this code construct at focused location.");
 
-                    this.notificationSystem.addHoverNotification(focusedNode, {}, ErrorMessage.default);
+                    this.notificationSystem.addHoverNotification(focusedNode, {}, "", ErrorMessage.default);
                 } 
                 else if (focusedNode.receives.indexOf(code.addableType) == -1 && insertionType == InsertionType.Invalid) {
                     console.warn("Cannot insert this code construct at focused location.");
@@ -3029,6 +3028,7 @@ export class Module {
                                     addedType: code.addableType,
                                     focusedNode: focusedNode,
                                 },
+                                "",
                                 ErrorMessage.addableTypeMismatchControlStmt
                             );
                         } else if (
@@ -3039,7 +3039,7 @@ export class Module {
                         ) {
                             this.notificationSystem.addHoverNotification(
                                 focusedNode,
-                                { addedType: code.addableType },
+                                { addedType: code.addableType }, "",
                                 ErrorMessage.addableTypeMismatchGeneral
                             );
                         } else {
@@ -3050,6 +3050,7 @@ export class Module {
                                 this.notificationSystem.addHoverNotification(
                                     focusedNode,
                                     { constructName: "Variable assignment", addedType: code.addableType },
+                                    "",
                                     ErrorMessage.addableTypeMismatchVarAssignStmt
                                 );
                             } else if (focusedNode.rootNode instanceof FunctionCallStmt) {
@@ -3061,12 +3062,14 @@ export class Module {
                                             argType2: code.returns,
                                             methodName: focusedNode.rootNode.getFunctionName(),
                                         },
+                                        "",
                                         ErrorMessage.methodArgTypeMismatch
                                     );
                                 } else if (code instanceof Statement) {
                                     this.notificationSystem.addHoverNotification(
                                         focusedNode,
                                         { addedType: code.addableType },
+                                        "",
                                         ErrorMessage.addableTypeMismatchMethodArg
                                     );
                                 }
@@ -3107,6 +3110,7 @@ export class Module {
                     this.notificationSystem.addHoverNotification(
                         focusedNode,
                         { addedType: code.addableType },
+                        "",
                         ErrorMessage.addableTypeMismatchEmptyLine
                     );
                     
@@ -3194,79 +3198,13 @@ function emptySpaces(count: number) {
 export class DraftRecord{
     code: Expression;
 
-    private highlightElement: HTMLDivElement;
-    private selection: monaco.Selection;
     private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
 
     constructor(code: Expression, module: Module){
         this.code =  code;
         this.module = module;
 
-        this.selection = code.getSelection();
-
-        this.code.subscribe(CallbackType.change, new Callback((() => {
-            this.moveWithCode();
-        }).bind(this)))
-
-        this.code.subscribe(CallbackType.delete, new Callback((() => {
-            this.removeFromDom();
-            this.module.closeConstructDraftRecord(this.code);
-        }).bind(this)))
-
-        this.addHighlight();
-    }
-
-    removeFromDom(){
-        document.querySelector(editorElementId).removeChild(this.highlightElement);
-    }
-
-    changeHighlightColour(rgbColour: [number, number, number, number]){
-        this.highlightElement.style.backgroundColor = `rgb(${rgbColour[0]}, ${rgbColour[1]}, ${rgbColour[2]}, ${rgbColour[3]})`;
-    }
-
-    private moveWithCode(){
-        const newSelection = this.code.getSelection();
-
-        //top
-        if (this.selection.startLineNumber != newSelection.startLineNumber) {
-            const diff = newSelection.startLineNumber - this.selection.startLineNumber;
-            this.selection = newSelection;
-
-            this.highlightElement.style.top = `${this.highlightElement.offsetTop + diff * this.module.editor.computeCharHeight()}px`;
-        }
-
-        //left
-        if (this.selection.startColumn != newSelection.startColumn) {
-            const diff = newSelection.startColumn - this.selection.startColumn;
-
-            this.selection = newSelection;
-
-            this.highlightElement.style.left = `${
-                this.highlightElement.offsetLeft + diff * this.module.editor.computeCharWidth()
-            }px`;
-        }
-    }
-
-    private addHighlight(){
-        this.highlightElement = document.createElement("div");
-        this.highlightElement.classList.add(draftModeLineClassname);
-
-        const text = this.code.getRenderText();
-        const transform = this.module.editor.computeBoundingBox(this.selection);
-
-        const top = (this.selection.startLineNumber - 1) * this.module.editor.computeCharHeight();
-        const left = transform.x;
-        const height = this.module.editor.computeCharHeight() - Math.floor(this.module.editor.computeCharHeight() * 0.05);
-        const width = text.length * this.module.editor.computeCharWidth(this.code.lineNumber);
-        
-
-        this.highlightElement.style.top = `${top}px`;
-        this.highlightElement.style.left = `${left}px`;
-
-        this.highlightElement.style.width = `${width}px`;
-        this.highlightElement.style.height = `${height}px`;
-
-        document.querySelector(editorElementId).appendChild(this.highlightElement);
+        this.module.notificationSystem.addHoverNotification(code, {}, "Placeholder Text");
     }
 }
 

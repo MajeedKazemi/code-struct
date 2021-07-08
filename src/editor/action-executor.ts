@@ -540,21 +540,17 @@ export class ActionExecutor {
             context.tokenToLeft instanceof IdentifierTkn ||
             context.tokenToRight instanceof IdentifierTkn
         ) {
-            const notifPos = {
-                left: focusedNode.getLeftPosition().column * this.module.editor.computeCharWidth(),
-                top: focusedNode.getLeftPosition().lineNumber * this.module.editor.computeCharHeight(),
-            };
 
             if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
+                    focusedNode,
                     { identifier: identifierText },
-                    notifPos,
                     ErrorMessage.identifierIsKeyword
                 );
             } else if (Object.keys(keywords.BuiltInFunctions).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
+                    focusedNode,
                     { identifier: identifierText },
-                    notifPos,
                     ErrorMessage.identifierIsBuiltInFunc
                 );
             }
