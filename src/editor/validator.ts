@@ -58,13 +58,14 @@ export class Validator {
 
     /**
      * logic: checks if the above line is an empty line.
+     * AND should be at the beginning of the line.
      */
     canDeletePrevLine(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-
         const curLineNumber = context.lineStatement.lineNumber;
+        const curPosition = this.module.editor.monaco.getPosition();
 
-        if (curLineNumber > 1) {
+        if (curPosition.column == context.lineStatement.left && curLineNumber > 1) {
             const lineAbove = this.module.focus.getStatementAtLineNumber(curLineNumber - 1);
 
             if (lineAbove instanceof EmptyLineStmt) return true;
