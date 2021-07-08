@@ -3091,7 +3091,7 @@ export class Module {
 
                     //TODO: Should we include the parent too?
                     code.draftModeEnabled = true;
-                    this.draftExpressions.push(new DraftRecord(code, this));
+                    this.notificationSystem.addHoverNotification(code, {}, "Placeholder Text");
                     code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
                     
                     const range = new monaco.Range(
@@ -3193,18 +3193,3 @@ function emptySpaces(count: number) {
 
     return spaces;
 }
-
-
-export class DraftRecord{
-    code: Expression;
-
-    private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
-
-    constructor(code: Expression, module: Module){
-        this.code =  code;
-        this.module = module;
-
-        this.module.notificationSystem.addHoverNotification(code, {}, "Placeholder Text");
-    }
-}
-
