@@ -474,26 +474,7 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.CloseDraftMode:
-
-                //TODO: This code should really be inside of some top level function like the example below, otherwise the client code has to know that you need to call
-                //these different methods to properly remove something since removeItem will only remove from AST.
-
-                /**
-                 * Ex.
-                 * 
-                 * function removeCodeElement(code: CodeConstruct){
-                 *   const replacementRange = this.getBoundaries(action.data.codeNode);
-                 *   const replacement = this.module.removeItem(action.data.codeNode);
-                 * 
-                 *   this.module.editor.executeEdits(replacementRange, replacement);
-                 *   this.module.focus.updateContext({ tokenToSelect: replacement });
-                 * }
-                 */
-                const replacementRange = this.getBoundaries(action.data.codeNode);
-                const replacement = this.module.removeItem(action.data.codeNode);
-
-                this.module.editor.executeEdits(replacementRange, replacement);
-                this.module.focus.updateContext({ tokenToSelect: replacement });
+                this.deleteCode(action.data.codeNode);
                 
                 break;
 
