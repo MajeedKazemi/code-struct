@@ -167,6 +167,8 @@ export interface CodeConstruct {
      */
     draftModeEnabled: boolean;
 
+    draftRecord: DraftRecord;
+
 
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
@@ -258,6 +260,7 @@ export abstract class Statement implements CodeConstruct {
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();
     draftModeEnabled = false;
+    draftRecord: DraftRecord = null;
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -694,6 +697,7 @@ export abstract class Token implements CodeConstruct {
     callbacks = new Map<string, Array<Callback>>();
     notification = null;
     draftModeEnabled = false;
+    draftRecord = null;
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -3084,6 +3088,7 @@ export class Module {
                     //TODO: Should we include the parent too?
                     code.draftModeEnabled = true;
                     this.draftExpressions.push(new DraftRecord(code, this));
+                    code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
                     
                     const range = new monaco.Range(
                         focusedPos.lineNumber,
@@ -3107,6 +3112,18 @@ export class Module {
                 }
             }
             this.editor.monaco.focus();
+        }
+    }
+
+    closeConstructDraftRecord(code: CodeConstruct){
+        if(code.draftModeEnabled){
+            code.draftModeEnabled = false;
+            this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)
+            code.draftRecord.removeFromDom();
+            code.draftRecord = null;
+        }
+        else{
+            console.warn("Tried closing draft mode of construct that did not have one open.")
         }
     }
 }
@@ -3195,7 +3212,7 @@ export class DraftRecord{
     }
 
     removeFromDom(){
-        document.getElementById(editorElementId).removeChild(this.highlightElement);
+        document.querySelector(editorElementId).removeChild(this.highlightElement);
     }
 
     changeHighlightColour(rgbColour: [number, number, number, number]){

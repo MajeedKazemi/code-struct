@@ -111,6 +111,9 @@ export enum EditActionType {
 
     //TODO: Remove later (for the continuos menu with categories)
     OpenValidInsertMenuSingleLevel,
+
+    CloseDraftMode,
+
 }
 
 export class EditAction {
@@ -134,6 +137,7 @@ export class EventRouter {
         const context = providedContext ? providedContext : this.module.focus.getContext();
         const curPos = this.module.editor.monaco.getPosition();
         const inTextEditMode = this.module.focus.isTextEditable(context);
+        const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
         switch (e.key) {
             case KeyPress.ArrowUp:
@@ -371,10 +375,26 @@ export class EventRouter {
 
             case KeyPress.Escape:
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+                else if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseValidInsertMenu);
                 }
+                else{
+                    let node = null;
+                    if(context.expressionToLeft?.draftModeEnabled){
+                        node = context.expressionToLeft;
+                    }
+                    else if(context.expressionToRight?.draftModeEnabled){
+                        node = context.expressionToRight;
+                    }
+                    else if(focusedNode instanceof ast.Token && !(focusedNode.rootNode instanceof ast.Module) && focusedNode.rootNode.draftModeEnabled){
+                        node = focusedNode.rootNode;
+                    }
 
+                    if(node){
+                        return new EditAction(EditActionType.CloseDraftMode, {codeNode: node});
+                    }
+                }
+                
                 break;
 
             case KeyPress.Equals:
