@@ -14,6 +14,13 @@ import { Validator } from "../editor/validator";
 import { ActionExecutor } from "../editor/action-executor";
 import { TypeSystem } from "./type-sys";
 
+//Constants
+const draftModeLineClassname = "draftModeLine"
+const editorElementId = ".lines-content.monaco-editor-background"
+
+
+
+
 export class Callback {
     static counter: number;
     callback: () => any;
@@ -3169,29 +3176,67 @@ function emptySpaces(count: number) {
 
 export class DraftRecord{
     code: Expression;
-    highlightElement: HTMLDivElement;
 
+    private highlightElement: HTMLDivElement;
+    private selection: monaco.Selection;
     private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
 
     constructor(code: Expression, module: Module){
         this.code =  code;
         this.module = module;
 
+        this.selection = code.getSelection();
+
+        this.code.subscribe(CallbackType.change, new Callback((() => {
+            this.moveWithCode();
+        }).bind(this)))
+
         this.addHighlight();
+    }
+
+    removeFromDom(){
+        document.getElementById(editorElementId).removeChild(this.highlightElement);
+    }
+
+    changeHighlightColour(rgbColour: [number, number, number, number]){
+        this.highlightElement.style.backgroundColor = `rgb(${rgbColour[0]}, ${rgbColour[1]}, ${rgbColour[2]}, ${rgbColour[3]})`;
+    }
+
+    private moveWithCode(){
+        const newSelection = this.code.getSelection();
+
+        //top
+        if (this.selection.startLineNumber != newSelection.startLineNumber) {
+            const diff = newSelection.startLineNumber - this.selection.startLineNumber;
+            this.selection = newSelection;
+
+            this.highlightElement.style.top = `${this.highlightElement.offsetTop + diff * this.module.editor.computeCharHeight()}px`;
+        }
+
+        //left
+        if (this.selection.startColumn != newSelection.startColumn) {
+            const diff = newSelection.startColumn - this.selection.startColumn;
+
+            this.selection = newSelection;
+
+            this.highlightElement.style.left = `${
+                this.highlightElement.offsetLeft + diff * this.module.editor.computeCharWidth()
+            }px`;
+        }
     }
 
     private addHighlight(){
         this.highlightElement = document.createElement("div");
-        this.highlightElement.classList.add("draftModeLine");
+        this.highlightElement.classList.add(draftModeLineClassname);
 
-        const selection = this.code.getSelection();
         const text = this.code.getRenderText();
-        const transform = this.module.editor.computeBoundingBox(selection);
+        const transform = this.module.editor.computeBoundingBox(this.selection);
 
-        const top = (this.code.getHeight() - 1) * this.module.editor.computeCharHeight();
+        const top = (this.selection.startLineNumber - 1) * this.module.editor.computeCharHeight();
         const left = transform.x;
         const height = this.module.editor.computeCharHeight() - Math.floor(this.module.editor.computeCharHeight() * 0.05);
-        const width = text.length * this.module.editor.computeCharWidth();
+        const width = text.length * this.module.editor.computeCharWidth(this.code.lineNumber);
+        
 
         this.highlightElement.style.top = `${top}px`;
         this.highlightElement.style.left = `${left}px`;
@@ -3199,7 +3244,7 @@ export class DraftRecord{
         this.highlightElement.style.width = `${width}px`;
         this.highlightElement.style.height = `${height}px`;
 
-        document.querySelector(".lines-content.monaco-editor-background").appendChild(this.highlightElement);
+        document.querySelector(editorElementId).appendChild(this.highlightElement);
     }
 }
 
