@@ -1965,6 +1965,7 @@ export class Module {
     }
 
     recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
+        code.notify(callbackType)
         if (code instanceof Expression || code instanceof Statement) {
             const codeStack = new Array<CodeConstruct>();
             codeStack.unshift(...code.tokens);
@@ -3119,7 +3120,6 @@ export class Module {
         if(code.draftModeEnabled){
             code.draftModeEnabled = false;
             this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)
-            code.draftRecord.removeFromDom();
             code.draftRecord = null;
         }
         else{
@@ -3206,6 +3206,11 @@ export class DraftRecord{
 
         this.code.subscribe(CallbackType.change, new Callback((() => {
             this.moveWithCode();
+        }).bind(this)))
+
+        this.code.subscribe(CallbackType.delete, new Callback((() => {
+            this.removeFromDom();
+            this.module.closeConstructDraftRecord(this.code);
         }).bind(this)))
 
         this.addHighlight();

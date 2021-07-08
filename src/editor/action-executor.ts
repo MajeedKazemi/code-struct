@@ -474,7 +474,6 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.CloseDraftMode:
-                this.module.closeConstructDraftRecord(action.data.codeNode)
 
                 //TODO: This code should really be inside of some top level function like the example below, otherwise the client code has to know that you need to call
                 //these different methods to properly remove something since removeItem will only remove from AST.
