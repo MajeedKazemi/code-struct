@@ -1,14 +1,18 @@
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { BinaryOperatorExpr, CodeConstruct, DataType, Expression, ForStatement, Module, Statement, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
+import * as ast from "../syntax-tree/ast";
 
 
 export class TypeSystem{
     static varTypeMap: Map<string, DataType> = new Map<string, DataType>();
-    static listTypes: Array<DataType> = [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String];
+    static listTypes: Array<DataType>;
 
     module: Module;
 
     constructor(module: Module){
+        if(!TypeSystem.listTypes){ //it does not recognize the imports unless they are assigned inside the constructor
+            TypeSystem.listTypes = [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String];
+        }
         this.module = module;
     }
 
@@ -23,7 +27,7 @@ export class TypeSystem{
     }
 
     /**
-     * Set all empty holes (TypedEmptyExpr) in an expression to the provided type newTypes.
+     * Recursively set all empty holes (TypedEmptyExpr) in an expression to the provided type newTypes.
      * 
      * @param parentConstruct parent Statement of the expression
      * @param newTypes        types to use

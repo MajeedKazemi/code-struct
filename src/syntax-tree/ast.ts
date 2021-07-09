@@ -236,6 +236,9 @@ export interface CodeConstruct {
      * Calls callback of the given type if this construct is subscribed to it.
      */
     notify(type: CallbackType);
+
+    
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean;
 }
 
 /**
@@ -641,6 +644,11 @@ export abstract class Statement implements CodeConstruct {
 
         return "";
     }
+
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        return  insertInto.type.indexOf(insertCode.returns) > -1 || 
+                insertInto.type.indexOf(DataType.Any) > -1;
+    }
 }
 
 /**
@@ -678,6 +686,10 @@ export abstract class Expression extends Statement implements CodeConstruct {
         if (this.isStatement()) return this as Statement;
         else if (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) return this.rootNode;
         else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
+    }
+
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        return super.validateInsertionType(insertCode, enableWarnings, insertInto);
     }
 }
 
@@ -805,6 +817,10 @@ export abstract class Token implements CodeConstruct {
         ) {
             return this.rootNode as Statement;
         } else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
+    }
+
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        return false;
     }
 }
 
@@ -942,6 +958,16 @@ export class IfStatement extends Statement {
 
         this.rebuildBody(index + 1, prevPos.lineNumber + 1);
     }
+
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        const isValidType = super.validateInsertionType(insertCode, enableWarnings, insertInto);
+
+        if(enableWarnings && !isValidType){
+           notifSystem.addStatementArgumentTypeMismatchWarning(insertInto, insertCode);
+        }
+
+        return isValidType;
+    }
 }
 
 export class ElseStatement extends Statement {
@@ -1039,6 +1065,16 @@ export class ForStatement extends Statement {
 
     getIterableCodeObject(): CodeConstruct {
         return this.tokens[this.rangeIndex];
+    }
+
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        const isValidType = insertInto.type.indexOf(insertCode.returns) > -1;
+
+        if(enableWarnings && !isValidType){
+            notifSystem.addStatementArgumentTypeMismatchWarning(insertInto, insertCode);
+        }
+
+        return isValidType;
     }
 }
 
@@ -1217,6 +1253,16 @@ export class FunctionCallStmt extends Expression {
 
     getFunctionName(): string {
         return this.functionName;
+    }
+
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        const isValidType = super.validateInsertionType(insertCode, enableWarnings, insertInto);
+
+        if(enableWarnings && !isValidType){
+           notifSystem.addFunctionCallArgumentTypeMismatchWarning(insertInto, insertCode);
+        }
+
+        return isValidType;
     }
 }
 
@@ -1544,6 +1590,16 @@ export class BinaryBoolOperatorExpr extends Expression {
 
     replaceRightOperand(code: CodeConstruct) {
         this.replace(code, this.rightOperandIndex);
+    }
+
+    validateInsertionType(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        const isValidType = insertCode.returns != DataType.Boolean;
+
+        if(enableWarnings && !isValidType && !isValidType){
+           notifSystem.addBinBoolOpTypeMismatchWarning(insertInto, this.operator, insertCode);
+        }
+
+        return isValidType;
     }
 }
 
@@ -2588,7 +2644,7 @@ export class Module {
         let isValid = false;
 
         if (focusedNode) {
-            if (code instanceof MethodCallExpr  && insertionType === InsertionType.Valid) {
+            if (code instanceof MethodCallExpr  && insertionType !== InsertionType.DraftMode) {
                 const focusedPos = context.position;
                 const prevItem = context.token
                     .getParentStatement()
@@ -2639,7 +2695,7 @@ export class Module {
                 }
             }
 
-            if (code.addableType != AddableType.NotAddable && focusedNode.receives.indexOf(code.addableType) > -1  && insertionType === InsertionType.Valid) {
+            if (code.addableType != AddableType.NotAddable && focusedNode.receives.indexOf(code.addableType) > -1  && insertionType !== InsertionType.DraftMode) {
                 //we don't always insert into a token, sometimes it may be an empty line
                 const focusedPos = this.focus.onEmptyLine()
                     ? context.lineStatement.getLeftPosition()
@@ -2708,7 +2764,7 @@ export class Module {
 
                         this.editor.executeEdits(range, statement);
                     }
-                } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1  && insertionType === InsertionType.Valid) {
+                } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
                     isValid = true;
 
                     if (code instanceof VariableReferenceExpr) {
@@ -2772,72 +2828,9 @@ export class Module {
                     //type checks -- different handling based on type of code construct
                     //focusedNode.returns != code.returns would work, but we need more context to get the right error message
                     if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
-                        //boolean ops operate exclusively on boolean types
-                        if (
-                            focusedNode.rootNode instanceof BinaryBoolOperatorExpr &&
-                            code.returns != DataType.Boolean
-                        ) {
-                            isValid = false;
-                            this.notificationSystem.addHoverNotification(
-                                focusedNode,
-                                { binOp: focusedNode.rootNode.operator, argType1: code.returns },
-                                "",
-                                ErrorMessage.boolOpArgTypeMismatch
-                            );
-                        }
-
-                        //ensures that whatever we are inserting in the second hole of a for-loop can actually be inserted there
-                        //in the case that it can be, it updates the loop var's type
-                        else if (focusedNode.rootNode instanceof ForStatement) {
-                            isValid = this.typeSystem.validateForLoopIterableInsertionType(code);
-
-                            if (!isValid) {
-                                this.notificationSystem.addHoverNotification(
-                                    insertInto,
-                                    {
-                                        addedType: code.returns,
-                                        constructName: parentStatement.getKeyword(),
-                                        expectedType: focusedNode.type,
-                                    },
-                                    "",
-                                    ErrorMessage.exprTypeMismatch
-                                );
-                            } else {
-                                this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code);
-                            }
-                        } else {
-                            isValid =
-                                focusedNode.type.indexOf(code.returns) > -1 ||
-                                focusedNode.type.indexOf(DataType.Any) > -1;
-
-                            if (!isValid) {
-                                //within method arguments
-                                if (focusedNode.rootNode instanceof FunctionCallStmt) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        {
-                                            argType1: focusedNode.type,
-                                            argType2: code.returns,
-                                            methodName: focusedNode.rootNode.getFunctionName(),
-                                        },
-                                        "",
-                                        ErrorMessage.methodArgTypeMismatch
-                                    );
-                                }
-                                //within statements while, if, else if (second part of for is covered by a case above)
-                                else if (focusedNode.rootNode instanceof Statement) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        {
-                                            addedType: code.returns,
-                                            constructName: (focusedNode.rootNode as Statement).getKeyword(),
-                                            expectedType: focusedNode.type,
-                                        },
-                                        "",
-                                        ErrorMessage.exprTypeMismatch
-                                    );
-                                }
-                            }
+                        isValid = focusedNode.rootNode.validateInsertionType(code, true, focusedNode, this.notificationSystem);
+                        if (focusedNode.rootNode instanceof ForStatement && isValid) {
+                            this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code); //TODO: should be placed inside of doOnInsert() which is a method of all CodeConstructs
                         }
                     }
 
@@ -3206,7 +3199,7 @@ export class DraftRecord{
         this.code =  code;
         this.module = module;
 
-        this.warning = this.module.notificationSystem.addHoverNotification(code, {}, "Placeholder Text");
+        this.warning = this.module.notificationSystem.addHoverNotification(code, {}, "Draft Mode");
         this.code.notification = this.warning;
     }
 

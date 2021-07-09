@@ -1,4 +1,4 @@
-import { Callback, CallbackType, CodeConstruct, Module, Scope } from "../syntax-tree/ast";
+import { BoolOperator, Callback, CallbackType, CodeConstruct, Expression, FunctionCallStmt, Module, OperatorTkn, Scope, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Editor } from "../editor/editor";
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import { ErrorMessageGenerator, ErrorMessage } from "./error-msg-generator";
@@ -77,7 +77,7 @@ export class NotificationSystemController {
         const notif = new HoverNotification(
             this.editor,
             code,
-            this.msgGenerator.generateMsg(errMsgType, args) ?? (warningText ?? "Placeholder Text"),
+            errMsgType ? this.msgGenerator.generateMsg(errMsgType, args) : (warningText ?? "Placeholder Text"),
             highlightColour,
             this.notifications.length
         );
@@ -140,5 +140,40 @@ export class NotificationSystemController {
         });
 
         this.notifications = [];
+    }
+
+    addBinBoolOpTypeMismatchWarning(insertInto: TypedEmptyExpr, operator: BoolOperator, insertCode: Expression){
+        this.addHoverNotification(
+            insertInto,
+            { binOp: operator, argType1: insertCode.returns },
+            "",
+            ErrorMessage.boolOpArgTypeMismatch
+        );
+    }
+
+    addFunctionCallArgumentTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+        this.addHoverNotification(
+            insertInto,
+            {
+                argType1: insertInto.type,
+                argType2: insertCode.returns,
+                methodName: (insertInto.rootNode as FunctionCallStmt).getFunctionName(),
+            },
+            "",
+            ErrorMessage.methodArgTypeMismatch
+        );
+    }
+
+    addStatementArgumentTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+        this.addHoverNotification(
+            insertInto,
+            {
+                addedType: insertCode.returns,
+                constructName: insertInto.getParentStatement().getKeyword(),
+                expectedType: insertInto.type,
+            },
+            "",
+            ErrorMessage.exprTypeMismatch
+        );
     }
 }
