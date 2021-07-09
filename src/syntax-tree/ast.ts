@@ -2082,7 +2082,7 @@ export class Module {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
             const root = focusedCode.rootNode;
 
-            if (root instanceof Expression && root.tokens.length > 0) {
+            if (root instanceof Statement && root.tokens.length > 0) {
                 root.tokens.splice(index, 0, ...items);
 
                 for (let i = 0; i < root.tokens.length; i++) {
