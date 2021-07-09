@@ -3,30 +3,13 @@ import { BinaryOperatorExpr, CodeConstruct, DataType, Expression, ForStatement, 
 
 
 export class TypeSystem{
-    static varTypeMap: Map<string, DataType>;
-    static listTypes;
+    static varTypeMap: Map<string, DataType> = new Map<string, DataType>();
+    static listTypes: Array<DataType> = [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String];
 
     module: Module;
 
     constructor(module: Module){
-        if(!TypeSystem.varTypeMap){
-            TypeSystem.varTypeMap = new Map<string, DataType>();
-            TypeSystem.listTypes = [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String]
-        }
-
         this.module = module;
-    }
-
-    /**
-     * Replaces the record using an old identifier of a variable with a record using the new identifier.
-     * 
-     * @param oldIdentifier the variable's old identifier
-     * @param newIdentifier the variable's new identifier
-     */
-    static updateVarIdentifierInMap(oldIdentifier: string, newIdentifier: string){
-        const currentType = this.varTypeMap.get(oldIdentifier);
-        this.varTypeMap.delete(oldIdentifier);
-        this.varTypeMap.set(newIdentifier, currentType);
     }
 
     /**
@@ -85,8 +68,6 @@ export class TypeSystem{
         const newType = this.getElementTypeFromListType(code.returns);
         TypeSystem.varTypeMap.set(forLoop.getIdentifier(), newType);
         this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);
-
-        console.log(newType)
     }
 
     /**
@@ -128,4 +109,18 @@ export class TypeSystem{
                 return DataType.Any
         } 
     }
+
+    //Variables need to get refactored anyway so might not need this for now
+
+        /**
+     * Replaces the record using an old identifier of a variable with a record using the new identifier.
+     * 
+     * @param oldIdentifier the variable's old identifier
+     * @param newIdentifier the variable's new identifier
+     */
+         static updateVarIdentifierInMap(oldIdentifier: string, newIdentifier: string){
+            const currentType = this.varTypeMap.get(oldIdentifier);
+            this.varTypeMap.delete(oldIdentifier);
+            this.varTypeMap.set(newIdentifier, currentType);
+        }
 }
