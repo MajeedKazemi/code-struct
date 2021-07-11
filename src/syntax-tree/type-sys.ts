@@ -69,7 +69,7 @@ export class TypeSystem{
      * @param code    expression the type of which will be used
      */
     updateForLoopVarType(forLoop: ForStatement, code: Expression){
-        const newType = this.getElementTypeFromListType(code.returns);
+        const newType = TypeSystem.getElementTypeFromListType(code.returns);
         TypeSystem.varTypeMap.set(forLoop.getIdentifier(), newType);
         this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);
     }
@@ -80,7 +80,7 @@ export class TypeSystem{
      * @param type element type
      * @returns    corresponding list type (one of: StringList, NumberList, BooleanList, AnyList)
      */
-    getListTypeFromElementType(type: DataType){
+    static getListTypeFromElementType(type: DataType){
         switch(type){
             case DataType.String:
                 return DataType.StringList
@@ -99,7 +99,7 @@ export class TypeSystem{
      * @param listType type of list
      * @returns type of elements contained in listType
      */
-    getElementTypeFromListType(listType: DataType){
+    static getElementTypeFromListType(listType: DataType){
         switch(listType){
             case DataType.AnyList:
                 return DataType.Any
