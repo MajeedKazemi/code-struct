@@ -257,6 +257,8 @@ export interface CodeConstruct {
      * @param insertCode 
      */
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
+
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) : void;
 }
 
 /**
@@ -669,6 +671,8 @@ export abstract class Statement implements CodeConstruct {
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){}
+
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){}
 }
 
 /**
@@ -848,6 +852,8 @@ export abstract class Token implements CodeConstruct {
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
         return;
     }
+
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){}
 }
 
 /**
@@ -1543,7 +1549,7 @@ export class BinaryOperatorExpr extends Expression {
         }
     }
 
-    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
         // make this BinOpExpr take on the type of the hole it is inserted into if at least one of the possible types for its operands
         // matches the type fo the hole.
         if (
@@ -1819,9 +1825,9 @@ export class LiteralValExpr extends Expression {
         }
     }
 
-    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
-        if(this.rootNode instanceof Expression){
-            this.rootNode.updateReturnType(this);
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
+        if(insertInto.rootNode instanceof Expression){
+            insertInto.rootNode.updateReturnType(this);
         }
     }
 }
@@ -1845,10 +1851,10 @@ export class ListLiteralExpression extends Expression {
 
     updateReturnType(insertCode: Expression){
         if(this.areAllHolesEmpty()){
-            this.returns = insertCode.returns;
+            this.returns = TypeSystem.getListTypeFromElementType(insertCode.returns);
         }
-        else if(this.returns !== insertCode.returns){
-            this.returns = DataType.Any;
+        else if(TypeSystem.getElementTypeFromListType(this.returns) !== insertCode.returns){
+            this.returns = DataType.AnyList;
         }
     }
 
@@ -1856,7 +1862,7 @@ export class ListLiteralExpression extends Expression {
     private areAllHolesEmpty(){
         const elements = this.tokens.filter(tkn => !(tkn instanceof NonEditableTkn));
         const numberOfElements = elements.length;
-        const numberOfEmptyHoles = elements.reduce((count, element) => {if(element instanceof TypedEmptyExpr){return count + 1;}}, 0)
+        const numberOfEmptyHoles = elements.filter(element => element instanceof TypedEmptyExpr).length;
 
         return numberOfEmptyHoles === numberOfElements
     }
@@ -2859,13 +2865,16 @@ export class Module {
                     //focusedNode.returns != code.returns would work, but we need more context to get the right error message
                     if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
                         isValid = focusedNode.rootNode.typeValidateInsertionIntoHole(code, true, focusedNode, this.notificationSystem);
-                        if (focusedNode.rootNode instanceof ForStatement && isValid) {
-                            this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code); //TODO: should be placed inside of doOnInsert() which is a method of all CodeConstructs
-                        }
 
+                        
                         if(isValid){
-                            code.performPostInsertionUpdates(focusedNode);
-
+                            code.performPreInsertionUpdates(focusedNode);
+    
+                            
+    
+                            if (focusedNode.rootNode instanceof ForStatement) {
+                                this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code); //TODO: should be placed inside of doOnInsert() which is a method of all CodeConstructs
+                            }
                             //This is for ListLiterals when their parent is a variable.
                             //It needs to be refactored along with the rest of similar updates so that anything that has a rootNode that is a 
                             //VarAssignment changes the vars dataType.
@@ -2873,23 +2882,31 @@ export class Module {
                                 focusedNode.rootNode.rootNode &&
                                 focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
                             ) {
-                                const newType = this.typeSystem.getListTypeFromElementType(code.returns);
+                                const newType = TypeSystem.getListTypeFromElementType(code.returns);
                                 this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
                             }
+    
+                             //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
+                            if (
+                                focusedNode.rootNode instanceof MemberCallStmt &&
+                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
+                                focusedNode instanceof TypedEmptyExpr
+                            ) {
+                                const newType = TypeSystem.getElementTypeFromListType((code as Expression).returns);
+                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
+                            }
+
+                            console.log("Code")
+                            console.log(code)
+                            console.log("FocusedNode")
+                            console.log(focusedNode)
                         }
                     }
 
-                    //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
-                    if (
-                        focusedNode.rootNode instanceof MemberCallStmt &&
-                        focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
-                        focusedNode instanceof TypedEmptyExpr
-                    ) {
-                        const newType = this.typeSystem.getElementTypeFromListType((code as Expression).returns);
-                        this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
-                    }
+                    
+                   
 
-                    //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
+                    //type check for binary ops 
                     //this is for insertions of expressions inside of the empty holes of an arithmetic or comp op
                     let existingLiteralType = null;
                     if (
