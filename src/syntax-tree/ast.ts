@@ -250,8 +250,13 @@ export interface CodeConstruct {
      */
     typeValidateInsertionIntoHole(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean;
 
-
-    performPostInsertionUpdates(insertInto: TypedEmptyExpr): void;
+    /**
+     * Updates to be performed when a 
+     * 
+     * @param insertInto 
+     * @param insertCode 
+     */
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 }
 
 /**
@@ -663,9 +668,7 @@ export abstract class Statement implements CodeConstruct {
                 insertInto.type.indexOf(DataType.Any) > -1;
     }
 
-    performPostInsertionUpdates(insertInto: TypedEmptyExpr){
-
-    }
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){}
 }
 
 /**
@@ -708,6 +711,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
     typeValidateInsertionIntoHole(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
         return super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
     }
+
+    updateReturnType(insertCode: Expression){}
 }
 
 /**
@@ -840,7 +845,7 @@ export abstract class Token implements CodeConstruct {
         return false;
     }
 
-    performPostInsertionUpdates(insertInto: TypedEmptyExpr){
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
         return;
     }
 }
@@ -1538,7 +1543,7 @@ export class BinaryOperatorExpr extends Expression {
         }
     }
 
-    performPostInsertionUpdates(insertInto: TypedEmptyExpr){
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
         // make this BinOpExpr take on the type of the hole it is inserted into if at least one of the possible types for its operands
         // matches the type fo the hole.
         if (
@@ -1813,6 +1818,12 @@ export class LiteralValExpr extends Expression {
                 return { positionToMove: new monaco.Position(this.lineNumber, this.right) };
         }
     }
+
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
+        if(this.rootNode instanceof Expression){
+            this.rootNode.updateReturnType(this);
+        }
+    }
 }
 
 export class ListLiteralExpression extends Expression {
@@ -1830,6 +1841,24 @@ export class ListLiteralExpression extends Expression {
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
+    }
+
+    updateReturnType(insertCode: Expression){
+        if(this.areAllHolesEmpty()){
+            this.returns = insertCode.returns;
+        }
+        else if(this.returns !== insertCode.returns){
+            this.returns = DataType.Any;
+        }
+    }
+
+    //return whether all elements of this list are of type TypedEmptyExpr
+    private areAllHolesEmpty(){
+        const elements = this.tokens.filter(tkn => !(tkn instanceof NonEditableTkn));
+        const numberOfElements = elements.length;
+        const numberOfEmptyHoles = elements.reduce((count, element) => {if(element instanceof TypedEmptyExpr){return count + 1;}}, 0)
+
+        return numberOfEmptyHoles === numberOfElements
     }
 }
 
@@ -2826,42 +2855,6 @@ export class Module {
                         }
                     }
 
-                    //binary ops and comparators need to adjust their type based on contents
-                    //special case for BinaryOperatorExpression +
-                    //because it can return either a string or a number, we need to determine which of the two based on where it is inserted
-                    if (
-                        isValid &&
-                        code instanceof BinaryOperatorExpr &&
-                        code.operator == BinaryOperator.Add &&
-                        focusedNode instanceof TypedEmptyExpr &&
-                        (focusedNode.type.indexOf(DataType.String) > -1 ||
-                            focusedNode.type.indexOf(DataType.Number) > -1)
-                    ) {
-                        code.returns = focusedNode.type[0]; // in these cases it is safe to do so since empty holes that accept a number or a string have only one type
-                        code.updateOperandTypes(focusedNode.type[0]);
-
-                        if (focusedNode.type.indexOf(DataType.String) > -1) {
-                            code.removeTypeFromOperands(DataType.Number);
-                        } else code.removeTypeFromOperands(DataType.String);
-                    }
-
-                    //update type of list based on value inserted
-                    if (
-                        isValid &&
-                        focusedNode.rootNode instanceof ListLiteralExpression &&
-                        code instanceof Expression
-                    ) {
-                        focusedNode.rootNode.returns = code.returns;
-
-                        if (
-                            focusedNode.rootNode.rootNode &&
-                            focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
-                        ) {
-                            const newType = this.typeSystem.getListTypeFromElementType(code.returns);
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
-                        }
-                    }
-
                     //type checks -- different handling based on type of code construct
                     //focusedNode.returns != code.returns would work, but we need more context to get the right error message
                     if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
@@ -2872,6 +2865,17 @@ export class Module {
 
                         if(isValid){
                             code.performPostInsertionUpdates(focusedNode);
+
+                            //This is for ListLiterals when their parent is a variable.
+                            //It needs to be refactored along with the rest of similar updates so that anything that has a rootNode that is a 
+                            //VarAssignment changes the vars dataType.
+                            if (
+                                focusedNode.rootNode.rootNode &&
+                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
+                            ) {
+                                const newType = this.typeSystem.getListTypeFromElementType(code.returns);
+                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
+                            }
                         }
                     }
 
