@@ -1,4 +1,4 @@
-import { BoolOperator, Callback, CallbackType, CodeConstruct, Expression, FunctionCallStmt, Module, OperatorTkn, Scope, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
+import { BinaryOperatorExpr, BoolOperator, Callback, CallbackType, CodeConstruct, ComparatorExpr, DataType, Expression, FunctionCallStmt, Module, OperatorTkn, Scope, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Editor } from "../editor/editor";
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import { ErrorMessageGenerator, ErrorMessage } from "./error-msg-generator";
@@ -142,7 +142,7 @@ export class NotificationSystemController {
         this.notifications = [];
     }
 
-    addBinBoolOpTypeMismatchWarning(insertInto: TypedEmptyExpr, operator: BoolOperator, insertCode: Expression){
+    addBinBoolOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, operator: BoolOperator, insertCode: Expression){
         this.addHoverNotification(
             insertInto,
             { binOp: operator, argType1: insertCode.returns },
@@ -164,7 +164,7 @@ export class NotificationSystemController {
         );
     }
 
-    addStatementArgumentTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+    addStatementHoleTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
             insertInto,
             {
@@ -174,6 +174,32 @@ export class NotificationSystemController {
             },
             "",
             ErrorMessage.exprTypeMismatch
+        );
+    }
+
+    addBinOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression, currentOperandType: DataType){
+        this.addHoverNotification(
+            insertInto,
+            {
+                binOp: (insertInto.rootNode as BinaryOperatorExpr).operator,
+                argType1: currentOperandType,
+                argType2: insertCode.returns,
+            },
+            "",
+            ErrorMessage.binOpArgTypeMismatch
+        );
+    }
+
+    addCompOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression, currentOperandType: DataType){
+        this.addHoverNotification(
+            insertInto,
+            {
+                binOp: (insertInto.rootNode as ComparatorExpr).operator,
+                argType1: currentOperandType,
+                argType2: insertCode.returns,
+            },
+            "",
+            ErrorMessage.compOpArgTypeMismatch
         );
     }
 }
