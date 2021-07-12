@@ -717,6 +717,45 @@ export abstract class Expression extends Statement implements CodeConstruct {
     }
 
     updateReturnType(insertCode: Expression){}
+
+    //TODO: Once #208 is discussed these methods need to be updated accordingly
+    //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
+    getTopLevelBinExpression(): Expression{
+        let currParentExpression = this.rootNode;
+        let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
+        while(nextParentExpression && (nextParentExpression instanceof BinaryOperatorExpr || nextParentExpression instanceof ComparatorExpr)){
+            currParentExpression = nextParentExpression;
+            nextParentExpression = nextParentExpression.rootNode;
+        }
+
+        return currParentExpression as Expression;
+    }
+
+    //should only be used on nested binary ops
+    areAllHolesEmpty(){
+        const topLevelExpression = this.getTopLevelBinExpression();
+
+        //this will always be true, but still needs to be checked otherwise typescript won't allow us to call checkAllHolesAreEmpty
+        if(topLevelExpression instanceof BinaryOperatorExpr || topLevelExpression instanceof ComparatorExpr){
+            return topLevelExpression.checkAllHolesAreEmpty().every((element) => {element});
+        }
+    }
+
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
+        // Inserting a bin op within a bin op needs to update types of holes in the outer levels of the expression
+        // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
+        // into one when a more type restricted bin op such as - is inserted inside of them
+
+        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
+        if ((this.rootNode instanceof BinaryOperatorExpr || this.rootNode instanceof ComparatorExpr) && this.rootNode.areAllHolesEmpty()) {
+            if(this.rootNode instanceof BinaryOperatorExpr){
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
+            }
+            else{
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
+            }
+        }
+    }
 }
 
 /**
@@ -1587,6 +1626,24 @@ export class BinaryOperatorExpr extends Expression {
             (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
         }
     }
+
+    //should only be used on nested binary ops
+    checkAllHolesAreEmpty(){
+        let result = []
+
+        if((!(this.tokens[this.leftOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.leftOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.leftOperandIndex] instanceof ComparatorExpr)) ||
+        (!(this.tokens[this.rightOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.rightOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.rightOperandIndex] instanceof ComparatorExpr))){
+            result.push(false);
+        }
+        
+        for(const tkn of this.tokens){
+            if(tkn instanceof BinaryOperatorExpr || tkn instanceof ComparatorExpr){
+                result.push(...tkn.checkAllHolesAreEmpty());
+            }
+        }
+
+        return result;
+    }
 }
 
 export class UnaryOperatorExpr extends Expression {
@@ -1739,6 +1796,24 @@ export class ComparatorExpr extends Expression {
             (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
             (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
         }
+    }
+
+    //should only be used on nested binary ops
+    checkAllHolesAreEmpty(){
+        let result = []
+
+        if((!(this.tokens[this.leftOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.leftOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.leftOperandIndex] instanceof ComparatorExpr)) ||
+           (!(this.tokens[this.rightOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.rightOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.rightOperandIndex] instanceof ComparatorExpr))){
+            result.push(false);
+        }
+
+        for(const tkn of this.tokens){
+            if(tkn instanceof BinaryOperatorExpr || tkn instanceof ComparatorExpr){
+                result.push(...tkn.checkAllHolesAreEmpty());
+            }
+        }
+
+        return result;
     }
 }
 
@@ -1904,7 +1979,7 @@ export class ListLiteralExpression extends Expression {
     }
 
     //return whether all elements of this list are of type TypedEmptyExpr
-    private areAllHolesEmpty(){
+    areAllHolesEmpty(){
         const elements = this.tokens.filter(tkn => !(tkn instanceof NonEditableTkn));
         const numberOfElements = elements.length;
         const numberOfEmptyHoles = elements.filter(element => element instanceof TypedEmptyExpr).length;
@@ -2794,11 +2869,7 @@ export class Module {
                     prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
                 } else if (prevItem instanceof Expression && prevItem.returns != code.calledOn) {
                     //TODO: relies on tokens array not changing the index of function name
-                    //Not sure why hardcoded, probably because identifier token is not accessible, but change that
-
-                    //TODO: Don't think this will need a check for context.selected like notification removal does, but if it does, just add it.
-                    //Presumably if insert was called then the insert context is valid.
-                    //I don't think notification removal needs that check either to be honest for the same reason.
+                    //Not sure why it's hardcoded, probably because identifier token is not accessible, but change that
                     this.notificationSystem.addHoverNotification(
                         focusedNode,
                         {
@@ -2941,17 +3012,6 @@ export class Module {
                         }
                     }
 
-                    //inserting a bin op within a bin op (excluding bool bin op)
-                    if (
-                        (focusedNode.rootNode instanceof BinaryOperatorExpr ||
-                            focusedNode.rootNode instanceof ComparatorExpr) &&
-                        (focusedNode.rootNode?.rootNode instanceof BinaryOperatorExpr ||
-                            focusedNode.rootNode?.rootNode instanceof ComparatorExpr) &&
-                        code instanceof Expression
-                    ) {
-                        this.typeSystem.setAllHolesToType(focusedNode.rootNode.rootNode, [code.returns]);
-                    }
-
                     if (isValid) {
                         if (focusedNode.notification && context.selected) {
                             this.notificationSystem.removeNotificationFromConstruct(focusedNode);
@@ -2995,10 +3055,11 @@ export class Module {
                 }
 
                 //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
-                if (!focusedNode.notification) {
+                if (isValid && !focusedNode.notification) {
                     const newContext = code.getInitialFocus();
                     this.focus.updateContext(newContext);
                 }
+
             } else {
 
                 //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.

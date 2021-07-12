@@ -32,7 +32,9 @@ export class TypeSystem{
      * @param parentConstruct parent Statement of the expression
      * @param newTypes        types to use
      */
-    setAllHolesToType(parentConstruct: Statement, newTypes: DataType[]){
+    static setAllHolesToType(parentConstruct: Expression, newTypes: DataType[], setParentType: boolean = false){
+        if(setParentType) parentConstruct.returns = newTypes[0];
+        
         for(const tkn of parentConstruct.tokens){
             if(tkn instanceof BinaryOperatorExpr){
                 this.setAllHolesToType(tkn, newTypes);
@@ -122,9 +124,9 @@ export class TypeSystem{
      * @param oldIdentifier the variable's old identifier
      * @param newIdentifier the variable's new identifier
      */
-         static updateVarIdentifierInMap(oldIdentifier: string, newIdentifier: string){
-            const currentType = this.varTypeMap.get(oldIdentifier);
-            this.varTypeMap.delete(oldIdentifier);
-            this.varTypeMap.set(newIdentifier, currentType);
-        }
+    static updateVarIdentifierInMap(oldIdentifier: string, newIdentifier: string){
+        const currentType = this.varTypeMap.get(oldIdentifier);
+        this.varTypeMap.delete(oldIdentifier);
+        this.varTypeMap.set(newIdentifier, currentType);
+    }
 }
