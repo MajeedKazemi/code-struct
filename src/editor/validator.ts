@@ -90,16 +90,26 @@ export class Validator {
     /**
      * logic: checks if at the end of a statement, and not text editable.
      * AND does not have a body.
+     * AND prev item is not an expression that could be deleted by it self.
      */
     canDeletePrevStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
+        if (
             !(context.lineStatement instanceof EmptyLineStmt) &&
-            !context.lineStatement.hasBody() &&
+            !context.lineStatement?.hasBody() &&
             this.module.focus.onEndOfLine() &&
-            !this.module.focus.isTextEditable(providedContext)
-        );
+            !this.module.focus.isTextEditable(providedContext) 
+        ) {
+            if (context.expressionToLeft != null) {
+                if ( context.expressionToLeft?.isStatement()) return true;
+                else return false;
+            }
+            
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -116,15 +126,14 @@ export class Validator {
     }
 
     /**
-     * logic: checks if at the end of an expression, and if not at the end of a statement
+     * logic: checks if at the end of an expression
      */
     canDeletePrevToken(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return (
             context.expressionToLeft != null &&
-            !this.module.focus.isTextEditable(providedContext) &&
-            !this.module.focus.onEndOfLine()
+            !this.module.focus.isTextEditable(providedContext)
         );
     }
 

@@ -505,7 +505,7 @@ export class ActionExecutor {
     private getBoundaries(code: CodeConstruct): monaco.Range {
         const lineNumber = code.getLineNumber();
 
-        if (code instanceof Expression || code instanceof Token) {
+        if (code instanceof Statement || code instanceof Token) {
             return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
         } else if (code instanceof Statement && code.hasBody()) {
             const stmtStack = new Array<Statement>();
