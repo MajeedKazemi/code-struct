@@ -215,7 +215,11 @@ export class EventRouter {
                 break;
 
             case KeyPress.Delete: {
-                if (inTextEditMode && !(context.tokenToRight instanceof ast.NonEditableTkn) && !context.tokenToRight?.isEmpty) {
+                if (
+                    inTextEditMode &&
+                    !(context.tokenToRight instanceof ast.NonEditableTkn) &&
+                    !context.tokenToRight?.isEmpty
+                ) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToEnd);
                     else return new EditAction(EditActionType.DeleteNextChar);
                 } else if (this.module.validator.canDeleteNextStatement(context)) {
@@ -923,6 +927,17 @@ export class EventRouter {
                 );
 
                 break;
+
+            case "add-cast-str-btn":
+                this.pressButton(id, () => {
+                    this.module.insert(
+                        new ast.FunctionCallStmt(
+                            "str",
+                            [new ast.Argument([ast.DataType.Any], "value", false)],
+                            ast.DataType.String
+                        )
+                    );
+                });
 
             default:
         }
