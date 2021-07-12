@@ -1,4 +1,4 @@
-import { BinaryOperatorExpr, BoolOperator, Callback, CallbackType, CodeConstruct, ComparatorExpr, DataType, Expression, FunctionCallStmt, Module, OperatorTkn, Scope, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
+import { BinaryOperator, BinaryOperatorExpr, Callback, CallbackType, CodeConstruct, DataType, Expression, FunctionCallStmt, Module, OperatorTkn, Scope, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Editor } from "../editor/editor";
 import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import { ErrorMessageGenerator, ErrorMessage } from "./error-msg-generator";
@@ -142,10 +142,10 @@ export class NotificationSystemController {
         this.notifications = [];
     }
 
-    addBinBoolOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, operator: BoolOperator, insertCode: Expression){
+    addBinBoolOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
             insertInto,
-            { binOp: operator, argType1: insertCode.returns },
+            { binOp: (insertInto.rootNode as BinaryOperatorExpr).operator, argType1: insertCode.returns },
             "",
             ErrorMessage.boolOpArgTypeMismatch
         );
@@ -177,12 +177,12 @@ export class NotificationSystemController {
         );
     }
 
-    addBinOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression, currentOperandType: DataType){
+    addBinOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
             insertInto,
             {
                 binOp: (insertInto.rootNode as BinaryOperatorExpr).operator,
-                argType1: currentOperandType,
+                argType1: insertInto.type,
                 argType2: insertCode.returns,
             },
             "",
@@ -190,12 +190,12 @@ export class NotificationSystemController {
         );
     }
 
-    addCompOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression, currentOperandType: DataType){
+    addCompOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
             insertInto,
             {
-                binOp: (insertInto.rootNode as ComparatorExpr).operator,
-                argType1: currentOperandType,
+                binOp: (insertInto.rootNode as BinaryOperatorExpr).operator,
+                argType1: insertInto.type,
                 argType2: insertCode.returns,
             },
             "",

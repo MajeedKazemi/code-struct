@@ -626,7 +626,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Subtract, ast.DataType.Any));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Subtract, ast.DataType.Number));
                     }).bind(this)
                 );
 
@@ -636,7 +636,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Multiply, ast.DataType.Any));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Multiply, ast.DataType.Number));
                     }).bind(this)
                 );
 
@@ -646,7 +646,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Divide, ast.DataType.Any));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Divide, ast.DataType.Number));
                     }).bind(this)
                 );
 
@@ -656,7 +656,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.And));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.And, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -666,7 +666,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.Or));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Or, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -688,7 +688,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.Equal));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Equal, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -698,7 +698,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.NotEqual));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.NotEqual, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -708,7 +708,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThan));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.LessThan, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -718,7 +718,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThanEqual));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.LessThanEqual, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -728,7 +728,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThan));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.GreaterThan, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -738,7 +738,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThanEqual));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.GreaterThanEqual, ast.DataType.Boolean));
                     }).bind(this)
                 );
 

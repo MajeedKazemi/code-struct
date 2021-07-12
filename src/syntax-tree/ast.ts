@@ -20,7 +20,6 @@ const editorElementId = ".lines-content.monaco-editor-background"
 
 
 
-
 export class Callback {
     static counter: number;
     callback: () => any;
@@ -74,21 +73,10 @@ export enum BinaryOperator {
     BitXor = "^",
     BitAnd = "&",
     FloorDiv = "//",
-}
 
-export enum UnaryOp {
-    Invert = "~",
-    Not = "not",
-    UAdd = "+",
-    USub = "-",
-}
-
-export enum BoolOperator {
     And = "and",
     Or = "or",
-}
 
-export enum ComparatorOp {
     Equal = "==",
     NotEqual = "!=",
     LessThan = "<",
@@ -99,6 +87,26 @@ export enum ComparatorOp {
     IsNot = "is not",
     In = "in",
     NotIn = "not in",
+}
+
+export const arithmeticOps = [BinaryOperator.Add, BinaryOperator.Subtract, BinaryOperator.Multiply, BinaryOperator.Divide, BinaryOperator.Mod, BinaryOperator.Pow,
+                              BinaryOperator.LeftShift, BinaryOperator.RightShift, BinaryOperator.BitOr, BinaryOperator.BitXor, BinaryOperator.BitAnd, BinaryOperator.FloorDiv]
+export const boolOps = [BinaryOperator.And, BinaryOperator.Or]
+export const comparisonOps = [BinaryOperator.Equal, BinaryOperator.NotEqual, BinaryOperator.LessThan, BinaryOperator.LessThanEqual, BinaryOperator.GreaterThan,
+                              BinaryOperator.GreaterThanEqual, BinaryOperator.Is, BinaryOperator.IsNot, BinaryOperator.In, BinaryOperator.NotIn]
+
+export enum BinaryOperatorCategory{
+    Boolean = "Bool",
+    Arithmetic = "Arithmetic",
+    Comparison = "Comparison",
+    Unspecified = "Unspecified"
+}
+
+export enum UnaryOp {
+    Invert = "~",
+    Not = "not",
+    UAdd = "+",
+    USub = "-",
 }
 
 export enum AddableType {
@@ -1467,6 +1475,7 @@ export class MemberCallStmt extends Expression {
 export class BinaryOperatorExpr extends Expression {
     addableType = AddableType.Expression;
     operator: BinaryOperator;
+    operatorCategory: BinaryOperatorCategory;
     private leftOperandIndex: number;
     private rightOperandIndex: number;
 
@@ -1477,18 +1486,38 @@ export class BinaryOperatorExpr extends Expression {
         this.indexInRoot = indexInRoot;
         this.operator = operator;
 
+        if(arithmeticOps.indexOf(operator)> -1){
+            this.operatorCategory = BinaryOperatorCategory.Arithmetic;
+        }
+        else if(boolOps.indexOf(operator)> -1){
+            this.operatorCategory = BinaryOperatorCategory.Boolean;
+        }
+        else if(comparisonOps.indexOf(operator)> -1){
+            this.operatorCategory = BinaryOperatorCategory.Comparison;
+        }
+        else{
+            this.operatorCategory = BinaryOperatorCategory.Unspecified;
+        }
+
         this.addableType = AddableType.Expression;
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
 
         this.leftOperandIndex = this.tokens.length;
-        if (operator == BinaryOperator.Add) {
+        if (this.operatorCategory === BinaryOperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-        } else {
+            this.returns = DataType.Any;
+        } else if(this.operatorCategory === BinaryOperatorCategory.Arithmetic){
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
-            this.returns = DataType.Number;
+        } else if(this.operatorCategory === BinaryOperatorCategory.Boolean){
+            this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
+        }
+        else{
+            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
         }
 
         this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
@@ -1516,43 +1545,59 @@ export class BinaryOperatorExpr extends Expression {
         this.replace(code, this.rightOperandIndex);
     }
 
-    getLeftOperandIndex() {
-        return this.leftOperandIndex;
+    getLeftOperand(): Expression {
+        return this.tokens[this.leftOperandIndex] as Expression;
     }
 
-    getRightOperandIndex() {
-        return this.rightOperandIndex;
+    getRightOperand(): Expression {
+        return this.tokens[this.rightOperandIndex] as Expression;
+    }
+
+    isBoolean(): boolean{
+        return this.operatorCategory === BinaryOperatorCategory.Boolean;
+    }
+
+    isArithmetic(): boolean{
+        return this.operatorCategory === BinaryOperatorCategory.Arithmetic;
+    }
+
+    isComparison(): boolean{
+        return this.operatorCategory === BinaryOperatorCategory.Comparison;
     }
 
     //set both operands to return type and add it to type array if it is not there
     updateOperandTypes(type: DataType) {
-        //in this case the type arrays will always only contain a single type unless it is the + operator
-        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type;
-        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type;
+        if(this.operatorCategory !== BinaryOperatorCategory.Boolean){
+            //in this case the type arrays will always only contain a single type unless it is the + operator
+            const leftOperandTypes = (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type;
+            const rightOperandTypes = (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type;
 
-        if (leftOperandTypes.indexOf(type) == -1) {
-            leftOperandTypes.push(type);
+            if (leftOperandTypes.indexOf(type) == -1) {
+                leftOperandTypes.push(type);
+            }
+
+            if (rightOperandTypes.indexOf(type) == -1) {
+                rightOperandTypes.push(type);
+            }
+
+            this.returns = type;
         }
-
-        if (rightOperandTypes.indexOf(type) == -1) {
-            rightOperandTypes.push(type);
-        }
-
-        this.returns = type;
     }
 
     //remove type from operands' type arrays
     removeTypeFromOperands(type: DataType) {
-        //in this case the type arrays will always only contain a single type unless it is the + operator
-        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type;
-        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type;
+        if(!this.isBoolean()){
+            //in this case the type arrays will always only contain a single type unless it is the + operator
+            const leftOperandTypes = (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type;
+            const rightOperandTypes = (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type;
 
-        if (leftOperandTypes.indexOf(type) > -1) {
-            leftOperandTypes.splice(leftOperandTypes.indexOf(type), 1);
-        }
+            if (leftOperandTypes.indexOf(type) > -1) {
+                leftOperandTypes.splice(leftOperandTypes.indexOf(type), 1);
+            }
 
-        if (rightOperandTypes.indexOf(type) > -1) {
-            rightOperandTypes.splice(rightOperandTypes.indexOf(type), 1);
+            if (rightOperandTypes.indexOf(type) > -1) {
+                rightOperandTypes.splice(rightOperandTypes.indexOf(type), 1);
+            }
         }
     }
 
@@ -1572,26 +1617,28 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     updateReturnType(insertCode: Expression){
-        //Check if one of the holes is not empty and get its type
-        let existingLiteralType = null;
-        if (this.tokens[this.leftOperandIndex] instanceof Expression) {
-            existingLiteralType = (
-                this.tokens[this.leftOperandIndex] as Expression).returns;
-        } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
-            existingLiteralType = (
-                this.tokens[this.rightOperandIndex] as Expression).returns;
-        }
+        if(!this.isBoolean()){
+            //Check if one of the holes is not empty and get its type
+            let existingLiteralType = null;
+            if (this.tokens[this.leftOperandIndex] instanceof Expression) {
+                existingLiteralType = (
+                    this.tokens[this.leftOperandIndex] as Expression).returns;
+            } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
+                existingLiteralType = (
+                    this.tokens[this.rightOperandIndex] as Expression).returns;
+            }
 
-        //if existingLiteralType is null then both operands are still empty holes and since we are inserting 
-        //into one of them, the types need to be updated
-        if (
-            !existingLiteralType &&
-            (this.returns === DataType.Any || this.returns === DataType.Boolean)
-        ) {
-            this.returns = insertCode.returns;
-            
-            (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
-            (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+            //if existingLiteralType is null then both operands are still empty holes and since we are inserting 
+            //into one of them, the types need to be updated
+            if (
+                !existingLiteralType &&
+                (this.returns === DataType.Any || this.returns === DataType.Boolean)
+            ) {
+                this.returns = insertCode.returns;
+                
+                (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+                (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+            }
         }
     }
 
@@ -1599,13 +1646,13 @@ export class BinaryOperatorExpr extends Expression {
     checkAllHolesAreEmpty(){
         let result = []
 
-        if((!(this.tokens[this.leftOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.leftOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.leftOperandIndex] instanceof ComparatorExpr)) ||
-        (!(this.tokens[this.rightOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.rightOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.rightOperandIndex] instanceof ComparatorExpr))){
+        if((!(this.tokens[this.leftOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.leftOperandIndex] instanceof BinaryOperatorExpr)) ||
+        (!(this.tokens[this.rightOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.rightOperandIndex] instanceof BinaryOperatorExpr))){
             result.push(false);
         }
         
         for(const tkn of this.tokens){
-            if(tkn instanceof BinaryOperatorExpr || tkn instanceof ComparatorExpr){
+            if(tkn instanceof BinaryOperatorExpr){
                 result.push(...tkn.checkAllHolesAreEmpty());
             }
         }
@@ -1615,25 +1662,22 @@ export class BinaryOperatorExpr extends Expression {
 
       //TODO: Once #208 is discussed these methods need to be updated accordingly
     //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
-    getTopLevelBinExpression(): Expression{
+    getTopLevelBinExpression(): BinaryOperatorExpr{
         let currParentExpression = this.rootNode;
         let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
-        while(nextParentExpression && (nextParentExpression instanceof BinaryOperatorExpr || nextParentExpression instanceof ComparatorExpr)){
+        while(nextParentExpression && nextParentExpression instanceof BinaryOperatorExpr){
             currParentExpression = nextParentExpression;
             nextParentExpression = nextParentExpression.rootNode;
         }
 
-        return currParentExpression as Expression;
+        return currParentExpression as BinaryOperatorExpr;
     }
 
     //should only be used on nested binary ops
     areAllHolesEmpty(){
         const topLevelExpression = this.getTopLevelBinExpression();
 
-        //this will always be true, but still needs to be checked otherwise typescript won't allow us to call checkAllHolesAreEmpty
-        if(topLevelExpression instanceof BinaryOperatorExpr || topLevelExpression instanceof ComparatorExpr){
-            return topLevelExpression.checkAllHolesAreEmpty().every((element) => {element});
-        }
+        return topLevelExpression.checkAllHolesAreEmpty().every((element) => {element});
     }
 
     onInsertInto(insertCode: Expression){
@@ -1642,16 +1686,45 @@ export class BinaryOperatorExpr extends Expression {
         // into one when a more type restricted bin op such as - is inserted inside of them
 
         //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
-        if ((this.rootNode instanceof BinaryOperatorExpr || this.rootNode instanceof ComparatorExpr) && this.rootNode.areAllHolesEmpty()) {
-            if(this.rootNode instanceof BinaryOperatorExpr){
+        if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
+            if(this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic){
                 TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
             }
-            else{
+            else if(this.rootNode.operatorCategory === BinaryOperatorCategory.Comparison){
                 TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
         }
     }
 
+    typeValidateInsertionIntoHole(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
+        let isValidType = false;
+
+        if(this.operatorCategory === BinaryOperatorCategory.Boolean){
+            isValidType = insertCode.returns != DataType.Boolean;
+        }
+        else{
+            isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto, notifSystem);
+        }
+
+        if(enableWarnings && !isValidType){
+            switch(this.operatorCategory){
+                case BinaryOperatorCategory.Arithmetic:
+                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertCode, );
+                    break;
+                case BinaryOperatorCategory.Boolean:
+                    notifSystem.addBinBoolOpOperandTypeMismatchWarning(insertInto, insertCode);
+                    break;
+                case BinaryOperatorCategory.Comparison:
+                    notifSystem.addCompOpOperandTypeMismatchWarning(insertInto, insertCode);
+                    break;
+                default:
+                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertCode);
+                    break;
+            }
+        }
+        
+        return isValidType;
+    }
 }
 
 export class UnaryOperatorExpr extends Expression {
@@ -1689,178 +1762,6 @@ export class UnaryOperatorExpr extends Expression {
 
     getKeyword(): string {
         return this.operator;
-    }
-}
-
-export class BinaryBoolOperatorExpr extends Expression {
-    addableType = AddableType.Expression;
-    operator: BoolOperator;
-    private leftOperandIndex: number;
-    private rightOperandIndex: number;
-
-    constructor(operator: BoolOperator, root?: CodeConstruct, indexInRoot?: number) {
-        super(DataType.Boolean);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.operator = operator;
-
-        this.addableType = AddableType.Expression;
-
-        this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
-        this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
-        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-        this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
-        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-
-        this.hasEmptyToken = true;
-    }
-
-    replaceLeftOperand(code: CodeConstruct) {
-        this.replace(code, this.leftOperandIndex);
-    }
-
-    replaceRightOperand(code: CodeConstruct) {
-        this.replace(code, this.rightOperandIndex);
-    }
-
-    typeValidateInsertionIntoHole(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
-        const isValidType = insertCode.returns != DataType.Boolean;
-
-        if(enableWarnings && !isValidType && !isValidType){
-           notifSystem.addBinBoolOpOperandTypeMismatchWarning(insertInto, this.operator, insertCode);
-        }
-
-        return isValidType;
-    }
-}
-
-export class ComparatorExpr extends Expression {
-    addableType = AddableType.Expression;
-    operator: ComparatorOp;
-    private leftOperandIndex: number;
-    private rightOperandIndex: number;
-
-    constructor(operator: ComparatorOp, root?: CodeConstruct, indexInRoot?: number) {
-        super(DataType.Boolean);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.operator = operator;
-
-        this.addableType = AddableType.Expression;
-
-        this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
-        this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-        this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-
-        this.hasEmptyToken = true;
-    }
-
-    replaceLeftOperand(code: CodeConstruct) {
-        this.replace(code, this.leftOperandIndex);
-    }
-
-    replaceRightOperand(code: CodeConstruct) {
-        this.replace(code, this.rightOperandIndex);
-    }
-
-    //TODO: Why not just getLeftOperand(): CodeConstruct
-    getLeftOperandIndex() {
-        return this.leftOperandIndex;
-    }
-
-    getRightOperandIndex() {
-        return this.rightOperandIndex;
-    }
-
-    updateReturnType(insertCode: Expression){
-        //Check if one of the holes is not empty and get its type
-        let existingLiteralType = null;
-        if (this.tokens[this.leftOperandIndex] instanceof Expression) {
-            existingLiteralType = (
-                this.tokens[this.leftOperandIndex] as Expression).returns;
-        } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
-            existingLiteralType = (
-                this.tokens[this.rightOperandIndex] as Expression).returns;
-        }
-
-        //if existingLiteralType is null then both operands are still empty holes and since we are inserting 
-        //into one of them, the types need to be updated
-        if (
-            !existingLiteralType &&
-            (this.returns === DataType.Any || this.returns === DataType.Boolean)
-        ) {            
-            (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
-            (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
-        }
-    }
-
-    //should only be used on nested binary ops
-    checkAllHolesAreEmpty(){
-        let result = []
-
-        if((!(this.tokens[this.leftOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.leftOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.leftOperandIndex] instanceof ComparatorExpr)) ||
-           (!(this.tokens[this.rightOperandIndex] instanceof TypedEmptyExpr) && !(this.tokens[this.rightOperandIndex] instanceof BinaryOperatorExpr) && !(this.tokens[this.rightOperandIndex] instanceof ComparatorExpr))){
-            result.push(false);
-        }
-
-        for(const tkn of this.tokens){
-            if(tkn instanceof BinaryOperatorExpr || tkn instanceof ComparatorExpr){
-                result.push(...tkn.checkAllHolesAreEmpty());
-            }
-        }
-
-        return result;
-    }
-
-      //TODO: Once #208 is discussed these methods need to be updated accordingly
-    //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
-    getTopLevelBinExpression(): Expression{
-        let currParentExpression = this.rootNode;
-        let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
-        while(nextParentExpression && (nextParentExpression instanceof BinaryOperatorExpr || nextParentExpression instanceof ComparatorExpr)){
-            currParentExpression = nextParentExpression;
-            nextParentExpression = nextParentExpression.rootNode;
-        }
-
-        return currParentExpression as Expression;
-    }
-
-    //should only be used on nested binary ops
-    areAllHolesEmpty(){
-        const topLevelExpression = this.getTopLevelBinExpression();
-
-        //this will always be true, but still needs to be checked otherwise typescript won't allow us to call checkAllHolesAreEmpty
-        if(topLevelExpression instanceof BinaryOperatorExpr || topLevelExpression instanceof ComparatorExpr){
-            return topLevelExpression.checkAllHolesAreEmpty().every((element) => {element});
-        }
-    }
-
-    onInsertInto(insertCode: Expression){
-        // Inserting a bin op within a bin op needs to update types of holes in the outer levels of the expression
-        // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
-        // into one when a more type restricted bin op such as - is inserted inside of them
-
-        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
-        if ((this.rootNode instanceof BinaryOperatorExpr || this.rootNode instanceof ComparatorExpr) && this.rootNode.areAllHolesEmpty()) {
-            if(this.rootNode instanceof BinaryOperatorExpr){
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
-            }
-            else{
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
-            }
-        }
     }
 }
 
@@ -1924,7 +1825,7 @@ export class EditableTextTkn extends Token implements TextEditable {
 export class LiteralValExpr extends Expression {
     addableType = AddableType.Expression;
     allowedBinOps = new Array<BinaryOperator>();
-    allowedBoolOps = new Array<BoolOperator>();
+    allowedBoolOps = new Array<BinaryOperator>();
 
     constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
@@ -1968,8 +1869,8 @@ export class LiteralValExpr extends Expression {
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTkn(value, this, this.tokens.length));
 
-                this.allowedBoolOps.push(BoolOperator.And);
-                this.allowedBoolOps.push(BoolOperator.Or);
+                this.allowedBoolOps.push(BinaryOperator.And);
+                this.allowedBoolOps.push(BinaryOperator.Or);
 
                 break;
             }
@@ -2818,7 +2719,7 @@ export class Module {
                 //Insertion of an Expression into a TypedEmptyExpr contained within some other Expression or Statement
                 if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
                     //inserting an Expression into a TypedEmptyExpr of a BinaryBoolOperatorExpr
-                    if (insertInto.rootNode instanceof BinaryBoolOperatorExpr) {
+                    if (insertInto.rootNode instanceof BinaryOperatorExpr && insertInto.rootNode.isBoolean()) {
                         if (insert.returns != DataType.Boolean && Util.getInstance(this).typeConversionMap.get(insert.returns).indexOf(insert.returns)) return InsertionType.DraftMode;
                         return InsertionType.Valid;
                     }
@@ -2840,20 +2741,19 @@ export class Module {
                 //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
                 let existingLiteralType = null;
                 if (
-                    (insertInto.rootNode instanceof BinaryOperatorExpr ||
-                        insertInto.rootNode instanceof ComparatorExpr) &&
+                    (insertInto.rootNode instanceof BinaryOperatorExpr && !insertInto.rootNode.isBoolean()) &&
                     insert instanceof Expression
                 ) {
                     //record the type of any hole that is already filled
-                    if (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression) {
+                    if (insertInto.rootNode.getLeftOperand() instanceof Expression) {
                         existingLiteralType = (
-                            insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression
+                            insertInto.rootNode.getLeftOperand() as Expression
                         ).returns;
                     } else if (
-                        insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof Expression
+                        insertInto.rootNode.getRightOperand() instanceof Expression
                     ) {
                         existingLiteralType = (
-                            insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression
+                            insertInto.rootNode.getRightOperand() as Expression
                         ).returns;
                     }
 
@@ -3139,8 +3039,6 @@ export class Module {
                                 ErrorMessage.addableTypeMismatchControlStmt
                             );
                         } else if (
-                            focusedNode.rootNode instanceof BinaryBoolOperatorExpr ||
-                            focusedNode.rootNode instanceof ComparatorExpr ||
                             focusedNode.rootNode instanceof BinaryOperatorExpr ||
                             focusedNode.rootNode instanceof UnaryOperatorExpr
                         ) {
