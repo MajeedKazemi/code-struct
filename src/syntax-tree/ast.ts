@@ -673,6 +673,8 @@ export abstract class Statement implements CodeConstruct {
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){}
 
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){}
+
+    onInsertInto(insertCode: CodeConstruct){}
 }
 
 /**
@@ -718,44 +720,6 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
     updateReturnType(insertCode: Expression){}
 
-    //TODO: Once #208 is discussed these methods need to be updated accordingly
-    //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
-    getTopLevelBinExpression(): Expression{
-        let currParentExpression = this.rootNode;
-        let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
-        while(nextParentExpression && (nextParentExpression instanceof BinaryOperatorExpr || nextParentExpression instanceof ComparatorExpr)){
-            currParentExpression = nextParentExpression;
-            nextParentExpression = nextParentExpression.rootNode;
-        }
-
-        return currParentExpression as Expression;
-    }
-
-    //should only be used on nested binary ops
-    areAllHolesEmpty(){
-        const topLevelExpression = this.getTopLevelBinExpression();
-
-        //this will always be true, but still needs to be checked otherwise typescript won't allow us to call checkAllHolesAreEmpty
-        if(topLevelExpression instanceof BinaryOperatorExpr || topLevelExpression instanceof ComparatorExpr){
-            return topLevelExpression.checkAllHolesAreEmpty().every((element) => {element});
-        }
-    }
-
-    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
-        // Inserting a bin op within a bin op needs to update types of holes in the outer levels of the expression
-        // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
-        // into one when a more type restricted bin op such as - is inserted inside of them
-
-        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
-        if ((this.rootNode instanceof BinaryOperatorExpr || this.rootNode instanceof ComparatorExpr) && this.rootNode.areAllHolesEmpty()) {
-            if(this.rootNode instanceof BinaryOperatorExpr){
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
-            }
-            else{
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
-            }
-        }
-    }
 }
 
 /**
@@ -1146,6 +1110,10 @@ export class ForStatement extends Statement {
         }
 
         return isValidType;
+    }
+
+    onInsertInto(insertCode: Expression){
+
     }
 }
 
@@ -1644,6 +1612,46 @@ export class BinaryOperatorExpr extends Expression {
 
         return result;
     }
+
+      //TODO: Once #208 is discussed these methods need to be updated accordingly
+    //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
+    getTopLevelBinExpression(): Expression{
+        let currParentExpression = this.rootNode;
+        let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
+        while(nextParentExpression && (nextParentExpression instanceof BinaryOperatorExpr || nextParentExpression instanceof ComparatorExpr)){
+            currParentExpression = nextParentExpression;
+            nextParentExpression = nextParentExpression.rootNode;
+        }
+
+        return currParentExpression as Expression;
+    }
+
+    //should only be used on nested binary ops
+    areAllHolesEmpty(){
+        const topLevelExpression = this.getTopLevelBinExpression();
+
+        //this will always be true, but still needs to be checked otherwise typescript won't allow us to call checkAllHolesAreEmpty
+        if(topLevelExpression instanceof BinaryOperatorExpr || topLevelExpression instanceof ComparatorExpr){
+            return topLevelExpression.checkAllHolesAreEmpty().every((element) => {element});
+        }
+    }
+
+    onInsertInto(insertCode: Expression){
+        // Inserting a bin op within a bin op needs to update types of holes in the outer levels of the expression
+        // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
+        // into one when a more type restricted bin op such as - is inserted inside of them
+
+        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
+        if ((this.rootNode instanceof BinaryOperatorExpr || this.rootNode instanceof ComparatorExpr) && this.rootNode.areAllHolesEmpty()) {
+            if(this.rootNode instanceof BinaryOperatorExpr){
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
+            }
+            else{
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
+            }
+        }
+    }
+
 }
 
 export class UnaryOperatorExpr extends Expression {
@@ -1814,6 +1822,45 @@ export class ComparatorExpr extends Expression {
         }
 
         return result;
+    }
+
+      //TODO: Once #208 is discussed these methods need to be updated accordingly
+    //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
+    getTopLevelBinExpression(): Expression{
+        let currParentExpression = this.rootNode;
+        let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
+        while(nextParentExpression && (nextParentExpression instanceof BinaryOperatorExpr || nextParentExpression instanceof ComparatorExpr)){
+            currParentExpression = nextParentExpression;
+            nextParentExpression = nextParentExpression.rootNode;
+        }
+
+        return currParentExpression as Expression;
+    }
+
+    //should only be used on nested binary ops
+    areAllHolesEmpty(){
+        const topLevelExpression = this.getTopLevelBinExpression();
+
+        //this will always be true, but still needs to be checked otherwise typescript won't allow us to call checkAllHolesAreEmpty
+        if(topLevelExpression instanceof BinaryOperatorExpr || topLevelExpression instanceof ComparatorExpr){
+            return topLevelExpression.checkAllHolesAreEmpty().every((element) => {element});
+        }
+    }
+
+    onInsertInto(insertCode: Expression){
+        // Inserting a bin op within a bin op needs to update types of holes in the outer levels of the expression
+        // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
+        // into one when a more type restricted bin op such as - is inserted inside of them
+
+        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
+        if ((this.rootNode instanceof BinaryOperatorExpr || this.rootNode instanceof ComparatorExpr) && this.rootNode.areAllHolesEmpty()) {
+            if(this.rootNode instanceof BinaryOperatorExpr){
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
+            }
+            else{
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
+            }
+        }
     }
 }
 
@@ -2984,6 +3031,10 @@ export class Module {
 
                         if(isValid){
                             code.performPreInsertionUpdates(focusedNode);
+
+                            if(code.rootNode instanceof Statement){
+                                code.rootNode.onInsertInto(code);
+                            }
     
                             if (focusedNode.rootNode instanceof ForStatement) {
                                 this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code); //TODO: should be placed inside of doOnInsert() which is a method of all CodeConstructs
@@ -2991,6 +3042,8 @@ export class Module {
                             //This is for ListLiterals when their parent is a variable.
                             //It needs to be refactored along with the rest of similar updates so that anything that has a rootNode that is a 
                             //VarAssignment changes the vars dataType.
+
+                            //Every expression needs to have this if it is being assigned to a var. So could put it inside Expression.
                             if (
                                 focusedNode.rootNode.rootNode &&
                                 focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
