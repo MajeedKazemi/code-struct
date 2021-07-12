@@ -16,6 +16,7 @@ import {
     Statement,
     Expression,
     Token,
+    BinaryOperatorExpr,
 } from "../syntax-tree/ast";
 import { Cursor } from "./cursor";
 
@@ -274,23 +275,43 @@ export class ActionExecutor {
 
             case EditActionType.InsertOperator: {
                 if (action.data.toRight) {
-                    const code = [new NonEditableTkn(` ${action.data.operator} `), new TypedEmptyExpr([DataType.Any])];
-                    this.module.insertAfterIndex(
-                        context.expressionToLeft,
-                        context.expressionToLeft.indexInRoot + 1,
-                        code
+                    const initialBoundary = this.getBoundaries(context.expressionToLeft);
+                    const root = context.expressionToLeft.rootNode;
+                    const index = context.expressionToLeft.indexInRoot;
+
+                    const newCode = new BinaryOperatorExpr(
+                        action.data.operator,
+                        context.expressionToLeft.returns,
+                        context.expressionToLeft.rootNode as CodeConstruct,
+                        context.expressionToLeft.indexInRoot
                     );
-                    this.module.editor.insertAtCurPos(code);
-                    this.module.focus.updateContext({ tokenToSelect: code[1] });
+                    newCode.replaceLeftOperand(context.expressionToLeft);
+                    context.expressionToLeft.indexInRoot = newCode.getLeftOperandIndex();
+                    context.expressionToLeft.rootNode = newCode;
+
+                    this.module.replaceExpression(root as CodeConstruct, index, newCode);
+                    this.module.editor.executeEdits(initialBoundary, newCode);
+                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperandIndex()] });
                 } else if (action.data.toLeft) {
-                    const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(` ${action.data.operator} `)];
-                    this.module.insertAfterIndex(
-                        context.expressionToRight,
-                        context.expressionToRight.indexInRoot,
-                        code
+                    const initialBoundary = this.getBoundaries(context.expressionToRight);
+                    const root = context.expressionToRight.rootNode;
+                    const index = context.expressionToRight.indexInRoot;
+
+                    const newCode = new BinaryOperatorExpr(
+                        action.data.operator,
+                        context.expressionToRight.returns,
+                        context.expressionToRight.rootNode as CodeConstruct,
+                        context.expressionToRight.indexInRoot
                     );
-                    this.module.editor.insertAtCurPos(code);
-                    this.module.focus.updateContext({ tokenToSelect: code[0] });
+                    newCode.replaceRightOperand(context.expressionToRight);
+                    context.expressionToRight.indexInRoot = newCode.getRightOperandIndex();
+                    context.expressionToRight.rootNode = newCode;
+
+                    this.module.replaceExpression(root as CodeConstruct, index, newCode);
+                    this.module.editor.executeEdits(initialBoundary, newCode);
+                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperandIndex()] });
+                } else if (action.data.replace) {
+                    this.module.insert(new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0]));
                 }
 
                 break;

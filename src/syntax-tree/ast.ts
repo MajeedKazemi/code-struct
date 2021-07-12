@@ -1943,11 +1943,19 @@ export class Module {
         } else if (code instanceof Token) code.notify(callbackType);
     }
 
+    replaceExpression(root: CodeConstruct, index: number, newExpression: CodeConstruct) {
+        if (root instanceof Statement) {
+            root.tokens[index] = newExpression;
+
+            root.rebuild(root.getLeftPosition(), 0);
+        }
+    }
+
     indentBackStatement(line: Statement) {
         const root = line.rootNode;
 
         if (root instanceof Statement) {
-            if (!line.hasBody()) {
+            if (!line.hasBody()) { 
                 const removedItem = root.body.splice(line.indexInRoot, 1);
 
                 let outerBody: Array<Statement>;

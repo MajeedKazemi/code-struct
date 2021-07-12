@@ -310,17 +310,23 @@ export class EventRouter {
             case KeyPress.Plus:
             case KeyPress.Minus:
             case KeyPress.Star: {
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Add, context)) {
+                if (this.module.validator.canAddOperatorToRight(context)) {
                     return new EditAction(EditActionType.InsertOperator, {
                         toRight: true,
                         operator: this.getBinaryOperatorFromKey(e.key),
                     });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Add, context)) {
+                } else if (this.module.validator.canAddOperatorToLeft(context)) {
                     return new EditAction(EditActionType.InsertOperator, {
                         toLeft: true,
                         operator: this.getBinaryOperatorFromKey(e.key),
                     });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                } else if (this.module.validator.canReplaceHoleWithBinaryOp(context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        replace: true,
+                        operator: this.getBinaryOperatorFromKey(e.key),
+                    });
+                }
+                 else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
             }

@@ -252,21 +252,24 @@ export class Validator {
         );
     }
 
-    canAddOperatorToRight(operator: BinaryOperator, providedContext?: Context): boolean {
+    canAddOperatorToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        // TODO: if (context.expressionToLeft.returns == DataType.String && operator == BinaryOperator.Add) return true; else return false;
 
         return context.expressionToLeft != null && context.expressionToLeft.returns != DataType.Void;
     }
 
-    canAddOperatorToLeft(operator: BinaryOperator, providedContext?: Context): boolean {
+    canAddOperatorToLeft(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        // TODO: if (context.expressionToRight.returns == DataType.String && operator == BinaryOperator.Add) return true; else return false;
 
         return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
     }
+
+    canReplaceHoleWithBinaryOp(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.selected && context.token.isEmpty;
+    }
+
 
     static getValidVariableReferences(code: CodeConstruct): Reference[] {
         let refs = [];
