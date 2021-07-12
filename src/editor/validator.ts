@@ -80,11 +80,17 @@ export class Validator {
     canDeleteNextStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
+        if (
             !(context.lineStatement instanceof EmptyLineStmt) &&
-            this.module.focus.onBeginningOfLine() &&
-            !this.module.focus.isTextEditable(providedContext)
-        );
+            this.module.focus.onBeginningOfLine() 
+        ) {
+            if (this.module.focus.isTextEditable(providedContext)) {
+                if (context.tokenToRight.isEmpty) return true;
+                else return false;
+            } else return true;
+        }
+
+        return false;
     }
 
     /**

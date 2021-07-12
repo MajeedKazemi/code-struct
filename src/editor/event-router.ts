@@ -215,7 +215,7 @@ export class EventRouter {
                 break;
 
             case KeyPress.Delete: {
-                if (inTextEditMode && !(context.tokenToRight instanceof ast.NonEditableTkn)) {
+                if (inTextEditMode && !(context.tokenToRight instanceof ast.NonEditableTkn) && !context.tokenToRight?.isEmpty) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToEnd);
                     else return new EditAction(EditActionType.DeleteNextChar);
                 } else if (this.module.validator.canDeleteNextStatement(context)) {
