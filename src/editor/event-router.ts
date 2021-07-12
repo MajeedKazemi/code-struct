@@ -306,65 +306,24 @@ export class EventRouter {
 
                 break;
 
+            case KeyPress.ForwardSlash:
             case KeyPress.Plus:
+            case KeyPress.Minus:
+            case KeyPress.Star: {
                 if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Add, context)) {
                     return new EditAction(EditActionType.InsertOperator, {
                         toRight: true,
-                        operator: ast.BinaryOperator.Add,
+                        operator: this.getBinaryOperatorFromKey(e.key),
                     });
                 } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Add, context)) {
                     return new EditAction(EditActionType.InsertOperator, {
                         toLeft: true,
-                        operator: ast.BinaryOperator.Add,
+                        operator: this.getBinaryOperatorFromKey(e.key),
                     });
                 } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
-
-            case KeyPress.Star:
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Multiply, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toRight: true,
-                        operator: ast.BinaryOperator.Multiply,
-                    });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Multiply, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toLeft: true,
-                        operator: ast.BinaryOperator.Multiply,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
-
-            case KeyPress.Minus:
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Subtract, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toRight: true,
-                        operator: ast.BinaryOperator.Subtract,
-                    });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Subtract, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toLeft: true,
-                        operator: ast.BinaryOperator.Subtract,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
-
-            case KeyPress.ForwardSlash:
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Divide, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toRight: true,
-                        operator: ast.BinaryOperator.Divide,
-                    });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Divide, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toLeft: true,
-                        operator: ast.BinaryOperator.Divide,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
+            }
 
             case KeyPress.GreaterThan:
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
@@ -452,6 +411,25 @@ export class EventRouter {
         }
 
         return new EditAction(EditActionType.None);
+    }
+
+    getBinaryOperatorFromKey(key: string): ast.BinaryOperator {
+        switch (key) {
+            case KeyPress.ForwardSlash:
+                return ast.BinaryOperator.Divide;
+
+            case KeyPress.Plus:
+                return ast.BinaryOperator.Add;
+
+            case KeyPress.Minus:
+                return ast.BinaryOperator.Subtract;
+
+            case KeyPress.Star:
+                return ast.BinaryOperator.Multiply;
+
+            default:
+                return null;
+        }
     }
 
     onKeyDown(e) {
