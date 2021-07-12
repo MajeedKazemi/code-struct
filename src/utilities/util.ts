@@ -597,7 +597,7 @@ export class Util {
 /**
  * Return whether list1 contains at least one item from list2.
  */
-export function hasMatch(list1: any[], list2: any[]){
+export function hasMatch(list1: any[], list2: any[]): boolean{
     if(list2.length == 0 || list1.length == 0) return false;
 
     for(const item of list2){
