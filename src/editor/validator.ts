@@ -185,6 +185,35 @@ export class Validator {
         );
     }
 
+    canDeleteListItemToLeft(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+            const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
+
+            // [---, |---|] [---, "123", |---|] [---, |---|, 123]
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == ", ")
+                return true;
+        }
+
+        return false;
+    }
+
+    canDeleteListItemToRight(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+            const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
+
+            // [|---|, ---] [|---|, "123"] [|---|, ---, 123]
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == "[")
+                return true;
+        }
+
+        return false;
+    }
+
+
     canAddListItemToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 

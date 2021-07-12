@@ -214,7 +214,7 @@ export class ActionExecutor {
                     }
 
                     if (literalExpr != null) {
-                        this.deleteCode(literalExpr);
+                        this.deleteCode(literalExpr, { replaceType: DataType.Any });
 
                         break;
                     }
@@ -313,6 +313,18 @@ export class ActionExecutor {
                     this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
+                }
+
+                break;
+            }
+
+            case EditActionType.DeleteListItem: {
+                if (action.data.toRight) {
+                    const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot, 2);
+                    this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
+                } else if (action.data.toLeft) {
+                    const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot - 1, 2);
+                    this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
                 }
 
                 break;
@@ -482,6 +494,14 @@ export class ActionExecutor {
         return preventDefaultEvent;
     }
 
+    private getCascadedBoundary(codes: Array<CodeConstruct>): monaco.Range {
+        if (codes.length > 1) {
+            const lineNumber = codes[0].getLineNumber();
+
+            return new monaco.Range(lineNumber, codes[0].left, lineNumber, codes[codes.length - 1].right);
+        } else return this.getBoundaries(codes[0]);
+    }
+
     private getBoundaries(code: CodeConstruct): monaco.Range {
         const lineNumber = code.getLineNumber();
 
@@ -508,12 +528,12 @@ export class ActionExecutor {
         }
     }
 
-    private deleteCode(code: CodeConstruct, { statement = false } = {}) {
+    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.removeItem(code);
+        else replacement = this.module.removeItem(code, { replaceType });
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });

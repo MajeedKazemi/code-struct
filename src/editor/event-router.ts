@@ -60,6 +60,7 @@ export enum EditActionType {
 
     DeleteNextChar,
     DeletePrevChar,
+    DeleteListItem,
 
     DeleteToEnd,
     DeleteToStart,
@@ -223,6 +224,10 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteCurLine);
                 } else if (this.module.validator.canDeleteNextToken(context)) {
                     return new EditAction(EditActionType.DeleteNextToken);
+                } else if (this.module.validator.canDeleteListItemToLeft(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toLeft: true });
+                } else if (this.module.validator.canDeleteListItemToRight(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toRight: true });
                 }
 
                 break;
@@ -242,6 +247,10 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeletePrevToken);
                 } else if (this.module.validator.canBackspaceCurEmptyLine(context)) {
                     return new EditAction(EditActionType.DeleteCurLine, { pressedBackspace: true });
+                } else if (this.module.validator.canDeleteListItemToLeft(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toLeft: true });
+                } else if (this.module.validator.canDeleteListItemToRight(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toRight: true });
                 }
 
                 break;
