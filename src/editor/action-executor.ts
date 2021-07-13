@@ -285,15 +285,19 @@ export class ActionExecutor {
                         context.expressionToLeft.rootNode as CodeConstruct,
                         context.expressionToLeft.indexInRoot
                     );
-                    newCode.replaceLeftOperand(context.expressionToLeft);
-                    context.expressionToLeft.indexInRoot = newCode.getLeftOperand().indexInRoot;
-                    context.expressionToLeft.rootNode = newCode;
+                    
+                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToLeft, true, newCode.getLeftOperand() as TypedEmptyExpr, this.module.notificationSystem);
 
-                    this.module.replaceExpression(root as CodeConstruct, index, newCode);
-                    this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext({
-                        tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot],
-                    });
+                    if(validType){
+                        newCode.replaceLeftOperand(context.expressionToLeft);
+                        context.expressionToLeft.indexInRoot = newCode.getLeftOperand().indexInRoot;
+                        context.expressionToLeft.rootNode = newCode;
+    
+                        this.module.replaceExpression(root as CodeConstruct, index, newCode);
+                        this.module.editor.executeEdits(initialBoundary, newCode);
+                        this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot] });
+                    }
+                    
                 } else if (action.data.toLeft) {
                     const initialBoundary = this.getBoundaries(context.expressionToRight);
                     const root = context.expressionToRight.rootNode;
@@ -306,15 +310,18 @@ export class ActionExecutor {
                         context.expressionToRight.indexInRoot
                     );
 
-                    newCode.replaceRightOperand(context.expressionToRight);
-                    context.expressionToRight.indexInRoot = newCode.getRightOperand().indexInRoot;
-                    context.expressionToRight.rootNode = newCode;
-
-                    this.module.replaceExpression(root as CodeConstruct, index, newCode);
-                    this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext({
-                        tokenToSelect: newCode.tokens[newCode.getLeftOperand().indexInRoot],
-                    });
+                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToRight, true, newCode.getRightOperand() as TypedEmptyExpr, this.module.notificationSystem);
+                    
+                    if(validType){
+                        newCode.replaceRightOperand(context.expressionToRight);
+                        context.expressionToRight.indexInRoot = newCode.getRightOperand().indexInRoot;
+                        context.expressionToRight.rootNode = newCode;
+    
+                        this.module.replaceExpression(root as CodeConstruct, index, newCode);
+                        this.module.editor.executeEdits(initialBoundary, newCode);
+                        this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperand().indexInRoot] });
+                    }
+                   
                 } else if (action.data.replace) {
                     this.module.insert(
                         new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])

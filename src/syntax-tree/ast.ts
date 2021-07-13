@@ -1581,20 +1581,22 @@ export class BinaryOperatorExpr extends Expression {
         this.hasEmptyToken = true;
     }
 
-    replaceLeftOperand(code: CodeConstruct) {
+    replaceLeftOperand(code: Expression) {
         this.replace(code, this.leftOperandIndex);
+        this.onInsertInto(code);
     }
 
-    replaceRightOperand(code: CodeConstruct) {
+    replaceRightOperand(code: Expression) {
         this.replace(code, this.rightOperandIndex);
+        this.onInsertInto(code);
     }
 
-    getLeftOperand(): Expression {
-        return this.tokens[this.leftOperandIndex] as Expression;
+    getLeftOperand(): CodeConstruct {
+        return this.tokens[this.leftOperandIndex];
     }
 
-    getRightOperand(): Expression {
-        return this.tokens[this.rightOperandIndex] as Expression;
+    getRightOperand(): CodeConstruct {
+        return this.tokens[this.rightOperandIndex];
     }
 
     isBoolean(): boolean {
