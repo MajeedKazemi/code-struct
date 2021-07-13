@@ -80,26 +80,42 @@ export class Validator {
     canDeleteNextStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
+        if (
             !(context.lineStatement instanceof EmptyLineStmt) &&
-            this.module.focus.onBeginningOfLine() &&
-            !this.module.focus.isTextEditable(providedContext)
-        );
+            this.module.focus.onBeginningOfLine() 
+        ) {
+            if (this.module.focus.isTextEditable(providedContext)) {
+                if (context.tokenToRight.isEmpty) return true;
+                else return false;
+            } else return true;
+        }
+
+        return false;
     }
 
     /**
      * logic: checks if at the end of a statement, and not text editable.
      * AND does not have a body.
+     * AND prev item is not an expression that could be deleted by it self.
      */
     canDeletePrevStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
+        if (
             !(context.lineStatement instanceof EmptyLineStmt) &&
-            !context.lineStatement.hasBody() &&
+            !context.lineStatement?.hasBody() &&
             this.module.focus.onEndOfLine() &&
-            !this.module.focus.isTextEditable(providedContext)
-        );
+            !this.module.focus.isTextEditable(providedContext) 
+        ) {
+            if (context.expressionToLeft != null) {
+                if ( context.expressionToLeft?.isStatement()) return true;
+                else return false;
+            }
+            
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -116,15 +132,14 @@ export class Validator {
     }
 
     /**
-     * logic: checks if at the end of an expression, and if not at the end of a statement
+     * logic: checks if at the end of an expression
      */
     canDeletePrevToken(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return (
             context.expressionToLeft != null &&
-            !this.module.focus.isTextEditable(providedContext) &&
-            !this.module.focus.onEndOfLine()
+            !this.module.focus.isTextEditable(providedContext)
         );
     }
 
@@ -185,6 +200,35 @@ export class Validator {
         );
     }
 
+    canDeleteListItemToLeft(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+            const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
+
+            // [---, |---|] [---, "123", |---|] [---, |---|, 123]
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == ", ")
+                return true;
+        }
+
+        return false;
+    }
+
+    canDeleteListItemToRight(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+            const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
+
+            // [|---|, ---] [|---|, "123"] [|---|, ---, 123]
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == "[")
+                return true;
+        }
+
+        return false;
+    }
+
+
     canAddListItemToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
@@ -208,21 +252,24 @@ export class Validator {
         );
     }
 
-    canAddOperatorToRight(operator: BinaryOperator, providedContext?: Context): boolean {
+    canAddOperatorToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        // TODO: if (context.expressionToLeft.returns == DataType.String && operator == BinaryOperator.Add) return true; else return false;
 
         return context.expressionToLeft != null && context.expressionToLeft.returns != DataType.Void;
     }
 
-    canAddOperatorToLeft(operator: BinaryOperator, providedContext?: Context): boolean {
+    canAddOperatorToLeft(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        // TODO: if (context.expressionToRight.returns == DataType.String && operator == BinaryOperator.Add) return true; else return false;
 
         return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
     }
+
+    canReplaceHoleWithBinaryOp(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.selected && context.token.isEmpty;
+    }
+
 
     static getValidVariableReferences(code: CodeConstruct): Reference[] {
         let refs = [];

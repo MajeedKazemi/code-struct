@@ -60,6 +60,7 @@ export enum EditActionType {
 
     DeleteNextChar,
     DeletePrevChar,
+    DeleteListItem,
 
     DeleteToEnd,
     DeleteToStart,
@@ -214,7 +215,11 @@ export class EventRouter {
                 break;
 
             case KeyPress.Delete: {
-                if (inTextEditMode && !(context.tokenToRight instanceof ast.NonEditableTkn)) {
+                if (
+                    inTextEditMode &&
+                    !(context.tokenToRight instanceof ast.NonEditableTkn) &&
+                    !context.tokenToRight?.isEmpty
+                ) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToEnd);
                     else return new EditAction(EditActionType.DeleteNextChar);
                 } else if (this.module.validator.canDeleteNextStatement(context)) {
@@ -223,6 +228,10 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteCurLine);
                 } else if (this.module.validator.canDeleteNextToken(context)) {
                     return new EditAction(EditActionType.DeleteNextToken);
+                } else if (this.module.validator.canDeleteListItemToLeft(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toLeft: true });
+                } else if (this.module.validator.canDeleteListItemToRight(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toRight: true });
                 }
 
                 break;
@@ -242,6 +251,10 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeletePrevToken);
                 } else if (this.module.validator.canBackspaceCurEmptyLine(context)) {
                     return new EditAction(EditActionType.DeleteCurLine, { pressedBackspace: true });
+                } else if (this.module.validator.canDeleteListItemToLeft(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toLeft: true });
+                } else if (this.module.validator.canDeleteListItemToRight(context)) {
+                    return new EditAction(EditActionType.DeleteListItem, { toRight: true });
                 }
 
                 break;
@@ -293,65 +306,30 @@ export class EventRouter {
 
                 break;
 
-            case KeyPress.Plus:
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Add, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toRight: true,
-                        operator: ast.BinaryOperator.Add,
-                    });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Add, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toLeft: true,
-                        operator: ast.BinaryOperator.Add,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
-
-            case KeyPress.Star:
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Multiply, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toRight: true,
-                        operator: ast.BinaryOperator.Multiply,
-                    });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Multiply, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toLeft: true,
-                        operator: ast.BinaryOperator.Multiply,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
-
-            case KeyPress.Minus:
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Subtract, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toRight: true,
-                        operator: ast.BinaryOperator.Subtract,
-                    });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Subtract, context)) {
-                    return new EditAction(EditActionType.InsertOperator, {
-                        toLeft: true,
-                        operator: ast.BinaryOperator.Subtract,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
-
             case KeyPress.ForwardSlash:
-                if (this.module.validator.canAddOperatorToRight(ast.BinaryOperator.Divide, context)) {
+            case KeyPress.Plus:
+            case KeyPress.Minus:
+            case KeyPress.Star: {
+                if (this.module.validator.canAddOperatorToRight(context)) {
                     return new EditAction(EditActionType.InsertOperator, {
                         toRight: true,
-                        operator: ast.BinaryOperator.Divide,
+                        operator: this.getBinaryOperatorFromKey(e.key),
                     });
-                } else if (this.module.validator.canAddOperatorToLeft(ast.BinaryOperator.Divide, context)) {
+                } else if (this.module.validator.canAddOperatorToLeft(context)) {
                     return new EditAction(EditActionType.InsertOperator, {
                         toLeft: true,
-                        operator: ast.BinaryOperator.Divide,
+                        operator: this.getBinaryOperatorFromKey(e.key),
                     });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                } else if (this.module.validator.canReplaceHoleWithBinaryOp(context)) {
+                    return new EditAction(EditActionType.InsertOperator, {
+                        replace: true,
+                        operator: this.getBinaryOperatorFromKey(e.key),
+                    });
+                }
+                 else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
+            }
 
             case KeyPress.GreaterThan:
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
@@ -439,6 +417,25 @@ export class EventRouter {
         }
 
         return new EditAction(EditActionType.None);
+    }
+
+    getBinaryOperatorFromKey(key: string): ast.BinaryOperator {
+        switch (key) {
+            case KeyPress.ForwardSlash:
+                return ast.BinaryOperator.Divide;
+
+            case KeyPress.Plus:
+                return ast.BinaryOperator.Add;
+
+            case KeyPress.Minus:
+                return ast.BinaryOperator.Subtract;
+
+            case KeyPress.Star:
+                return ast.BinaryOperator.Multiply;
+
+            default:
+                return null;
+        }
     }
 
     onKeyDown(e) {
@@ -914,6 +911,17 @@ export class EventRouter {
                 );
 
                 break;
+
+            case "add-cast-str-btn":
+                this.pressButton(id, () => {
+                    this.module.insert(
+                        new ast.FunctionCallStmt(
+                            "str",
+                            [new ast.Argument([ast.DataType.Any], "value", false)],
+                            ast.DataType.String
+                        )
+                    );
+                });
 
             default:
         }

@@ -16,6 +16,7 @@ import {
     Statement,
     Expression,
     Token,
+    BinaryOperatorExpr,
 } from "../syntax-tree/ast";
 import { Cursor } from "./cursor";
 
@@ -214,7 +215,7 @@ export class ActionExecutor {
                     }
 
                     if (literalExpr != null) {
-                        this.deleteCode(literalExpr);
+                        this.deleteCode(literalExpr, { replaceType: DataType.Any });
 
                         break;
                     }
@@ -274,23 +275,43 @@ export class ActionExecutor {
 
             case EditActionType.InsertOperator: {
                 if (action.data.toRight) {
-                    const code = [new NonEditableTkn(` ${action.data.operator} `), new TypedEmptyExpr([DataType.Any])];
-                    this.module.insertAfterIndex(
-                        context.expressionToLeft,
-                        context.expressionToLeft.indexInRoot + 1,
-                        code
+                    const initialBoundary = this.getBoundaries(context.expressionToLeft);
+                    const root = context.expressionToLeft.rootNode;
+                    const index = context.expressionToLeft.indexInRoot;
+
+                    const newCode = new BinaryOperatorExpr(
+                        action.data.operator,
+                        context.expressionToLeft.returns,
+                        context.expressionToLeft.rootNode as CodeConstruct,
+                        context.expressionToLeft.indexInRoot
                     );
-                    this.module.editor.insertAtCurPos(code);
-                    this.module.focus.updateContext({ tokenToSelect: code[1] });
+                    newCode.replaceLeftOperand(context.expressionToLeft);
+                    context.expressionToLeft.indexInRoot = newCode.getLeftOperandIndex();
+                    context.expressionToLeft.rootNode = newCode;
+
+                    this.module.replaceExpression(root as CodeConstruct, index, newCode);
+                    this.module.editor.executeEdits(initialBoundary, newCode);
+                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperandIndex()] });
                 } else if (action.data.toLeft) {
-                    const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(` ${action.data.operator} `)];
-                    this.module.insertAfterIndex(
-                        context.expressionToRight,
-                        context.expressionToRight.indexInRoot,
-                        code
+                    const initialBoundary = this.getBoundaries(context.expressionToRight);
+                    const root = context.expressionToRight.rootNode;
+                    const index = context.expressionToRight.indexInRoot;
+
+                    const newCode = new BinaryOperatorExpr(
+                        action.data.operator,
+                        context.expressionToRight.returns,
+                        context.expressionToRight.rootNode as CodeConstruct,
+                        context.expressionToRight.indexInRoot
                     );
-                    this.module.editor.insertAtCurPos(code);
-                    this.module.focus.updateContext({ tokenToSelect: code[0] });
+                    newCode.replaceRightOperand(context.expressionToRight);
+                    context.expressionToRight.indexInRoot = newCode.getRightOperandIndex();
+                    context.expressionToRight.rootNode = newCode;
+
+                    this.module.replaceExpression(root as CodeConstruct, index, newCode);
+                    this.module.editor.executeEdits(initialBoundary, newCode);
+                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperandIndex()] });
+                } else if (action.data.replace) {
+                    this.module.insert(new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0]));
                 }
 
                 break;
@@ -313,6 +334,18 @@ export class ActionExecutor {
                     this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
+                }
+
+                break;
+            }
+
+            case EditActionType.DeleteListItem: {
+                if (action.data.toRight) {
+                    const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot, 2);
+                    this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
+                } else if (action.data.toLeft) {
+                    const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot - 1, 2);
+                    this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
                 }
 
                 break;
@@ -482,10 +515,18 @@ export class ActionExecutor {
         return preventDefaultEvent;
     }
 
+    private getCascadedBoundary(codes: Array<CodeConstruct>): monaco.Range {
+        if (codes.length > 1) {
+            const lineNumber = codes[0].getLineNumber();
+
+            return new monaco.Range(lineNumber, codes[0].left, lineNumber, codes[codes.length - 1].right);
+        } else return this.getBoundaries(codes[0]);
+    }
+
     private getBoundaries(code: CodeConstruct): monaco.Range {
         const lineNumber = code.getLineNumber();
 
-        if (code instanceof Expression || code instanceof Token) {
+        if (code instanceof Statement || code instanceof Token) {
             return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
         } else if (code instanceof Statement && code.hasBody()) {
             const stmtStack = new Array<Statement>();
@@ -508,12 +549,12 @@ export class ActionExecutor {
         }
     }
 
-    private deleteCode(code: CodeConstruct, { statement = false } = {}) {
+    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.removeItem(code);
+        else replacement = this.module.removeItem(code, { replaceType });
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });
