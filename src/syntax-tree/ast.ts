@@ -3211,9 +3211,7 @@ export class Module {
                     }
 
                     //TODO: Should we include the parent too?
-                    code.draftModeEnabled = true;
-                    this.draftExpressions.push(new DraftRecord(code, this));
-                    code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
+                   this.openDraftMode(code);
 
                     const range = new monaco.Range(
                         focusedPos.lineNumber,
@@ -3247,6 +3245,12 @@ export class Module {
         } else {
             console.warn("Tried closing draft mode of construct that did not have one open.");
         }
+    }
+
+    openDraftMode(code: Expression){
+        code.draftModeEnabled = true;
+        this.draftExpressions.push(new DraftRecord(code, this));
+        code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
     }
 }
 

@@ -17,6 +17,7 @@ import {
     Expression,
     Token,
     BinaryOperatorExpr,
+    InsertionType,
 } from "../syntax-tree/ast";
 import { Cursor } from "./cursor";
 
@@ -286,9 +287,10 @@ export class ActionExecutor {
                         context.expressionToLeft.indexInRoot
                     );
                     
-                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToLeft, false, newCode.getLeftOperand() as TypedEmptyExpr);
+                    //const validType = newCode.typeValidateInsertionIntoHole(context.expressionToLeft, false, newCode.getLeftOperand() as TypedEmptyExpr);
+                    const insertionType = this.module.tryInsert(newCode.getLeftOperand(), context.expressionToLeft);
 
-                    if(validType){
+                    if(insertionType === InsertionType.Valid || insertionType === InsertionType.DraftMode){
                         newCode.replaceLeftOperand(context.expressionToLeft);
                         context.expressionToLeft.indexInRoot = newCode.getLeftOperand().indexInRoot;
                         context.expressionToLeft.rootNode = newCode;
@@ -296,8 +298,15 @@ export class ActionExecutor {
                         this.module.replaceExpression(root as CodeConstruct, index, newCode);
                         this.module.editor.executeEdits(initialBoundary, newCode);
                         this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot] });
+
+                        if(insertionType === InsertionType.DraftMode){
+                            this.module.openDraftMode(newCode);
+                        }
                     }
-                    //TODO: Add warning if types don't match
+                    else{ //Invalid TODO: Add warning if types don't match if 132: => if (123 + ---) > ---:
+
+                        //call notifcation
+                    }
 
                     
                 } else if (action.data.toLeft) {
