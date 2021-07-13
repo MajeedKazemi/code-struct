@@ -266,7 +266,11 @@ export interface CodeConstruct {
      */
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 
+    //when a construct itself is isnerted is inserted
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) : void;
+
+    //updateReturnType() is for when we insert into a construct for expressions only, needs to be ran in onInsertInto()
+
 }
 
 /**
@@ -1694,6 +1698,8 @@ export class BinaryOperatorExpr extends Expression {
                 TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
         }
+
+        this.updateReturnType(insertCode);
     }
 
     typeValidateInsertionIntoHole(insertCode: Expression, enableWarnings: boolean, insertInto?: TypedEmptyExpr, notifSystem?: NotificationSystemController): boolean{
@@ -1893,11 +1899,13 @@ export class LiteralValExpr extends Expression {
         }
     }
 
+    /* onInsertInto is already called in insert()
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
         if(insertInto.rootNode instanceof Expression){
-            insertInto.rootNode.updateReturnType(this);
+           // insertInto.rootNode.updateReturnType(this);
+           insertInto.rootNode.onInsertInto(this);
         }
-    }
+    }*/
 }
 
 export class ListLiteralExpression extends Expression {
