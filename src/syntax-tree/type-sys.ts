@@ -1,30 +1,19 @@
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { BinaryOperatorExpr, CodeConstruct, DataType, Expression, ForStatement, Module, Statement, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
+import * as ast from "../syntax-tree/ast";
 
 
 export class TypeSystem{
-    static varTypeMap: Map<string, DataType>;
+    static varTypeMap: Map<string, DataType> = new Map<string, DataType>();
+    static listTypes: Array<DataType>;
 
     module: Module;
 
     constructor(module: Module){
-        if(!TypeSystem.varTypeMap){
-            TypeSystem.varTypeMap = new Map<string, DataType>();
+        if(!TypeSystem.listTypes){ //it does not recognize the imports unless they are assigned inside the constructor
+            TypeSystem.listTypes = [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String];
         }
-
         this.module = module;
-    }
-
-    /**
-     * Replaces the record using an old identifier of a variable with a record using the new identifier.
-     * 
-     * @param oldIdentifier the variable's old identifier
-     * @param newIdentifier the variable's new identifier
-     */
-    static updateVarIdentifierInMap(oldIdentifier: string, newIdentifier: string){
-        const currentType = this.varTypeMap.get(oldIdentifier);
-        this.varTypeMap.delete(oldIdentifier);
-        this.varTypeMap.set(newIdentifier, currentType);
     }
 
     /**
@@ -34,10 +23,18 @@ export class TypeSystem{
      * @returns T/F based on whether the insertion is allowed or not
      */
     validateForLoopIterableInsertionType(insertionCode: Expression){
-        return [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String].indexOf(insertionCode.returns) > -1
+        return TypeSystem.listTypes.indexOf(insertionCode.returns) > -1
     }
 
-    setAllHolesToType(parentConstruct: Statement, newTypes: DataType[]){
+    /**
+     * Recursively set all empty holes (TypedEmptyExpr) in an expression to the provided type newTypes.
+     * 
+     * @param parentConstruct parent Statement of the expression
+     * @param newTypes        types to use
+     */
+    static setAllHolesToType(parentConstruct: Expression, newTypes: DataType[], setParentType: boolean = false){
+        if(setParentType) parentConstruct.returns = newTypes[0];
+        
         for(const tkn of parentConstruct.tokens){
             if(tkn instanceof BinaryOperatorExpr){
                 this.setAllHolesToType(tkn, newTypes);
@@ -47,7 +44,6 @@ export class TypeSystem{
             }
         }
     }
-
 
     /**
      * Update the toolbox button associated with a variable to create a reference of a new type.
@@ -75,14 +71,18 @@ export class TypeSystem{
      * @param code    expression the type of which will be used
      */
     updateForLoopVarType(forLoop: ForStatement, code: Expression){
-        const newType = this.getElementTypeFromListType(code.returns);
+        const newType = TypeSystem.getElementTypeFromListType(code.returns);
         TypeSystem.varTypeMap.set(forLoop.getIdentifier(), newType);
         this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);
-
-        console.log(newType)
     }
 
-    getListTypeFromElementType(type: DataType){
+    /**
+     * Return the corresponding type of list given the type of element.
+     * 
+     * @param type element type
+     * @returns    corresponding list type (one of: StringList, NumberList, BooleanList, AnyList)
+     */
+    static getListTypeFromElementType(type: DataType){
         switch(type){
             case DataType.String:
                 return DataType.StringList
@@ -101,7 +101,7 @@ export class TypeSystem{
      * @param listType type of list
      * @returns type of elements contained in listType
      */
-    getElementTypeFromListType(listType: DataType){
+    static getElementTypeFromListType(listType: DataType){
         switch(listType){
             case DataType.AnyList:
                 return DataType.Any
@@ -114,5 +114,19 @@ export class TypeSystem{
             default:
                 return DataType.Any
         } 
+    }
+
+    //Variables need to get refactored anyway so might not need this for now
+
+        /**
+     * Replaces the record using an old identifier of a variable with a record using the new identifier.
+     * 
+     * @param oldIdentifier the variable's old identifier
+     * @param newIdentifier the variable's new identifier
+     */
+    static updateVarIdentifierInMap(oldIdentifier: string, newIdentifier: string){
+        const currentType = this.varTypeMap.get(oldIdentifier);
+        this.varTypeMap.delete(oldIdentifier);
+        this.varTypeMap.set(newIdentifier, currentType);
     }
 }

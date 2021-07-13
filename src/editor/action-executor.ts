@@ -454,8 +454,9 @@ export class ActionExecutor {
 
             case EditActionType.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
+                    const validInserts = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildAvailableInsertsMenu(
-                        this.module.getAllValidInsertsList(focusedNode),
+                        validInserts,
                         Util.getInstance(this.module).constructActions,
                         {
                             left: selection.startColumn * this.module.editor.computeCharWidth(),
@@ -503,6 +504,11 @@ export class ActionExecutor {
             case EditActionType.CloseSubMenu:
                 this.module.menuController.closeSubMenu();
 
+                break;
+
+            case EditActionType.CloseDraftMode:
+                this.deleteCode(action.data.codeNode);
+                
                 break;
 
             case EditActionType.None: {
@@ -575,21 +581,17 @@ export class ActionExecutor {
             context.tokenToLeft instanceof IdentifierTkn ||
             context.tokenToRight instanceof IdentifierTkn
         ) {
-            const notifPos = {
-                left: focusedNode.getLeftPosition().column * this.module.editor.computeCharWidth(),
-                top: focusedNode.getLeftPosition().lineNumber * this.module.editor.computeCharHeight(),
-            };
 
             if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
+                    focusedNode,
                     { identifier: identifierText },
-                    notifPos,
                     ErrorMessage.identifierIsKeyword
                 );
             } else if (Object.keys(keywords.BuiltInFunctions).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
+                    focusedNode,
                     { identifier: identifierText },
-                    notifPos,
                     ErrorMessage.identifierIsBuiltInFunc
                 );
             }

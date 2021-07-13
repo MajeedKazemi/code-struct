@@ -112,6 +112,9 @@ export enum EditActionType {
 
     //TODO: Remove later (for the continuos menu with categories)
     OpenValidInsertMenuSingleLevel,
+
+    CloseDraftMode,
+
 }
 
 export class EditAction {
@@ -135,6 +138,7 @@ export class EventRouter {
         const context = providedContext ? providedContext : this.module.focus.getContext();
         const curPos = this.module.editor.monaco.getPosition();
         const inTextEditMode = this.module.focus.isTextEditable(context);
+        const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
         switch (e.key) {
             case KeyPress.ArrowUp:
@@ -349,10 +353,26 @@ export class EventRouter {
 
             case KeyPress.Escape:
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+                else if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseValidInsertMenu);
                 }
+                else{
+                    let node = null;
+                    if(context.expressionToLeft?.draftModeEnabled){
+                        node = context.expressionToLeft;
+                    }
+                    else if(context.expressionToRight?.draftModeEnabled){
+                        node = context.expressionToRight;
+                    }
+                    else if(focusedNode instanceof ast.Token && !(focusedNode.rootNode instanceof ast.Module) && focusedNode.rootNode.draftModeEnabled){
+                        node = focusedNode.rootNode;
+                    }
 
+                    if(node){
+                        return new EditAction(EditActionType.CloseDraftMode, {codeNode: node});
+                    }
+                }
+                
                 break;
 
             case KeyPress.Equals:
@@ -603,7 +623,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Subtract, ast.DataType.Any));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Subtract, ast.DataType.Number));
                     }).bind(this)
                 );
 
@@ -613,7 +633,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Multiply, ast.DataType.Any));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Multiply, ast.DataType.Number));
                     }).bind(this)
                 );
 
@@ -623,7 +643,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Divide, ast.DataType.Any));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Divide, ast.DataType.Number));
                     }).bind(this)
                 );
 
@@ -633,7 +653,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.And));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.And, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -643,7 +663,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.BinaryBoolOperatorExpr(ast.BoolOperator.Or));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Or, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -665,7 +685,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.Equal));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.Equal, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -675,7 +695,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.NotEqual));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.NotEqual, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -685,7 +705,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThan));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.LessThan, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -695,7 +715,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.LessThanEqual));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.LessThanEqual, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -705,7 +725,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThan));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.GreaterThan, ast.DataType.Boolean));
                     }).bind(this)
                 );
 
@@ -715,7 +735,7 @@ export class EventRouter {
                 this.pressButton(
                     id,
                     (() => {
-                        this.module.insert(new ast.ComparatorExpr(ast.ComparatorOp.GreaterThanEqual));
+                        this.module.insert(new ast.BinaryOperatorExpr(ast.BinaryOperator.GreaterThanEqual, ast.DataType.Boolean));
                     }).bind(this)
                 );
 

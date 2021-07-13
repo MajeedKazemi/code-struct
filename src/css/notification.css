@@ -1,35 +1,32 @@
-.notificationParent {
+.codeVisual{
     display: block;
     position: absolute;
     pointer-events: none;
 }
 
-.hoverNotificationHighlight {
-    display: block;
-    background-color: rgba(255, 191, 94, 0.3);
-    position: absolute;
-    border-radius: 10%;
-    pointer-events: none;
+.codeVisual.highlight{
+    border-radius: 5px;
 }
 
-.hoverNotificationHover {
+.codeVisual.textBox{
     display: block;
+
     background-color: rgba(247, 201, 131, 1);
-    position: relative;
+    color: black;
+
     border-radius: 5px;
     padding: 2pt;
-    height: fit-content;
     font-size: 10pt;
-    color: black;
+    height: fit-content;
+
     overflow-y: scroll;
     pointer-events: all;
 }
 
-.popUpNotification {
-    background-color: #f7c983;
-    opacity: 0.7;
-    position: relative;
-    border-radius: 10%;
+.codeVisual.popUp {
+    background-color: rgb(253, 198, 115);
+    color: black;
+    position: absolute;
     width: 125px;
     height: fit-content;
     max-height: 30%;
@@ -51,10 +48,4 @@
 
 .other {
     font-weight: 600;
-}
-
-.varScopeSuggestion {
-    width: 500px;
-    height: 200px;
-    padding: 10px 10px 10px 10px;
 }

@@ -3,6 +3,7 @@ import {
     CodeConstruct,
     DataType,
     EmptyLineStmt,
+    InsertionType,
     ListLiteralExpression,
     Module,
     NonEditableTkn,
@@ -11,6 +12,7 @@ import {
     TypedEmptyExpr,
     VarAssignmentStmt,
 } from "../syntax-tree/ast";
+import { TypeSystem } from "../syntax-tree/type-sys";
 import { Context } from "./focus";
 
 export class Validator {
@@ -270,38 +272,54 @@ export class Validator {
         return context.selected && context.token.isEmpty;
     }
 
-
-    static getValidVariableReferences(code: CodeConstruct): Reference[] {
-        let refs = [];
+    //returns a nested list [[Reference, InsertionType], ...]
+    static getValidVariableReferences(code: CodeConstruct): Array<(Reference | InsertionType)[]> {
+        const refs: Reference[] = [];
+        const mappedRefs: Array<(Reference | InsertionType)[]> = []; //no point of making this a map since we don't have access to the refs whereever this method is used. Otherwise would have to use buttonId or uniqueId as keys into the map.
 
         try {
-            if (code instanceof TypedEmptyExpr) {
-                let scope = code.getParentStatement()?.scope; //line that contains "code"
+            if (code instanceof TypedEmptyExpr || code instanceof EmptyLineStmt) {
+                let scope = code instanceof TypedEmptyExpr ? code.getParentStatement()?.scope : (code.rootNode as Module).scope; //line that contains "code"
                 let currRootNode = code.rootNode;
 
                 while (!scope) {
-                    if (currRootNode.getParentStatement()?.hasScope()) {
-                        scope = currRootNode.getParentStatement().scope;
-                    } else if (currRootNode.rootNode instanceof Statement) {
-                        currRootNode = currRootNode.rootNode;
-                    } else if (currRootNode.rootNode instanceof Module) {
-                        scope = currRootNode.rootNode.scope;
+                    if(!(currRootNode instanceof Module)){
+                        if (currRootNode.getParentStatement()?.hasScope()) {
+                            scope = currRootNode.getParentStatement().scope;
+                        } else if (currRootNode.rootNode instanceof Statement) {
+                            currRootNode = currRootNode.rootNode;
+                        } else if (currRootNode.rootNode instanceof Module) {
+                            scope = currRootNode.rootNode.scope;
+                        }
+                    }
+                    else{
+                        break;
                     }
                 }
 
                 refs.push(...scope.getValidReferences(code.getSelection().startLineNumber));
 
-                refs = refs.filter(
-                    (ref) =>
-                        ref.statement instanceof VarAssignmentStmt &&
-                        (code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
-                            code.type.indexOf(DataType.Any) > -1)
-                );
+                for(const ref of refs){
+                    if(ref.statement instanceof VarAssignmentStmt){
+                        if(code instanceof TypedEmptyExpr){
+                            if((code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
+                            code.type.indexOf(DataType.Any) > -1)){
+                                mappedRefs.push([ref, InsertionType.Valid])
+                            }
+                            else{
+                                mappedRefs.push([ref, InsertionType.DraftMode])
+                            }
+                        }
+                        else if(code instanceof EmptyLineStmt){ //all variables can become var = --- so allow all of them to trigger draft mode
+                            mappedRefs.push([ref, InsertionType.DraftMode])
+                        }
+                    }
+                }
             }
         } catch (e) {
             console.error("Unable to get valid variable references for " + code + "\n\n" + e);
         } finally {
-            return refs;
+            return mappedRefs;
         }
     }
 }

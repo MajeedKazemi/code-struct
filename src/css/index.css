@@ -5,6 +5,7 @@
 @import url("notification.css");
 @import url("suggestion-menu.css");
 @import url("construct-doc.css");
+@import url("draft-mode.css");
 
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&display=swap");
 
@@ -64,6 +65,10 @@ body {
     pointer-events: none;
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+.button.draftModeButton{
+    background-color: rgba(255, 127, 80, 0.8);
 }
 
 #editor-toolbox .group {

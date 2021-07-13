@@ -1,13 +1,9 @@
 import { ConstructDoc } from "../suggestions/construct-doc";
 import {
     Argument,
-    BinaryBoolOperatorExpr,
     BinaryOperator,
     BinaryOperatorExpr,
-    BoolOperator,
     CodeConstruct,
-    ComparatorExpr,
-    ComparatorOp,
     DataType,
     ElseStatement,
     ForStatement,
@@ -186,6 +182,10 @@ export const constructToToolboxButton = new Map<ConstructKeys, string>([
     [ConstructKeys.FindCall, "add-find-method-call-btn"],
 
     [ConstructKeys.ListElementAssignment, "add-list-elem-assign-btn"],
+
+    [ConstructKeys.AppendCall, "add-list-append-stmt-btn"],
+
+    [ConstructKeys.MemberCall, "add-list-index-btn"]
 ]);
 
 export class Util {
@@ -194,11 +194,27 @@ export class Util {
     dummyToolboxConstructs: Map<string, CodeConstruct>;
     constructActions: Map<string, Function>;
     constructDocs: Map<string, ConstructDoc>;
+    typeConversionMap: Map<DataType, Array<DataType>>;
     module: Module;
 
     private constructor(module: Module) {
         this.module = module;
-        //this cannot exist on its own, need to wrap it in a class. Otherwise it does not see the imports for the construct classes.
+
+        //these cannot exist on their own, need to wrap them in a class. Otherwise they does not see the imports for the construct classes.
+
+        //stores information about what types an object or literal of a given type can be converted to either through casting or 
+        //some other manipulation such as [number] or number === --- or accessing some property such as list.length > 0
+        this.typeConversionMap = new Map<DataType, Array<DataType>>([
+            [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
+            [DataType.String, [DataType.StringList, DataType.Boolean]],
+            [DataType.Boolean, [DataType.BooleanList]],
+            [DataType.AnyList, [DataType.Boolean]],
+            [DataType.NumberList, [DataType.Boolean]],
+            [DataType.BooleanList, [DataType.Boolean]],
+            [DataType.StringList, [DataType.Boolean]],
+            [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]]
+        ]);
+
         this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
             [ConstructKeys.VariableAssignment, new VarAssignmentStmt()],
             [
@@ -233,15 +249,15 @@ export class Util {
             [ConstructKeys.Subtraction, new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Any)],
             [ConstructKeys.Multiplication, new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Any)],
             [ConstructKeys.Division, new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Any)],
-            [ConstructKeys.And, new BinaryBoolOperatorExpr(BoolOperator.And)],
-            [ConstructKeys.Or, new BinaryBoolOperatorExpr(BoolOperator.Or)],
+            [ConstructKeys.And, new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean)],
+            [ConstructKeys.Or, new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean)],
             [ConstructKeys.Not, new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean, DataType.Boolean)],
-            [ConstructKeys.Equals, new ComparatorExpr(ComparatorOp.Equal)],
-            [ConstructKeys.NotEquals, new ComparatorExpr(ComparatorOp.NotEqual)],
-            [ConstructKeys.LessThan, new ComparatorExpr(ComparatorOp.LessThan)],
-            [ConstructKeys.LessThanOrEqual, new ComparatorExpr(ComparatorOp.LessThanEqual)],
-            [ConstructKeys.GreaterThan, new ComparatorExpr(ComparatorOp.GreaterThan)],
-            [ConstructKeys.GreaterThanOrEqual, new ComparatorExpr(ComparatorOp.GreaterThanEqual)],
+            [ConstructKeys.Equals, new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean)],
+            [ConstructKeys.NotEquals, new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean)],
+            [ConstructKeys.LessThan, new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean)],
+            [ConstructKeys.LessThanOrEqual, new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean)],
+            [ConstructKeys.GreaterThan, new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean)],
+            [ConstructKeys.GreaterThanOrEqual, new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean)],
             [ConstructKeys.While, new WhileStatement()],
             [ConstructKeys.If, new IfStatement()],
             [ConstructKeys.Elif, new ElseStatement(true)],
@@ -395,13 +411,13 @@ export class Util {
             [
                 ConstructKeys.And,
                 () => {
-                    this.module.insert(new BinaryBoolOperatorExpr(BoolOperator.And));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean));
                 },
             ],
             [
                 ConstructKeys.Or,
                 () => {
-                    this.module.insert(new BinaryBoolOperatorExpr(BoolOperator.Or));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean));
                 },
             ],
             [
@@ -413,37 +429,37 @@ export class Util {
             [
                 ConstructKeys.Equals,
                 () => {
-                    this.module.insert(new ComparatorExpr(ComparatorOp.Equal));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean));
                 },
             ],
             [
                 ConstructKeys.NotEquals,
                 () => {
-                    this.module.insert(new ComparatorExpr(ComparatorOp.NotEqual));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean));
                 },
             ],
             [
                 ConstructKeys.LessThan,
                 () => {
-                    this.module.insert(new ComparatorExpr(ComparatorOp.LessThan));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean));
                 },
             ],
             [
                 ConstructKeys.LessThanOrEqual,
                 () => {
-                    this.module.insert(new ComparatorExpr(ComparatorOp.LessThanEqual));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean));
                 },
             ],
             [
                 ConstructKeys.GreaterThan,
                 () => {
-                    this.module.insert(new ComparatorExpr(ComparatorOp.GreaterThan));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean));
                 },
             ],
             [
                 ConstructKeys.GreaterThanOrEqual,
                 () => {
-                    this.module.insert(new ComparatorExpr(ComparatorOp.GreaterThanEqual));
+                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean));
                 },
             ],
             [
@@ -571,4 +587,18 @@ export class Util {
     static getPopulatedInstance() {
         return Util.instance;
     }
+}
+
+
+/**
+ * Return whether list1 contains at least one item from list2.
+ */
+export function hasMatch(list1: any[], list2: any[]): boolean{
+    if(list2.length == 0 || list1.length == 0) return false;
+
+    for(const item of list2){
+        if(list1.indexOf(item) > -1) return true;
+    }
+
+    return false;
 }
