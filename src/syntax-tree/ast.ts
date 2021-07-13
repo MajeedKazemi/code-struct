@@ -2923,6 +2923,10 @@ export class Module {
 
                         this.editor.executeEdits(range, statement);
                     }
+
+                    const newContext = code.getInitialFocus();
+                    this.focus.updateContext(newContext);
+
                 } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
                     isValid = true;
 
@@ -3027,16 +3031,15 @@ export class Module {
                             focusedNode.right
                         );
 
+                        //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
+                        if (!focusedNode.notification) {
+                            const newContext = code.getInitialFocus();
+                            this.focus.updateContext(newContext);
+                        }
+
                         this.editor.executeEdits(range, expr);
                     }
                 }
-
-                //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
-                if (isValid && !focusedNode.notification) {
-                    const newContext = code.getInitialFocus();
-                    this.focus.updateContext(newContext);
-                }
-
             } else {
 
                 //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
