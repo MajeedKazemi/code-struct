@@ -286,7 +286,7 @@ export class ActionExecutor {
                         context.expressionToLeft.indexInRoot
                     );
                     
-                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToLeft, true, newCode.getLeftOperand() as TypedEmptyExpr, this.module.notificationSystem);
+                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToLeft, false, newCode.getLeftOperand() as TypedEmptyExpr);
 
                     if(validType){
                         newCode.replaceLeftOperand(context.expressionToLeft);
@@ -297,6 +297,8 @@ export class ActionExecutor {
                         this.module.editor.executeEdits(initialBoundary, newCode);
                         this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot] });
                     }
+                    //TODO: Add warning if types don't match
+
                     
                 } else if (action.data.toLeft) {
                     const initialBoundary = this.getBoundaries(context.expressionToRight);
@@ -310,7 +312,7 @@ export class ActionExecutor {
                         context.expressionToRight.indexInRoot
                     );
 
-                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToRight, true, newCode.getRightOperand() as TypedEmptyExpr, this.module.notificationSystem);
+                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToRight, false, newCode.getRightOperand() as TypedEmptyExpr);
                     
                     if(validType){
                         newCode.replaceRightOperand(context.expressionToRight);
@@ -321,6 +323,7 @@ export class ActionExecutor {
                         this.module.editor.executeEdits(initialBoundary, newCode);
                         this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperand().indexInRoot] });
                     }
+                    //TODO: Add warning if types don't match
                    
                 } else if (action.data.replace) {
                     this.module.insert(
