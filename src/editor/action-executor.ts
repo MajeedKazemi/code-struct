@@ -286,12 +286,12 @@ export class ActionExecutor {
                         context.expressionToLeft.indexInRoot
                     );
                     newCode.replaceLeftOperand(context.expressionToLeft);
-                    context.expressionToLeft.indexInRoot = newCode.getLeftOperandIndex();
+                    context.expressionToLeft.indexInRoot = newCode.getLeftOperand().indexInRoot;
                     context.expressionToLeft.rootNode = newCode;
 
                     this.module.replaceExpression(root as CodeConstruct, index, newCode);
                     this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperandIndex()] });
+                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot] });
                 } else if (action.data.toLeft) {
                     const initialBoundary = this.getBoundaries(context.expressionToRight);
                     const root = context.expressionToRight.rootNode;
@@ -304,12 +304,12 @@ export class ActionExecutor {
                         context.expressionToRight.indexInRoot
                     );
                     newCode.replaceRightOperand(context.expressionToRight);
-                    context.expressionToRight.indexInRoot = newCode.getRightOperandIndex();
+                    context.expressionToRight.indexInRoot = newCode.getRightOperand().indexInRoot;
                     context.expressionToRight.rootNode = newCode;
 
                     this.module.replaceExpression(root as CodeConstruct, index, newCode);
                     this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperandIndex()] });
+                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperand().indexInRoot] });
                 } else if (action.data.replace) {
                     this.module.insert(new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0]));
                 }
