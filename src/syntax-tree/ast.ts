@@ -420,6 +420,7 @@ export abstract class Statement implements CodeConstruct {
 
         // rebuild siblings:
         for (let i = fromIndex; i < this.tokens.length; i++) {
+            this.tokens[i].indexInRoot = i;
             if (this.tokens[i] instanceof Token) curPos = this.tokens[i].build(curPos);
             else curPos = (this.tokens[i] as Expression).build(curPos);
         }
@@ -1078,7 +1079,6 @@ export class ForStatement extends Statement {
         this.tokens.push(new NonEditableTkn(" :", this, this.tokens.length));
 
         this.body.push(new EmptyLineStmt(this, 0));
-        this.body.push(new EmptyLineStmt(this, 1)); //TODO: Workaround for inability to navigate outside of an indented region and stay on the same line
 
         this.scope = new Scope();
 
@@ -2175,6 +2175,14 @@ export class Module {
                 if (curCode instanceof Statement || curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
                 if (curCode instanceof Statement && curCode.hasBody()) codeStack.unshift(...curCode.body);
             }
+        } else if (code instanceof Token) code.notify(callbackType);
+    }
+
+    replaceExpression(root: CodeConstruct, index: number, newExpression: CodeConstruct) {
+        if (root instanceof Statement) {
+            root.tokens[index] = newExpression;
+
+            root.rebuild(root.getLeftPosition(), 0);
         }
     }
 
@@ -2182,7 +2190,7 @@ export class Module {
         const root = line.rootNode;
 
         if (root instanceof Statement) {
-            if (!line.hasBody()) {
+            if (!line.hasBody()) { 
                 const removedItem = root.body.splice(line.indexInRoot, 1);
 
                 let outerBody: Array<Statement>;
@@ -2266,6 +2274,22 @@ export class Module {
         }
     }
 
+    removeItems(code: CodeConstruct, start: number, count: number): Array<CodeConstruct> {
+        if (code instanceof Statement) {
+            const removedItems = code.tokens.splice(start, count);
+
+            for (const item of removedItems) {
+                this.recursiveNotify(item, CallbackType.delete);
+            }
+
+            code.rebuild(code.getLeftPosition(), 0);
+
+            return removedItems;
+        }
+
+        return [];
+    }
+
     removeStatement(line: Statement): CodeConstruct {
         const root = line.rootNode;
 
@@ -2292,11 +2316,11 @@ export class Module {
         }
     }
 
-    removeItem(item: CodeConstruct): CodeConstruct {
+    removeItem(item: CodeConstruct, { replaceType = null }): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
-            const replacedItem = new TypedEmptyExpr(root.typeOfHoles[item.indexInRoot]);
+            const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
             this.recursiveNotify(item, CallbackType.delete);
 
             root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
@@ -2318,7 +2342,7 @@ export class Module {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
             const root = focusedCode.rootNode;
 
-            if (root instanceof Expression && root.tokens.length > 0) {
+            if (root instanceof Statement && root.tokens.length > 0) {
                 root.tokens.splice(index, 0, ...items);
 
                 for (let i = 0; i < root.tokens.length; i++) {
