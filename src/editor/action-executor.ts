@@ -291,7 +291,9 @@ export class ActionExecutor {
 
                     this.module.replaceExpression(root as CodeConstruct, index, newCode);
                     this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot] });
+                    this.module.focus.updateContext({
+                        tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot],
+                    });
                 } else if (action.data.toLeft) {
                     const initialBoundary = this.getBoundaries(context.expressionToRight);
                     const root = context.expressionToRight.rootNode;
@@ -303,15 +305,20 @@ export class ActionExecutor {
                         context.expressionToRight.rootNode as CodeConstruct,
                         context.expressionToRight.indexInRoot
                     );
+
                     newCode.replaceRightOperand(context.expressionToRight);
                     context.expressionToRight.indexInRoot = newCode.getRightOperand().indexInRoot;
                     context.expressionToRight.rootNode = newCode;
 
                     this.module.replaceExpression(root as CodeConstruct, index, newCode);
                     this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperand().indexInRoot] });
+                    this.module.focus.updateContext({
+                        tokenToSelect: newCode.tokens[newCode.getLeftOperand().indexInRoot],
+                    });
                 } else if (action.data.replace) {
-                    this.module.insert(new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0]));
+                    this.module.insert(
+                        new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
+                    );
                 }
 
                 break;
@@ -508,7 +515,7 @@ export class ActionExecutor {
 
             case EditActionType.CloseDraftMode:
                 this.deleteCode(action.data.codeNode);
-                
+
                 break;
 
             case EditActionType.None: {
@@ -568,6 +575,7 @@ export class ActionExecutor {
 
     private validateIdentifier(context: Context, identifierText: string) {
         let focusedNode = null;
+
         if (context.token && context.selected && context.token instanceof IdentifierTkn) {
             focusedNode = context.token;
         } else if (context.tokenToLeft && context.tokenToLeft instanceof IdentifierTkn) {
@@ -581,7 +589,6 @@ export class ActionExecutor {
             context.tokenToLeft instanceof IdentifierTkn ||
             context.tokenToRight instanceof IdentifierTkn
         ) {
-
             if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
                     focusedNode,
