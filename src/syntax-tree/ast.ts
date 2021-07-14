@@ -1047,7 +1047,7 @@ export class IfStatement extends Statement {
         const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
 
         if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertCode);
+            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
         }
 
         return isValidType;
@@ -1159,7 +1159,7 @@ export class ForStatement extends Statement {
         const isValidType = insertInto.type.indexOf(insertCode.returns) > -1;
 
         if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertCode);
+            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
         }
 
         return isValidType;
@@ -1354,7 +1354,7 @@ export class FunctionCallStmt extends Expression {
         const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
 
         if (enableWarnings && !isValidType) {
-            notifSystem.addFunctionCallArgumentTypeMismatchWarning(insertInto, insertCode);
+            notifSystem.addFunctionCallArgumentTypeMismatchWarning(insertInto, insertInto, insertCode);
         }
 
         return isValidType;
@@ -1761,16 +1761,16 @@ export class BinaryOperatorExpr extends Expression {
         if (enableWarnings && !isValidType) {
             switch (this.operatorCategory) {
                 case BinaryOperatorCategory.Arithmetic:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertCode);
+                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
                     break;
                 case BinaryOperatorCategory.Boolean:
-                    notifSystem.addBinBoolOpOperandTypeMismatchWarning(insertInto, insertCode);
+                    notifSystem.addBinBoolOpOperandInsertionTypeMismatchWarning(insertInto, insertInto, insertCode);
                     break;
                 case BinaryOperatorCategory.Comparison:
-                    notifSystem.addCompOpOperandTypeMismatchWarning(insertInto, insertCode);
+                    notifSystem.addCompOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
                     break;
                 default:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertCode);
+                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
                     break;
             }
         }

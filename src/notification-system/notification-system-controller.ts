@@ -73,21 +73,21 @@ export class NotificationSystemController {
      * @param args       context for constructing appropriate message. See error-msg-generator.ts for more info
      * @param errMsgType type of error message the notification should display when hovered over
      */
-    addHoverNotification(code: CodeConstruct, args: any, warningText?: string, errMsgType?: ErrorMessage, highlightColour: [number, number, number, number] = defaultHighlightColour) {
+    addHoverNotification(codeToHighlight:CodeConstruct, args: any, warningText?: string, errMsgType?: ErrorMessage, highlightColour: [number, number, number, number] = defaultHighlightColour) {
         const notif = new HoverNotification(
             this.editor,
-            code,
+            codeToHighlight,
             errMsgType ? this.msgGenerator.generateMsg(errMsgType, args) : (warningText ?? "Placeholder Text"),
             highlightColour,
             this.notifications.length
         );
 
-        if (!code.notification) {
+        if (!codeToHighlight.notification) {
             this.notifications.push(notif);
-            code.notification = this.notifications[this.notifications.length - 1];
+            codeToHighlight.notification = this.notifications[this.notifications.length - 1];
         } else {
-            this.removeNotificationFromConstruct(code);
-            this.addHoverNotification(code, args, warningText, errMsgType, highlightColour);
+            this.removeNotificationFromConstruct(codeToHighlight);
+            this.addHoverNotification(codeToHighlight, args, warningText, errMsgType, highlightColour);
         }
 
         return notif;
@@ -142,18 +142,18 @@ export class NotificationSystemController {
         this.notifications = [];
     }
 
-    addBinBoolOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+    addBinBoolOpOperandInsertionTypeMismatchWarning(codeToHighlight: CodeConstruct, insertInto: TypedEmptyExpr, codeInserted: Expression){
         this.addHoverNotification(
-            insertInto,
-            { binOp: (insertInto.rootNode as BinaryOperatorExpr).operator, argType1: insertCode.returns },
+            codeToHighlight,
+            { binOp: (insertInto.rootNode as BinaryOperatorExpr).operator, argType1: codeInserted.returns },
             "",
             ErrorMessage.boolOpArgTypeMismatch
         );
     }
 
-    addFunctionCallArgumentTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+    addFunctionCallArgumentTypeMismatchWarning(codeToHighlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
-            insertInto,
+            codeToHighlight,
             {
                 argType1: insertInto.type,
                 argType2: insertCode.returns,
@@ -164,9 +164,9 @@ export class NotificationSystemController {
         );
     }
 
-    addStatementHoleTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+    addStatementHoleTypeMismatchWarning(codeToHighlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
-            insertInto,
+            codeToHighlight,
             {
                 addedType: insertCode.returns,
                 constructName: insertInto.getParentStatement().getKeyword(),
@@ -177,9 +177,9 @@ export class NotificationSystemController {
         );
     }
 
-    addBinOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+    addBinOpOperandTypeMismatchWarning(codeToHightlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
-            insertInto,
+            codeToHightlight,
             {
                 binOp: (insertInto.rootNode as BinaryOperatorExpr).operator,
                 argType1: insertInto.type,
@@ -190,9 +190,9 @@ export class NotificationSystemController {
         );
     }
 
-    addCompOpOperandTypeMismatchWarning(insertInto: TypedEmptyExpr, insertCode: Expression){
+    addCompOpOperandTypeMismatchWarning(codeToHightlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
         this.addHoverNotification(
-            insertInto,
+            codeToHightlight,
             {
                 binOp: (insertInto.rootNode as BinaryOperatorExpr).operator,
                 argType1: insertInto.type,
