@@ -75,6 +75,7 @@ abstract class ConstructVisualElement {
         const onChange = new Callback(
             (() => {
                 this.moveToConstructPosition();
+                this.updateDimensions();
             }).bind(this)
         )
 
@@ -121,6 +122,8 @@ abstract class ConstructVisualElement {
             this.code.unsubscribe(entry[1], entry[0]);
         }
     }
+
+    protected updateDimensions(): void{}
 }
 
 class ConstructHighlight extends ConstructVisualElement {
@@ -134,42 +137,7 @@ class ConstructHighlight extends ConstructVisualElement {
         super.createDomElement();
         this.domElement.classList.add("highlight");
 
-        //instanceof Token does not have lineNumber
-        let lineNumber = this.code.getLineNumber();
-
-        let top = 0;
-        let left = 0;
-        let width = 0;
-        let height = 0;
-
-        //no idea why these need separate handling... This was the easiest fix.
-        if (this.code instanceof TypedEmptyExpr) {
-            const transform = this.editor.computeBoundingBox(this.code.getSelection());
-            const text = this.code.getRenderText();
-
-            top = transform.y + 5;
-            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidth(lineNumber);
-
-            width =
-                text.length * this.editor.computeCharWidth(lineNumber) > 0
-                    ? text.length * this.editor.computeCharWidth(lineNumber)
-                    : HIGHLIGHT_DEFAULT_WIDTH;
-            height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
-        } else {
-            const text = this.code.getRenderText();
-            const transform = this.editor.computeBoundingBox(this.code.getSelection());
-
-            top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
-            left = transform.x;
-            height = Math.floor(this.editor.computeCharHeight() * 0.95);
-            width = text.length * this.editor.computeCharWidth(lineNumber);
-        }
-
-        this.domElement.style.top = `${top}px`;
-        this.domElement.style.left = `${left}px`;
-
-        this.domElement.style.width = `${width}px`;
-        this.domElement.style.height = `${height}px`;
+        this.updateDimensions(true);
 
         document.querySelector(editorDomElementClass).appendChild(this.domElement);
     }
@@ -202,6 +170,47 @@ class ConstructHighlight extends ConstructVisualElement {
      */
     changeHighlightColour(rgbColour: [number, number, number, number]) {
         this.domElement.style.backgroundColor = `rgb(${rgbColour[0]}, ${rgbColour[1]}, ${rgbColour[2]}, ${rgbColour[3]})`;
+    }
+
+    protected updateDimensions(firstInsertion: boolean = false){
+        //instanceof Token does not have lineNumber
+        let lineNumber = this.code.getLineNumber();
+
+        let top = 0;
+        let left = 0;
+        let width = 0;
+        let height = 0;
+
+        //no idea why these need separate handling... This was the easiest fix.
+        if (this.code instanceof TypedEmptyExpr) {
+            const transform = this.editor.computeBoundingBox(this.code.getSelection());
+            const text = this.code.getRenderText();
+
+            top = transform.y + 5;
+            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidth(lineNumber);
+
+            width =
+                text.length * this.editor.computeCharWidth(lineNumber) > 0
+                    ? text.length * this.editor.computeCharWidth(lineNumber)
+                    : HIGHLIGHT_DEFAULT_WIDTH;
+            height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
+        } else {
+            const text = this.code.getRenderText();
+            const transform = this.editor.computeBoundingBox(this.code.getSelection());
+
+            top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
+            left = transform.x;
+            height = Math.floor(this.editor.computeCharHeight() * 0.95);
+            width = text.length * this.editor.computeCharWidth(lineNumber);
+        }
+
+        if(firstInsertion){
+            this.domElement.style.top = `${top}px`;
+            this.domElement.style.left = `${left}px`;
+        }
+
+        this.domElement.style.width = `${width}px`;
+        this.domElement.style.height = `${height}px`;
     }
 }
 
