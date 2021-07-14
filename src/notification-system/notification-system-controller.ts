@@ -74,23 +74,21 @@ export class NotificationSystemController {
      * @param errMsgType type of error message the notification should display when hovered over
      */
     addHoverNotification(codeToHighlight:CodeConstruct, args: any, warningText?: string, errMsgType?: ErrorMessage, highlightColour: [number, number, number, number] = defaultHighlightColour) {
-        const notif = new HoverNotification(
-            this.editor,
-            codeToHighlight,
-            errMsgType ? this.msgGenerator.generateMsg(errMsgType, args) : (warningText ?? "Placeholder Text"),
-            highlightColour,
-            this.notifications.length
-        );
-
         if (!codeToHighlight.notification) {
+            const notif = new HoverNotification(
+                this.editor,
+                codeToHighlight,
+                errMsgType ? this.msgGenerator.generateMsg(errMsgType, args) : (warningText ?? "Placeholder Text"),
+                highlightColour,
+                this.notifications.length
+            );
+
             this.notifications.push(notif);
             codeToHighlight.notification = this.notifications[this.notifications.length - 1];
         } else {
             this.removeNotificationFromConstruct(codeToHighlight);
             this.addHoverNotification(codeToHighlight, args, warningText, errMsgType, highlightColour);
         }
-
-        return notif;
     }
 
     /**
@@ -113,7 +111,7 @@ export class NotificationSystemController {
         const notif = this.notifications[this.notifications.length - 1];
 
         setTimeout(() => {
-            document.querySelector(".lines-content.monaco-editor-background").removeChild(notif.domElement);
+            notif.removeFromDOM();
             this.notifications.splice(notif.systemIndex);
         }, popUpNotificationTime);
     }

@@ -3339,8 +3339,8 @@ export class DraftRecord {
     constructor(code: Expression, module: Module) {
         this.code = code;
         this.module = module;
-
-        this.warning = this.module.notificationSystem.addHoverNotification(code, {}, "Draft Mode");
+        this.module.notificationSystem.addHoverNotification(code, {}, "Draft Mode");
+        this.warning = code.notification;
         this.code.notification = this.warning;
     }
 
