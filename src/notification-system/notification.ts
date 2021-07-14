@@ -61,29 +61,40 @@ abstract class ConstructVisualElement {
      */
     domElement: HTMLDivElement;
 
+    private callbacks: Map<string, CallbackType>;
+
     constructor(editor: Editor, codeToHighlight: CodeConstruct) {
         this.code = codeToHighlight;
         this.selection = this.code.getSelection();
         this.editor = editor;
 
+        this.callbacks = new Map<string, CallbackType>();
+
         this.createDomElement();
+
+        const onChange = new Callback(
+            (() => {
+                this.moveToConstructPosition();
+            }).bind(this)
+        )
+
+        const onDelete = new Callback(
+            (() => {
+                this.removeFromDOM();
+            }).bind(this)
+        )
+
+        this.callbacks.set(onDelete.callerId, CallbackType.delete)
+        this.callbacks.set(onChange.callerId, CallbackType.change);
 
         this.code.subscribe(
             CallbackType.change,
-            new Callback(
-                (() => {
-                    this.moveToConstructPosition();
-                }).bind(this)
-            )
+            onChange
         );
 
         this.code.subscribe(
             CallbackType.delete,
-            new Callback(
-                (() => {
-                    this.removeFromDOM();
-                }).bind(this)
-            )
+            onDelete
         );
     }
 
@@ -104,8 +115,10 @@ abstract class ConstructVisualElement {
      * Remove this element and its children from the DOM. (Should always be called on the deletion of this.code)
      */
     removeFromDOM(): void {
-        if (this.domElement) {
-            document.querySelector(editorDomElementClass).removeChild(this.domElement);
+        document.querySelector(editorDomElementClass).removeChild(this.domElement);
+
+        for(const entry of this.callbacks){
+            this.code.unsubscribe(entry[1], entry[0]);
         }
     }
 }
@@ -394,10 +407,10 @@ export class HoverNotification extends Notification {
         });
     }
 
-    // removeFromDOM() {
-    // super.removeFromDOM();
-    // this.highlight.removeFromDOM();
-    // }
+     removeFromDOM() {
+        super.removeFromDOM();
+        this.highlight.removeFromDOM();
+     }
 }
 
 export class PopUpNotification extends Notification {

@@ -15,7 +15,7 @@ import { ActionExecutor } from "../editor/action-executor";
 import { TypeSystem } from "./type-sys";
 
 export class Callback {
-    static counter: number;
+    static counter: number = 0;
     callback: () => any;
     callerId: string;
 
@@ -371,13 +371,13 @@ export abstract class Statement implements CodeConstruct {
         let index = -1;
 
         for (let i = 0; i < this.callbacks[type].length; i++) {
-            if (this.callbacks[type].callerId == callerId) {
+            if (this.callbacks[type][i].callerId == callerId) {
                 index = i;
                 break;
             }
         }
 
-        if (index > 0) this.callbacks[type].splice(index, 1);
+        if (index >= 0) this.callbacks[type].splice(index, 1);
     }
 
     notify(type: CallbackType) {
