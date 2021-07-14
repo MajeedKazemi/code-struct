@@ -243,28 +243,24 @@ export class HoverNotification extends Notification{
 
         //top
         if (this.selection.startLineNumber != newSelection.startLineNumber) {
-            const diff = newSelection.startLineNumber - this.selection.startLineNumber - 2;
+            const diff = newSelection.startLineNumber - this.selection.startLineNumber;
             this.selection = newSelection;
 
             this.domElement.style.top = `${this.domElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
-
-            this.updateMouseOffsets();
         }
 
         //left
         if (this.selection.startColumn != newSelection.startColumn) {
-            const diff = newSelection.startColumn - this.selection.startColumn - this.domElement.offsetWidth / 2;
+            const diff = newSelection.startColumn - this.selection.startColumn;
 
             this.selection = newSelection;
 
             this.domElement.style.left = `${
                 this.domElement.offsetLeft + diff * this.editor.computeCharWidth()
             }px`;
-
-            this.updateMouseOffsets();
         }
 
-        this.moveWithinEditor(); //need to call this in case we went outside of the editor window with the above updates
+        this.updateMouseOffsets(); //need to call this in case we went outside of the editor window with the above updates
     }
 
     private moveWithinEditor() {
