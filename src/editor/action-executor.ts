@@ -18,6 +18,8 @@ import {
     Token,
     BinaryOperatorExpr,
     InsertionType,
+    IfStatement,
+    BinaryOperator,
 } from "../syntax-tree/ast";
 import { Cursor } from "./cursor";
 
@@ -276,64 +278,9 @@ export class ActionExecutor {
 
             case EditActionType.InsertOperator: {
                 if (action.data.toRight) {
-                    const initialBoundary = this.getBoundaries(context.expressionToLeft);
-                    const root = context.expressionToLeft.rootNode;
-                    const index = context.expressionToLeft.indexInRoot;
-
-                    const newCode = new BinaryOperatorExpr(
-                        action.data.operator,
-                        context.expressionToLeft.returns,
-                        context.expressionToLeft.rootNode as CodeConstruct,
-                        context.expressionToLeft.indexInRoot
-                    );
-                    
-                    //const validType = newCode.typeValidateInsertionIntoHole(context.expressionToLeft, false, newCode.getLeftOperand() as TypedEmptyExpr);
-                    const insertionType = this.module.tryInsert(newCode.getLeftOperand(), context.expressionToLeft);
-
-                    if(insertionType === InsertionType.Valid || insertionType === InsertionType.DraftMode){
-                        newCode.replaceLeftOperand(context.expressionToLeft);
-                        context.expressionToLeft.indexInRoot = newCode.getLeftOperand().indexInRoot;
-                        context.expressionToLeft.rootNode = newCode;
-    
-                        this.module.replaceExpression(root as CodeConstruct, index, newCode);
-                        this.module.editor.executeEdits(initialBoundary, newCode);
-                        this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getRightOperand().indexInRoot] });
-
-                        if(insertionType === InsertionType.DraftMode){
-                            this.module.openDraftMode(newCode);
-                        }
-                    }
-                    else{ //Invalid TODO: Add warning if types don't match if 132: => if (123 + ---) > ---:
-
-                        //call notifcation
-                    }
-
-                    
+                    this.replaceWithBinaryOp(action.data.operator, context.expressionToLeft, { toLeft: true });
                 } else if (action.data.toLeft) {
-                    const initialBoundary = this.getBoundaries(context.expressionToRight);
-                    const root = context.expressionToRight.rootNode;
-                    const index = context.expressionToRight.indexInRoot;
-
-                    const newCode = new BinaryOperatorExpr(
-                        action.data.operator,
-                        context.expressionToRight.returns,
-                        context.expressionToRight.rootNode as CodeConstruct,
-                        context.expressionToRight.indexInRoot
-                    );
-
-                    const validType = newCode.typeValidateInsertionIntoHole(context.expressionToRight, false, newCode.getRightOperand() as TypedEmptyExpr);
-                    
-                    if(validType){
-                        newCode.replaceRightOperand(context.expressionToRight);
-                        context.expressionToRight.indexInRoot = newCode.getRightOperand().indexInRoot;
-                        context.expressionToRight.rootNode = newCode;
-    
-                        this.module.replaceExpression(root as CodeConstruct, index, newCode);
-                        this.module.editor.executeEdits(initialBoundary, newCode);
-                        this.module.focus.updateContext({ tokenToSelect: newCode.tokens[newCode.getLeftOperand().indexInRoot] });
-                    }
-                    //TODO: Add warning if types don't match
-                   
+                    this.replaceWithBinaryOp(action.data.operator, context.expressionToRight, { toRight: true });
                 } else if (action.data.replace) {
                     this.module.insert(
                         new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
@@ -545,6 +492,53 @@ export class ActionExecutor {
         }
 
         return preventDefaultEvent;
+    }
+
+    private replaceWithBinaryOp(op: BinaryOperator, expr: Expression, { toLeft = false, toRight = false }) {
+        const initialBoundary = this.getBoundaries(expr);
+        const root = expr.rootNode as Statement;
+        const index = expr.indexInRoot;
+
+        const newCode = new BinaryOperatorExpr(
+            op,
+            expr.returns, // is not that important, will be replaced in the constructor based on the operator.
+            root,
+            expr.indexInRoot
+        );
+
+        const curOperand = toLeft ? newCode.getLeftOperand() : newCode.getRightOperand();
+        const otherOperand = toLeft ? newCode.getRightOperand() : newCode.getLeftOperand();
+        const insertionType = this.module.tryInsert(curOperand, expr);
+
+        if (insertionType === InsertionType.Valid) {
+            const validateRootInsertion = root.typeOfHoles[index].indexOf(newCode.returns) >= 0;
+
+            if (validateRootInsertion) {
+                this.module.closeConstructDraftRecord(root.tokens[index]);
+            } else {
+                this.module.closeConstructDraftRecord(expr);
+            }
+
+            // this can never go into draft mode
+            if (toLeft) newCode.replaceLeftOperand(expr);
+            else newCode.replaceRightOperand(expr);
+
+            expr.indexInRoot = curOperand.indexInRoot;
+            expr.rootNode = newCode;
+
+            this.module.replaceExpression(root, index, newCode);
+            this.module.editor.executeEdits(initialBoundary, newCode);
+            this.module.focus.updateContext({
+                tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
+            });
+
+            if (!validateRootInsertion) {
+                this.module.openDraftMode(newCode);
+            }
+        } else {
+            //Invalid TODO: Add warning if types don't match if 132: => if (123 + ---) > ---:
+            //call notifcation
+        }
     }
 
     private getCascadedBoundary(codes: Array<CodeConstruct>): monaco.Range {

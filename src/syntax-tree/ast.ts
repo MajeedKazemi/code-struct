@@ -1552,32 +1552,42 @@ export class BinaryOperatorExpr extends Expression {
         if (this.operatorCategory === BinaryOperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-            this.returns = DataType.Any;
+            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.rightOperandIndex = this.tokens.length;
+            this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+
+            this.returns = DataType.Any; // binary addition is the only op that could return multiple types (text/number)
         } else if (this.operatorCategory === BinaryOperatorCategory.Arithmetic) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
+            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.rightOperandIndex = this.tokens.length;
+            this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
+
+            this.returns = DataType.Number;
         } else if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
-        } else {
+            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.rightOperandIndex = this.tokens.length;
+            this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
+
+            this.returns = DataType.Boolean;
+        } else if (this.operatorCategory == BinaryOperatorCategory.Comparison) {
             this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-        }
+            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.rightOperandIndex = this.tokens.length;
+            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
-        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-
-        this.rightOperandIndex = this.tokens.length;
-        if (operator == BinaryOperator.Add) {
-            this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-        } else {
-            this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
-            this.returns = DataType.Number;
+            this.returns = DataType.Boolean;
         }
 
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-
         this.hasEmptyToken = true;
     }
 
@@ -3211,7 +3221,7 @@ export class Module {
                     }
 
                     //TODO: Should we include the parent too?
-                   this.openDraftMode(code);
+                    this.openDraftMode(code);
 
                     const range = new monaco.Range(
                         focusedPos.lineNumber,
@@ -3239,7 +3249,9 @@ export class Module {
     closeConstructDraftRecord(code: CodeConstruct) {
         if (code.draftModeEnabled) {
             code.draftModeEnabled = false;
-            const removedRecord = this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1);
+            const removedRecord = this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)[0];
+
+            if (removedRecord.warning) removedRecord.removeNotification();
 
             code.draftRecord = null;
         } else {
@@ -3247,7 +3259,7 @@ export class Module {
         }
     }
 
-    openDraftMode(code: Expression){
+    openDraftMode(code: Expression) {
         code.draftModeEnabled = true;
         this.draftExpressions.push(new DraftRecord(code, this));
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];

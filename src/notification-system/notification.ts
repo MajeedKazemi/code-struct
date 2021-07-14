@@ -1,7 +1,16 @@
 import * as monaco from "monaco-editor";
 import { Editor } from "../editor/editor";
-import { Callback, CallbackType, CodeConstruct, Module, Scope, Statement, TypedEmptyExpr, VarAssignmentStmt, VariableReferenceExpr } from "../syntax-tree/ast";
-
+import {
+    Callback,
+    CallbackType,
+    CodeConstruct,
+    Module,
+    Scope,
+    Statement,
+    TypedEmptyExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+} from "../syntax-tree/ast";
 
 /**
  * Class name of the DOM element to which notifications are appended to.
@@ -11,28 +20,27 @@ const editorDomElementClass = ".lines-content.monaco-editor-background";
 /**
  * Default width of the hover textbox for a hover notification (px).
  */
- const HOVER_NOTIFICATION_DEFAULT_WIDTH = 200;
+const HOVER_NOTIFICATION_DEFAULT_WIDTH = 200;
 
- /**
-  * Default height of the hover textbox for a hover notification (px).
-  */
- const HOVER_NOTIFICATION_DEFAULT_HEIGHT = 75;
- 
- /**
-  * Default width of the text highlight for a hover notification (px).
-  */
- const HIGHLIGHT_DEFAULT_WIDTH = 10;
- 
- /**
-  * Default height of the text highlight for a hover notification (px).
-  */
- const HIGHLIGHT_DEFAULT_HEIGHT = 25;
- 
+/**
+ * Default height of the hover textbox for a hover notification (px).
+ */
+const HOVER_NOTIFICATION_DEFAULT_HEIGHT = 75;
+
+/**
+ * Default width of the text highlight for a hover notification (px).
+ */
+const HIGHLIGHT_DEFAULT_WIDTH = 10;
+
+/**
+ * Default height of the text highlight for a hover notification (px).
+ */
+const HIGHLIGHT_DEFAULT_HEIGHT = 25;
 
 /**
  * Represents a visual DOM element that is attached to a code construct in the editor.
  */
-abstract class ConstructVisualElement{
+abstract class ConstructVisualElement {
     /**
      * Code that this element is attached to.
      */
@@ -53,26 +61,36 @@ abstract class ConstructVisualElement{
      */
     domElement: HTMLDivElement;
 
-    constructor(editor: Editor, codeToHighlight: CodeConstruct){
+    constructor(editor: Editor, codeToHighlight: CodeConstruct) {
         this.code = codeToHighlight;
         this.selection = this.code.getSelection();
         this.editor = editor;
 
         this.createDomElement();
 
-        this.code.subscribe(CallbackType.change, new Callback((() => {
-            this.moveToConstructPosition(); 
-        }).bind(this)));
-    
-        this.code.subscribe(CallbackType.delete, new Callback((() => {
-            this.removeFromDOM();
-        }).bind(this)));
+        this.code.subscribe(
+            CallbackType.change,
+            new Callback(
+                (() => {
+                    this.moveToConstructPosition();
+                }).bind(this)
+            )
+        );
+
+        this.code.subscribe(
+            CallbackType.delete,
+            new Callback(
+                (() => {
+                    this.removeFromDOM();
+                }).bind(this)
+            )
+        );
     }
 
     /**
      * Construct the DOM element for this visual.
      */
-    protected createDomElement(): void{
+    protected createDomElement(): void {
         this.domElement = document.createElement("div");
         this.domElement.classList.add("codeVisual");
     }
@@ -80,24 +98,26 @@ abstract class ConstructVisualElement{
     /**
      * Update the position of this.domElement when this.code's position changes. (Should always be called on the change of this.code)
      */
-    protected moveToConstructPosition(): void{}
+    protected moveToConstructPosition(): void {}
 
     /**
      * Remove this element and its children from the DOM. (Should always be called on the deletion of this.code)
      */
-    removeFromDOM(): void{
-        document.querySelector(editorDomElementClass).removeChild(this.domElement);
+    removeFromDOM(): void {
+        if (this.domElement) {
+            document.querySelector(editorDomElementClass).removeChild(this.domElement);
+        }
     }
 }
 
-class ConstructHighlight extends ConstructVisualElement{
-    constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]){
+class ConstructHighlight extends ConstructVisualElement {
+    constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]) {
         super(editor, codeToHighlight);
 
         this.changeHighlightColour(rgbColour);
     }
 
-    protected createDomElement(){
+    protected createDomElement() {
         super.createDomElement();
         this.domElement.classList.add("highlight");
 
@@ -110,20 +130,22 @@ class ConstructHighlight extends ConstructVisualElement{
         let height = 0;
 
         //no idea why these need separate handling... This was the easiest fix.
-        if(this.code instanceof TypedEmptyExpr){
+        if (this.code instanceof TypedEmptyExpr) {
             const transform = this.editor.computeBoundingBox(this.code.getSelection());
             const text = this.code.getRenderText();
 
             top = transform.y + 5;
             left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidth(lineNumber);
-    
-            width = text.length * this.editor.computeCharWidth(lineNumber) > 0 ? text.length * this.editor.computeCharWidth(lineNumber) : HIGHLIGHT_DEFAULT_WIDTH;
+
+            width =
+                text.length * this.editor.computeCharWidth(lineNumber) > 0
+                    ? text.length * this.editor.computeCharWidth(lineNumber)
+                    : HIGHLIGHT_DEFAULT_WIDTH;
             height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
-        }
-        else{
+        } else {
             const text = this.code.getRenderText();
             const transform = this.editor.computeBoundingBox(this.code.getSelection());
-    
+
             top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
             left = transform.x;
             height = Math.floor(this.editor.computeCharHeight() * 0.95);
@@ -139,7 +161,7 @@ class ConstructHighlight extends ConstructVisualElement{
         document.querySelector(editorDomElementClass).appendChild(this.domElement);
     }
 
-    protected moveToConstructPosition(): void{
+    protected moveToConstructPosition(): void {
         const newSelection = this.code.getSelection();
 
         //top
@@ -156,23 +178,21 @@ class ConstructHighlight extends ConstructVisualElement{
 
             this.selection = newSelection;
 
-            this.domElement.style.left = `${
-                this.domElement.offsetLeft + diff * this.editor.computeCharWidth()
-            }px`;
+            this.domElement.style.left = `${this.domElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
         }
     }
 
     /**
      * Change the colour of this highlight to rgbColour.
-     * 
+     *
      * @param rgbColour array of four numbers representing the CSS rgb(R, G, B, A) construct
      */
-    changeHighlightColour(rgbColour: [number, number, number, number]){
+    changeHighlightColour(rgbColour: [number, number, number, number]) {
         this.domElement.style.backgroundColor = `rgb(${rgbColour[0]}, ${rgbColour[1]}, ${rgbColour[2]}, ${rgbColour[3]})`;
     }
 }
 
-export class Notification extends ConstructVisualElement{
+export class Notification extends ConstructVisualElement {
     /**
      * Index into NotficationSystemController.notifications
      */
@@ -182,7 +202,7 @@ export class Notification extends ConstructVisualElement{
 
     textElement: HTMLDivElement;
 
-    constructor(editor: Editor, code: CodeConstruct, warningTxt: string, index: number = -1){
+    constructor(editor: Editor, code: CodeConstruct, warningTxt: string, index: number = -1) {
         super(editor, code);
 
         this.warningTxt = warningTxt;
@@ -190,7 +210,7 @@ export class Notification extends ConstructVisualElement{
         this.systemIndex = index;
     }
 
-    protected createDomElement(){
+    protected createDomElement() {
         super.createDomElement();
         this.domElement.classList.add("textBox");
 
@@ -201,7 +221,7 @@ export class Notification extends ConstructVisualElement{
     }
 }
 
-export class HoverNotification extends Notification{
+export class HoverNotification extends Notification {
     private mouseLeftOffset: number;
     private mouseTopOffset: number;
     private highlight: ConstructHighlight;
@@ -211,7 +231,13 @@ export class HoverNotification extends Notification{
     private notificationHighlightCollisionCheckInterval = 500;
     private notificationFadeTime = 100;
 
-    constructor(editor: Editor, code: CodeConstruct, warningText: string, highlightColour: [number, number, number, number], index: number = -1){
+    constructor(
+        editor: Editor,
+        code: CodeConstruct,
+        warningText: string,
+        highlightColour: [number, number, number, number],
+        index: number = -1
+    ) {
         super(editor, code, warningText, index);
 
         this.highlight = new ConstructHighlight(editor, code, highlightColour);
@@ -220,9 +246,9 @@ export class HoverNotification extends Notification{
         this.scheduleCollisionCheck();
     }
 
-    protected createDomElement(){
+    protected createDomElement() {
         super.createDomElement();
-        
+
         this.setNotificationBoxBounds();
 
         //set the initial position
@@ -255,9 +281,7 @@ export class HoverNotification extends Notification{
 
             this.selection = newSelection;
 
-            this.domElement.style.left = `${
-                this.domElement.offsetLeft + diff * this.editor.computeCharWidth()
-            }px`;
+            this.domElement.style.left = `${this.domElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
         }
 
         this.updateMouseOffsets(); //need to call this in case we went outside of the editor window with the above updates
@@ -265,7 +289,9 @@ export class HoverNotification extends Notification{
 
     private moveWithinEditor() {
         if (this.domElement.offsetLeft < 0) {
-            this.domElement.style.left = `${this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())}px`;
+            this.domElement.style.left = `${
+                this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())
+            }px`;
         }
 
         if (this.domElement.offsetTop < 0) {
@@ -302,8 +328,8 @@ export class HoverNotification extends Notification{
     }
 
     /**
-    * Update mouse offset values used for collision detection when the notification's position changes. Needs to be called whenever the notif's position changes.
-    */
+     * Update mouse offset values used for collision detection when the notification's position changes. Needs to be called whenever the notif's position changes.
+     */
     private updateMouseOffsets() {
         this.mouseLeftOffset =
             document.getElementById("editor").offsetLeft +
@@ -367,22 +393,29 @@ export class HoverNotification extends Notification{
             }, this.notificationFadeTime);
         });
     }
+
+    // removeFromDOM() {
+    // super.removeFromDOM();
+    // this.highlight.removeFromDOM();
+    // }
 }
 
-export class PopUpNotification extends Notification{    
+export class PopUpNotification extends Notification {
     static warningTime: number = 5000;
 
-    constructor(editor: Editor, code: CodeConstruct, warningTxt: string, index: number = -1){
+    constructor(editor: Editor, code: CodeConstruct, warningTxt: string, index: number = -1) {
         super(editor, code, warningTxt, index);
     }
 
-    protected createDomElement(){
+    protected createDomElement() {
         super.createDomElement();
 
-        this.domElement.classList.add("popUp")
+        this.domElement.classList.add("popUp");
 
         //set position based on code
-        this.domElement.style.left = `${this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())}px`;
+        this.domElement.style.left = `${
+            this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())
+        }px`;
         this.domElement.style.top = `${this.selection.startLineNumber * this.editor.computeCharHeight()}px`;
     }
 }
