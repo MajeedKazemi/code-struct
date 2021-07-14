@@ -1592,13 +1592,13 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     replaceLeftOperand(code: Expression) {
-        this.replace(code, this.leftOperandIndex);
         this.onInsertInto(code);
+        this.replace(code, this.leftOperandIndex);
     }
 
     replaceRightOperand(code: Expression) {
-        this.replace(code, this.rightOperandIndex);
         this.onInsertInto(code);
+        this.replace(code, this.rightOperandIndex);
     }
 
     getLeftOperand(): CodeConstruct {
@@ -1749,6 +1749,8 @@ export class BinaryOperatorExpr extends Expression {
             } else if (this.rootNode.operatorCategory === BinaryOperatorCategory.Comparison) {
                 TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
+        } else{
+            // In the case that the root is a binOp and its holes are not empty, need to update the holes of this expr to that type as well
         }
 
         this.updateReturnType(insertCode);
