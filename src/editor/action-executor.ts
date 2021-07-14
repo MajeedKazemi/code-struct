@@ -511,7 +511,7 @@ export class ActionExecutor {
         const insertionType = this.module.tryInsert(curOperand, expr);
 
         if (insertionType === InsertionType.Valid) {
-            const validateRootInsertion = root.typeOfHoles[index].indexOf(newCode.returns) >= 0;
+            const validateRootInsertion = root.typeOfHoles[index].indexOf(newCode.returns) >= 0 || newCode.returns === DataType.Any;
 
             if (validateRootInsertion) {
                 this.module.closeConstructDraftRecord(root.tokens[index]);

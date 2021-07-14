@@ -1550,14 +1550,24 @@ export class BinaryOperatorExpr extends Expression {
 
         this.leftOperandIndex = this.tokens.length;
         if (this.operatorCategory === BinaryOperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
-            this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-            this.rightOperandIndex = this.tokens.length;
-            this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+            if(returns !== DataType.String && returns !== DataType.Number){
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
 
-            this.returns = DataType.Any; // binary addition is the only op that could return multiple types (text/number)
+                this.returns = DataType.Any;
+            }
+            else{
+                this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [returns];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [returns];
+            }
         } else if (this.operatorCategory === BinaryOperatorCategory.Arithmetic) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
@@ -1715,10 +1725,9 @@ export class BinaryOperatorExpr extends Expression {
         return result;
     }
 
-    //TODO: Once #208 is discussed these methods need to be updated accordingly
     //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
     getTopLevelBinExpression(): BinaryOperatorExpr {
-        let currParentExpression = this.rootNode;
+        let currParentExpression = this.rootNode instanceof BinaryOperatorExpr ? this.rootNode : this;
         let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
         while (nextParentExpression && nextParentExpression instanceof BinaryOperatorExpr) {
             currParentExpression = nextParentExpression;
@@ -1735,6 +1744,7 @@ export class BinaryOperatorExpr extends Expression {
         return topLevelExpression.checkAllHolesAreEmpty().every((element) => {
             element;
         });
+
     }
 
     onInsertInto(insertCode: Expression) {
