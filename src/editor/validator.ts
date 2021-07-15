@@ -82,10 +82,7 @@ export class Validator {
     canDeleteNextStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        if (
-            !(context.lineStatement instanceof EmptyLineStmt) &&
-            this.module.focus.onBeginningOfLine() 
-        ) {
+        if (!(context.lineStatement instanceof EmptyLineStmt) && this.module.focus.onBeginningOfLine()) {
             if (this.module.focus.isTextEditable(providedContext)) {
                 if (context.tokenToRight.isEmpty) return true;
                 else return false;
@@ -107,13 +104,13 @@ export class Validator {
             !(context.lineStatement instanceof EmptyLineStmt) &&
             !context.lineStatement?.hasBody() &&
             this.module.focus.onEndOfLine() &&
-            !this.module.focus.isTextEditable(providedContext) 
+            !this.module.focus.isTextEditable(providedContext)
         ) {
             if (context.expressionToLeft != null) {
-                if ( context.expressionToLeft?.isStatement()) return true;
+                if (context.expressionToLeft?.isStatement()) return true;
                 else return false;
             }
-            
+
             return true;
         }
 
@@ -139,10 +136,7 @@ export class Validator {
     canDeletePrevToken(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
-            context.expressionToLeft != null &&
-            !this.module.focus.isTextEditable(providedContext)
-        );
+        return context.expressionToLeft != null && !this.module.focus.isTextEditable(providedContext);
     }
 
     /**
@@ -209,8 +203,7 @@ export class Validator {
             const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
 
             // [---, |---|] [---, "123", |---|] [---, |---|, 123]
-            if (itemBefore instanceof NonEditableTkn && itemBefore.text == ", ")
-                return true;
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == ", ") return true;
         }
 
         return false;
@@ -223,13 +216,11 @@ export class Validator {
             const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
 
             // [|---|, ---] [|---|, "123"] [|---|, ---, 123]
-            if (itemBefore instanceof NonEditableTkn && itemBefore.text == "[")
-                return true;
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == "[") return true;
         }
 
         return false;
     }
-
 
     canAddListItemToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
@@ -254,22 +245,22 @@ export class Validator {
         );
     }
 
-    canAddOperatorToRight(providedContext?: Context): boolean {
+    atRightOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.expressionToLeft != null && context.expressionToLeft.returns != DataType.Void;
     }
 
-    canAddOperatorToLeft(providedContext?: Context): boolean {
+    atLeftOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
     }
 
-    canReplaceHoleWithBinaryOp(providedContext?: Context): boolean {
+    atEmptyExpressionHole(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context.selected && context.token.isEmpty;
+        return context.selected && context.token.isEmpty && context.token instanceof TypedEmptyExpr;
     }
 
     //returns a nested list [[Reference, InsertionType], ...]
@@ -279,11 +270,12 @@ export class Validator {
 
         try {
             if (code instanceof TypedEmptyExpr || code instanceof EmptyLineStmt) {
-                let scope = code instanceof TypedEmptyExpr ? code.getParentStatement()?.scope : (code.rootNode as Module).scope; //line that contains "code"
+                let scope =
+                    code instanceof TypedEmptyExpr ? code.getParentStatement()?.scope : (code.rootNode as Module).scope; //line that contains "code"
                 let currRootNode = code.rootNode;
 
                 while (!scope) {
-                    if(!(currRootNode instanceof Module)){
+                    if (!(currRootNode instanceof Module)) {
                         if (currRootNode.getParentStatement()?.hasScope()) {
                             scope = currRootNode.getParentStatement().scope;
                         } else if (currRootNode.rootNode instanceof Statement) {
@@ -291,27 +283,27 @@ export class Validator {
                         } else if (currRootNode.rootNode instanceof Module) {
                             scope = currRootNode.rootNode.scope;
                         }
-                    }
-                    else{
+                    } else {
                         break;
                     }
                 }
 
                 refs.push(...scope.getValidReferences(code.getSelection().startLineNumber));
 
-                for(const ref of refs){
-                    if(ref.statement instanceof VarAssignmentStmt){
-                        if(code instanceof TypedEmptyExpr){
-                            if((code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
-                            code.type.indexOf(DataType.Any) > -1)){
-                                mappedRefs.push([ref, InsertionType.Valid])
+                for (const ref of refs) {
+                    if (ref.statement instanceof VarAssignmentStmt) {
+                        if (code instanceof TypedEmptyExpr) {
+                            if (
+                                code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
+                                code.type.indexOf(DataType.Any) > -1
+                            ) {
+                                mappedRefs.push([ref, InsertionType.Valid]);
+                            } else {
+                                mappedRefs.push([ref, InsertionType.DraftMode]);
                             }
-                            else{
-                                mappedRefs.push([ref, InsertionType.DraftMode])
-                            }
-                        }
-                        else if(code instanceof EmptyLineStmt){ //all variables can become var = --- so allow all of them to trigger draft mode
-                            mappedRefs.push([ref, InsertionType.DraftMode])
+                        } else if (code instanceof EmptyLineStmt) {
+                            //all variables can become var = --- so allow all of them to trigger draft mode
+                            mappedRefs.push([ref, InsertionType.DraftMode]);
                         }
                     }
                 }

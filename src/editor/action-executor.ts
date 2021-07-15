@@ -1,8 +1,9 @@
-import * as monaco from "monaco-editor";
-import * as keywords from "../syntax-tree/keywords";
 import { Context } from "./focus";
+import * as monaco from "monaco-editor";
+import { EditActionType } from "./enums";
+import { EditAction } from "./event-router";
+import * as keywords from "../syntax-tree/keywords";
 import { ConstructKeys, Util } from "../utilities/util";
-import { EditAction, EditActionType } from "./event-router";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import {
     Module,
@@ -21,7 +22,6 @@ import {
     IfStatement,
     BinaryOperator,
 } from "../syntax-tree/ast";
-import { Cursor } from "./cursor";
 
 export class ActionExecutor {
     module: Module;
@@ -39,6 +39,29 @@ export class ActionExecutor {
         let preventDefaultEvent = true;
 
         switch (action.type) {
+            case EditActionType.InsertExpression: {
+                this.module.insert(action.data?.expression);
+
+                break;
+            }
+
+            case EditActionType.InsertStatement: {
+                this.module.insert(action.data?.statement);
+
+                break;
+            }
+
+            case EditActionType.InsertUnaryOperator: {
+                // TODO
+                if (action.data?.replace) {
+                    console.log("insert unary op - replace");
+                } else if (action.data?.wrap) {
+                    console.log("insert unary op - wrap");
+                }
+
+                break;
+            }
+
             case EditActionType.DeleteNextToken: {
                 this.deleteCode(context.expressionToRight);
 
@@ -276,7 +299,7 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.InsertOperator: {
+            case EditActionType.InsertBinaryOperator: {
                 if (action.data.toRight) {
                     this.replaceWithBinaryOp(action.data.operator, context.expressionToLeft, { toLeft: true });
                 } else if (action.data.toLeft) {
@@ -372,12 +395,14 @@ export class ActionExecutor {
 
             case EditActionType.InsertLiteral: {
                 if (action.data.literalType == DataType.Number) {
-                    this.module.insert(new LiteralValExpr(DataType.Number, pressedKey));
+                    this.module.insert(new LiteralValExpr(DataType.Number, action.data?.initialValue));
                 } else if (action.data.literalType == DataType.String) {
                     this.module.insert(new LiteralValExpr(DataType.String, ""));
                 } else if (action.data.literalType == DataType.Boolean) {
-                    this.module.insert(new LiteralValExpr(DataType.Boolean, pressedKey === "t" ? "True" : "False"));
+                    this.module.insert(new LiteralValExpr(DataType.Boolean, action.data?.initialValue));
                 }
+
+                this.module.editor.monaco.focus();
 
                 break;
             }
