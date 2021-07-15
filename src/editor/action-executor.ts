@@ -314,6 +314,8 @@ export class ActionExecutor {
             }
 
             case EditActionType.WrapExpressionWithItem: {
+                // both lists and str work on any, so the first step of validation is always OK.
+
                 const initialBoundary = this.getBoundaries(context.expressionToRight);
                 const expr = context.expressionToRight as Expression;
                 const indexInRoot = expr.indexInRoot;
@@ -323,16 +325,23 @@ export class ActionExecutor {
                 newCode.indexInRoot = expr.indexInRoot;
                 newCode.rootNode = expr.rootNode;
 
-                let emptyExpr: Token = null;
+                const isValidRootInsertion =
+                    newCode.returns == DataType.Any ||
+                    root.typeOfHoles[indexInRoot].indexOf(newCode.returns) >= 0 ||
+                    root.typeOfHoles[indexInRoot] == DataType.Any;
+
                 let replaceIndex: number = 0;
 
                 for (const [i, token] of newCode.tokens.entries()) {
                     if (token instanceof TypedEmptyExpr) {
                         replaceIndex = i;
-                        emptyExpr = token;
 
                         break;
                     }
+                }
+
+                if (isValidRootInsertion) {
+                    this.module.closeConstructDraftRecord(root.tokens[indexInRoot]);
                 }
 
                 newCode.tokens[replaceIndex] = context.expressionToRight;
@@ -344,6 +353,11 @@ export class ActionExecutor {
                 this.module.focus.updateContext({
                     positionToMove: new monaco.Position(newCode.lineNumber, newCode.right),
                 });
+
+                if (!isValidRootInsertion) {
+                    this.module.closeConstructDraftRecord(expr);
+                    this.module.openDraftMode(newCode);
+                }
 
                 this.module.editor.monaco.focus();
 
@@ -591,20 +605,21 @@ export class ActionExecutor {
 
             if (validateRootInsertion) {
                 this.module.closeConstructDraftRecord(root.tokens[index]);
+            }
+            // this can never go into draft mode
+            if (toLeft) newCode.replaceLeftOperand(expr);
+            else newCode.replaceRightOperand(expr);
 
-                // this can never go into draft mode
-                if (toLeft) newCode.replaceLeftOperand(expr);
-                else newCode.replaceRightOperand(expr);
+            expr.indexInRoot = curOperand.indexInRoot;
+            expr.rootNode = newCode;
 
-                expr.indexInRoot = curOperand.indexInRoot;
-                expr.rootNode = newCode;
+            this.module.replaceExpression(root, index, newCode);
+            this.module.editor.executeEdits(initialBoundary, newCode);
+            this.module.focus.updateContext({
+                tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
+            });
 
-                this.module.replaceExpression(root, index, newCode);
-                this.module.editor.executeEdits(initialBoundary, newCode);
-                this.module.focus.updateContext({
-                    tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
-                });
-            } else {
+            if (!validateRootInsertion) {
                 this.module.closeConstructDraftRecord(expr);
             }
 
