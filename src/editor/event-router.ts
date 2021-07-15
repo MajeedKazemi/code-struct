@@ -182,6 +182,10 @@ export class EventRouter {
             case KeyPress.OpenBracket: {
                 if (this.module.validator.canInsertEmptyList(context)) {
                     return new EditAction(EditActionType.InsertEmptyList);
+                } else if (this.module.validator.atLeftOfExpression(context)) {
+                    return new EditAction(EditActionType.WrapExpressionWithItem, {
+                        expression: new ast.ListLiteralExpression(),
+                    });
                 }
 
                 break;
