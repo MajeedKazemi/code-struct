@@ -1,6 +1,21 @@
 import * as monaco from "monaco-editor";
 import { Editor } from "../editor/editor";
-import { CodeConstruct, Module, Scope, Statement, VarAssignmentStmt, VariableReferenceExpr } from "../syntax-tree/ast";
+import {
+    Callback,
+    CallbackType,
+    CodeConstruct,
+    Module,
+    Scope,
+    Statement,
+    TypedEmptyExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+} from "../syntax-tree/ast";
+
+/**
+ * Class name of the DOM element to which notifications are appended to.
+ */
+const editorDomElementClass = ".lines-content.monaco-editor-background";
 
 /**
  * Default width of the hover textbox for a hover notification (px).
@@ -23,240 +38,139 @@ const HIGHLIGHT_DEFAULT_WIDTH = 10;
 const HIGHLIGHT_DEFAULT_HEIGHT = 25;
 
 /**
- * Classname of the DOM element to which notifications are appended to.
+ * Represents a visual DOM element that is attached to a code construct in the editor.
  */
-const notificationDOMParent = ".lines-content.monaco-editor-background";
-
-//TODO: Probably should refactor to a Builder. It pretty much is already.
-/**
- *
- */
-interface NotificationBox {
-    /**
-     * Build a textbox for the Notification and add it to the DOM.
-     */
-    addNotificationBox(): void;
+abstract class ConstructVisualElement {
+    static idPrefix = "visualElement";
+    static idCounter = 0;
 
     /**
-     * Build the contents of the nofiticationBox element.
+     * Code that this element is attached to.
      */
-    addText(): void;
+    protected code: CodeConstruct;
 
     /**
-     * Set the transform of the notification.
+     * Current selection of the element. Used for calculating displacement during position changes.
      */
-    setNotificationBoxBounds(): void;
+    protected selection: monaco.Selection;
 
     /**
-     * Set additional notifications behaviours.
+     * Editor object.
      */
-    setNotificationBehavior(): void;
+    protected editor: Editor;
 
     /**
-     * Adjust the Notification's position within the editor.
+     * HTML element that represents this object in the DOM.
      */
-    moveWithinEditor(): void;
+    protected domElement: HTMLDivElement;
+
+    /**
+     * The id of the div associated with this object in the DOM.
+     */
+    protected domId: string;
+
+    /**
+     * Callbacks this object listens to.
+     */
+    private callbacks: Map<string, CallbackType>;
+
+    constructor(editor: Editor, codeToHighlight: CodeConstruct) {
+        this.code = codeToHighlight;
+        this.selection = this.code.getSelection();
+        this.editor = editor;
+
+        this.callbacks = new Map<string, CallbackType>();
+
+        this.createDomElement();
+        ConstructHighlight.idCounter++;
+        this.domElement.id = ConstructVisualElement.idPrefix + ConstructHighlight.idCounter;
+
+        const onChange = new Callback(
+            (() => {
+                this.moveToConstructPosition();
+                this.updateDimensions();
+            }).bind(this)
+        )
+
+        const onDelete = new Callback(
+            (() => {
+                this.removeFromDOM();
+            }).bind(this)
+        )
+
+        this.callbacks.set(onDelete.callerId, CallbackType.delete)
+        this.callbacks.set(onChange.callerId, CallbackType.change);
+
+        this.code.subscribe(
+            CallbackType.change,
+            onChange
+        );
+
+        this.code.subscribe(
+            CallbackType.delete,
+            onDelete
+        );
+    }
+
+    /**
+     * Remove this element and its children from the DOM. (Should always be called on the deletion of this.code)
+     */
+    removeFromDOM(): void {
+        this.domElement.remove();
+
+        for(const entry of this.callbacks){
+            this.code.unsubscribe(entry[1], entry[0]);
+        }
+    }
+
+    /**
+     * Construct the DOM element for this visual.
+     */
+    protected createDomElement(): void {
+        this.domElement = document.createElement("div");
+        this.domElement.classList.add("codeVisual");
+    }
+
+    /**
+     * Update the position of this.domElement when this.code's position changes. (Should always be called on the change of this.code)
+     */
+    protected moveToConstructPosition(): void {}
+
+    /**
+     * Update the dimensions of this visual element. Called when the code construct the visual is attached to is updated in some way (moved, inserted into, etc...)
+     */
+    protected updateDimensions(): void{}
+
+    getDomElement(): HTMLDivElement {
+        return this.domElement;
+    }
 }
 
-/**
- * A Notification shown when user performs invalid actions.
- */
-export abstract class Notification {
-    /**
-     * Next integer that can be appended to notificationDomIdPrefix to create a unique DOM id for the next notification.
-     */
-    static currDomId: number = 0;
+class ConstructHighlight extends ConstructVisualElement {
+    constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]) {
+        super(editor, codeToHighlight);
 
-    /**
-     * HTML of the notification message.
-     */
-    messageText: string;
-
-    /**
-     * Editor instance of the program.
-     */
-    editor: Editor;
-
-    /**
-     * Selection within the editor that caused this notification.
-     */
-    selection: monaco.Selection;
-
-    /**
-     * Index of this notification within the "notifications" list of the NotificationSystemController instance that created it.
-     */
-    index: number;
-
-    /**
-     * Top-level DOM element of the notification. Everything else is appended to it.
-     */
-    parentElement: HTMLDivElement;
-
-    /**
-     * DOM element of the highlight for the editor area that triggered this notification.
-     */
-    highlightElement: HTMLDivElement;
-
-    /**
-     * DOM element of the notification textbox.
-     */
-    notificationTextDiv: HTMLDivElement;
-
-    /**
-     * Unique DOM id of this Notification's parentElement.
-     */
-    domId: string;
-
-    /**
-     * DOM id prefix of this notification.
-     */
-    notificationDomIdPrefix: string;
-
-    /**
-     * Amount to subtract from the x-coordinate of the mouse cursor to make the left side of the parentElement be the cursor's origin along x.
-     */
-    mouseLeftOffset: number;
-
-    /**
-     * Amount to subtract from the y-coordinate of the mouse cursor to make the top side of the parentElement be the cursor's origin along y.
-     */
-    mouseTopOffset: number;
-
-    /**
-     * Main textbox of this notification.
-     */
-    notificationBox: HTMLDivElement;
-
-    callerId: string;
-
-    constructor(editor: Editor, selection: monaco.Selection, index: number = -1) {
-        this.selection = selection;
-        this.editor = editor;
-        this.index = index;
-        this.callerId = "";
-
-        this.parentElement = document.createElement("div");
-        this.parentElement.classList.add("notificationParent");
-
-        if (this.selection) this.wrapAroundCodeConstruct(this.parentElement);
-
-        document.querySelector(notificationDOMParent).appendChild(this.parentElement);
+        this.changeHighlightColour(rgbColour);
     }
 
-    /**
-     * Add a div highlighting this notification's selection to the DOM.
-     *
-     * @param styleClass style sheet class of the highlight
-     */
-    addHighlight(styleClass: string) {
-        this.highlightElement = document.createElement("div");
-        this.highlightElement.classList.add(styleClass);
+    protected createDomElement() {
+        super.createDomElement();
+        this.domElement.classList.add("highlight");
 
-        this.highlightElement.style.width = `${
-            this.parentElement.offsetWidth > 0 ? this.parentElement.offsetWidth : HIGHLIGHT_DEFAULT_WIDTH
-        }px`;
-        this.highlightElement.style.height = `${
-            this.parentElement.offsetHeight > 0 ? this.parentElement.offsetHeight : HIGHLIGHT_DEFAULT_HEIGHT
-        }px`;
+        this.updateDimensions(true);
 
-        this.parentElement.appendChild(this.highlightElement);
+        document.querySelector(editorDomElementClass).appendChild(this.domElement);
     }
 
-    /**
-     * Set the transform of the given element to cover this notification's selection.
-     *
-     * @param element html div to set the transform of
-     */
-    wrapAroundCodeConstruct(element: HTMLDivElement) {
-        const transform = this.editor.computeBoundingBox(this.selection);
-
-        element.style.top = `${transform.y + 5}px`;
-        element.style.left = `${transform.x - 0}px`;
-
-        element.style.width = `${transform.width > 0 ? transform.width + 0 * 2 : HIGHLIGHT_DEFAULT_WIDTH}px`;
-        element.style.height = `${transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT}px`;
-    }
-
-    /**
-     * Remove this notification's DOM element and all of its children from the DOM.
-     */
-    removeNotificationFromDOM() {
-        const parent = document.querySelector(notificationDOMParent);
-        parent.removeChild(document.getElementById(this.domId));
-    }
-
-    /**
-     * Assign a unique DOM id to the notification's parent element.
-     */
-    setDomId() {
-        Notification.currDomId++;
-
-        this.domId = `${this.notificationDomIdPrefix}-${Notification.currDomId}`;
-        this.parentElement.setAttribute("id", this.domId);
-    }
-
-    addText() {
-        this.notificationTextDiv = document.createElement("div");
-        this.notificationTextDiv.innerHTML = this.messageText;
-        this.notificationBox.appendChild(this.notificationTextDiv);
-    }
-
-    /**
-     * Adds an area for displaying in-scope variable suggestions below the text of the notification textbox.
-     *
-     * @param scope       scope to check in-scope variables against
-     * @param module      AST to insert suggestions into, if clicked
-     * @param focusedNode node to insert suggestion into, if clicked
-     * @param focusedPos  position within the editor used for identifying in-scope vars to suggest
-     */
-    addInScopeVarsArea(scope: Scope, module: Module, focusedNode: CodeConstruct, focusedPos: monaco.Position) {
-        const suggestionDiv = document.createElement("div");
-        suggestionDiv.classList.add("varScopeSuggestion");
-
-        const heading = document.createElement("h3");
-        heading.textContent = "Available Variables in this Scope:";
-        suggestionDiv.appendChild(heading);
-
-        scope.getValidReferences(focusedPos.lineNumber).forEach((ref) => {
-            const button = document.createElement("button");
-            button.classList.add("suggestionVarAdd");
-            button.textContent = (ref.statement as VarAssignmentStmt).getIdentifier();
-
-            //TODO: When hovered over, it highlights all code lines where this variable could be used
-            button.addEventListener("click", () => {
-                module.insert(
-                    new VariableReferenceExpr(
-                        (ref.statement as VarAssignmentStmt).getIdentifier(),
-                        (ref.statement as VarAssignmentStmt).dataType,
-                        (ref.statement as VarAssignmentStmt).buttonId,
-                        focusedNode.rootNode instanceof Module ? null : (focusedNode.rootNode as CodeConstruct)
-                    ),
-                    focusedNode
-                );
-            });
-
-            suggestionDiv.appendChild(button);
-        });
-
-        this.notificationBox.appendChild(suggestionDiv);
-    }
-
-    /**
-     * Update the position of the notification based on where the given code construct has moved, if it has moved.
-     *
-     * @param code code construct the position of which was changed
-     */
-    updateParentElementPosition(code: CodeConstruct) {
-        const newSelection = code.getSelection();
+    protected moveToConstructPosition(): void {
+        const newSelection = this.code.getSelection();
 
         //top
         if (this.selection.startLineNumber != newSelection.startLineNumber) {
             const diff = newSelection.startLineNumber - this.selection.startLineNumber;
             this.selection = newSelection;
 
-            this.parentElement.style.top = `${this.parentElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
-
-            this.updateMouseOffsets();
+            this.domElement.style.top = `${this.domElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
         }
 
         //left
@@ -265,18 +179,200 @@ export abstract class Notification {
 
             this.selection = newSelection;
 
-            this.parentElement.style.left = `${
-                this.parentElement.offsetLeft + diff * this.editor.computeCharWidth()
-            }px`;
-
-            this.updateMouseOffsets();
+            this.domElement.style.left = `${this.domElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
         }
     }
 
     /**
-     * Update mouse offset values when the notification's position changes
+     * Change the colour of this highlight to rgbColour.
+     *
+     * @param rgbColour array of four numbers representing the CSS rgb(R, G, B, A) construct
      */
-    updateMouseOffsets() {
+    changeHighlightColour(rgbColour: [number, number, number, number]) {
+        this.domElement.style.backgroundColor = `rgb(${rgbColour[0]}, ${rgbColour[1]}, ${rgbColour[2]}, ${rgbColour[3]})`;
+    }
+
+    protected updateDimensions(firstInsertion: boolean = false){
+        //instanceof Token does not have lineNumber
+        let lineNumber = this.code.getLineNumber();
+
+        let top = 0;
+        let left = 0;
+        let width = 0;
+        let height = 0;
+
+        //no idea why these need separate handling... This was the easiest fix.
+        if (this.code instanceof TypedEmptyExpr) {
+            const transform = this.editor.computeBoundingBox(this.code.getSelection());
+            const text = this.code.getRenderText();
+
+            top = transform.y + 5;
+            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidth(lineNumber);
+
+            width =
+                text.length * this.editor.computeCharWidth(lineNumber) > 0
+                    ? text.length * this.editor.computeCharWidth(lineNumber)
+                    : HIGHLIGHT_DEFAULT_WIDTH;
+            height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
+        } else {
+            const text = this.code.getRenderText();
+            const transform = this.editor.computeBoundingBox(this.code.getSelection());
+
+            top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
+            left = transform.x;
+            height = Math.floor(this.editor.computeCharHeight() * 0.95);
+            width = text.length * this.editor.computeCharWidth(lineNumber);
+        }
+
+        if(firstInsertion){
+            this.domElement.style.top = `${top}px`;
+            this.domElement.style.left = `${left}px`;
+        }
+
+        this.domElement.style.width = `${width}px`;
+        this.domElement.style.height = `${height}px`;
+    }
+}
+
+export class Notification extends ConstructVisualElement {
+    /**
+     * Index into NotficationSystemController.notifications
+     */
+    systemIndex: number;
+
+    warningTxt: string;
+
+    textElement: HTMLDivElement;
+
+    constructor(editor: Editor, code: CodeConstruct, warningTxt: string, index: number = -1) {
+        super(editor, code);
+
+        this.warningTxt = warningTxt;
+        this.textElement.innerHTML = this.warningTxt;
+        this.systemIndex = index;
+    }
+
+    protected createDomElement() {
+        super.createDomElement();
+        this.domElement.classList.add("textBox");
+
+        this.textElement = document.createElement("div");
+        this.domElement.appendChild(this.textElement);
+
+        document.querySelector(editorDomElementClass).appendChild(this.domElement);
+    }
+}
+
+export class HoverNotification extends Notification {
+    private mouseLeftOffset: number;
+    private mouseTopOffset: number;
+    private highlight: ConstructHighlight;
+    private showHighlight: boolean = false;
+    private showTextbox: boolean = false;
+
+    private notificationHighlightCollisionCheckInterval = 500;
+    private notificationFadeTime = 100;
+
+    constructor(
+        editor: Editor,
+        code: CodeConstruct,
+        warningText: string,
+        highlightColour: [number, number, number, number],
+        index: number = -1
+    ) {
+        super(editor, code, warningText, index);
+
+        this.highlight = new ConstructHighlight(editor, code, highlightColour);
+
+        this.updateMouseOffsets();
+        this.scheduleCollisionCheck();
+    }
+
+    protected createDomElement() {
+        super.createDomElement();
+
+        this.setNotificationBoxBounds();
+
+        //set the initial position
+        const transform = this.editor.computeBoundingBox(this.selection);
+
+        this.domElement.style.top = `${(this.selection.startLineNumber - 2) * this.editor.computeCharHeight()}px`; // 0 is the line below this.code, -1 is this.code's line, -2 is the line above this.coded
+        this.domElement.style.left = `${transform.x - this.domElement.offsetWidth / 2}px`;
+
+        //in case we are initially at the top-most line
+        this.moveWithinEditor();
+
+        this.domElement.style.zIndex = "1";
+        this.domElement.style.visibility = "hidden";
+    }
+
+    protected moveToConstructPosition() {
+        const newSelection = this.code.getSelection();
+
+        //top
+        if (this.selection.startLineNumber != newSelection.startLineNumber) {
+            const diff = newSelection.startLineNumber - this.selection.startLineNumber;
+            this.selection = newSelection;
+
+            this.domElement.style.top = `${this.domElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
+        }
+
+        //left
+        if (this.selection.startColumn != newSelection.startColumn) {
+            const diff = newSelection.startColumn - this.selection.startColumn;
+
+            this.selection = newSelection;
+
+            this.domElement.style.left = `${this.domElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
+        }
+
+        this.updateMouseOffsets(); //need to call this in case we went outside of the editor window with the above updates
+    }
+
+    private moveWithinEditor() {
+        if (this.domElement.offsetLeft < 0) {
+            this.domElement.style.left = `${
+                this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())
+            }px`;
+        }
+
+        if (this.domElement.offsetTop < 0) {
+            this.domElement.style.top = `${this.editor.computeCharHeight()}px`;
+        }
+    }
+
+    /**
+     * Set the width, maxWidth and maxHeight of this notification's textbox based on editor window dimensions.
+     */
+    private setNotificationBoxBounds() {
+        const editorDims = {
+            width: (
+                document
+                    .getElementById("editor")
+                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
+            ).offsetWidth,
+            height: (
+                document
+                    .getElementById("editor")
+                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
+            ).offsetHeight,
+        };
+
+        this.domElement.style.width = `${
+            0.5 * (editorDims.width > 0 ? editorDims.width : HOVER_NOTIFICATION_DEFAULT_WIDTH)
+        }px`;
+        this.domElement.style.maxWidth = `${
+            0.5 * (editorDims.width > 0 ? editorDims.width : HOVER_NOTIFICATION_DEFAULT_WIDTH)
+        }px`;
+        this.domElement.style.maxHeight = `${
+            0.2 * (editorDims.height > 0 ? editorDims.height : HOVER_NOTIFICATION_DEFAULT_HEIGHT)
+        }px`;
+    }
+
+    /**
+     * Update mouse offset values used for collision detection when the notification's position changes. Needs to be called whenever the notif's position changes.
+     */
+    private updateMouseOffsets() {
         this.mouseLeftOffset =
             document.getElementById("editor").offsetLeft +
             (
@@ -291,97 +387,11 @@ export abstract class Notification {
         //wrong from time to time...
         this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
     }
-}
 
-/**
- * Notification that allows user to hover over a selection to see more information.
- */
-export class HoverNotification extends Notification implements NotificationBox {
-    /**
-     * How often the collision between the mouse cursor and a HoverNotification is checked. (ms)
-     */
-    static notificationHighlightCollisionCheckInterval = 500;
-
-    /**
-     * How long a HoverNotification stays on screen after it is not being hovered over anymore. (ms)
-     */
-    static notificationFadeTime = 100;
-
-    /**
-     * Determines whether the mouse cursor is currently hovering over this notification's highlighted area.
-     */
-    showNotificationBoxHighlight = false;
-
-    /**
-     * Determines whether the mouse cursor is currently hovering over this notification's textbox.
-     */
-    showNotificationBoxNotif = false;
-
-    notificationBox = null;
-
-    constructor(
-        editor: Editor,
-        selection: monaco.Selection,
-        index: number = -1,
-        msg: string = "",
-        style: string = "hoverNotificationHighlight"
-    ) {
-        super(editor, selection, index);
-
-        this.messageText = msg;
-
-        this.notificationDomIdPrefix = "hoverNotification";
-        this.addHighlight(style);
-        this.setDomId();
-
-        this.addNotificationBox(); //hover box
-
-        this.updateMouseOffsets();
-    }
-
-    addNotificationBox() {
-        this.notificationBox = document.createElement("div");
-        this.notificationBox.classList.add("hoverNotificationHover");
-        this.notificationBox.style.visibility = "hidden";
-
-        this.setNotificationBehavior();
-        this.addText();
-        this.setNotificationBoxBounds();
-
-        this.parentElement.appendChild(this.notificationBox);
-    }
-
-    setNotificationBoxBounds() {
-        const editorDims = {
-            width: (
-                document
-                    .getElementById("editor")
-                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
-            ).offsetWidth,
-            height: (
-                document
-                    .getElementById("editor")
-                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
-            ).offsetHeight,
-        };
-
-        this.notificationBox.style.width = `${
-            0.5 * (editorDims.width > 0 ? editorDims.width : HOVER_NOTIFICATION_DEFAULT_WIDTH)
-        }px`;
-        this.notificationBox.style.maxWidth = `${
-            0.5 * (editorDims.width > 0 ? editorDims.width : HOVER_NOTIFICATION_DEFAULT_WIDTH)
-        }px`;
-        this.notificationBox.style.maxHeight = `${
-            0.2 * (editorDims.height > 0 ? editorDims.height : HOVER_NOTIFICATION_DEFAULT_HEIGHT)
-        }px`;
-    }
-
-    setNotificationBehavior() {
+    private scheduleCollisionCheck() {
         setInterval(() => {
             if (this.editor) {
-                this.moveWithinEditor(); //needs to run after the notification element is added to the DOM. Otherwise cannot get offset dimensions when necessary.
-                //NOTE: Move this back into the constructor if this makes setInterval slow down the browser! Doing so will cause #72
-                //but it is a very minor textbox placement issue.
+                const collisionElement = this.highlight.getDomElement();
 
                 let x = this.editor.mousePosWindow[0];
                 let y = this.editor.mousePosWindow[1];
@@ -391,96 +401,63 @@ export class HoverNotification extends Notification implements NotificationBox {
 
                 //collision with highlight box
                 if (
-                    x >= this.parentElement.offsetLeft &&
-                    x <= this.parentElement.offsetLeft + this.parentElement.offsetWidth &&
-                    y >= this.parentElement.offsetTop - this.editor.scrollOffsetTop &&
-                    y <= this.parentElement.offsetTop + this.parentElement.offsetHeight - this.editor.scrollOffsetTop
+                    x >= collisionElement.offsetLeft &&
+                    x <= collisionElement.offsetLeft + collisionElement.offsetWidth &&
+                    y >= collisionElement.offsetTop - this.editor.scrollOffsetTop &&
+                    y <= collisionElement.offsetTop + collisionElement.offsetHeight - this.editor.scrollOffsetTop
                 ) {
-                    this.notificationBox.style.visibility = "visible";
-                    this.showNotificationBoxNotif = true;
+                    this.domElement.style.visibility = "visible";
+                    this.showTextbox = true;
                 } else {
-                    this.showNotificationBoxNotif = false;
+                    this.showTextbox = false;
 
                     setTimeout(() => {
-                        if (!this.showNotificationBoxHighlight) {
-                            this.notificationBox.style.visibility = "hidden";
+                        if (!this.showHighlight) {
+                            this.domElement.style.visibility = "hidden";
                         }
-                    }, HoverNotification.notificationFadeTime);
+                    }, this.notificationFadeTime);
                 }
             }
-        }, HoverNotification.notificationHighlightCollisionCheckInterval);
+        }, this.notificationHighlightCollisionCheckInterval);
 
-        this.notificationBox.addEventListener("mouseenter", () => {
-            this.showNotificationBoxHighlight = true;
-            this.notificationBox.style.visibility = "visible";
+        this.domElement.addEventListener("mouseenter", () => {
+            this.showHighlight = true;
+            this.domElement.style.visibility = "visible";
         });
 
-        this.notificationBox.addEventListener("mouseleave", () => {
-            this.showNotificationBoxHighlight = false;
+        this.domElement.addEventListener("mouseleave", () => {
+            this.showHighlight = false;
 
             setTimeout(() => {
-                if (!this.showNotificationBoxNotif) {
-                    this.notificationBox.style.visibility = "hidden";
+                if (!this.showTextbox) {
+                    this.domElement.style.visibility = "hidden";
                 }
-            }, HoverNotification.notificationFadeTime);
+            }, this.notificationFadeTime);
         });
     }
 
-    moveWithinEditor() {
-        this.notificationBox.style.left = `${
-            -(this.notificationBox.offsetWidth - this.highlightElement.offsetWidth / 2) / 2 +
-            this.highlightElement.offsetWidth / 2
-        }px`;
-        this.notificationBox.style.top = `${-this.notificationBox.offsetHeight}px`; //TODO: Maybe raise it up by a few pixels, but it being adjacent could help with hovering detection. THis is only for when it is above the code line, when it is below it actually has some space between the line and the box.
-
-        if (this.parentElement.offsetLeft + this.notificationBox.offsetLeft < 0) {
-            this.notificationBox.style.left = `${-this.parentElement.offsetLeft}px`;
-        }
-
-        if (this.parentElement.offsetTop + this.notificationBox.offsetTop < 0) {
-            this.notificationBox.style.top = `${this.editor.computeCharHeight()}px`;
-        }
-    }
+     removeFromDOM() {
+        super.removeFromDOM();
+        this.highlight.removeFromDOM();
+     }
 }
 
-//TODO: This class is unfinished since we don't have a clear use for it yet. Once there is a need for it, it can be quickly completed.
-/**
- * Notification that stays on the screen for a given period of time and then disappears.
- */
-export class PopUpNotification extends Notification implements NotificationBox {
-    notificationBox = null;
-    position = null;
+export class PopUpNotification extends Notification {
+    static warningTime: number = 5000;
 
-    constructor(editor: Editor, index: number = -1, msg: string = "", position: object = { top: 0, left: 0 }) {
-        super(editor, null, index);
-
-        this.messageText = msg;
-        this.position = position;
-
-        this.notificationDomIdPrefix = "popUpNotification";
-        this.setDomId();
-        this.addNotificationBox();
-        this.moveWithinEditor();
-        document.querySelector(notificationDOMParent).appendChild(this.parentElement);
+    constructor(editor: Editor, code: CodeConstruct, warningTxt: string, index: number = -1) {
+        super(editor, code, warningTxt, index);
     }
 
-    addNotificationBox() {
-        this.notificationBox = document.createElement("div");
-        this.notificationBox.classList.add("popUpNotification");
-        this.addText();
-        this.parentElement.appendChild(this.notificationBox);
-    }
+    protected createDomElement() {
+        super.createDomElement();
 
-    setNotificationBoxBounds() {
-        throw new Error("NOT IMPLEMENTED...");
-    }
+        this.domElement.classList.add("popUp");
 
-    setNotificationBehavior() {
-        throw new Error("NOT IMPLEMENTED...");
-    }
-
-    moveWithinEditor() {
-        this.parentElement.style.left = `${this.position.left}px`;
-        this.parentElement.style.top = `${this.position.top}px`;
+        //set position based on code
+        this.domElement.style.left = `${
+            this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())
+        }px`;
+        this.domElement.style.top = `${this.selection.startLineNumber * this.editor.computeCharHeight()}px`;
     }
 }

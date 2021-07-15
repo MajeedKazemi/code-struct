@@ -1,6 +1,4 @@
 {
-    "cSpell.words": [
-        "elif",
-        "randint"
-    ]
+    "cSpell.words": ["elif", "randint"],
+    "editor.formatOnSave": true
 }

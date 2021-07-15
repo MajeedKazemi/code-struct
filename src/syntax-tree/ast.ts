@@ -5,9 +5,9 @@ import { Editor } from "../editor/editor";
 import { EventStack as EventStack } from "../editor/event-stack";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { Notification } from "../notification-system/notification";
+import { HoverNotification, Notification } from "../notification-system/notification";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { ConstructKeys, constructToToolboxButton, Util } from "../utilities/util";
+import { ConstructKeys, constructToToolboxButton, Util, hasMatch } from "../utilities/util";
 import { Focus, Context, UpdatableContext } from "../editor/focus";
 import { Hole } from "../editor/hole";
 import { Validator } from "../editor/validator";
@@ -15,7 +15,7 @@ import { ActionExecutor } from "../editor/action-executor";
 import { TypeSystem } from "./type-sys";
 
 export class Callback {
-    static counter: number;
+    static counter: number = 0;
     callback: () => any;
     callerId: string;
 
@@ -24,6 +24,12 @@ export class Callback {
         this.callerId = "caller-id-" + Callback.counter;
         Callback.counter++;
     }
+}
+
+export enum InsertionType {
+    Valid, //insertion can be made
+    Invalid, //insertion cannot be made
+    DraftMode, //insertion will trigger draft mode
 }
 
 export enum DataType {
@@ -60,21 +66,10 @@ export enum BinaryOperator {
     BitXor = "^",
     BitAnd = "&",
     FloorDiv = "//",
-}
 
-export enum UnaryOp {
-    Invert = "~",
-    Not = "not",
-    UAdd = "+",
-    USub = "-",
-}
-
-export enum BoolOperator {
     And = "and",
     Or = "or",
-}
 
-export enum ComparatorOp {
     Equal = "==",
     NotEqual = "!=",
     LessThan = "<",
@@ -85,6 +80,48 @@ export enum ComparatorOp {
     IsNot = "is not",
     In = "in",
     NotIn = "not in",
+}
+
+export const arithmeticOps = [
+    BinaryOperator.Add,
+    BinaryOperator.Subtract,
+    BinaryOperator.Multiply,
+    BinaryOperator.Divide,
+    BinaryOperator.Mod,
+    BinaryOperator.Pow,
+    BinaryOperator.LeftShift,
+    BinaryOperator.RightShift,
+    BinaryOperator.BitOr,
+    BinaryOperator.BitXor,
+    BinaryOperator.BitAnd,
+    BinaryOperator.FloorDiv,
+];
+export const boolOps = [BinaryOperator.And, BinaryOperator.Or];
+export const comparisonOps = [
+    BinaryOperator.Equal,
+    BinaryOperator.NotEqual,
+    BinaryOperator.LessThan,
+    BinaryOperator.LessThanEqual,
+    BinaryOperator.GreaterThan,
+    BinaryOperator.GreaterThanEqual,
+    BinaryOperator.Is,
+    BinaryOperator.IsNot,
+    BinaryOperator.In,
+    BinaryOperator.NotIn,
+];
+
+export enum BinaryOperatorCategory {
+    Boolean = "Bool",
+    Arithmetic = "Arithmetic",
+    Comparison = "Comparison",
+    Unspecified = "Unspecified",
+}
+
+export enum UnaryOp {
+    Invert = "~",
+    Not = "not",
+    UAdd = "+",
+    USub = "-",
 }
 
 export enum AddableType {
@@ -147,6 +184,13 @@ export interface CodeConstruct {
      * A warning or error notification for this code construct. (null if there are no notifications)
      */
     notification: Notification;
+
+    /**
+     * Whether this code construct is in draft mode or not. Always false for Tokens
+     */
+    draftModeEnabled: boolean;
+
+    draftRecord: DraftRecord;
 
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
@@ -214,6 +258,32 @@ export interface CodeConstruct {
      * Calls callback of the given type if this construct is subscribed to it.
      */
     notify(type: CallbackType);
+
+    /**
+     * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
+     * Optionally creates a warning in the editor in case of a type mismatch between insertCode and insertInto if enableWarnings is set to true.
+     *
+     * @param insertCode     code being inserted
+     * @param enableWarnings determines whether a warning is created or not in case of a type mismatch
+     * @param insertInto     hole being inserted into
+     * @param notifSystem    this module's notification system object
+     *
+     * @returns True if insertCode's type is accepted by insertInto according to what the parent of insertInto is. Returns False otherwise.
+     */
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean;
+
+    /**
+     * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
+     * 
+     * @param insertInto code to insert into
+     * @param insertCode code being inserted
+     */
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 }
 
 /**
@@ -237,6 +307,8 @@ export abstract class Statement implements CodeConstruct {
     keywordIndex = -1;
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();
+    draftModeEnabled = false;
+    draftRecord: DraftRecord = null;
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -294,13 +366,13 @@ export abstract class Statement implements CodeConstruct {
         let index = -1;
 
         for (let i = 0; i < this.callbacks[type].length; i++) {
-            if (this.callbacks[type].callerId == callerId) {
+            if (this.callbacks[type][i].callerId == callerId) {
                 index = i;
                 break;
             }
         }
 
-        if (index > 0) this.callbacks[type].splice(index, 1);
+        if (index >= 0) this.callbacks[type].splice(index, 1);
     }
 
     notify(type: CallbackType) {
@@ -365,6 +437,7 @@ export abstract class Statement implements CodeConstruct {
 
         // rebuild siblings:
         for (let i = fromIndex; i < this.tokens.length; i++) {
+            this.tokens[i].indexInRoot = i;
             if (this.tokens[i] instanceof Token) curPos = this.tokens[i].build(curPos);
             else curPos = (this.tokens[i] as Expression).build(curPos);
         }
@@ -617,6 +690,26 @@ export abstract class Statement implements CodeConstruct {
 
         return "";
     }
+
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean {
+        return insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1;
+    }
+
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+
+    /**
+     * Actions performed when a code construct is inserted within a hole of this code construct.
+     * 
+     * @param insertCode code being inserted
+     */
+    onInsertInto(insertCode: CodeConstruct) {}
 }
 
 /**
@@ -641,11 +734,11 @@ export abstract class Expression extends Statement implements CodeConstruct {
     getLineNumber(): number {
         if (this.isStatement()) return this.lineNumber;
         else if (this.rootNode instanceof Statement) return this.rootNode.getLineNumber();
-        else return (this.rootNode as Expression).getLineNumber();
+        else if (this.rootNode instanceof Expression) return this.rootNode.getLineNumber();
     }
 
     getSelection(): monaco.Selection {
-        const line = this.getLineNumber();
+        const line = this.lineNumber >= 0 ? this.lineNumber : this.getLineNumber();
 
         return new monaco.Selection(line, this.right, line, this.left);
     }
@@ -655,6 +748,29 @@ export abstract class Expression extends Statement implements CodeConstruct {
         else if (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) return this.rootNode;
         else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
     }
+
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean {
+        return super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
+    }
+
+    /**
+     * Update types of holes within the expression as well as the expression's return type when insertCode is inserted into it.
+     * 
+     * @param insertCode code being inserted.
+     */
+    performTypeUpdatesOnInsertInto(insertCode: Expression) {}
+
+    /**
+     * Update types of holes within the expression as well as the expression's return type to "type" when this expression is inserted into the AST.
+     * 
+     * @param type new return/expression hole type
+     */
+    performTypeUpdatesOnInsertion(type: DataType) {}
 }
 
 /**
@@ -672,6 +788,8 @@ export abstract class Token implements CodeConstruct {
     isEmpty: boolean = false;
     callbacks = new Map<string, Array<Callback>>();
     notification = null;
+    draftModeEnabled = false;
+    draftRecord = null;
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -780,6 +898,17 @@ export abstract class Token implements CodeConstruct {
             return this.rootNode as Statement;
         } else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
     }
+
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean {
+        return false;
+    }
+
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
 }
 
 /**
@@ -916,6 +1045,21 @@ export class IfStatement extends Statement {
 
         this.rebuildBody(index + 1, prevPos.lineNumber + 1);
     }
+
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean {
+        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
+
+        if (enableWarnings && !isValidType) {
+            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
+        }
+
+        return isValidType;
+    }
 }
 
 export class ElseStatement extends Statement {
@@ -1012,6 +1156,21 @@ export class ForStatement extends Statement {
 
     getIterableCodeObject(): CodeConstruct {
         return this.tokens[this.rangeIndex];
+    }
+
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean {
+        const isValidType = insertInto.type.indexOf(insertCode.returns) > -1;
+
+        if (enableWarnings && !isValidType) {
+            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
+        }
+
+        return isValidType;
     }
 }
 
@@ -1191,6 +1350,21 @@ export class FunctionCallStmt extends Expression {
     getFunctionName(): string {
         return this.functionName;
     }
+
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean {
+        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
+
+        if (enableWarnings && !isValidType) {
+            notifSystem.addFunctionCallArgumentTypeMismatchWarning(insertInto, insertInto, insertCode);
+        }
+
+        return isValidType;
+    }
 }
 
 export class MethodCallExpr extends Expression {
@@ -1355,6 +1529,7 @@ export class MemberCallStmt extends Expression {
 export class BinaryOperatorExpr extends Expression {
     addableType = AddableType.Expression;
     operator: BinaryOperator;
+    operatorCategory: BinaryOperatorCategory;
     private leftOperandIndex: number;
     private rightOperandIndex: number;
 
@@ -1365,83 +1540,281 @@ export class BinaryOperatorExpr extends Expression {
         this.indexInRoot = indexInRoot;
         this.operator = operator;
 
+        if (arithmeticOps.indexOf(operator) > -1) {
+            this.operatorCategory = BinaryOperatorCategory.Arithmetic;
+        } else if (boolOps.indexOf(operator) > -1) {
+            this.operatorCategory = BinaryOperatorCategory.Boolean;
+        } else if (comparisonOps.indexOf(operator) > -1) {
+            this.operatorCategory = BinaryOperatorCategory.Comparison;
+        } else {
+            this.operatorCategory = BinaryOperatorCategory.Unspecified;
+        }
+
         this.addableType = AddableType.Expression;
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
 
         this.leftOperandIndex = this.tokens.length;
-        if (operator == BinaryOperator.Add) {
-            this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-        } else {
+        if (this.operatorCategory === BinaryOperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
+            if (returns !== DataType.String && returns !== DataType.Number) {
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+
+                this.returns = DataType.Any;
+            } else {
+                this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [returns];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [returns];
+            }
+        } else if (this.operatorCategory === BinaryOperatorCategory.Arithmetic) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
-            this.returns = DataType.Number;
-        }
-
-        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-
-        this.rightOperandIndex = this.tokens.length;
-        if (operator == BinaryOperator.Add) {
-            this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-        } else {
+            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.rightOperandIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
+
             this.returns = DataType.Number;
+        } else if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
+            this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
+            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.rightOperandIndex = this.tokens.length;
+            this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
+
+            this.returns = DataType.Boolean;
+        } else if (this.operatorCategory == BinaryOperatorCategory.Comparison) {
+            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.rightOperandIndex = this.tokens.length;
+            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+
+            this.returns = DataType.Boolean;
         }
 
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-
         this.hasEmptyToken = true;
     }
 
-    replaceLeftOperand(code: CodeConstruct) {
+    replaceLeftOperand(code: Expression) {
+        this.onInsertInto(code);
         this.replace(code, this.leftOperandIndex);
     }
 
-    replaceRightOperand(code: CodeConstruct) {
+    replaceRightOperand(code: Expression) {
+        this.onInsertInto(code);
         this.replace(code, this.rightOperandIndex);
     }
 
-    getLeftOperandIndex() {
-        return this.leftOperandIndex;
+    getLeftOperand(): CodeConstruct {
+        return this.tokens[this.leftOperandIndex];
     }
 
-    getRightOperandIndex() {
-        return this.rightOperandIndex;
+    getRightOperand(): CodeConstruct {
+        return this.tokens[this.rightOperandIndex];
     }
 
-    //set both operands to return type and add it to type array if it is not there
-    updateOperandTypes(type: DataType) {
-        //in this case the type arrays will always only contain a single type unless it is the + operator
-        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type;
-        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type;
+    isBoolean(): boolean {
+        return this.operatorCategory === BinaryOperatorCategory.Boolean;
+    }
 
-        if (leftOperandTypes.indexOf(type) == -1) {
-            leftOperandTypes.push(type);
+    isArithmetic(): boolean {
+        return this.operatorCategory === BinaryOperatorCategory.Arithmetic;
+    }
+
+    isComparison(): boolean {
+        return this.operatorCategory === BinaryOperatorCategory.Comparison;
+    }
+
+    
+    /**
+     * Update 
+     * 
+     * @param type new return/operand type
+     */
+    performTypeUpdatesOnInsertion(type: DataType) {
+        if (this.operatorCategory !== BinaryOperatorCategory.Boolean) {
+            //in this case the type arrays will always only contain a single type unless it is the + operator
+            const leftOperandTypes = (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type;
+            const rightOperandTypes = (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type;
+
+            if (leftOperandTypes.indexOf(type) == -1) {
+                leftOperandTypes.push(type);
+            }
+
+            if (rightOperandTypes.indexOf(type) == -1) {
+                rightOperandTypes.push(type);
+            }
+
+            this.returns = type;
         }
-
-        if (rightOperandTypes.indexOf(type) == -1) {
-            rightOperandTypes.push(type);
-        }
-
-        this.returns = type;
     }
 
-    //remove type from operands' type arrays
+    /**
+     * Removes "type" from the type array of the operands of this expression.
+     * 
+     * @param type type to remove
+     */
     removeTypeFromOperands(type: DataType) {
-        //in this case the type arrays will always only contain a single type unless it is the + operator
-        const leftOperandTypes = (this.tokens[this.getLeftOperandIndex()] as TypedEmptyExpr).type;
-        const rightOperandTypes = (this.tokens[this.getRightOperandIndex()] as TypedEmptyExpr).type;
+        if (!this.isBoolean()) {
+            //in this case the type arrays will always only contain a single type unless it is the + operator
+            const leftOperandTypes = (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type;
+            const rightOperandTypes = (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type;
 
-        if (leftOperandTypes.indexOf(type) > -1) {
-            leftOperandTypes.splice(leftOperandTypes.indexOf(type), 1);
+            if (leftOperandTypes.indexOf(type) > -1) {
+                leftOperandTypes.splice(leftOperandTypes.indexOf(type), 1);
+            }
+
+            if (rightOperandTypes.indexOf(type) > -1) {
+                rightOperandTypes.splice(rightOperandTypes.indexOf(type), 1);
+            }
+        }
+    }
+
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {
+        // Special case. + supports String and number and needs to be updated when it is inserted into a hole of one of those types
+        if (
+            this.operator === BinaryOperator.Add &&
+            (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1)
+        ) {
+            this.returns = insertInto.type[0]; // it is safe to assume insertInto.type will have a single type because a hole cannot accept both Number and String
+            this.performTypeUpdatesOnInsertion(insertInto.type[0]);
+
+            if (insertInto.type.indexOf(DataType.String) > -1) {
+                this.removeTypeFromOperands(DataType.Number);
+            } else this.removeTypeFromOperands(DataType.String);
+        }
+    }
+
+    performTypeUpdatesOnInsertInto(insertCode: Expression) {
+        if (!this.isBoolean()) {
+            //Check if one of the holes is not empty and get its type
+            let existingLiteralType = null;
+            if (this.tokens[this.leftOperandIndex] instanceof Expression) {
+                existingLiteralType = (this.tokens[this.leftOperandIndex] as Expression).returns;
+            } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
+                existingLiteralType = (this.tokens[this.rightOperandIndex] as Expression).returns;
+            }
+
+            //if existingLiteralType is null then both operands are still empty holes and since we are inserting
+            //into one of them, the types need to be updated
+            if (!existingLiteralType && (this.returns === DataType.Any || this.returns === DataType.Boolean)) {
+                this.returns = insertCode.returns;
+
+                (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+                (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+            }
+        }
+    }
+
+    //should only be used on nested binary ops
+    checkAllHolesAreEmpty() {
+        let result = [];
+
+        if (
+            (!(this.tokens[this.leftOperandIndex] instanceof TypedEmptyExpr) &&
+                !(this.tokens[this.leftOperandIndex] instanceof BinaryOperatorExpr)) ||
+            (!(this.tokens[this.rightOperandIndex] instanceof TypedEmptyExpr) &&
+                !(this.tokens[this.rightOperandIndex] instanceof BinaryOperatorExpr))
+        ) {
+            result.push(false);
         }
 
-        if (rightOperandTypes.indexOf(type) > -1) {
-            rightOperandTypes.splice(rightOperandTypes.indexOf(type), 1);
+        for (const tkn of this.tokens) {
+            if (tkn instanceof BinaryOperatorExpr) {
+                result.push(...tkn.checkAllHolesAreEmpty());
+            }
         }
+
+        return result;
+    }
+
+    //use this for comparators and arithmetic ops to get their top level expression parent in case they are inside of a nested epxression
+    getTopLevelBinExpression(): BinaryOperatorExpr {
+        let currParentExpression = this.rootNode instanceof BinaryOperatorExpr ? this.rootNode : this;
+        let nextParentExpression = this.rootNode instanceof Module ? null : this.rootNode?.rootNode;
+        while (nextParentExpression && nextParentExpression instanceof BinaryOperatorExpr) {
+            currParentExpression = nextParentExpression;
+            nextParentExpression = nextParentExpression.rootNode;
+        }
+
+        return currParentExpression as BinaryOperatorExpr;
+    }
+
+    /**
+     * Return whether all holes of a nested expression are still empty when used on a nested binary operator expression.
+     * 
+     * @returns true if all holes are TypedEmptyExpr. false otherwise.
+     */
+    areAllHolesEmpty() {
+        const topLevelExpression = this.getTopLevelBinExpression();
+
+        return topLevelExpression.checkAllHolesAreEmpty().every((element) => {
+            element;
+        });
+    }
+
+    onInsertInto(insertCode: Expression) {
+        // Inserting a bin op within a bin op needs to update types of holes in the outer levels of the expression
+        // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
+        // into one when a more type restricted bin op such as - is inserted inside of them
+
+        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
+        if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
+            if (this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic) {
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
+            } else if (this.rootNode.operatorCategory === BinaryOperatorCategory.Comparison) {
+                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
+            }
+        } else {
+            // In the case that the root is a binOp and its holes are not empty, need to update the holes of this expr to that type as well
+        }
+
+        this.performTypeUpdatesOnInsertInto(insertCode);
+    }
+
+    typeValidateInsertionIntoHole(
+        insertCode: Expression,
+        enableWarnings: boolean,
+        insertInto?: TypedEmptyExpr,
+        notifSystem?: NotificationSystemController
+    ): boolean {
+        let isValidType = false;
+
+        if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
+            isValidType = insertCode.returns != DataType.Boolean;
+        } else {
+            isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto, notifSystem);
+        }
+
+        if (enableWarnings && !isValidType) {
+            switch (this.operatorCategory) {
+                case BinaryOperatorCategory.Arithmetic:
+                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
+                    break;
+                case BinaryOperatorCategory.Boolean:
+                    notifSystem.addBinBoolOpOperandInsertionTypeMismatchWarning(insertInto, insertInto, insertCode);
+                    break;
+                case BinaryOperatorCategory.Comparison:
+                    notifSystem.addCompOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
+                    break;
+                default:
+                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
+                    break;
+            }
+        }
+
+        return isValidType;
     }
 }
 
@@ -1480,89 +1853,6 @@ export class UnaryOperatorExpr extends Expression {
 
     getKeyword(): string {
         return this.operator;
-    }
-}
-
-export class BinaryBoolOperatorExpr extends Expression {
-    addableType = AddableType.Expression;
-    operator: BoolOperator;
-    private leftOperandIndex: number;
-    private rightOperandIndex: number;
-
-    constructor(operator: BoolOperator, root?: CodeConstruct, indexInRoot?: number) {
-        super(DataType.Boolean);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.operator = operator;
-
-        this.addableType = AddableType.Expression;
-
-        this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
-        this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
-        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-        this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
-        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-
-        this.hasEmptyToken = true;
-    }
-
-    replaceLeftOperand(code: CodeConstruct) {
-        this.replace(code, this.leftOperandIndex);
-    }
-
-    replaceRightOperand(code: CodeConstruct) {
-        this.replace(code, this.rightOperandIndex);
-    }
-}
-
-export class ComparatorExpr extends Expression {
-    addableType = AddableType.Expression;
-    operator: ComparatorOp;
-    private leftOperandIndex: number;
-    private rightOperandIndex: number;
-
-    constructor(operator: ComparatorOp, root?: CodeConstruct, indexInRoot?: number) {
-        super(DataType.Boolean);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.operator = operator;
-
-        this.addableType = AddableType.Expression;
-
-        this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
-        this.leftOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-        this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-        this.rightOperandIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-        this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-
-        this.hasEmptyToken = true;
-    }
-
-    replaceLeftOperand(code: CodeConstruct) {
-        this.replace(code, this.leftOperandIndex);
-    }
-
-    replaceRightOperand(code: CodeConstruct) {
-        this.replace(code, this.rightOperandIndex);
-    }
-
-    //TODO: Why not just getLeftOperand(): CodeConstruct
-    getLeftOperandIndex() {
-        return this.leftOperandIndex;
-    }
-
-    getRightOperandIndex() {
-        return this.rightOperandIndex;
     }
 }
 
@@ -1626,7 +1916,7 @@ export class EditableTextTkn extends Token implements TextEditable {
 export class LiteralValExpr extends Expression {
     addableType = AddableType.Expression;
     allowedBinOps = new Array<BinaryOperator>();
-    allowedBoolOps = new Array<BoolOperator>();
+    allowedBoolOps = new Array<BinaryOperator>();
 
     constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
@@ -1670,8 +1960,8 @@ export class LiteralValExpr extends Expression {
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTkn(value, this, this.tokens.length));
 
-                this.allowedBoolOps.push(BoolOperator.And);
-                this.allowedBoolOps.push(BoolOperator.Or);
+                this.allowedBoolOps.push(BinaryOperator.And);
+                this.allowedBoolOps.push(BinaryOperator.Or);
 
                 break;
             }
@@ -1710,6 +2000,23 @@ export class ListLiteralExpression extends Expression {
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
+    }
+
+    performTypeUpdatesOnInsertInto(insertCode: Expression) {
+        if (this.areAllHolesEmpty()) {
+            this.returns = TypeSystem.getListTypeFromElementType(insertCode.returns);
+        } else if (TypeSystem.getElementTypeFromListType(this.returns) !== insertCode.returns) {
+            this.returns = DataType.AnyList;
+        }
+    }
+
+    //return whether all elements of this list are of type TypedEmptyExpr
+    areAllHolesEmpty() {
+        const elements = this.tokens.filter((tkn) => !(tkn instanceof NonEditableTkn));
+        const numberOfElements = elements.length;
+        const numberOfEmptyHoles = elements.filter((element) => element instanceof TypedEmptyExpr).length;
+
+        return numberOfEmptyHoles === numberOfElements;
     }
 }
 
@@ -1836,6 +2143,8 @@ export class KeywordTkn extends Token {
  * The main body of the code which includes an array of statements.
  */
 export class Module {
+    static draftModeButtonClass = "draftModeButton";
+
     body = new Array<Statement>();
     focus: Focus;
     validator: Validator;
@@ -1849,6 +2158,7 @@ export class Module {
     notificationSystem: NotificationSystemController;
     menuController: MenuController;
     typeSystem: TypeSystem;
+    draftExpressions: DraftRecord[];
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
@@ -1856,6 +2166,8 @@ export class Module {
         this.validator = new Validator(this);
         this.executer = new ActionExecutor(this);
         this.typeSystem = new TypeSystem(this);
+
+        this.draftExpressions = [];
 
         this.focus.subscribeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
@@ -1870,9 +2182,14 @@ export class Module {
             ((c: Context) => {
                 const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
                 const validInserts = this.getAllValidInsertsList(focusedNode);
-                const validVarIds: string[] = Validator.getValidVariableReferences(focusedNode).map(
-                    (ref) => (ref.statement as VarAssignmentStmt).buttonId
+                const validRefs = Validator.getValidVariableReferences(focusedNode);
+                const validVarIds: string[] = validRefs.map(
+                    (ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId
                 );
+
+                //mark draft mode buttons
+                this.updateDraftModeToolboxButtons(focusedNode, validInserts);
+                this.updateDraftModeToolboxVarButtons(validRefs);
 
                 //disable/enable toolbox construct buttons based on context
                 Object.keys(ConstructKeys).forEach((construct) => {
@@ -1884,6 +2201,7 @@ export class Module {
                         if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
                             button.disabled = true;
                             button.classList.add("disabled");
+                            button.classList.remove(Module.draftModeButtonClass);
                         } else {
                             button.disabled = false;
                             button.classList.remove("disabled");
@@ -1897,6 +2215,7 @@ export class Module {
                         button.classList.remove("varButtonDisabled");
                     } else {
                         button.classList.add("varButtonDisabled");
+                        button.classList.remove(Module.draftModeButtonClass);
                     }
                 });
             }).bind(this)
@@ -1926,6 +2245,7 @@ export class Module {
     }
 
     recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
+        code.notify(callbackType);
         if (code instanceof Expression || code instanceof Statement) {
             const codeStack = new Array<CodeConstruct>();
             codeStack.unshift(...code.tokens);
@@ -1939,6 +2259,14 @@ export class Module {
                 if (curCode instanceof Statement || curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
                 if (curCode instanceof Statement && curCode.hasBody()) codeStack.unshift(...curCode.body);
             }
+        } else if (code instanceof Token) code.notify(callbackType);
+    }
+
+    replaceExpression(root: CodeConstruct, index: number, newExpression: CodeConstruct) {
+        if (root instanceof Statement) {
+            root.tokens[index] = newExpression;
+
+            root.rebuild(root.getLeftPosition(), 0);
         }
     }
 
@@ -2030,6 +2358,22 @@ export class Module {
         }
     }
 
+    removeItems(code: CodeConstruct, start: number, count: number): Array<CodeConstruct> {
+        if (code instanceof Statement) {
+            const removedItems = code.tokens.splice(start, count);
+
+            for (const item of removedItems) {
+                this.recursiveNotify(item, CallbackType.delete);
+            }
+
+            code.rebuild(code.getLeftPosition(), 0);
+
+            return removedItems;
+        }
+
+        return [];
+    }
+
     removeStatement(line: Statement): CodeConstruct {
         const root = line.rootNode;
 
@@ -2056,11 +2400,11 @@ export class Module {
         }
     }
 
-    removeItem(item: CodeConstruct): CodeConstruct {
+    removeItem(item: CodeConstruct, { replaceType = null }): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
-            const replacedItem = new TypedEmptyExpr(root.typeOfHoles[item.indexInRoot]);
+            const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
             this.recursiveNotify(item, CallbackType.delete);
 
             root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
@@ -2082,7 +2426,7 @@ export class Module {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
             const root = focusedCode.rootNode;
 
-            if (root instanceof Expression && root.tokens.length > 0) {
+            if (root instanceof Statement && root.tokens.length > 0) {
                 root.tokens.splice(index, 0, ...items);
 
                 for (let i = 0; i < root.tokens.length; i++) {
@@ -2304,20 +2648,56 @@ export class Module {
             //equals can compare types other than Number (of course >, >=, < and <= also operate on types other than Number, but ignore that for now since our tool likely does not need it)
             (context.expressionToLeft && context.expressionToRight && insertEquals)
         );
-
-        //randint(1 >, ---)
-        //print(1) ==> print(1 > 2)
     }
 
+    /**
+     * Visually mark toolbox buttons of constructs the insertion of which into insertInto will trigger draft mode.
+     *
+     * @param insertInto construct to validate insertion against
+     * @param constructs list of possible insertions
+     */
+    updateDraftModeToolboxButtons(insertInto: CodeConstruct, constructs: Array<ConstructKeys>) {
+        const dummyConstructs = Util.getInstance(this).dummyToolboxConstructs;
+        for (const construct of constructs) {
+            const constructButton = document.getElementById(constructToToolboxButton.get(construct));
+
+            if (this.tryInsert(insertInto, dummyConstructs.get(construct)) === InsertionType.DraftMode) {
+                constructButton.classList.add(Module.draftModeButtonClass);
+            } else {
+                constructButton.classList.remove(Module.draftModeButtonClass);
+            }
+        }
+    }
+
+    updateDraftModeToolboxVarButtons(refs: any[]) {
+        for (const ref of refs) {
+            const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
+            if (ref[1] === InsertionType.DraftMode) {
+                button.classList.add(Module.draftModeButtonClass);
+            } else {
+                button.classList.remove(Module.draftModeButtonClass);
+            }
+        }
+    }
+
+    /**
+     * Produce a map of Util.ConstructKeys to boolean stating whether a given construct is available for insertion
+     * or a draft mode insertion into focusedNode.
+     *
+     * @param focusedNode code construct that is used to test insertions against.
+     * @returns           A mapping from code construct to whether it can be inserted at the given focusedNode.
+     */
     getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean> {
         const validInserts = new Map<ConstructKeys, boolean>();
 
         try {
             Object.keys(ConstructKeys).forEach((key) => {
-                validInserts.set(
-                    ConstructKeys[key],
-                    this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key]))
+                const insertionType = this.tryInsert(
+                    focusedNode,
+                    Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])
                 );
+
+                validInserts.set(ConstructKeys[key], insertionType === InsertionType.Invalid ? false : true);
             });
         } catch (e) {
             console.error("Unable to get valid inserts map for " + focusedNode + "\n\n" + e);
@@ -2326,37 +2706,54 @@ export class Module {
         }
     }
 
+    /**
+     * Produce a list of all code constructs that can be inserted into focusedNode or can be inserted by activating draft mode.
+     *
+     * @param focusedNode code construct to test insertions against.
+     * @returns           a list of ConstructKeys.
+     */
     getAllValidInsertsList(focusedNode: CodeConstruct): Array<ConstructKeys> {
         const validInsertsList = [];
 
         try {
             Object.keys(ConstructKeys).forEach((key) => {
                 if (
-                    this.tryInsert(focusedNode, Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key]))
+                    this.tryInsert(
+                        focusedNode,
+                        Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])
+                    ) !== InsertionType.Invalid
                 ) {
                     validInsertsList.push(ConstructKeys[key]);
                 }
             });
         } catch (e) {
-            console.error("Unable to get valid inserts list for " + focusedNode + "\n\n" + e);
+            console.error("Unable to get valid inserts list for:");
+            console.error(focusedNode);
+            console.error(e);
         } finally {
             return validInsertsList;
         }
     }
 
+    /**
+     * Filter insertSet to contain only code constructs that can be inserted into focusedNode and constructs that will cause draft mode to be activated upon insertion.
+     *
+     * @param focusedNode code construct to test insertions against.
+     * @param insertSet   a list of ConstructKeys representing code constructs to filter.
+     * @returns           a list of ConstructKeys.
+     */
     getValidInsertsFromSet(focusedNode: CodeConstruct, insertSet: Array<ConstructKeys>) {
         const validInserts = this.getAllValidInsertsMap(focusedNode);
 
         return insertSet.filter((insertionCandidate) => validInserts.get(insertionCandidate));
     }
 
-    //code = insert, insertInto = focusedNode
-    tryInsert(insertInto: CodeConstruct, insert: CodeConstruct) {
+    tryInsert(insertInto: CodeConstruct, insert: CodeConstruct): InsertionType {
         if (!insertInto || !insert) {
             console.error(
                 "Failed to perform insertion check on\n   insertInto: " + insertInto + "\n   insert: " + insert
             );
-            return;
+            return null;
         }
 
         if (insert instanceof MethodCallExpr) {
@@ -2371,24 +2768,28 @@ export class Module {
                 insert.indexInRoot = prevItem.indexInRoot;
                 insert.rootNode = prevItem.rootNode;
 
-                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement) return true;
-            } else if (prevItem instanceof Expression && prevItem.returns != insert.calledOn) return false;
+                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement)
+                    return InsertionType.Valid;
+            } else if (prevItem instanceof Expression && prevItem.returns != insert.calledOn)
+                return InsertionType.Invalid;
         }
 
         if (insert.addableType != AddableType.NotAddable && insertInto.receives.indexOf(insert.addableType) > -1) {
             const focusedPos = insertInto.getLeftPosition();
             const parentStatement = insertInto.getParentStatement();
             const parentRoot = parentStatement.rootNode;
-
             if (insertInto.receives.indexOf(AddableType.Statement) > -1) {
                 // replaces statement with the newly inserted statement
                 const statement = insert as Statement;
 
                 if (parentRoot instanceof Statement && parentRoot.hasBody()) {
                     if (insert instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                        if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return true;
-                    } else if (!(statement instanceof ElseStatement)) return true;
-                } else if (!(statement instanceof ElseStatement)) return true;
+                        if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return InsertionType.Valid;
+                    } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
+                } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
+                else {
+                    return InsertionType.Invalid;
+                }
             } else if (insertInto.receives.indexOf(AddableType.Expression) > -1) {
                 let isValid = true;
 
@@ -2404,92 +2805,127 @@ export class Module {
                         isValid = parentRoot.scope.isValidReference(insert.uniqueId, focusedPos.lineNumber);
                     }
 
-                    if (!isValid) return false;
+                    if (!isValid) return InsertionType.Invalid;
 
-                    return true;
+                    return InsertionType.Valid;
                 }
 
                 //special case for BinaryOperatorExpression +
                 //because it can return either a string or a number, we need to determine what it returns during insertion
+                //Insertion of a BinaryOperatorExpr into a TypedEmptyExpr
                 if (
                     isValid &&
                     insert instanceof BinaryOperatorExpr &&
                     insert.operator == BinaryOperator.Add &&
-                    insertInto instanceof TypedEmptyExpr &&
-                    (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1)
+                    insertInto instanceof TypedEmptyExpr
                 ) {
-                    return true;
+                    if (
+                        insertInto.type.indexOf(DataType.String) > -1 ||
+                        insertInto.type.indexOf(DataType.Number) > -1 ||
+                        insertInto.type.indexOf(DataType.Any) > -1
+                    ) {
+                        return InsertionType.Valid;
+                    } else if (
+                        hasMatch(Util.getInstance(this).typeConversionMap.get(insert.returns), insertInto.type)
+                    ) {
+                        return InsertionType.DraftMode;
+                    }
                 }
 
                 //type checks -- different handling based on type of code construct
                 //insertInto.returns != code.returns would work, but we need more context to get the right error message
+                //Insertion of an Expression into a TypedEmptyExpr contained within some other Expression or Statement
                 if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
-                    if (insertInto.rootNode instanceof BinaryBoolOperatorExpr) {
-                        if (insert.returns != DataType.Boolean) return false;
-
-                        return true;
+                    //inserting an Expression into a TypedEmptyExpr of a BinaryBoolOperatorExpr
+                    if (insertInto.rootNode instanceof BinaryOperatorExpr && insertInto.rootNode.isBoolean()) {
+                        if (
+                            insert.returns != DataType.Boolean &&
+                            Util.getInstance(this).typeConversionMap.get(insert.returns).indexOf(insert.returns)
+                        )
+                            return InsertionType.DraftMode;
+                        return InsertionType.Valid;
                     }
                     //for-loop check is special since Iterable does not cover both str and list right now
                     //can change it once the types are an array
+                    //inserting an Expression into the second hole of a for-loop
                     else if (insertInto.rootNode instanceof ForStatement) {
-                        return this.typeSystem.validateForLoopIterableInsertionType(insert);
+                        if (this.typeSystem.validateForLoopIterableInsertionType(insert)) {
+                            return InsertionType.Valid;
+                        } else if (
+                            hasMatch(Util.getInstance(this).typeConversionMap.get(insert.returns), TypeSystem.listTypes)
+                        ) {
+                            return InsertionType.DraftMode;
+                        }
                     } else {
-                        return (
-                            insertInto.type.indexOf(insert.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1
-                        );
+                        if (
+                            insertInto.type.indexOf(insert.returns) > -1 ||
+                            insertInto.type.indexOf(DataType.Any) > -1
+                        ) {
+                            return InsertionType.Valid;
+                        } else if (
+                            hasMatch(Util.getInstance(this).typeConversionMap.get(insert.returns), insertInto.type)
+                        ) {
+                            return InsertionType.DraftMode;
+                        } else {
+                            return InsertionType.Invalid;
+                        }
                     }
                 }
 
                 //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
                 let existingLiteralType = null;
                 if (
-                    (insertInto.rootNode instanceof BinaryOperatorExpr ||
-                        insertInto.rootNode instanceof ComparatorExpr) &&
+                    insertInto.rootNode instanceof BinaryOperatorExpr &&
+                    !insertInto.rootNode.isBoolean() &&
                     insert instanceof Expression
                 ) {
-                    if (insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] instanceof Expression) {
-                        existingLiteralType = (
-                            insertInto.rootNode.tokens[insertInto.rootNode.getLeftOperandIndex()] as Expression
-                        ).returns;
-                    } else if (
-                        insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] instanceof Expression
-                    ) {
-                        existingLiteralType = (
-                            insertInto.rootNode.tokens[insertInto.rootNode.getRightOperandIndex()] as Expression
-                        ).returns;
+                    //record the type of any hole that is already filled
+                    if (insertInto.rootNode.getLeftOperand() instanceof Expression) {
+                        existingLiteralType = (insertInto.rootNode.getLeftOperand() as Expression).returns;
+                    } else if (insertInto.rootNode.getRightOperand() instanceof Expression) {
+                        existingLiteralType = (insertInto.rootNode.getRightOperand() as Expression).returns;
                     }
 
-                    return existingLiteralType != null && existingLiteralType != insert.returns;
+                    if (existingLiteralType != null && existingLiteralType != insert.returns) {
+                        return InsertionType.Valid;
+                    } else if (
+                        existingLiteralType != null &&
+                        Util.getInstance(this).typeConversionMap.get(insert.returns).indexOf(existingLiteralType)
+                    ) {
+                        return InsertionType.DraftMode;
+                    }
                 }
 
-                if (insertInto.rootNode instanceof BinaryBoolOperatorExpr && insert instanceof Expression) {
-                    if (insert.returns != DataType.Boolean) return false;
-
-                    return true;
-                }
-
-                return true;
+                return InsertionType.Valid;
             }
-        } else return false;
+        } else return InsertionType.Invalid;
     }
 
     ///------------------VALIDATOR END
 
     insert(code: CodeConstruct, insertInto?: CodeConstruct) {
         const context = this.focus.getContext();
-        let focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
+        const focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
+
+        const insertionType =
+            code instanceof VariableReferenceExpr
+                ? (Validator.getValidVariableReferences(focusedNode)
+                      .filter(
+                          (record) =>
+                              ((record[0] as Reference).statement as VarAssignmentStmt).buttonId ===
+                              (code as VariableReferenceExpr).uniqueId
+                      )
+                      .map((record) => record[1])[0] as InsertionType)
+                : (this.tryInsert(focusedNode, code) as InsertionType);
+
+        let isValid = false;
 
         if (focusedNode) {
-            if (code instanceof MethodCallExpr) {
-                //const focusedPos = this.editor.monaco.getPosition();
+            if (code instanceof MethodCallExpr && insertionType !== InsertionType.DraftMode) {
                 const focusedPos = context.position;
                 const prevItem = context.token
                     .getParentStatement()
                     .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
-
-                /*const prevItem = this.focusedNode
-                    .getParentStatement()
-                    .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));*/
 
                 if (prevItem instanceof Expression && prevItem.returns == code.calledOn) {
                     // will replace the expression with this
@@ -2518,11 +2954,7 @@ export class Module {
                     prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
                 } else if (prevItem instanceof Expression && prevItem.returns != code.calledOn) {
                     //TODO: relies on tokens array not changing the index of function name
-                    //Not sure why hardcoded, probably because identifier token is not accessible, but change that
-
-                    //TODO: Don't think this will need a check for context.selected like notification removal does, but if it does, just add it.
-                    //Presumably if insert was called then the insert context is valid.
-                    //I don't think notification removal needs that check either to be honest for the same reason.
+                    //Not sure why it's hardcoded, probably because identifier token is not accessible, but change that
                     this.notificationSystem.addHoverNotification(
                         focusedNode,
                         {
@@ -2530,14 +2962,17 @@ export class Module {
                             method: (code.tokens[2] as NonEditableTkn).text,
                             calledOn: code.calledOn,
                         },
+                        "",
                         ErrorMessage.methodCallObjectTypeMismatch
                     );
                 }
             }
 
-            if (code.addableType != AddableType.NotAddable && focusedNode.receives.indexOf(code.addableType) > -1) {
-                //const focusedPos = this.focusedNode.getLeftPosition();
-
+            if (
+                code.addableType != AddableType.NotAddable &&
+                focusedNode.receives.indexOf(code.addableType) > -1 &&
+                insertionType !== InsertionType.DraftMode
+            ) {
                 //we don't always insert into a token, sometimes it may be an empty line
                 const focusedPos = this.focus.onEmptyLine()
                     ? context.lineStatement.getLeftPosition()
@@ -2546,7 +2981,6 @@ export class Module {
                 // TODO: validations => context.token.isEmpty
 
                 const parentStatement = context.lineStatement;
-                //const parentStatement = this.focusedNode.getParentStatement();
                 const parentRoot = parentStatement.rootNode;
 
                 if (focusedNode.receives.indexOf(AddableType.Statement) > -1) {
@@ -2607,8 +3041,11 @@ export class Module {
 
                         this.editor.executeEdits(range, statement);
                     }
+
+                    const newContext = code.getInitialFocus();
+                    this.focus.updateContext(newContext);
                 } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-                    let isValid = true;
+                    isValid = true;
 
                     if (code instanceof VariableReferenceExpr) {
                         // prevent out of scope referencing of a variable
@@ -2623,16 +3060,7 @@ export class Module {
                         }
 
                         if (!isValid) {
-                            //TODO: Refactor to have this be built in an easier way. So for this line, make it shorter and maybe also use Builder in Notificaiton.ts
-                            this.notificationSystem.addHoverNotifVarOutOfScope(
-                                focusedNode,
-                                { identifier: code.identifier },
-                                ErrorMessage.outOfScopeVarReference,
-                                parentRoot instanceof Module || parentRoot instanceof Statement
-                                    ? parentRoot.scope
-                                    : null,
-                                focusedPos
-                            );
+                            //TODO: Used to hold notif for variable out of scope reference, but it was not refactored with the new refactoring. Look at any older code to add it back when there is time.
                         }
 
                         if (isValid && focusedNode.notification) {
@@ -2640,229 +3068,49 @@ export class Module {
                         }
                     }
 
-                    //binary ops and comparators need to adjust their type based on contents
-                    //TODO: Should go after below if
-                    /* if(code instanceof BinaryOperatorExpr || code instanceof ComparatorExpr){
-                        this.typeSystem.updateNestedExpressionType(focusedNode, null);
-                    }*/
-
-                    //special case for BinaryOperatorExpression +
-                    //because it can return either a string or a number, we need to determine which of the two based on where it is inserted
-                    if (
-                        isValid &&
-                        code instanceof BinaryOperatorExpr &&
-                        code.operator == BinaryOperator.Add &&
-                        focusedNode instanceof TypedEmptyExpr &&
-                        (focusedNode.type.indexOf(DataType.String) > -1 ||
-                            focusedNode.type.indexOf(DataType.Number) > -1)
-                    ) {
-                        code.returns = focusedNode.type[0]; // in these cases it is safe to do so since empty holes that accept a number or a string have only one type
-                        code.updateOperandTypes(focusedNode.type[0]);
-
-                        if (focusedNode.type.indexOf(DataType.String) > -1) {
-                            code.removeTypeFromOperands(DataType.Number);
-                        } else code.removeTypeFromOperands(DataType.String);
-                    }
-
-                    //update type of list based on value inserted
-                    if (
-                        isValid &&
-                        focusedNode.rootNode instanceof ListLiteralExpression &&
-                        code instanceof Expression
-                    ) {
-                        focusedNode.rootNode.returns = code.returns;
-
-                        if (
-                            focusedNode.rootNode.rootNode &&
-                            focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
-                        ) {
-                            const newType = this.typeSystem.getListTypeFromElementType(code.returns);
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
-                        }
-                    }
-
                     //type checks -- different handling based on type of code construct
                     //focusedNode.returns != code.returns would work, but we need more context to get the right error message
                     if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
-                        //boolean ops operate exclusively on boolean types
-                        if (
-                            focusedNode.rootNode instanceof BinaryBoolOperatorExpr &&
-                            code.returns != DataType.Boolean
-                        ) {
-                            isValid = false;
-                            this.notificationSystem.addHoverNotification(
-                                focusedNode,
-                                { binOp: focusedNode.rootNode.operator, argType1: code.returns },
-                                ErrorMessage.boolOpArgTypeMismatch
-                            );
-                        }
+                        isValid = focusedNode.rootNode.typeValidateInsertionIntoHole(
+                            code,
+                            true,
+                            focusedNode,
+                            this.notificationSystem
+                        );
 
-                        //ensures that whatever we are inserting in the second hole of a for-loop can actually be inserted there
-                        //in the case that it can be, it updates the loop var's type
-                        else if (focusedNode.rootNode instanceof ForStatement) {
-                            isValid = this.typeSystem.validateForLoopIterableInsertionType(code);
+                        if (isValid) {
+                            code.performPreInsertionUpdates(focusedNode);
 
-                            if (!isValid) {
-                                this.notificationSystem.addHoverNotification(
-                                    insertInto,
-                                    {
-                                        addedType: code.returns,
-                                        constructName: parentStatement.getKeyword(),
-                                        expectedType: focusedNode.type,
-                                    },
-                                    ErrorMessage.exprTypeMismatch
-                                );
-                            } else {
-                                this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code);
+                            if (code.rootNode instanceof Statement) {
+                                code.rootNode.onInsertInto(code);
                             }
-                        } else {
-                            isValid =
-                                focusedNode.type.indexOf(code.returns) > -1 ||
-                                focusedNode.type.indexOf(DataType.Any) > -1;
 
-                            if (!isValid) {
-                                //within method arguments
-                                if (focusedNode.rootNode instanceof FunctionCallStmt) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        {
-                                            argType1: focusedNode.type,
-                                            argType2: code.returns,
-                                            methodName: focusedNode.rootNode.getFunctionName(),
-                                        },
-                                        ErrorMessage.methodArgTypeMismatch
-                                    );
-                                }
-                                //within statements while, if, else if (second part of for is covered by a case above)
-                                else if (focusedNode.rootNode instanceof Statement) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        {
-                                            addedType: code.returns,
-                                            constructName: (focusedNode.rootNode as Statement).getKeyword(),
-                                            expectedType: focusedNode.type,
-                                        },
-                                        ErrorMessage.exprTypeMismatch
-                                    );
-                                }
+                            if (focusedNode.rootNode instanceof ForStatement) {
+                                this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code); //TODO: should be placed inside of doOnInsert() which is a method of all CodeConstructs
+                            }
+                            //This is for ListLiterals when their parent is a variable.
+                            //It needs to be refactored along with the rest of similar updates so that anything that has a rootNode that is a
+                            //VarAssignment changes the vars dataType.
+
+                            //Every expression needs to have this if it is being assigned to a var. So could put it inside Expression.
+                            if (
+                                focusedNode.rootNode.rootNode &&
+                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
+                            ) {
+                                const newType = TypeSystem.getListTypeFromElementType(code.returns);
+                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
+                            }
+
+                            //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
+                            if (
+                                focusedNode.rootNode instanceof MemberCallStmt &&
+                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
+                                focusedNode instanceof TypedEmptyExpr
+                            ) {
+                                const newType = TypeSystem.getElementTypeFromListType((code as Expression).returns);
+                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
                             }
                         }
-                    }
-
-                    //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
-                    if (
-                        focusedNode.rootNode instanceof MemberCallStmt &&
-                        focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
-                        focusedNode instanceof TypedEmptyExpr
-                    ) {
-                        const newType = this.typeSystem.getElementTypeFromListType((code as Expression).returns);
-                        this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
-                    }
-
-                    //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
-                    //this is for insertions of expressions inside of the empty holes of an arithmetic or comp op
-                    let existingLiteralType = null;
-                    if (
-                        (focusedNode.rootNode instanceof BinaryOperatorExpr ||
-                            focusedNode.rootNode instanceof ComparatorExpr) &&
-                        code instanceof Expression
-                    ) {
-                        //Something has already been inserted and the operand is not an empty hole anymore
-                        if (
-                            focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] instanceof
-                            Expression
-                        ) {
-                            existingLiteralType = (
-                                focusedNode.rootNode.tokens[focusedNode.rootNode.getLeftOperandIndex()] as Expression
-                            ).returns;
-                        } else if (
-                            focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] instanceof
-                            Expression
-                        ) {
-                            existingLiteralType = (
-                                focusedNode.rootNode.tokens[focusedNode.rootNode.getRightOperandIndex()] as Expression
-                            ).returns;
-                        }
-
-                        //if existingLiteralType is null here that means both operands are still empty holes
-                        //otherwise, if the return type of the BinOp or CompOp does not match the contents of existingLiteralType, then need to update
-                        //based on type of insertion. Otherwise set to existingLiteralType
-                        if (
-                            !existingLiteralType &&
-                            (focusedNode.rootNode.returns === DataType.Any ||
-                                focusedNode.rootNode.returns === DataType.Boolean)
-                        ) {
-                            if (!(focusedNode.rootNode.returns === DataType.Boolean)) {
-                                focusedNode.rootNode.returns = code.returns;
-                            }
-                            (
-                                focusedNode.rootNode.tokens[
-                                    focusedNode.rootNode.getLeftOperandIndex()
-                                ] as TypedEmptyExpr
-                            ).type = [code.returns];
-                            (
-                                focusedNode.rootNode.tokens[
-                                    focusedNode.rootNode.getRightOperandIndex()
-                                ] as TypedEmptyExpr
-                            ).type = [code.returns];
-                        } else if (
-                            existingLiteralType &&
-                            (focusedNode.rootNode.returns === DataType.Any ||
-                                focusedNode.rootNode.returns === DataType.Boolean)
-                        ) {
-                            if (!(focusedNode.rootNode.returns === DataType.Boolean)) {
-                                focusedNode.rootNode.returns = existingLiteralType;
-                            }
-                            (
-                                focusedNode.rootNode.tokens[
-                                    focusedNode.rootNode.getLeftOperandIndex()
-                                ] as TypedEmptyExpr
-                            ).type = [existingLiteralType];
-                            (
-                                focusedNode.rootNode.tokens[
-                                    focusedNode.rootNode.getRightOperandIndex()
-                                ] as TypedEmptyExpr
-                            ).type = [existingLiteralType];
-                        }
-
-                        //attempting to insert code that has a different type from what is expected according to existingLiteralType
-                        //this case occurs when one of the holes has been filled in and the other is still an empty hole
-                        //(1 + ---) or (--- == 1)
-                        if (existingLiteralType != null && existingLiteralType != code.returns) {
-                            isValid = false;
-
-                            if (focusedNode.rootNode instanceof BinaryOperatorExpr) {
-                                this.notificationSystem.addHoverNotification(
-                                    focusedNode,
-                                    {
-                                        binOp: focusedNode.rootNode.operator,
-                                        argType1: existingLiteralType,
-                                        argType2: code.returns,
-                                    },
-                                    ErrorMessage.binOpArgTypeMismatch
-                                );
-                            } else if (focusedNode.rootNode instanceof ComparatorExpr) {
-                                this.notificationSystem.addHoverNotification(
-                                    focusedNode,
-                                    {
-                                        binOp: focusedNode.rootNode.operator,
-                                        argType1: existingLiteralType,
-                                        argType2: code.returns,
-                                    },
-                                    ErrorMessage.compOpArgTypeMismatch
-                                );
-                            }
-                        }
-                    }
-                    //inserting a bin op within a bin op (excluding bool bin op)
-                    if (
-                        (focusedNode.rootNode instanceof BinaryOperatorExpr ||
-                            focusedNode.rootNode instanceof ComparatorExpr) &&
-                        (focusedNode.rootNode?.rootNode instanceof BinaryOperatorExpr ||
-                            focusedNode.rootNode?.rootNode instanceof ComparatorExpr) &&
-                        code instanceof Expression
-                    ) {
-                        this.typeSystem.setAllHolesToType(focusedNode.rootNode.rootNode, [code.returns]);
                     }
 
                     if (isValid) {
@@ -2904,32 +3152,27 @@ export class Module {
                         );
 
                         this.editor.executeEdits(range, expr);
-                    }
-                }
 
-                //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
-                if (!focusedNode.notification) {
-                    const newContext = code.getInitialFocus();
-                    this.focus.updateContext(newContext);
-
-                    if (newContext.tokenToSelect != null) this.editor.focusSelection();
-
-                    // TODO: remove this when done merging the nav.
-                    try {
-                        this.editor.focusSelection();
-                    } catch (e) {
-                        console.error("Could not focus selection:\n" + e);
-                        this.editor.focusSelection();
+                        //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
+                        if (!focusedNode.notification) {
+                            const newContext = code.getInitialFocus();
+                            this.focus.updateContext(newContext);
+                        }
                     }
                 }
             } else {
-                console.warn("Cannot insert this code construct at focused location.");
-
                 //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
                 //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
                 if (code.addableType == AddableType.NotAddable) {
-                    this.notificationSystem.addHoverNotification(focusedNode, {}, ErrorMessage.default);
-                } else if (focusedNode.receives.indexOf(code.addableType) == -1) {
+                    console.warn("Cannot insert this code construct at focused location.");
+
+                    this.notificationSystem.addHoverNotification(focusedNode, {}, "", ErrorMessage.default);
+                } else if (
+                    focusedNode.receives.indexOf(code.addableType) == -1 &&
+                    insertionType == InsertionType.Invalid
+                ) {
+                    console.warn("Cannot insert this code construct at focused location.");
+
                     if (focusedNode.rootNode instanceof Statement) {
                         if (focusedNode.rootNode.getKeyword() != "") {
                             //for, while, if, elseif
@@ -2940,17 +3183,17 @@ export class Module {
                                     addedType: code.addableType,
                                     focusedNode: focusedNode,
                                 },
+                                "",
                                 ErrorMessage.addableTypeMismatchControlStmt
                             );
                         } else if (
-                            focusedNode.rootNode instanceof BinaryBoolOperatorExpr ||
-                            focusedNode.rootNode instanceof ComparatorExpr ||
                             focusedNode.rootNode instanceof BinaryOperatorExpr ||
                             focusedNode.rootNode instanceof UnaryOperatorExpr
                         ) {
                             this.notificationSystem.addHoverNotification(
                                 focusedNode,
                                 { addedType: code.addableType },
+                                "",
                                 ErrorMessage.addableTypeMismatchGeneral
                             );
                         } else {
@@ -2961,6 +3204,7 @@ export class Module {
                                 this.notificationSystem.addHoverNotification(
                                     focusedNode,
                                     { constructName: "Variable assignment", addedType: code.addableType },
+                                    "",
                                     ErrorMessage.addableTypeMismatchVarAssignStmt
                                 );
                             } else if (focusedNode.rootNode instanceof FunctionCallStmt) {
@@ -2972,29 +3216,74 @@ export class Module {
                                             argType2: code.returns,
                                             methodName: focusedNode.rootNode.getFunctionName(),
                                         },
+                                        "",
                                         ErrorMessage.methodArgTypeMismatch
                                     );
                                 } else if (code instanceof Statement) {
                                     this.notificationSystem.addHoverNotification(
                                         focusedNode,
                                         { addedType: code.addableType },
+                                        "",
                                         ErrorMessage.addableTypeMismatchMethodArg
                                     );
                                 }
                             }
                         }
-                    } else {
-                        //Token
-                        this.notificationSystem.addHoverNotification(
-                            focusedNode,
-                            { addedType: code.addableType },
-                            ErrorMessage.addableTypeMismatchEmptyLine
-                        );
                     }
+                } else if (insertionType === InsertionType.DraftMode && code instanceof Expression) {
+                    const focusedPos = this.focus.onEmptyLine()
+                        ? context.lineStatement.getLeftPosition()
+                        : context.token.getLeftPosition();
+
+                    if (code instanceof VariableReferenceExpr && focusedNode instanceof EmptyLineStmt) {
+                        this.replaceFocusedStatement(code);
+                    } else {
+                        this.replaceFocusedExpression(code);
+                    }
+
+                    //TODO: Should we include the parent too?
+                    this.openDraftMode(code);
+
+                    const range = new monaco.Range(
+                        focusedPos.lineNumber,
+                        focusedNode.left,
+                        focusedPos.lineNumber,
+                        focusedNode.right
+                    );
+
+                    this.editor.executeEdits(range, code);
+                } else {
+                    console.warn("Cannot insert this code construct at focused location.");
+
+                    this.notificationSystem.addHoverNotification(
+                        focusedNode,
+                        { addedType: code.addableType },
+                        "",
+                        ErrorMessage.addableTypeMismatchEmptyLine
+                    );
                 }
             }
             this.editor.monaco.focus();
         }
+    }
+
+    closeConstructDraftRecord(code: CodeConstruct) {
+        if (code.draftModeEnabled) {
+            code.draftModeEnabled = false;
+            const removedRecord = this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)[0];
+
+            if (removedRecord.warning) removedRecord.removeNotification();
+
+            code.draftRecord = null;
+        } else {
+            console.warn("Tried closing draft mode of construct that did not have one open.");
+        }
+    }
+
+    openDraftMode(code: Expression) {
+        code.draftModeEnabled = true;
+        this.draftExpressions.push(new DraftRecord(code, this));
+        code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
     }
 }
 
@@ -3058,4 +3347,23 @@ function emptySpaces(count: number) {
     for (let i = 0; i < count; i++) spaces += " ";
 
     return spaces;
+}
+
+export class DraftRecord {
+    code: Expression;
+    warning: HoverNotification;
+
+    private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
+
+    constructor(code: Expression, module: Module) {
+        this.code = code;
+        this.module = module;
+        this.module.notificationSystem.addHoverNotification(code, {}, "Draft Mode");
+        this.warning = code.notification;
+        this.code.notification = this.warning;
+    }
+
+    removeNotification() {
+        this.module.notificationSystem.removeNotificationFromConstruct(this.code);
+    }
 }

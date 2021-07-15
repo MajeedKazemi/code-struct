@@ -3,6 +3,7 @@ import {
     CodeConstruct,
     DataType,
     EmptyLineStmt,
+    InsertionType,
     ListLiteralExpression,
     Module,
     NonEditableTkn,
@@ -11,6 +12,7 @@ import {
     TypedEmptyExpr,
     VarAssignmentStmt,
 } from "../syntax-tree/ast";
+import { TypeSystem } from "../syntax-tree/type-sys";
 import { Context } from "./focus";
 
 export class Validator {
@@ -80,26 +82,39 @@ export class Validator {
     canDeleteNextStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
-            !(context.lineStatement instanceof EmptyLineStmt) &&
-            this.module.focus.onBeginningOfLine() &&
-            !this.module.focus.isTextEditable(providedContext)
-        );
+        if (!(context.lineStatement instanceof EmptyLineStmt) && this.module.focus.onBeginningOfLine()) {
+            if (this.module.focus.isTextEditable(providedContext)) {
+                if (context.tokenToRight.isEmpty) return true;
+                else return false;
+            } else return true;
+        }
+
+        return false;
     }
 
     /**
      * logic: checks if at the end of a statement, and not text editable.
      * AND does not have a body.
+     * AND prev item is not an expression that could be deleted by it self.
      */
     canDeletePrevStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
+        if (
             !(context.lineStatement instanceof EmptyLineStmt) &&
-            !context.lineStatement.hasBody() &&
+            !context.lineStatement?.hasBody() &&
             this.module.focus.onEndOfLine() &&
             !this.module.focus.isTextEditable(providedContext)
-        );
+        ) {
+            if (context.expressionToLeft != null) {
+                if (context.expressionToLeft?.isStatement()) return true;
+                else return false;
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -116,16 +131,12 @@ export class Validator {
     }
 
     /**
-     * logic: checks if at the end of an expression, and if not at the end of a statement
+     * logic: checks if at the end of an expression
      */
     canDeletePrevToken(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
-            context.expressionToLeft != null &&
-            !this.module.focus.isTextEditable(providedContext) &&
-            !this.module.focus.onEndOfLine()
-        );
+        return context.expressionToLeft != null && !this.module.focus.isTextEditable(providedContext);
     }
 
     /**
@@ -185,6 +196,32 @@ export class Validator {
         );
     }
 
+    canDeleteListItemToLeft(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+            const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
+
+            // [---, |---|] [---, "123", |---|] [---, |---|, 123]
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == ", ") return true;
+        }
+
+        return false;
+    }
+
+    canDeleteListItemToRight(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+            const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
+
+            // [|---|, ---] [|---|, "123"] [|---|, ---, 123]
+            if (itemBefore instanceof NonEditableTkn && itemBefore.text == "[") return true;
+        }
+
+        return false;
+    }
+
     canAddListItemToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
@@ -208,53 +245,73 @@ export class Validator {
         );
     }
 
-    canAddOperatorToRight(operator: BinaryOperator, providedContext?: Context): boolean {
+    atRightOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        // TODO: if (context.expressionToLeft.returns == DataType.String && operator == BinaryOperator.Add) return true; else return false;
 
         return context.expressionToLeft != null && context.expressionToLeft.returns != DataType.Void;
     }
 
-    canAddOperatorToLeft(operator: BinaryOperator, providedContext?: Context): boolean {
+    atLeftOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        // TODO: if (context.expressionToRight.returns == DataType.String && operator == BinaryOperator.Add) return true; else return false;
 
         return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
     }
 
-    static getValidVariableReferences(code: CodeConstruct): Reference[] {
-        let refs = [];
+    atEmptyExpressionHole(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.selected && context.token.isEmpty && context.token instanceof TypedEmptyExpr;
+    }
+
+    //returns a nested list [[Reference, InsertionType], ...]
+    static getValidVariableReferences(code: CodeConstruct): Array<(Reference | InsertionType)[]> {
+        const refs: Reference[] = [];
+        const mappedRefs: Array<(Reference | InsertionType)[]> = []; //no point of making this a map since we don't have access to the refs whereever this method is used. Otherwise would have to use buttonId or uniqueId as keys into the map.
 
         try {
-            if (code instanceof TypedEmptyExpr) {
-                let scope = code.getParentStatement()?.scope; //line that contains "code"
+            if (code instanceof TypedEmptyExpr || code instanceof EmptyLineStmt) {
+                let scope =
+                    code instanceof TypedEmptyExpr ? code.getParentStatement()?.scope : (code.rootNode as Module).scope; //line that contains "code"
                 let currRootNode = code.rootNode;
 
                 while (!scope) {
-                    if (currRootNode.getParentStatement()?.hasScope()) {
-                        scope = currRootNode.getParentStatement().scope;
-                    } else if (currRootNode.rootNode instanceof Statement) {
-                        currRootNode = currRootNode.rootNode;
-                    } else if (currRootNode.rootNode instanceof Module) {
-                        scope = currRootNode.rootNode.scope;
+                    if (!(currRootNode instanceof Module)) {
+                        if (currRootNode.getParentStatement()?.hasScope()) {
+                            scope = currRootNode.getParentStatement().scope;
+                        } else if (currRootNode.rootNode instanceof Statement) {
+                            currRootNode = currRootNode.rootNode;
+                        } else if (currRootNode.rootNode instanceof Module) {
+                            scope = currRootNode.rootNode.scope;
+                        }
+                    } else {
+                        break;
                     }
                 }
 
                 refs.push(...scope.getValidReferences(code.getSelection().startLineNumber));
 
-                refs = refs.filter(
-                    (ref) =>
-                        ref.statement instanceof VarAssignmentStmt &&
-                        (code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
-                            code.type.indexOf(DataType.Any) > -1)
-                );
+                for (const ref of refs) {
+                    if (ref.statement instanceof VarAssignmentStmt) {
+                        if (code instanceof TypedEmptyExpr) {
+                            if (
+                                code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
+                                code.type.indexOf(DataType.Any) > -1
+                            ) {
+                                mappedRefs.push([ref, InsertionType.Valid]);
+                            } else {
+                                mappedRefs.push([ref, InsertionType.DraftMode]);
+                            }
+                        } else if (code instanceof EmptyLineStmt) {
+                            //all variables can become var = --- so allow all of them to trigger draft mode
+                            mappedRefs.push([ref, InsertionType.DraftMode]);
+                        }
+                    }
+                }
             }
         } catch (e) {
             console.error("Unable to get valid variable references for " + code + "\n\n" + e);
         } finally {
-            return refs;
+            return mappedRefs;
         }
     }
 }

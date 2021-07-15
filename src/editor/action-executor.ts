@@ -1,8 +1,9 @@
-import * as monaco from "monaco-editor";
-import * as keywords from "../syntax-tree/keywords";
 import { Context } from "./focus";
+import * as monaco from "monaco-editor";
+import { EditActionType } from "./enums";
+import { EditAction } from "./event-router";
+import * as keywords from "../syntax-tree/keywords";
 import { ConstructKeys, Util } from "../utilities/util";
-import { EditAction, EditActionType } from "./event-router";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import {
     Module,
@@ -16,8 +17,11 @@ import {
     Statement,
     Expression,
     Token,
+    BinaryOperatorExpr,
+    InsertionType,
+    IfStatement,
+    BinaryOperator,
 } from "../syntax-tree/ast";
-import { Cursor } from "./cursor";
 
 export class ActionExecutor {
     module: Module;
@@ -35,6 +39,29 @@ export class ActionExecutor {
         let preventDefaultEvent = true;
 
         switch (action.type) {
+            case EditActionType.InsertExpression: {
+                this.module.insert(action.data?.expression);
+
+                break;
+            }
+
+            case EditActionType.InsertStatement: {
+                this.module.insert(action.data?.statement);
+
+                break;
+            }
+
+            case EditActionType.InsertUnaryOperator: {
+                // TODO
+                if (action.data?.replace) {
+                    console.log("insert unary op - replace");
+                } else if (action.data?.wrap) {
+                    console.log("insert unary op - wrap");
+                }
+
+                break;
+            }
+
             case EditActionType.DeleteNextToken: {
                 this.deleteCode(context.expressionToRight);
 
@@ -214,7 +241,7 @@ export class ActionExecutor {
                     }
 
                     if (literalExpr != null) {
-                        this.deleteCode(literalExpr);
+                        this.deleteCode(literalExpr, { replaceType: DataType.Any });
 
                         break;
                     }
@@ -272,26 +299,67 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.InsertOperator: {
+            case EditActionType.InsertBinaryOperator: {
                 if (action.data.toRight) {
-                    const code = [new NonEditableTkn(` ${action.data.operator} `), new TypedEmptyExpr([DataType.Any])];
-                    this.module.insertAfterIndex(
-                        context.expressionToLeft,
-                        context.expressionToLeft.indexInRoot + 1,
-                        code
-                    );
-                    this.module.editor.insertAtCurPos(code);
-                    this.module.focus.updateContext({ tokenToSelect: code[1] });
+                    this.replaceWithBinaryOp(action.data.operator, context.expressionToLeft, { toLeft: true });
                 } else if (action.data.toLeft) {
-                    const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(` ${action.data.operator} `)];
-                    this.module.insertAfterIndex(
-                        context.expressionToRight,
-                        context.expressionToRight.indexInRoot,
-                        code
+                    this.replaceWithBinaryOp(action.data.operator, context.expressionToRight, { toRight: true });
+                } else if (action.data.replace) {
+                    this.module.insert(
+                        new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
                     );
-                    this.module.editor.insertAtCurPos(code);
-                    this.module.focus.updateContext({ tokenToSelect: code[0] });
                 }
+
+                break;
+            }
+
+            case EditActionType.WrapExpressionWithItem: {
+                // both lists and str work on any, so the first step of validation is always OK.
+
+                const initialBoundary = this.getBoundaries(context.expressionToRight);
+                const expr = context.expressionToRight as Expression;
+                const indexInRoot = expr.indexInRoot;
+                const root = expr.rootNode as Statement;
+
+                const newCode = action.data.expression as Expression;
+                newCode.indexInRoot = expr.indexInRoot;
+                newCode.rootNode = expr.rootNode;
+
+                const isValidRootInsertion =
+                    newCode.returns == DataType.Any ||
+                    root.typeOfHoles[indexInRoot].indexOf(newCode.returns) >= 0 ||
+                    root.typeOfHoles[indexInRoot] == DataType.Any;
+
+                let replaceIndex: number = 0;
+
+                for (const [i, token] of newCode.tokens.entries()) {
+                    if (token instanceof TypedEmptyExpr) {
+                        replaceIndex = i;
+
+                        break;
+                    }
+                }
+
+                if (isValidRootInsertion) {
+                    this.module.closeConstructDraftRecord(root.tokens[indexInRoot]);
+                }
+
+                newCode.tokens[replaceIndex] = context.expressionToRight;
+                context.expressionToRight.indexInRoot = replaceIndex;
+                context.expressionToRight.rootNode = newCode;
+                root.tokens[indexInRoot] = newCode;
+                root.rebuild(root.getLeftPosition(), 0);
+                this.module.editor.executeEdits(initialBoundary, newCode);
+                this.module.focus.updateContext({
+                    positionToMove: new monaco.Position(newCode.lineNumber, newCode.right),
+                });
+
+                if (!isValidRootInsertion) {
+                    this.module.closeConstructDraftRecord(expr);
+                    this.module.openDraftMode(newCode);
+                }
+
+                this.module.editor.monaco.focus();
 
                 break;
             }
@@ -313,6 +381,18 @@ export class ActionExecutor {
                     this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
+                }
+
+                break;
+            }
+
+            case EditActionType.DeleteListItem: {
+                if (action.data.toRight) {
+                    const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot, 2);
+                    this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
+                } else if (action.data.toLeft) {
+                    const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot - 1, 2);
+                    this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
                 }
 
                 break;
@@ -366,12 +446,14 @@ export class ActionExecutor {
 
             case EditActionType.InsertLiteral: {
                 if (action.data.literalType == DataType.Number) {
-                    this.module.insert(new LiteralValExpr(DataType.Number, pressedKey));
+                    this.module.insert(new LiteralValExpr(DataType.Number, action.data?.initialValue));
                 } else if (action.data.literalType == DataType.String) {
                     this.module.insert(new LiteralValExpr(DataType.String, ""));
                 } else if (action.data.literalType == DataType.Boolean) {
-                    this.module.insert(new LiteralValExpr(DataType.Boolean, pressedKey === "t" ? "True" : "False"));
+                    this.module.insert(new LiteralValExpr(DataType.Boolean, action.data?.initialValue));
                 }
+
+                this.module.editor.monaco.focus();
 
                 break;
             }
@@ -421,8 +503,9 @@ export class ActionExecutor {
 
             case EditActionType.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
+                    const validInserts = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildAvailableInsertsMenu(
-                        this.module.getAllValidInsertsList(focusedNode),
+                        validInserts,
                         Util.getInstance(this.module).constructActions,
                         {
                             left: selection.startColumn * this.module.editor.computeCharWidth(),
@@ -472,6 +555,11 @@ export class ActionExecutor {
 
                 break;
 
+            case EditActionType.CloseDraftMode:
+                this.deleteCode(action.data.codeNode);
+
+                break;
+
             case EditActionType.None: {
                 preventDefaultEvent = true;
 
@@ -482,12 +570,80 @@ export class ActionExecutor {
         return preventDefaultEvent;
     }
 
+    private replaceWithBinaryOp(op: BinaryOperator, expr: Expression, { toLeft = false, toRight = false }) {
+        const initialBoundary = this.getBoundaries(expr);
+        const root = expr.rootNode as Statement;
+        const index = expr.indexInRoot;
+
+        const newCode = new BinaryOperatorExpr(
+            op,
+            expr.returns, // is not that important, will be replaced in the constructor based on the operator.
+            root,
+            expr.indexInRoot
+        );
+
+        const curOperand = toLeft ? newCode.getLeftOperand() : newCode.getRightOperand();
+        const otherOperand = toLeft ? newCode.getRightOperand() : newCode.getLeftOperand();
+        const insertionType = this.module.tryInsert(curOperand, expr);
+
+        /**
+         * Special cases
+         *
+         * if (--- + (--- + ---)|): --> attempting to insert a comparator or binary boolean operation should fail
+         */
+        if (insertionType === InsertionType.Valid) {
+            //this ensures that we can actually replace
+            const canConvertNewTypeToOldType =
+                root instanceof Expression
+                    ? Util.getInstance(this.module)
+                          .typeConversionMap.get(newCode.returns)
+                          .indexOf((root.tokens[index] as Expression).returns) > -1
+                    : true;
+            const validateRootInsertion =
+                (root.typeOfHoles[index].indexOf(newCode.returns) >= 0 || newCode.returns === DataType.Any) &&
+                canConvertNewTypeToOldType;
+
+            if (validateRootInsertion) {
+                this.module.closeConstructDraftRecord(root.tokens[index]);
+            }
+            // this can never go into draft mode
+            if (toLeft) newCode.replaceLeftOperand(expr);
+            else newCode.replaceRightOperand(expr);
+
+            expr.indexInRoot = curOperand.indexInRoot;
+            expr.rootNode = newCode;
+
+            this.module.replaceExpression(root, index, newCode);
+            this.module.editor.executeEdits(initialBoundary, newCode);
+            this.module.focus.updateContext({
+                tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
+            });
+
+            if (!validateRootInsertion) {
+                this.module.closeConstructDraftRecord(expr);
+            }
+
+            if (!validateRootInsertion && canConvertNewTypeToOldType) {
+                this.module.openDraftMode(newCode);
+            }
+        } else {
+            //Invalid TODO: Add warning if types don't match if 132: => if (123 + ---) > ---:
+            //call notifcation
+        }
+    }
+
+    private getCascadedBoundary(codes: Array<CodeConstruct>): monaco.Range {
+        if (codes.length > 1) {
+            const lineNumber = codes[0].getLineNumber();
+
+            return new monaco.Range(lineNumber, codes[0].left, lineNumber, codes[codes.length - 1].right);
+        } else return this.getBoundaries(codes[0]);
+    }
+
     private getBoundaries(code: CodeConstruct): monaco.Range {
         const lineNumber = code.getLineNumber();
 
-        if (code instanceof Expression || code instanceof Token) {
-            return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
-        } else if (code instanceof Statement && code.hasBody()) {
+        if (code instanceof Statement && code.hasBody()) {
             const stmtStack = new Array<Statement>();
             stmtStack.unshift(...code.body);
             let endLineNumber = 0;
@@ -505,15 +661,17 @@ export class ActionExecutor {
             }
 
             return new monaco.Range(lineNumber, code.left, endLineNumber, endColumn);
+        } else if (code instanceof Statement || code instanceof Token) {
+            return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
         }
     }
 
-    private deleteCode(code: CodeConstruct, { statement = false } = {}) {
+    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.removeItem(code);
+        else replacement = this.module.removeItem(code, { replaceType });
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });
@@ -521,6 +679,7 @@ export class ActionExecutor {
 
     private validateIdentifier(context: Context, identifierText: string) {
         let focusedNode = null;
+
         if (context.token && context.selected && context.token instanceof IdentifierTkn) {
             focusedNode = context.token;
         } else if (context.tokenToLeft && context.tokenToLeft instanceof IdentifierTkn) {
@@ -534,21 +693,16 @@ export class ActionExecutor {
             context.tokenToLeft instanceof IdentifierTkn ||
             context.tokenToRight instanceof IdentifierTkn
         ) {
-            const notifPos = {
-                left: focusedNode.getLeftPosition().column * this.module.editor.computeCharWidth(),
-                top: focusedNode.getLeftPosition().lineNumber * this.module.editor.computeCharHeight(),
-            };
-
             if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
+                    focusedNode,
                     { identifier: identifierText },
-                    notifPos,
                     ErrorMessage.identifierIsKeyword
                 );
             } else if (Object.keys(keywords.BuiltInFunctions).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
+                    focusedNode,
                     { identifier: identifierText },
-                    notifPos,
                     ErrorMessage.identifierIsBuiltInFunc
                 );
             }
