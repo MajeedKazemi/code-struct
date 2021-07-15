@@ -424,25 +424,33 @@ export class EventRouter {
             }
 
             case ButtonPress.InsertLenExpr: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.FunctionCallStmt(
-                        "len",
-                        [
-                            new ast.Argument(
-                                [
-                                    ast.DataType.AnyList,
-                                    ast.DataType.StringList,
-                                    ast.DataType.BooleanList,
-                                    ast.DataType.NumberList,
-                                    ast.DataType.String,
-                                ],
-                                "list",
-                                false
-                            ),
-                        ],
-                        ast.DataType.Number
-                    ),
-                });
+                const expression = new ast.FunctionCallStmt(
+                    "len",
+                    [
+                        new ast.Argument(
+                            [
+                                ast.DataType.AnyList,
+                                ast.DataType.StringList,
+                                ast.DataType.BooleanList,
+                                ast.DataType.NumberList,
+                                ast.DataType.String,
+                            ],
+                            "list",
+                            false
+                        ),
+                    ],
+                    ast.DataType.Number
+                );
+
+                if (this.module.validator.atEmptyExpressionHole(context)) {
+                    return new EditAction(EditActionType.InsertExpression, {
+                        expression,
+                    });
+                } else if (this.module.validator.atLeftOfExpression(context)) {
+                    return new EditAction(EditActionType.WrapExpressionWithItem, {
+                        expression,
+                    });
+                }
             }
 
             case ButtonPress.InsertLiteral:
