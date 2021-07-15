@@ -537,13 +537,20 @@ export class ActionExecutor {
 
         /**
          * Special cases
-         * 
+         *
          * if (--- + (--- + ---)|): --> attempting to insert a comparator or binary boolean operation should fail
          */
         if (insertionType === InsertionType.Valid) {
             //this ensures that we can actually replace
-            const canConvertNewTypeToOldType = root instanceof Expression ? Util.getInstance(this.module).typeConversionMap.get(newCode.returns).indexOf((root.tokens[index] as Expression).returns) > -1 : true;
-            const validateRootInsertion = (root.typeOfHoles[index].indexOf(newCode.returns) >= 0 || newCode.returns === DataType.Any) && canConvertNewTypeToOldType;
+            const canConvertNewTypeToOldType =
+                root instanceof Expression
+                    ? Util.getInstance(this.module)
+                          .typeConversionMap.get(newCode.returns)
+                          .indexOf((root.tokens[index] as Expression).returns) > -1
+                    : true;
+            const validateRootInsertion =
+                (root.typeOfHoles[index].indexOf(newCode.returns) >= 0 || newCode.returns === DataType.Any) &&
+                canConvertNewTypeToOldType;
 
             if (validateRootInsertion) {
                 this.module.closeConstructDraftRecord(root.tokens[index]);
@@ -584,9 +591,7 @@ export class ActionExecutor {
     private getBoundaries(code: CodeConstruct): monaco.Range {
         const lineNumber = code.getLineNumber();
 
-        if (code instanceof Statement || code instanceof Token) {
-            return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
-        } else if (code instanceof Statement && code.hasBody()) {
+        if (code instanceof Statement && code.hasBody()) {
             const stmtStack = new Array<Statement>();
             stmtStack.unshift(...code.body);
             let endLineNumber = 0;
@@ -604,6 +609,8 @@ export class ActionExecutor {
             }
 
             return new monaco.Range(lineNumber, code.left, endLineNumber, endColumn);
+        } else if (code instanceof Statement || code instanceof Token) {
+            return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
         }
     }
 
