@@ -1550,7 +1550,7 @@ export class BinaryOperatorExpr extends Expression {
 
         this.leftOperandIndex = this.tokens.length;
         if (this.operatorCategory === BinaryOperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
-            if(returns !== DataType.String && returns !== DataType.Number){
+            if (returns !== DataType.String && returns !== DataType.Number) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
                 this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
@@ -1559,8 +1559,7 @@ export class BinaryOperatorExpr extends Expression {
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
 
                 this.returns = DataType.Any;
-            }
-            else{
+            } else {
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
                 this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
@@ -1744,7 +1743,6 @@ export class BinaryOperatorExpr extends Expression {
         return topLevelExpression.checkAllHolesAreEmpty().every((element) => {
             element;
         });
-
     }
 
     onInsertInto(insertCode: Expression) {
@@ -1759,7 +1757,7 @@ export class BinaryOperatorExpr extends Expression {
             } else if (this.rootNode.operatorCategory === BinaryOperatorCategory.Comparison) {
                 TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
-        } else{
+        } else {
             // In the case that the root is a binOp and its holes are not empty, need to update the holes of this expr to that type as well
         }
 

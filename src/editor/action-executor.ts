@@ -313,6 +313,43 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.WrapExpressionWithItem: {
+                const initialBoundary = this.getBoundaries(context.expressionToRight);
+                const expr = context.expressionToRight as Expression;
+                const indexInRoot = expr.indexInRoot;
+                const root = expr.rootNode as Statement;
+
+                const newCode = action.data.expression as Expression;
+                newCode.indexInRoot = expr.indexInRoot;
+                newCode.rootNode = expr.rootNode;
+
+                let emptyExpr: Token = null;
+                let replaceIndex: number = 0;
+
+                for (const [i, token] of newCode.tokens.entries()) {
+                    if (token instanceof TypedEmptyExpr) {
+                        replaceIndex = i;
+                        emptyExpr = token;
+
+                        break;
+                    }
+                }
+
+                newCode.tokens[replaceIndex] = context.expressionToRight;
+                context.expressionToRight.indexInRoot = replaceIndex;
+                context.expressionToRight.rootNode = newCode;
+                root.tokens[indexInRoot] = newCode;
+                root.rebuild(root.getLeftPosition(), 0);
+                this.module.editor.executeEdits(initialBoundary, newCode);
+                this.module.focus.updateContext({
+                    positionToMove: new monaco.Position(newCode.lineNumber, newCode.right),
+                });
+
+                this.module.editor.monaco.focus();
+
+                break;
+            }
+
             case EditActionType.InsertEmptyList: {
                 this.module.insert(new ListLiteralExpression());
 

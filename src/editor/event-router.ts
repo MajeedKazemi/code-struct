@@ -522,7 +522,9 @@ export class EventRouter {
 
             case ButtonPress.InsertListLiteral: {
                 if (this.module.validator.atLeftOfExpression(context)) {
-                    return new EditAction(EditActionType.WrapExpressionWithItem, {});
+                    return new EditAction(EditActionType.WrapExpressionWithItem, {
+                        expression: new ast.ListLiteralExpression(),
+                    });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertEmptyList);
                 }
