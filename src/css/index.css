@@ -61,14 +61,14 @@ body {
     cursor: not-allowed;
 }
 
-.button.varButtonDisabled{
+.button.varButtonDisabled {
     pointer-events: none;
     opacity: 0.4;
     cursor: not-allowed;
 }
 
-.button.draftModeButton{
-    background-color: rgba(255, 127, 80, 0.8);
+.button.draftModeButton {
+    background-color: rgb(255, 255, 230);
 }
 
 #editor-toolbox .group {
