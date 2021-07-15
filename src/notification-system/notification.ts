@@ -41,26 +41,37 @@ const HIGHLIGHT_DEFAULT_HEIGHT = 25;
  * Represents a visual DOM element that is attached to a code construct in the editor.
  */
 abstract class ConstructVisualElement {
+    static idPrefix = "visualElement";
+    static idCounter = 0;
+
     /**
      * Code that this element is attached to.
      */
-    code: CodeConstruct;
+    protected code: CodeConstruct;
 
     /**
      * Current selection of the element. Used for calculating displacement during position changes.
      */
-    selection: monaco.Selection;
+    protected selection: monaco.Selection;
 
     /**
      * Editor object.
      */
-    editor: Editor;
+    protected editor: Editor;
 
     /**
      * HTML element that represents this object in the DOM.
      */
-    domElement: HTMLDivElement;
+    protected domElement: HTMLDivElement;
 
+    /**
+     * The id of the div associated with this object in the DOM.
+     */
+    protected domId: string;
+
+    /**
+     * Callbacks this object listens to.
+     */
     private callbacks: Map<string, CallbackType>;
 
     constructor(editor: Editor, codeToHighlight: CodeConstruct) {
@@ -71,6 +82,8 @@ abstract class ConstructVisualElement {
         this.callbacks = new Map<string, CallbackType>();
 
         this.createDomElement();
+        ConstructHighlight.idCounter++;
+        this.domElement.id = ConstructVisualElement.idPrefix + ConstructHighlight.idCounter;
 
         const onChange = new Callback(
             (() => {
@@ -100,6 +113,17 @@ abstract class ConstructVisualElement {
     }
 
     /**
+     * Remove this element and its children from the DOM. (Should always be called on the deletion of this.code)
+     */
+    removeFromDOM(): void {
+        this.domElement.remove();
+
+        for(const entry of this.callbacks){
+            this.code.unsubscribe(entry[1], entry[0]);
+        }
+    }
+
+    /**
      * Construct the DOM element for this visual.
      */
     protected createDomElement(): void {
@@ -113,17 +137,13 @@ abstract class ConstructVisualElement {
     protected moveToConstructPosition(): void {}
 
     /**
-     * Remove this element and its children from the DOM. (Should always be called on the deletion of this.code)
+     * Update the dimensions of this visual element. Called when the code construct the visual is attached to is updated in some way (moved, inserted into, etc...)
      */
-    removeFromDOM(): void {
-        document.querySelector(editorDomElementClass).removeChild(this.domElement);
-
-        for(const entry of this.callbacks){
-            this.code.unsubscribe(entry[1], entry[0]);
-        }
-    }
-
     protected updateDimensions(): void{}
+
+    getDomElement(): HTMLDivElement {
+        return this.domElement;
+    }
 }
 
 class ConstructHighlight extends ConstructVisualElement {
@@ -371,7 +391,7 @@ export class HoverNotification extends Notification {
     private scheduleCollisionCheck() {
         setInterval(() => {
             if (this.editor) {
-                const collisionElement = this.highlight.domElement;
+                const collisionElement = this.highlight.getDomElement();
 
                 let x = this.editor.mousePosWindow[0];
                 let y = this.editor.mousePosWindow[1];

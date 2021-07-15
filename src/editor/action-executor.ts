@@ -535,29 +535,36 @@ export class ActionExecutor {
         const otherOperand = toLeft ? newCode.getRightOperand() : newCode.getLeftOperand();
         const insertionType = this.module.tryInsert(curOperand, expr);
 
+        /**
+         * Special cases
+         * 
+         * if (--- + (--- + ---)|): --> attempting to insert a comparator or binary boolean operation should fail
+         */
         if (insertionType === InsertionType.Valid) {
-            const validateRootInsertion = root.typeOfHoles[index].indexOf(newCode.returns) >= 0;
+            //this ensures that we can actually replace
+            const canConvertNewTypeToOldType = root instanceof Expression ? Util.getInstance(this.module).typeConversionMap.get(newCode.returns).indexOf((root.tokens[index] as Expression).returns) > -1 : true;
+            const validateRootInsertion = (root.typeOfHoles[index].indexOf(newCode.returns) >= 0 || newCode.returns === DataType.Any) && canConvertNewTypeToOldType;
 
             if (validateRootInsertion) {
                 this.module.closeConstructDraftRecord(root.tokens[index]);
+
+                // this can never go into draft mode
+                if (toLeft) newCode.replaceLeftOperand(expr);
+                else newCode.replaceRightOperand(expr);
+
+                expr.indexInRoot = curOperand.indexInRoot;
+                expr.rootNode = newCode;
+
+                this.module.replaceExpression(root, index, newCode);
+                this.module.editor.executeEdits(initialBoundary, newCode);
+                this.module.focus.updateContext({
+                    tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
+                });
             } else {
                 this.module.closeConstructDraftRecord(expr);
             }
 
-            // this can never go into draft mode
-            if (toLeft) newCode.replaceLeftOperand(expr);
-            else newCode.replaceRightOperand(expr);
-
-            expr.indexInRoot = curOperand.indexInRoot;
-            expr.rootNode = newCode;
-
-            this.module.replaceExpression(root, index, newCode);
-            this.module.editor.executeEdits(initialBoundary, newCode);
-            this.module.focus.updateContext({
-                tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
-            });
-
-            if (!validateRootInsertion) {
+            if (!validateRootInsertion && canConvertNewTypeToOldType) {
                 this.module.openDraftMode(newCode);
             }
         } else {
