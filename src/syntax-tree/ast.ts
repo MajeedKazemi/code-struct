@@ -278,17 +278,12 @@ export interface CodeConstruct {
     ): boolean;
 
     /**
-     * Updates to be performed when a
-     *
-     * @param insertInto
-     * @param insertCode
+     * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
+     * 
+     * @param insertInto code to insert into
+     * @param insertCode code being inserted
      */
-    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
-
-    //when a construct itself is isnerted is inserted
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
-
-    //updateReturnType() is for when we insert into a construct for expressions only, needs to be ran in onInsertInto()
 }
 
 /**
@@ -709,6 +704,11 @@ export abstract class Statement implements CodeConstruct {
 
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
 
+    /**
+     * Actions performed when a code construct is inserted within a hole of this code construct.
+     * 
+     * @param insertCode code being inserted
+     */
     onInsertInto(insertCode: CodeConstruct) {}
 }
 
@@ -758,7 +758,19 @@ export abstract class Expression extends Statement implements CodeConstruct {
         return super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
     }
 
-    updateReturnType(insertCode: Expression) {}
+    /**
+     * Update types of holes within the expression as well as the expression's return type when insertCode is inserted into it.
+     * 
+     * @param insertCode code being inserted.
+     */
+    performTypeUpdatesOnInsertInto(insertCode: Expression) {}
+
+    /**
+     * Update types of holes within the expression as well as the expression's return type to "type" when this expression is inserted into the AST.
+     * 
+     * @param type new return/expression hole type
+     */
+    performTypeUpdatesOnInsertion(type: DataType) {}
 }
 
 /**
@@ -894,10 +906,6 @@ export abstract class Token implements CodeConstruct {
         notifSystem?: NotificationSystemController
     ): boolean {
         return false;
-    }
-
-    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {
-        return;
     }
 
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
@@ -1164,8 +1172,6 @@ export class ForStatement extends Statement {
 
         return isValidType;
     }
-
-    onInsertInto(insertCode: Expression) {}
 }
 
 export class Argument {
@@ -1630,8 +1636,13 @@ export class BinaryOperatorExpr extends Expression {
         return this.operatorCategory === BinaryOperatorCategory.Comparison;
     }
 
-    //set both operands to return type and add it to type array if it is not there
-    updateOperandTypes(type: DataType) {
+    
+    /**
+     * Update 
+     * 
+     * @param type new return/operand type
+     */
+    performTypeUpdatesOnInsertion(type: DataType) {
         if (this.operatorCategory !== BinaryOperatorCategory.Boolean) {
             //in this case the type arrays will always only contain a single type unless it is the + operator
             const leftOperandTypes = (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type;
@@ -1649,7 +1660,11 @@ export class BinaryOperatorExpr extends Expression {
         }
     }
 
-    //remove type from operands' type arrays
+    /**
+     * Removes "type" from the type array of the operands of this expression.
+     * 
+     * @param type type to remove
+     */
     removeTypeFromOperands(type: DataType) {
         if (!this.isBoolean()) {
             //in this case the type arrays will always only contain a single type unless it is the + operator
@@ -1673,7 +1688,7 @@ export class BinaryOperatorExpr extends Expression {
             (insertInto.type.indexOf(DataType.String) > -1 || insertInto.type.indexOf(DataType.Number) > -1)
         ) {
             this.returns = insertInto.type[0]; // it is safe to assume insertInto.type will have a single type because a hole cannot accept both Number and String
-            this.updateOperandTypes(insertInto.type[0]);
+            this.performTypeUpdatesOnInsertion(insertInto.type[0]);
 
             if (insertInto.type.indexOf(DataType.String) > -1) {
                 this.removeTypeFromOperands(DataType.Number);
@@ -1681,7 +1696,7 @@ export class BinaryOperatorExpr extends Expression {
         }
     }
 
-    updateReturnType(insertCode: Expression) {
+    performTypeUpdatesOnInsertInto(insertCode: Expression) {
         if (!this.isBoolean()) {
             //Check if one of the holes is not empty and get its type
             let existingLiteralType = null;
@@ -1736,7 +1751,11 @@ export class BinaryOperatorExpr extends Expression {
         return currParentExpression as BinaryOperatorExpr;
     }
 
-    //should only be used on nested binary ops
+    /**
+     * Return whether all holes of a nested expression are still empty when used on a nested binary operator expression.
+     * 
+     * @returns true if all holes are TypedEmptyExpr. false otherwise.
+     */
     areAllHolesEmpty() {
         const topLevelExpression = this.getTopLevelBinExpression();
 
@@ -1761,7 +1780,7 @@ export class BinaryOperatorExpr extends Expression {
             // In the case that the root is a binOp and its holes are not empty, need to update the holes of this expr to that type as well
         }
 
-        this.updateReturnType(insertCode);
+        this.performTypeUpdatesOnInsertInto(insertCode);
     }
 
     typeValidateInsertionIntoHole(
@@ -1964,14 +1983,6 @@ export class LiteralValExpr extends Expression {
                 return { positionToMove: new monaco.Position(this.lineNumber, this.right) };
         }
     }
-
-    /* onInsertInto is already called in insert()
-    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression){
-        if(insertInto.rootNode instanceof Expression){
-           // insertInto.rootNode.updateReturnType(this);
-           insertInto.rootNode.onInsertInto(this);
-        }
-    }*/
 }
 
 export class ListLiteralExpression extends Expression {
@@ -1991,7 +2002,7 @@ export class ListLiteralExpression extends Expression {
         this.hasEmptyToken = true;
     }
 
-    updateReturnType(insertCode: Expression) {
+    performTypeUpdatesOnInsertInto(insertCode: Expression) {
         if (this.areAllHolesEmpty()) {
             this.returns = TypeSystem.getListTypeFromElementType(insertCode.returns);
         } else if (TypeSystem.getElementTypeFromListType(this.returns) !== insertCode.returns) {
