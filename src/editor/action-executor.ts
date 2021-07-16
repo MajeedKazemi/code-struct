@@ -445,13 +445,7 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                if (action.data.literalType == DataType.Number) {
-                    this.module.insert(new LiteralValExpr(DataType.Number, action.data?.initialValue));
-                } else if (action.data.literalType == DataType.String) {
-                    this.module.insert(new LiteralValExpr(DataType.String, ""));
-                } else if (action.data.literalType == DataType.Boolean) {
-                    this.module.insert(new LiteralValExpr(DataType.Boolean, action.data?.initialValue));
-                }
+                this.module.insert(new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
 
                 this.module.editor.monaco.focus();
 
