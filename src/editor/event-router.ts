@@ -1,7 +1,7 @@
 import { Context } from "./focus";
 import * as ast from "../syntax-tree/ast";
 import { ButtonPress, EditActionType, KeyPress } from "./enums";
-import { TAB_SPACES } from "../syntax-tree/keywords";
+import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 
 export class EventRouter {
     module: ast.Module;
@@ -265,17 +265,17 @@ export class EventRouter {
                 } else {
                     if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
                         return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: ast.DataType.Number,
+                            literalType: DataType.Number,
                             initialValue: e.key,
                         });
                     } else if (["t", "f"].indexOf(e.key) > -1) {
                         return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: ast.DataType.Boolean,
+                            literalType: DataType.Boolean,
                             initialValue: e.key === "t" ? "True" : "False",
                         });
                     } else if (['"'].indexOf(e.key) > -1) {
                         return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: ast.DataType.String,
+                            literalType: DataType.String,
                         });
                     }
                 }
@@ -285,28 +285,28 @@ export class EventRouter {
         return new EditAction(EditActionType.None);
     }
 
-    getBinaryOperatorFromKey(key: string): ast.BinaryOperator {
+    getBinaryOperatorFromKey(key: string): BinaryOperator {
         switch (key) {
             case KeyPress.GreaterThan:
-                return ast.BinaryOperator.GreaterThan;
+                return BinaryOperator.GreaterThan;
 
             case KeyPress.LessThan:
-                return ast.BinaryOperator.LessThan;
+                return BinaryOperator.LessThan;
 
             case KeyPress.Equals:
-                return ast.BinaryOperator.Equal;
+                return BinaryOperator.Equal;
 
             case KeyPress.ForwardSlash:
-                return ast.BinaryOperator.Divide;
+                return BinaryOperator.Divide;
 
             case KeyPress.Plus:
-                return ast.BinaryOperator.Add;
+                return BinaryOperator.Add;
 
             case KeyPress.Minus:
-                return ast.BinaryOperator.Subtract;
+                return BinaryOperator.Subtract;
 
             case KeyPress.Star:
-                return ast.BinaryOperator.Multiply;
+                return BinaryOperator.Multiply;
 
             default:
                 return null;
@@ -352,8 +352,8 @@ export class EventRouter {
                 return new EditAction(EditActionType.InsertStatement, {
                     statement: new ast.FunctionCallStmt(
                         "print",
-                        [new ast.Argument([ast.DataType.Any], "item", false)],
-                        ast.DataType.Void
+                        [new ast.Argument([DataType.Any], "item", false)],
+                        DataType.Void
                     ),
                 });
             }
@@ -363,10 +363,10 @@ export class EventRouter {
                     statement: new ast.FunctionCallStmt(
                         "randint",
                         [
-                            new ast.Argument([ast.DataType.Number], "start", false),
-                            new ast.Argument([ast.DataType.Number], "end", false),
+                            new ast.Argument([DataType.Number], "start", false),
+                            new ast.Argument([DataType.Number], "end", false),
                         ],
-                        ast.DataType.Number
+                        DataType.Number
                     ),
                 });
             }
@@ -376,10 +376,10 @@ export class EventRouter {
                     statement: new ast.FunctionCallStmt(
                         "range",
                         [
-                            new ast.Argument([ast.DataType.Number], "start", false),
-                            new ast.Argument([ast.DataType.Number], "end", false),
+                            new ast.Argument([DataType.Number], "start", false),
+                            new ast.Argument([DataType.Number], "end", false),
                         ],
-                        ast.DataType.NumberList
+                        DataType.NumberList
                     ),
                 });
             }
@@ -390,17 +390,17 @@ export class EventRouter {
                     [
                         new ast.Argument(
                             [
-                                ast.DataType.AnyList,
-                                ast.DataType.StringList,
-                                ast.DataType.BooleanList,
-                                ast.DataType.NumberList,
-                                ast.DataType.String,
+                                DataType.AnyList,
+                                DataType.StringList,
+                                DataType.BooleanList,
+                                DataType.NumberList,
+                                DataType.String,
                             ],
                             "list",
                             false
                         ),
                     ],
-                    ast.DataType.Number
+                    DataType.Number
                 );
 
                 if (this.module.validator.atEmptyExpressionHole(context)) {
@@ -506,8 +506,8 @@ export class EventRouter {
             case ButtonPress.InsertCastStrExpr: {
                 const expression = new ast.FunctionCallStmt(
                     "str",
-                    [new ast.Argument([ast.DataType.Any], "value", false)],
-                    ast.DataType.String
+                    [new ast.Argument([DataType.Any], "value", false)],
+                    DataType.String
                 );
 
                 if (this.module.validator.atLeftOfExpression(context)) {
@@ -538,7 +538,7 @@ export class EventRouter {
                     // TODO: should also check the type to be a list
 
                     return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MemberCallStmt(ast.DataType.Any),
+                        expression: new ast.MemberCallStmt(DataType.Any),
                     });
                 }
             }
@@ -549,7 +549,7 @@ export class EventRouter {
 
                     return new EditAction(EditActionType.InsertExpression, {
                         expression: new ast.MethodCallStmt("append", [
-                            new ast.Argument([ast.DataType.Any], "object", false),
+                            new ast.Argument([DataType.Any], "object", false),
                         ]),
                     });
                 }
@@ -562,9 +562,9 @@ export class EventRouter {
                     return new EditAction(EditActionType.InsertExpression, {
                         expression: new ast.MethodCallExpr(
                             "split",
-                            [new ast.Argument([ast.DataType.String], "sep", false)],
-                            ast.DataType.StringList,
-                            ast.DataType.String
+                            [new ast.Argument([DataType.String], "sep", false)],
+                            DataType.StringList,
+                            DataType.String
                         ),
                     });
                 }
@@ -579,18 +579,13 @@ export class EventRouter {
                             "join",
                             [
                                 new ast.Argument(
-                                    [
-                                        ast.DataType.AnyList,
-                                        ast.DataType.StringList,
-                                        ast.DataType.NumberList,
-                                        ast.DataType.BooleanList,
-                                    ],
+                                    [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
                                     "items",
                                     false
                                 ),
                             ],
-                            ast.DataType.String,
-                            ast.DataType.String
+                            DataType.String,
+                            DataType.String
                         ),
                     });
                 }
@@ -604,11 +599,11 @@ export class EventRouter {
                         expression: new ast.MethodCallExpr(
                             "replace",
                             [
-                                new ast.Argument([ast.DataType.String], "old", false),
-                                new ast.Argument([ast.DataType.String], "new", false),
+                                new ast.Argument([DataType.String], "old", false),
+                                new ast.Argument([DataType.String], "new", false),
                             ],
-                            ast.DataType.String,
-                            ast.DataType.String
+                            DataType.String,
+                            DataType.String
                         ),
                     });
                 }
@@ -621,9 +616,9 @@ export class EventRouter {
                     return new EditAction(EditActionType.InsertExpression, {
                         expression: new ast.MethodCallExpr(
                             "find",
-                            [new ast.Argument([ast.DataType.String], "item", false)],
-                            ast.DataType.Number,
-                            ast.DataType.String
+                            [new ast.Argument([DataType.String], "item", false)],
+                            DataType.Number,
+                            DataType.String
                         ),
                     });
                 }
@@ -665,7 +660,7 @@ export class EventRouter {
 
             case "add-str-btn":
                 this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: ast.DataType.String,
+                    literalType: DataType.String,
                     initialValue: "",
                 });
 
@@ -673,7 +668,7 @@ export class EventRouter {
 
             case "add-num-btn":
                 this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: ast.DataType.Number,
+                    literalType: DataType.Number,
                     initialValue: "0",
                 });
 
@@ -681,7 +676,7 @@ export class EventRouter {
 
             case "add-true-btn":
                 this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: ast.DataType.Boolean,
+                    literalType: DataType.Boolean,
                     initialValue: "True",
                 });
 
@@ -689,74 +684,74 @@ export class EventRouter {
 
             case "add-false-btn":
                 this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: ast.DataType.Boolean,
+                    literalType: DataType.Boolean,
                     initialValue: "False",
                 });
 
                 break;
 
             case "add-bin-add-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.Add });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Add });
 
                 break;
 
             case "add-bin-sub-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.Subtract });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Subtract });
 
                 break;
 
             case "add-bin-mul-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.Multiply });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Multiply });
 
                 break;
 
             case "add-bin-div-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.Divide });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Divide });
 
                 break;
 
             case "add-bin-and-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.And });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.And });
 
                 break;
 
             case "add-bin-or-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.Or });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Or });
 
                 break;
 
             case "add-comp-eq-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.Equal });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Equal });
 
                 break;
 
             case "add-comp-neq-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.NotEqual });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.NotEqual });
 
                 break;
 
             case "add-comp-lt-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.LessThan });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThan });
 
                 break;
 
             case "add-comp-lte-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.LessThanEqual });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThanEqual });
 
                 break;
 
             case "add-comp-gt-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.GreaterThan });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThan });
 
                 break;
 
             case "add-comp-gte-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: ast.BinaryOperator.GreaterThanEqual });
+                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThanEqual });
 
                 break;
 
             case "add-unary-not-expr-btn":
-                this.pressButton(id, ButtonPress.InsertUnaryExpr, { operator: ast.UnaryOp.Not });
+                this.pressButton(id, ButtonPress.InsertUnaryExpr, { operator: UnaryOp.Not });
 
                 break;
 

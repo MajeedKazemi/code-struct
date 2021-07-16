@@ -1,5 +1,6 @@
 import * as monaco from "monaco-editor";
 import * as ast from "../syntax-tree/ast";
+import { DataType } from "./../syntax-tree/consts";
 
 export class Focus {
     module: ast.Module;
@@ -491,7 +492,7 @@ export class Focus {
                     curToken instanceof ast.LiteralValExpr ||
                     curToken instanceof ast.IdentifierTkn)
             ) {
-                if (curToken instanceof ast.LiteralValExpr && curToken.returns == ast.DataType.Number)
+                if (curToken instanceof ast.LiteralValExpr && curToken.returns == DataType.Number)
                     return curToken.tokens[0] as ast.Token;
                 else if (curToken instanceof ast.EditableTextTkn) return curToken;
                 else if (curToken instanceof ast.IdentifierTkn) return curToken;

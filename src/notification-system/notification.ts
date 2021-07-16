@@ -1,16 +1,7 @@
 import * as monaco from "monaco-editor";
 import { Editor } from "../editor/editor";
-import {
-    Callback,
-    CallbackType,
-    CodeConstruct,
-    Module,
-    Scope,
-    Statement,
-    TypedEmptyExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-} from "../syntax-tree/ast";
+import { Callback, CallbackType1 } from "../utilities/callback";
+import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
 
 /**
  * Class name of the DOM element to which notifications are appended to.
@@ -72,14 +63,14 @@ abstract class ConstructVisualElement {
     /**
      * Callbacks this object listens to.
      */
-    private callbacks: Map<string, CallbackType>;
+    private callbacks: Map<string, CallbackType1>;
 
     constructor(editor: Editor, codeToHighlight: CodeConstruct) {
         this.code = codeToHighlight;
         this.selection = this.code.getSelection();
         this.editor = editor;
 
-        this.callbacks = new Map<string, CallbackType>();
+        this.callbacks = new Map<string, CallbackType1>();
 
         this.createDomElement();
         ConstructHighlight.idCounter++;
@@ -90,26 +81,20 @@ abstract class ConstructVisualElement {
                 this.moveToConstructPosition();
                 this.updateDimensions();
             }).bind(this)
-        )
+        );
 
         const onDelete = new Callback(
             (() => {
                 this.removeFromDOM();
             }).bind(this)
-        )
-
-        this.callbacks.set(onDelete.callerId, CallbackType.delete)
-        this.callbacks.set(onChange.callerId, CallbackType.change);
-
-        this.code.subscribe(
-            CallbackType.change,
-            onChange
         );
 
-        this.code.subscribe(
-            CallbackType.delete,
-            onDelete
-        );
+        this.callbacks.set(onDelete.callerId, CallbackType1.delete);
+        this.callbacks.set(onChange.callerId, CallbackType1.change);
+
+        this.code.subscribe(CallbackType1.change, onChange);
+
+        this.code.subscribe(CallbackType1.delete, onDelete);
     }
 
     /**
@@ -118,7 +103,7 @@ abstract class ConstructVisualElement {
     removeFromDOM(): void {
         this.domElement.remove();
 
-        for(const entry of this.callbacks){
+        for (const entry of this.callbacks) {
             this.code.unsubscribe(entry[1], entry[0]);
         }
     }
@@ -139,7 +124,7 @@ abstract class ConstructVisualElement {
     /**
      * Update the dimensions of this visual element. Called when the code construct the visual is attached to is updated in some way (moved, inserted into, etc...)
      */
-    protected updateDimensions(): void{}
+    protected updateDimensions(): void {}
 
     getDomElement(): HTMLDivElement {
         return this.domElement;
@@ -192,7 +177,7 @@ class ConstructHighlight extends ConstructVisualElement {
         this.domElement.style.backgroundColor = `rgb(${rgbColour[0]}, ${rgbColour[1]}, ${rgbColour[2]}, ${rgbColour[3]})`;
     }
 
-    protected updateDimensions(firstInsertion: boolean = false){
+    protected updateDimensions(firstInsertion: boolean = false) {
         //instanceof Token does not have lineNumber
         let lineNumber = this.code.getLineNumber();
 
@@ -224,7 +209,7 @@ class ConstructHighlight extends ConstructVisualElement {
             width = text.length * this.editor.computeCharWidth(lineNumber);
         }
 
-        if(firstInsertion){
+        if (firstInsertion) {
             this.domElement.style.top = `${top}px`;
             this.domElement.style.left = `${left}px`;
         }
@@ -436,10 +421,10 @@ export class HoverNotification extends Notification {
         });
     }
 
-     removeFromDOM() {
+    removeFromDOM() {
         super.removeFromDOM();
         this.highlight.removeFromDOM();
-     }
+    }
 }
 
 export class PopUpNotification extends Notification {

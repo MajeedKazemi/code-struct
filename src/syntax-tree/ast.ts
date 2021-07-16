@@ -13,136 +13,18 @@ import { Hole } from "../editor/hole";
 import { Validator } from "../editor/validator";
 import { ActionExecutor } from "../editor/action-executor";
 import { TypeSystem } from "./type-sys";
-
-export class Callback {
-    static counter: number = 0;
-    callback: () => any;
-    callerId: string;
-
-    constructor(callback: () => any) {
-        this.callback = callback;
-        this.callerId = "caller-id-" + Callback.counter;
-        Callback.counter++;
-    }
-}
-
-export enum InsertionType {
-    Valid, //insertion can be made
-    Invalid, //insertion cannot be made
-    DraftMode, //insertion will trigger draft mode
-}
-
-export enum DataType {
-    Number = "Number",
-    Boolean = "Boolean",
-    String = "String",
-    Fractional = "Float",
-    Iterator = "Iterator",
-    AnyList = "ListAny",
-    Set = "Set",
-    Dict = "Dict",
-    Class = "Class",
-    Void = "Void",
-    Any = "Any",
-
-    //TODO: If there is ever time then DataType needs to be changed to a class to support nested types like these.
-    //There are cases where we want to know what is inside the list such as for for-loop counter vars. They need to know
-    //what they are iterating over otherwise no type can be assigned to them
-    NumberList = "ListInt",
-    BooleanList = "ListBool",
-    StringList = "ListStr",
-}
-
-export enum BinaryOperator {
-    Add = "+",
-    Subtract = "-",
-    Multiply = "*",
-    Divide = "/",
-    Mod = "%",
-    Pow = "**",
-    LeftShift = "<<",
-    RightShift = ">>",
-    BitOr = "|",
-    BitXor = "^",
-    BitAnd = "&",
-    FloorDiv = "//",
-
-    And = "and",
-    Or = "or",
-
-    Equal = "==",
-    NotEqual = "!=",
-    LessThan = "<",
-    LessThanEqual = "<=",
-    GreaterThan = ">",
-    GreaterThanEqual = ">=",
-    Is = "is",
-    IsNot = "is not",
-    In = "in",
-    NotIn = "not in",
-}
-
-export const arithmeticOps = [
-    BinaryOperator.Add,
-    BinaryOperator.Subtract,
-    BinaryOperator.Multiply,
-    BinaryOperator.Divide,
-    BinaryOperator.Mod,
-    BinaryOperator.Pow,
-    BinaryOperator.LeftShift,
-    BinaryOperator.RightShift,
-    BinaryOperator.BitOr,
-    BinaryOperator.BitXor,
-    BinaryOperator.BitAnd,
-    BinaryOperator.FloorDiv,
-];
-export const boolOps = [BinaryOperator.And, BinaryOperator.Or];
-export const comparisonOps = [
-    BinaryOperator.Equal,
-    BinaryOperator.NotEqual,
-    BinaryOperator.LessThan,
-    BinaryOperator.LessThanEqual,
-    BinaryOperator.GreaterThan,
-    BinaryOperator.GreaterThanEqual,
-    BinaryOperator.Is,
-    BinaryOperator.IsNot,
-    BinaryOperator.In,
-    BinaryOperator.NotIn,
-];
-
-export enum BinaryOperatorCategory {
-    Boolean = "Bool",
-    Arithmetic = "Arithmetic",
-    Comparison = "Comparison",
-    Unspecified = "Unspecified",
-}
-
-export enum UnaryOp {
-    Invert = "~",
-    Not = "not",
-    UAdd = "+",
-    USub = "-",
-}
-
-export enum AddableType {
-    NotAddable,
-
-    Statement = "Statement",
-    Expression = "Expression",
-    ExpressionModifier = "Expression Modifier",
-    Identifier = "Identifier",
-    NumberLiteral = "Number Literal",
-    StringLiteral = "String Literal",
-}
-
-export enum CallbackType {
-    change,
-    replace,
-    delete,
-    fail,
-    focusEditableHole,
-    showAvailableVars,
-}
+import {
+    AddableType,
+    BinaryOperator,
+    BinaryOperatorCategory,
+    DataType,
+    InsertionType,
+    UnaryOp,
+    arithmeticOps,
+    boolOps,
+    comparisonOps,
+} from "./consts";
+import { Callback, CallbackType1 } from "../utilities/callback";
 
 export interface CodeConstruct {
     /**
@@ -247,17 +129,17 @@ export interface CodeConstruct {
     /**
      * Subscribes a callback to be fired when the this code-construct is changed (could be a change in its children tokens or the body)
      */
-    subscribe(type: CallbackType, callback: Callback);
+    subscribe(type: CallbackType1, callback: Callback);
 
     /**
      * Removes all subscribes of the given type for this code construct
      */
-    unsubscribe(type: CallbackType, callerId: string);
+    unsubscribe(type: CallbackType1, callerId: string);
 
     /**
      * Calls callback of the given type if this construct is subscribed to it.
      */
-    notify(type: CallbackType);
+    notify(type: CallbackType1);
 
     /**
      * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
@@ -279,7 +161,7 @@ export interface CodeConstruct {
 
     /**
      * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
-     * 
+     *
      * @param insertInto code to insert into
      * @param insertCode code being inserted
      */
@@ -311,7 +193,7 @@ export abstract class Statement implements CodeConstruct {
     draftRecord: DraftRecord = null;
 
     constructor() {
-        for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
+        for (const type in CallbackType1) this.callbacks[type] = new Array<Callback>();
     }
 
     /**
@@ -350,19 +232,19 @@ export abstract class Statement implements CodeConstruct {
     setLineNumber(lineNumber: number) {
         this.lineNumber = lineNumber;
 
-        if (this instanceof EmptyLineStmt) this.notify(CallbackType.change);
+        if (this instanceof EmptyLineStmt) this.notify(CallbackType1.change);
 
         for (const token of this.tokens) {
             if (token instanceof Expression) token.setLineNumber(lineNumber);
-            (token as Token).notify(CallbackType.change);
+            (token as Token).notify(CallbackType1.change);
         }
     }
 
-    subscribe(type: CallbackType, callback: Callback) {
+    subscribe(type: CallbackType1, callback: Callback) {
         this.callbacks[type].push(callback);
     }
 
-    unsubscribe(type: CallbackType, callerId: string) {
+    unsubscribe(type: CallbackType1, callerId: string) {
         let index = -1;
 
         for (let i = 0; i < this.callbacks[type].length; i++) {
@@ -375,7 +257,7 @@ export abstract class Statement implements CodeConstruct {
         if (index >= 0) this.callbacks[type].splice(index, 1);
     }
 
-    notify(type: CallbackType) {
+    notify(type: CallbackType1) {
         for (const callback of this.callbacks[type]) callback.callback();
     }
 
@@ -422,7 +304,7 @@ export abstract class Statement implements CodeConstruct {
 
         this.right = curPos.column;
 
-        this.notify(CallbackType.change);
+        this.notify(CallbackType1.change);
 
         return curPos;
     }
@@ -453,7 +335,7 @@ export abstract class Statement implements CodeConstruct {
             }
         } else console.warn("node did not have rootNode or indexInRoot: ", this.tokens);
 
-        this.notify(CallbackType.change);
+        this.notify(CallbackType1.change);
     }
 
     contains(pos: monaco.Position): boolean {
@@ -533,12 +415,12 @@ export abstract class Statement implements CodeConstruct {
         // Notify the token being replaced
         const toReplace = this.tokens[index];
         if (toReplace) {
-            toReplace.notify(CallbackType.delete);
+            toReplace.notify(CallbackType1.delete);
 
             if (!(toReplace instanceof Token)) {
                 (toReplace as Statement).tokens.forEach((token) => {
                     if (token instanceof Token) {
-                        token.notify(CallbackType.delete);
+                        token.notify(CallbackType1.delete);
                     }
                 });
             }
@@ -563,7 +445,7 @@ export abstract class Statement implements CodeConstruct {
 
         this.updateHasEmptyToken(code);
 
-        this.notify(CallbackType.replace);
+        this.notify(CallbackType1.replace);
     }
 
     /**
@@ -597,7 +479,7 @@ export abstract class Statement implements CodeConstruct {
 
         this.rebuildBody(index + 1, curLeftPos.lineNumber + newStmt.getHeight());
 
-        this.notify(CallbackType.replace);
+        this.notify(CallbackType1.replace);
     }
 
     /**
@@ -612,7 +494,7 @@ export abstract class Statement implements CodeConstruct {
         for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
 
         this.rebuildBody(index + 1, lineNumber + statement.getHeight());
-        this.notify(CallbackType.change);
+        this.notify(CallbackType1.change);
     }
 
     getRenderText(): string {
@@ -706,7 +588,7 @@ export abstract class Statement implements CodeConstruct {
 
     /**
      * Actions performed when a code construct is inserted within a hole of this code construct.
-     * 
+     *
      * @param insertCode code being inserted
      */
     onInsertInto(insertCode: CodeConstruct) {}
@@ -760,14 +642,14 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
     /**
      * Update types of holes within the expression as well as the expression's return type when insertCode is inserted into it.
-     * 
+     *
      * @param insertCode code being inserted.
      */
     performTypeUpdatesOnInsertInto(insertCode: Expression) {}
 
     /**
      * Update types of holes within the expression as well as the expression's return type to "type" when this expression is inserted into the AST.
-     * 
+     *
      * @param type new return/expression hole type
      */
     performTypeUpdatesOnInsertion(type: DataType) {}
@@ -792,17 +674,17 @@ export abstract class Token implements CodeConstruct {
     draftRecord = null;
 
     constructor(text: string, root?: CodeConstruct) {
-        for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
+        for (const type in CallbackType1) this.callbacks[type] = new Array<Callback>();
 
         this.rootNode = root;
         this.text = text;
     }
 
-    subscribe(type: CallbackType, callback: Callback) {
+    subscribe(type: CallbackType1, callback: Callback) {
         this.callbacks[type].push(callback);
     }
 
-    unsubscribe(type: CallbackType, callerId: string) {
+    unsubscribe(type: CallbackType1, callerId: string) {
         let index = -1;
 
         for (let i = 0; i < this.callbacks[type].length; i++) {
@@ -816,7 +698,7 @@ export abstract class Token implements CodeConstruct {
         if (index > 0) this.callbacks[type].splice(index, 1);
     }
 
-    notify(type: CallbackType) {
+    notify(type: CallbackType1) {
         for (const callback of this.callbacks[type]) callback.callback();
     }
 
@@ -835,7 +717,7 @@ export abstract class Token implements CodeConstruct {
             this.right = pos.column;
         } else this.right = pos.column + this.text.length;
 
-        this.notify(CallbackType.change);
+        this.notify(CallbackType1.change);
 
         if (this.text.length == 0) return new monaco.Position(pos.lineNumber, this.right);
         else return new monaco.Position(pos.lineNumber, this.right);
@@ -1112,7 +994,13 @@ export class ForStatement extends Statement {
         this.rangeIndex = this.tokens.length;
         this.tokens.push(
             new TypedEmptyExpr(
-                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String],
+                [
+                    DataType.AnyList,
+                    DataType.StringList,
+                    DataType.NumberList,
+                    DataType.BooleanList,
+                    DataType.String,
+                ],
                 this,
                 this.tokens.length
             )
@@ -1636,10 +1524,9 @@ export class BinaryOperatorExpr extends Expression {
         return this.operatorCategory === BinaryOperatorCategory.Comparison;
     }
 
-    
     /**
-     * Update 
-     * 
+     * Update
+     *
      * @param type new return/operand type
      */
     performTypeUpdatesOnInsertion(type: DataType) {
@@ -1662,7 +1549,7 @@ export class BinaryOperatorExpr extends Expression {
 
     /**
      * Removes "type" from the type array of the operands of this expression.
-     * 
+     *
      * @param type type to remove
      */
     removeTypeFromOperands(type: DataType) {
@@ -1753,7 +1640,7 @@ export class BinaryOperatorExpr extends Expression {
 
     /**
      * Return whether all holes of a nested expression are still empty when used on a nested binary operator expression.
-     * 
+     *
      * @returns true if all holes are TypedEmptyExpr. false otherwise.
      */
     areAllHolesEmpty() {
@@ -1894,7 +1781,7 @@ export class EditableTextTkn extends Token implements TextEditable {
 
             return true;
         } else {
-            this.notify(CallbackType.fail);
+            this.notify(CallbackType1.fail);
             return false;
         }
     }
@@ -1907,7 +1794,7 @@ export class EditableTextTkn extends Token implements TextEditable {
             this.right = pos.column;
         } else this.right = pos.column + this.text.length;
 
-        this.notify(CallbackType.change);
+        this.notify(CallbackType1.change);
 
         return new monaco.Position(pos.lineNumber, this.right);
     }
@@ -2060,7 +1947,7 @@ export class IdentifierTkn extends Token implements TextEditable {
 
             return true;
         } else {
-            this.notify(CallbackType.fail);
+            this.notify(CallbackType1.fail);
             return false;
         }
     }
@@ -2244,7 +2131,7 @@ export class Module {
         this.menuController.setInstance(this, this.editor);
     }
 
-    recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
+    recursiveNotify(code: CodeConstruct, callbackType: CallbackType1) {
         code.notify(callbackType);
         if (code instanceof Expression || code instanceof Statement) {
             const codeStack = new Array<CodeConstruct>();
@@ -2363,7 +2250,7 @@ export class Module {
             const removedItems = code.tokens.splice(start, count);
 
             for (const item of removedItems) {
-                this.recursiveNotify(item, CallbackType.delete);
+                this.recursiveNotify(item, CallbackType1.delete);
             }
 
             code.rebuild(code.getLeftPosition(), 0);
@@ -2379,7 +2266,7 @@ export class Module {
 
         if (root instanceof Module || root instanceof Statement) {
             const replacement = new EmptyLineStmt(root, line.indexInRoot);
-            this.recursiveNotify(line, CallbackType.delete);
+            this.recursiveNotify(line, CallbackType1.delete);
             root.body.splice(line.indexInRoot, 1, replacement);
             replacement.build(line.getLeftPosition());
             this.rebuildBody(0, 1);
@@ -2394,7 +2281,7 @@ export class Module {
         const root = line.rootNode;
 
         if (root instanceof Module || root instanceof Statement) {
-            this.recursiveNotify(line, CallbackType.delete);
+            this.recursiveNotify(line, CallbackType1.delete);
             root.body.splice(line.indexInRoot, 1);
             this.rebuildBody(0, 1);
         }
@@ -2405,7 +2292,7 @@ export class Module {
 
         if (root instanceof Statement) {
             const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
-            this.recursiveNotify(item, CallbackType.delete);
+            this.recursiveNotify(item, CallbackType1.delete);
 
             root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
 
@@ -2784,7 +2671,8 @@ export class Module {
 
                 if (parentRoot instanceof Statement && parentRoot.hasBody()) {
                     if (insert instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                        if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return InsertionType.Valid;
+                        if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert))
+                            return InsertionType.Valid;
                     } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
                 } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
                 else {

@@ -1,11 +1,10 @@
+import { Context } from "./focus";
+import { DataType, InsertionType } from "./../syntax-tree/consts";
 import {
-    BinaryOperator,
     CodeConstruct,
-    DataType,
     EditableTextTkn,
     EmptyLineStmt,
     IdentifierTkn,
-    InsertionType,
     ListLiteralExpression,
     Module,
     NonEditableTkn,
@@ -14,8 +13,6 @@ import {
     TypedEmptyExpr,
     VarAssignmentStmt,
 } from "../syntax-tree/ast";
-import { TypeSystem } from "../syntax-tree/type-sys";
-import { Context } from "./focus";
 
 export class Validator {
     module: Module;

@@ -1,10 +1,9 @@
 import { ConstructDoc } from "../suggestions/construct-doc";
+import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 import {
     Argument,
-    BinaryOperator,
     BinaryOperatorExpr,
     CodeConstruct,
-    DataType,
     ElseStatement,
     ForStatement,
     FunctionCallStmt,
@@ -16,7 +15,6 @@ import {
     MethodCallExpr,
     MethodCallStmt,
     Module,
-    UnaryOp,
     UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
@@ -185,7 +183,7 @@ export const constructToToolboxButton = new Map<ConstructKeys, string>([
 
     [ConstructKeys.AppendCall, "add-list-append-stmt-btn"],
 
-    [ConstructKeys.MemberCall, "add-list-index-btn"]
+    [ConstructKeys.MemberCall, "add-list-index-btn"],
 ]);
 
 export class Util {
@@ -202,7 +200,7 @@ export class Util {
 
         //these cannot exist on their own, need to wrap them in a class. Otherwise they does not see the imports for the construct classes.
 
-        //stores information about what types an object or literal of a given type can be converted to either through casting or 
+        //stores information about what types an object or literal of a given type can be converted to either through casting or
         //some other manipulation such as [number] or number === --- or accessing some property such as list.length > 0
         this.typeConversionMap = new Map<DataType, Array<DataType>>([
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
@@ -212,7 +210,7 @@ export class Util {
             [DataType.NumberList, [DataType.Boolean]],
             [DataType.BooleanList, [DataType.Boolean]],
             [DataType.StringList, [DataType.Boolean]],
-            [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]]
+            [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]],
         ]);
 
         this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
@@ -239,7 +237,17 @@ export class Util {
             ],
             [
                 ConstructKeys.LenCall,
-                new FunctionCallStmt("len", [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList], "list", false)], DataType.Number),
+                new FunctionCallStmt(
+                    "len",
+                    [
+                        new Argument(
+                            [DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList],
+                            "list",
+                            false
+                        ),
+                    ],
+                    DataType.Number
+                ),
             ],
             [ConstructKeys.StringLiteral, new LiteralValExpr(DataType.String)],
             [ConstructKeys.NumberLiteral, new LiteralValExpr(DataType.Number)],
@@ -257,7 +265,10 @@ export class Util {
             [ConstructKeys.LessThan, new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean)],
             [ConstructKeys.LessThanOrEqual, new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean)],
             [ConstructKeys.GreaterThan, new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean)],
-            [ConstructKeys.GreaterThanOrEqual, new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean)],
+            [
+                ConstructKeys.GreaterThanOrEqual,
+                new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
+            ],
             [ConstructKeys.While, new WhileStatement()],
             [ConstructKeys.If, new IfStatement()],
             [ConstructKeys.Elif, new ElseStatement(true)],
@@ -279,7 +290,13 @@ export class Util {
                 ConstructKeys.JoinCall,
                 new MethodCallExpr(
                     "join",
-                    [new Argument([DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList], "items", false)],
+                    [
+                        new Argument(
+                            [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                            "items",
+                            false
+                        ),
+                    ],
                     DataType.String,
                     DataType.String
                 ),
@@ -356,7 +373,23 @@ export class Util {
                 ConstructKeys.LenCall,
                 () => {
                     this.module.insert(
-                        new FunctionCallStmt("len", [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList, DataType.String], "list", false)], DataType.Number)
+                        new FunctionCallStmt(
+                            "len",
+                            [
+                                new Argument(
+                                    [
+                                        DataType.AnyList,
+                                        DataType.StringList,
+                                        DataType.BooleanList,
+                                        DataType.NumberList,
+                                        DataType.String,
+                                    ],
+                                    "list",
+                                    false
+                                ),
+                            ],
+                            DataType.Number
+                        )
                     );
                 },
             ],
@@ -529,7 +562,13 @@ export class Util {
                     this.module.insert(
                         new MethodCallExpr(
                             "join",
-                            [new Argument([DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList], "items", false)],
+                            [
+                                new Argument(
+                                    [DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList],
+                                    "items",
+                                    false
+                                ),
+                            ],
                             DataType.String,
                             DataType.String
                         )
@@ -542,7 +581,10 @@ export class Util {
                     this.module.insert(
                         new MethodCallExpr(
                             "replace",
-                            [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
+                            [
+                                new Argument([DataType.String], "old", false),
+                                new Argument([DataType.String], "new", false),
+                            ],
                             DataType.String,
                             DataType.String
                         )
@@ -589,15 +631,14 @@ export class Util {
     }
 }
 
-
 /**
  * Return whether list1 contains at least one item from list2.
  */
-export function hasMatch(list1: any[], list2: any[]): boolean{
-    if(list2.length == 0 || list1.length == 0) return false;
+export function hasMatch(list1: any[], list2: any[]): boolean {
+    if (list2.length == 0 || list1.length == 0) return false;
 
-    for(const item of list2){
-        if(list1.indexOf(item) > -1) return true;
+    for (const item of list2) {
+        if (list1.indexOf(item) > -1) return true;
     }
 
     return false;

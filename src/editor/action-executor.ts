@@ -5,9 +5,9 @@ import { EditAction } from "./event-router";
 import * as keywords from "../syntax-tree/keywords";
 import { ConstructKeys, Util } from "../utilities/util";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
+import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import {
     Module,
-    DataType,
     IdentifierTkn,
     LiteralValExpr,
     NonEditableTkn,
@@ -18,9 +18,6 @@ import {
     Expression,
     Token,
     BinaryOperatorExpr,
-    InsertionType,
-    IfStatement,
-    BinaryOperator,
 } from "../syntax-tree/ast";
 
 export class ActionExecutor {
