@@ -313,33 +313,6 @@ export abstract class Statement implements CodeConstruct {
         return false;
     }
 
-    getContainingSingleLineStatement(pos: monaco.Position): Statement {
-        if (this.contains(pos)) return this;
-        else {
-            for (const line of this.body) {
-                const stmt = line.getContainingSingleLineStatement(pos);
-
-                if (stmt != null) return stmt;
-            }
-        }
-
-        return null;
-    }
-
-    getStatementAtLine(line: number): Statement {
-        let foundStmt: Statement = null;
-
-        if (this.lineNumber == line) return this;
-        else if (this.hasBody())
-            for (const stmt of this.body) {
-                foundStmt = stmt.getStatementAtLine(line);
-
-                if (foundStmt != null) return foundStmt;
-            }
-
-        return null;
-    }
-
     locate(pos: monaco.Position): CodeConstruct {
         if (pos.lineNumber == this.lineNumber) {
             if (pos.column == this.left) return this.tokens[0];
