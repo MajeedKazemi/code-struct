@@ -1,4 +1,4 @@
-import { Module } from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
 
 const navigationKeys = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"];
 

@@ -1,8 +1,9 @@
-import * as monaco from "monaco-editor";
-import { Cursor } from "./cursor";
 import { Hole } from "./hole";
-import { CodeConstruct, EditableTextTkn, IdentifierTkn, Module, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
-import { TAB_SPACES } from "../syntax-tree/keywords";
+import { Cursor } from "./cursor";
+import * as monaco from "monaco-editor";
+import { Module } from "../syntax-tree/module";
+import { TAB_SPACES } from "../syntax-tree/consts";
+import { CodeConstruct, EditableTextTkn, IdentifierTkn, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 
 export class Editor {
     module: Module;

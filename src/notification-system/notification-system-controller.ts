@@ -1,14 +1,8 @@
-import {
-    BinaryOperatorExpr,
-    CodeConstruct,
-    Expression,
-    FunctionCallStmt,
-    Module,
-    TypedEmptyExpr,
-} from "../syntax-tree/ast";
 import { Editor } from "../editor/editor";
-import { Notification, HoverNotification, PopUpNotification } from "./notification";
+import { Module } from "../syntax-tree/module";
 import { ErrorMessageGenerator, ErrorMessage } from "./error-msg-generator";
+import { Notification, HoverNotification, PopUpNotification } from "./notification";
+import { BinaryOperatorExpr, CodeConstruct, Expression, FunctionCallStmt, TypedEmptyExpr } from "../syntax-tree/ast";
 
 const popUpNotificationTime = 3000; //ms
 

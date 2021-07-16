@@ -2,12 +2,12 @@ import { Context } from "./focus";
 import * as monaco from "monaco-editor";
 import { EditActionType } from "./enums";
 import { EditAction } from "./event-router";
-import * as keywords from "../syntax-tree/keywords";
+import { Module } from "../syntax-tree/module";
 import { ConstructKeys, Util } from "../utilities/util";
+import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import {
-    Module,
     IdentifierTkn,
     LiteralValExpr,
     NonEditableTkn,
@@ -684,13 +684,13 @@ export class ActionExecutor {
             context.tokenToLeft instanceof IdentifierTkn ||
             context.tokenToRight instanceof IdentifierTkn
         ) {
-            if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
+            if (Object.keys(PythonKeywords).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
                     focusedNode,
                     { identifier: identifierText },
                     ErrorMessage.identifierIsKeyword
                 );
-            } else if (Object.keys(keywords.BuiltInFunctions).indexOf(identifierText) > -1) {
+            } else if (Object.keys(BuiltInFunctions).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
                     focusedNode,
                     { identifier: identifierText },

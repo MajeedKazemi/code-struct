@@ -1,12 +1,13 @@
 import { Context } from "./focus";
 import * as ast from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
 import { ButtonPress, EditActionType, KeyPress } from "./enums";
 import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 
 export class EventRouter {
-    module: ast.Module;
+    module: Module;
 
-    constructor(module: ast.Module) {
+    constructor(module: Module) {
         this.module = module;
     }
 

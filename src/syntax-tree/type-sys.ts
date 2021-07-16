@@ -1,5 +1,6 @@
 import { DataType } from "./consts";
-import { BinaryOperatorExpr, Expression, ForStatement, Module, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
+import { Module } from "./module";
+import { BinaryOperatorExpr, Expression, ForStatement, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
 
 export class TypeSystem {
     static varTypeMap: Map<string, DataType> = new Map<string, DataType>();

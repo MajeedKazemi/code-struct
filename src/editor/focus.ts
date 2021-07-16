@@ -1,14 +1,15 @@
 import * as monaco from "monaco-editor";
 import * as ast from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
 import { DataType } from "./../syntax-tree/consts";
 
 export class Focus {
-    module: ast.Module;
+    module: Module;
 
     // TODO: NYI
     onNavChangeCallbacks = new Array<(c: Context) => void>();
 
-    constructor(module: ast.Module) {
+    constructor(module: Module) {
         this.module = module;
     }
 
@@ -28,7 +29,7 @@ export class Focus {
             node = context.expressionToRight;
         } else if (
             focusedNode instanceof ast.Token &&
-            !(focusedNode.rootNode instanceof ast.Module) &&
+            !(focusedNode.rootNode instanceof Module) &&
             focusedNode.rootNode.draftModeEnabled
         ) {
             node = focusedNode.rootNode;

@@ -1,3 +1,4 @@
+import { Module } from "../syntax-tree/module";
 import { ConstructDoc } from "../suggestions/construct-doc";
 import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 import {
@@ -14,7 +15,6 @@ import {
     MemberCallStmt,
     MethodCallExpr,
     MethodCallStmt,
-    Module,
     UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
@@ -642,4 +642,15 @@ export function hasMatch(list1: any[], list2: any[]): boolean {
     }
 
     return false;
+}
+
+/**
+ * Creates empty spaces based on the given count.
+ */
+export function emptySpaces(count: number): string {
+    let spaces = "";
+
+    for (let i = 0; i < count; i++) spaces += " ";
+
+    return spaces;
 }

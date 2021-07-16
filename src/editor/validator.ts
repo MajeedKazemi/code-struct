@@ -1,4 +1,6 @@
 import { Context } from "./focus";
+import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
 import { DataType, InsertionType } from "./../syntax-tree/consts";
 import {
     CodeConstruct,
@@ -6,9 +8,7 @@ import {
     EmptyLineStmt,
     IdentifierTkn,
     ListLiteralExpression,
-    Module,
     NonEditableTkn,
-    Reference,
     Statement,
     TypedEmptyExpr,
     VarAssignmentStmt,

@@ -1,6 +1,6 @@
 import * as monaco from "monaco-editor";
 import { Editor } from "../editor/editor";
-import { Callback, CallbackType1 } from "../utilities/callback";
+import { Callback, CallbackType } from "../syntax-tree/callback";
 import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
 
 /**
@@ -63,14 +63,14 @@ abstract class ConstructVisualElement {
     /**
      * Callbacks this object listens to.
      */
-    private callbacks: Map<string, CallbackType1>;
+    private callbacks: Map<string, CallbackType>;
 
     constructor(editor: Editor, codeToHighlight: CodeConstruct) {
         this.code = codeToHighlight;
         this.selection = this.code.getSelection();
         this.editor = editor;
 
-        this.callbacks = new Map<string, CallbackType1>();
+        this.callbacks = new Map<string, CallbackType>();
 
         this.createDomElement();
         ConstructHighlight.idCounter++;
@@ -89,12 +89,12 @@ abstract class ConstructVisualElement {
             }).bind(this)
         );
 
-        this.callbacks.set(onDelete.callerId, CallbackType1.delete);
-        this.callbacks.set(onChange.callerId, CallbackType1.change);
+        this.callbacks.set(onDelete.callerId, CallbackType.delete);
+        this.callbacks.set(onChange.callerId, CallbackType.change);
 
-        this.code.subscribe(CallbackType1.change, onChange);
+        this.code.subscribe(CallbackType.change, onChange);
 
-        this.code.subscribe(CallbackType1.delete, onDelete);
+        this.code.subscribe(CallbackType.delete, onDelete);
     }
 
     /**

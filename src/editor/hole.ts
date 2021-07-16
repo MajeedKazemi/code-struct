@@ -1,7 +1,8 @@
 import { Editor } from "./editor";
 import { Context } from "./focus";
 import { Validator } from "./validator";
-import { Callback, CallbackType1 } from "../utilities/callback";
+import { Reference } from "../syntax-tree/scope";
+import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -9,7 +10,6 @@ import {
     TypedEmptyExpr,
     VarAssignmentStmt,
     ForStatement,
-    Reference,
 } from "../syntax-tree/ast";
 
 export class Hole {
@@ -44,7 +44,7 @@ export class Hole {
 
             if (code instanceof IdentifierTkn && code.getParentStatement() instanceof ForStatement) {
                 code.subscribe(
-                    CallbackType1.change,
+                    CallbackType.change,
                     new Callback(() => {
                         (code.getParentStatement() as ForStatement).loopVar.setIdentifier(code.getRenderText());
                     })
@@ -52,14 +52,14 @@ export class Hole {
             }
 
             code.subscribe(
-                CallbackType1.focusEditableHole,
+                CallbackType.focusEditableHole,
                 new Callback(() => {
                     this.element.classList.add(Hole.editableHoleClass);
                 })
             );
         } else if (code instanceof TypedEmptyExpr) {
             code.subscribe(
-                CallbackType1.showAvailableVars,
+                CallbackType.showAvailableVars,
                 new Callback(() => {
                     const validIdentifierIds = Validator.getValidVariableReferences(code).map(
                         (ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId
@@ -80,7 +80,7 @@ export class Hole {
         }
 
         code.subscribe(
-            CallbackType1.delete,
+            CallbackType.delete,
             new Callback(() => {
                 hole.setTransform({ x: 0, y: 0, width: 0, height: 0 });
                 hole.remove();
@@ -88,7 +88,7 @@ export class Hole {
         );
 
         code.subscribe(
-            CallbackType1.replace,
+            CallbackType.replace,
             new Callback(() => {
                 hole.setTransform({ x: 0, y: 0, width: 0, height: 0 });
                 hole.remove();
@@ -96,7 +96,7 @@ export class Hole {
         );
 
         code.subscribe(
-            CallbackType1.fail,
+            CallbackType.fail,
             new Callback(() => {
                 hole.element.style.background = `rgba(255, 0, 0, 0.06)`;
 
@@ -152,23 +152,23 @@ export class Hole {
 
     static outlineTextEditableHole(context: Context) {
         if (context.token && (context.token instanceof IdentifierTkn || context.token instanceof EditableTextTkn)) {
-            context.token.notify(CallbackType1.focusEditableHole);
+            context.token.notify(CallbackType.focusEditableHole);
         } else if (
             context.tokenToRight &&
             (context.tokenToRight instanceof IdentifierTkn || context.tokenToRight instanceof EditableTextTkn)
         ) {
-            context.tokenToRight.notify(CallbackType1.focusEditableHole);
+            context.tokenToRight.notify(CallbackType.focusEditableHole);
         } else if (
             context.tokenToLeft &&
             (context.tokenToLeft instanceof IdentifierTkn || context.tokenToLeft instanceof EditableTextTkn)
         ) {
-            context.tokenToLeft.notify(CallbackType1.focusEditableHole);
+            context.tokenToLeft.notify(CallbackType.focusEditableHole);
         }
     }
 
     static highlightValidVarHoles(context: Context) {
         if (context.selected && context.token && context.token instanceof TypedEmptyExpr) {
-            context.token.notify(CallbackType1.showAvailableVars);
+            context.token.notify(CallbackType.showAvailableVars);
         }
     }
 }

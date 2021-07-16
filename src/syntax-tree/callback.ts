@@ -10,7 +10,7 @@ export class Callback {
     }
 }
 
-export enum CallbackType1 {
+export enum CallbackType {
     change,
     replace,
     delete,
