@@ -2,7 +2,9 @@ import {
     BinaryOperator,
     CodeConstruct,
     DataType,
+    EditableTextTkn,
     EmptyLineStmt,
+    IdentifierTkn,
     InsertionType,
     ListLiteralExpression,
     Module,
@@ -20,6 +22,38 @@ export class Validator {
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    /**
+     * logic: checks if at the end of an editable text
+     * OR selected an empty editable text / identifier
+     * OR right before an editable item and need to select it
+     */
+    canMoveToNextTokenAtTextEditable(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            ((context.tokenToRight instanceof IdentifierTkn || context.tokenToRight instanceof EditableTextTkn) &&
+                context.tokenToRight.isEmpty) ||
+            context.tokenToLeft instanceof EditableTextTkn ||
+            context.tokenToLeft instanceof IdentifierTkn ||
+            (context.token?.isEmpty && context.selected)
+        );
+    }
+
+    /**
+     * logic: checks if at the beginning of an editable text
+     * OR selected an empty editable text / identifier
+     */
+    canMoveToPrevTokenAtTextEditable(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            (context.tokenToLeft instanceof IdentifierTkn && context.tokenToRight.isEmpty) ||
+            context.tokenToRight instanceof EditableTextTkn ||
+            context.tokenToRight instanceof IdentifierTkn ||
+            (context.token?.isEmpty && context.selected)
+        );
     }
 
     canInsertEmptyLine(providedContext?: Context): boolean {

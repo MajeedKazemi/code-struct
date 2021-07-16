@@ -12,63 +12,46 @@ export class EventRouter {
 
     getKeyAction(e: KeyboardEvent, providedContext?: Context): EditAction {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-        const curPos = this.module.editor.monaco.getPosition();
         const inTextEditMode = this.module.focus.isTextEditable(context);
         const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
         switch (e.key) {
-            case KeyPress.ArrowUp:
-                if (this.module.menuController.isMenuOpen())
+            case KeyPress.ArrowUp: {
+                if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.SelectMenuSuggestionAbove);
-                else return new EditAction(EditActionType.SelectClosestTokenAbove);
+                } else return new EditAction(EditActionType.SelectClosestTokenAbove);
+            }
 
-            case KeyPress.ArrowDown:
-                if (this.module.menuController.isMenuOpen())
+            case KeyPress.ArrowDown: {
+                if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.SelectMenuSuggestionBelow);
-                else return new EditAction(EditActionType.SelectClosestTokenBelow);
+                } else return new EditAction(EditActionType.SelectClosestTokenBelow);
+            }
 
-            case KeyPress.ArrowLeft:
-                if (!inTextEditMode && this.module.menuController.isMenuOpen())
+            case KeyPress.ArrowLeft: {
+                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseSubMenu);
+                }
 
                 if (inTextEditMode) {
-                    // if we're at the beginning of an editable text
-                    // or
-                    // at selected an empty editable identifier
-                    // => navigate to the previous token this.focus.navigateLeft();
-                    if (
-                        (context.tokenToLeft instanceof ast.IdentifierTkn && context.tokenToRight.isEmpty) ||
-                        context.tokenToRight instanceof ast.EditableTextTkn ||
-                        context.tokenToRight instanceof ast.IdentifierTkn ||
-                        (context.token?.isEmpty && context.selected)
-                    ) {
+                    if (this.module.validator.canMoveToPrevTokenAtTextEditable(context)) {
                         return new EditAction(EditActionType.SelectPrevToken);
                     }
+
                     if (e.shiftKey && e.ctrlKey) return new EditAction(EditActionType.SelectToStart);
                     else if (e.shiftKey) return new EditAction(EditActionType.SelectLeft);
                     else if (e.ctrlKey) return new EditAction(EditActionType.MoveCursorStart);
                     else return new EditAction(EditActionType.MoveCursorLeft);
                 } else return new EditAction(EditActionType.SelectPrevToken);
+            }
 
-            case KeyPress.ArrowRight:
-                if (!inTextEditMode && this.module.menuController.isMenuOpen())
+            case KeyPress.ArrowRight: {
+                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.OpenSubMenu);
+                }
 
                 if (inTextEditMode) {
-                    // if we're at the end of an editable text
-                    // or
-                    // at selected an empty editable identifier
-                    // => navigate to the previous token this.focus.navigateRight();
-
-                    // also if we're right before an editable item and need to select it with this new arrow-right key press.
-                    if (
-                        ((context.tokenToRight instanceof ast.IdentifierTkn ||
-                            context.tokenToRight instanceof ast.EditableTextTkn) &&
-                            context.tokenToRight.isEmpty) ||
-                        context.tokenToLeft instanceof ast.EditableTextTkn ||
-                        context.tokenToLeft instanceof ast.IdentifierTkn ||
-                        (context.token?.isEmpty && context.selected)
-                    ) {
+                    if (this.module.validator.canMoveToNextTokenAtTextEditable(context)) {
                         return new EditAction(EditActionType.SelectNextToken);
                     }
 
@@ -77,22 +60,25 @@ export class EventRouter {
                     else if (e.ctrlKey) return new EditAction(EditActionType.MoveCursorEnd);
                     else return new EditAction(EditActionType.MoveCursorRight);
                 } else return new EditAction(EditActionType.SelectNextToken);
+            }
 
-            case KeyPress.Home:
+            case KeyPress.Home: {
                 if (inTextEditMode) {
                     if (e.shiftKey) return new EditAction(EditActionType.SelectToStart);
                     else return new EditAction(EditActionType.MoveCursorStart);
                 }
 
                 break;
+            }
 
-            case KeyPress.End:
+            case KeyPress.End: {
                 if (inTextEditMode) {
                     if (e.shiftKey) return new EditAction(EditActionType.SelectToEnd);
                     else return new EditAction(EditActionType.MoveCursorEnd);
                 }
 
                 break;
+            }
 
             case KeyPress.Delete: {
                 if (
@@ -158,13 +144,14 @@ export class EventRouter {
                 break;
             }
 
-            case KeyPress.Enter:
+            case KeyPress.Enter: {
                 if (this.module.menuController.isMenuOpen()) return new EditAction(EditActionType.SelectMenuSuggestion);
                 else if (this.module.validator.canInsertEmptyLine()) {
                     return new EditAction(EditActionType.InsertEmptyLine);
                 }
 
                 break;
+            }
 
             case KeyPress.OpenBracket: {
                 if (this.module.validator.canInsertEmptyList(context)) {
@@ -178,7 +165,7 @@ export class EventRouter {
                 break;
             }
 
-            case KeyPress.Comma:
+            case KeyPress.Comma: {
                 if (this.module.validator.canAddListItemToRight(context)) {
                     return new EditAction(EditActionType.InsertEmptyListItem, {
                         toRight: true,
@@ -190,6 +177,7 @@ export class EventRouter {
                 } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
                 break;
+            }
 
             case KeyPress.GreaterThan:
             case KeyPress.LessThan:
@@ -218,7 +206,7 @@ export class EventRouter {
                 break;
             }
 
-            case KeyPress.Escape:
+            case KeyPress.Escape: {
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
                 else if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseValidInsertMenu);
@@ -244,25 +232,28 @@ export class EventRouter {
                 }
 
                 break;
+            }
 
-            case KeyPress.Space:
+            case KeyPress.Space: {
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
                 if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
                     return new EditAction(EditActionType.OpenValidInsertMenu);
                 }
 
                 break;
+            }
 
             //TODO: Remove later
-            case KeyPress.P:
+            case KeyPress.P: {
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
                 if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
                     return new EditAction(EditActionType.OpenValidInsertMenuSingleLevel);
                 }
 
                 break;
+            }
 
-            default:
+            default: {
                 if (inTextEditMode) {
                     if (e.key.length == 1) {
                         switch (e.key) {
@@ -306,6 +297,7 @@ export class EventRouter {
                         });
                     }
                 }
+            }
         }
 
         return new EditAction(EditActionType.None);
