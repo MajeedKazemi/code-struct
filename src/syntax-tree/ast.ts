@@ -1,9 +1,13 @@
-import * as monaco from "monaco-editor";
+import { Module } from "./module";
 import { TAB_SPACES } from "./consts";
-import { NotificationSystemController } from "../notification-system/notification-system-controller";
-import { Notification } from "../notification-system/notification";
-import { Context, UpdatableContext } from "../editor/focus";
+import * as monaco from "monaco-editor";
+import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
+import { DraftRecord } from "../editor/draft";
+import { Callback, CallbackType } from "./callback";
+import { Context, UpdatableContext } from "../editor/focus";
+import { Notification } from "../notification-system/notification";
+import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import {
     AddableType,
     BinaryOperator,
@@ -14,10 +18,6 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
-import { Callback, CallbackType } from "./callback";
-import { Module } from "./module";
-import { Reference, Scope } from "./scope";
-import { DraftRecord } from "../editor/draft";
 
 export interface CodeConstruct {
     /**
@@ -452,26 +452,8 @@ export abstract class Statement implements CodeConstruct {
         newStmt.indexInRoot = index;
         this.body[index] = newStmt;
 
-        if (newStmt.hasScope()) newStmt.scope.parentScope = this.scope;
-
-        if (newStmt instanceof VarAssignmentStmt) {
-            this.getModule().addVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
-        }
-
-        if (newStmt instanceof ForStatement) {
-            const varAssignStmt = new VarAssignmentStmt("", newStmt);
-            varAssignStmt.lineNumber = newStmt.lineNumber;
-            newStmt.buttonId = varAssignStmt.buttonId;
-
-            newStmt.loopVar = varAssignStmt;
-
-            this.getModule().addVariableButtonToToolbox(varAssignStmt);
-            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
-        }
-
+        this.getModule().processNewVariable(newStmt, this.scope);
         this.rebuildBody(index + 1, curLeftPos.lineNumber + newStmt.getHeight());
-
         this.notify(CallbackType.replace);
     }
 

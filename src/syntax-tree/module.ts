@@ -1,6 +1,21 @@
 import * as monaco from "monaco-editor";
-import { AddableType, BinaryOperator, DataType, InsertionType } from "./consts";
 import { CallbackType } from "./callback";
+import { Context, Focus } from "../editor/focus";
+import { Validator } from "../editor/validator";
+import { Editor } from "../editor/editor";
+import { EventRouter } from "../editor/event-router";
+import { EventStack } from "../editor/event-stack";
+import { TypeChecker } from "./type-checker";
+import { Hole } from "../editor/hole";
+import { TAB_SPACES } from "./consts";
+import { Reference, Scope } from "./scope";
+import { DraftRecord } from "../editor/draft";
+import { ActionExecutor } from "../editor/action-executor";
+import { MenuController } from "../suggestions/suggestions-controller";
+import { ErrorMessage } from "../notification-system/error-msg-generator";
+import { AddableType, BinaryOperator, DataType, InsertionType } from "./consts";
+import { NotificationSystemController } from "../notification-system/notification-system-controller";
+import { ConstructKeys, constructToToolboxButton, emptySpaces, hasMatch, Util } from "../utilities/util";
 import {
     BinaryOperatorExpr,
     CodeConstruct,
@@ -21,21 +36,6 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { Context, Focus } from "../editor/focus";
-import { Validator } from "../editor/validator";
-import { ActionExecutor } from "../editor/action-executor";
-import { Editor } from "../editor/editor";
-import { EventRouter } from "../editor/event-router";
-import { EventStack } from "../editor/event-stack";
-import { NotificationSystemController } from "../notification-system/notification-system-controller";
-import { MenuController } from "../suggestions/suggestions-controller";
-import { TypeChecker } from "./type-checker";
-import { Hole } from "../editor/hole";
-import { ConstructKeys, constructToToolboxButton, emptySpaces, hasMatch, Util } from "../utilities/util";
-import { TAB_SPACES } from "./consts";
-import { Reference, Scope } from "./scope";
-import { DraftRecord } from "../editor/draft";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -373,33 +373,38 @@ export class Module {
         };
     }
 
+    processNewVariable(statement: Statement, workingScope: Scope) {
+        if (statement.hasScope()) statement.scope.parentScope = workingScope;
+
+        if (statement instanceof VarAssignmentStmt) {
+            this.addVariableButtonToToolbox(statement);
+            workingScope.references.push(new Reference(statement, workingScope));
+        }
+
+        if (statement instanceof ForStatement) {
+            const varAssignStmt = new VarAssignmentStmt("", statement);
+            varAssignStmt.lineNumber = statement.lineNumber;
+            statement.buttonId = varAssignStmt.buttonId;
+
+            statement.loopVar = varAssignStmt;
+
+            this.addVariableButtonToToolbox(varAssignStmt);
+            statement.scope.references.push(new Reference(varAssignStmt, workingScope));
+        }
+    }
+
     addStatement(newStmt: Statement, index: number, lineNumber: number) {
         this.body.splice(index, 0, newStmt);
         for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
 
         this.rebuildBody(index + 1, lineNumber + newStmt.getHeight());
-
-        if (newStmt instanceof VarAssignmentStmt) {
-            this.addVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
-        }
-
-        if (newStmt instanceof ForStatement) {
-            const varAssignStmt = new VarAssignmentStmt("", newStmt);
-            varAssignStmt.lineNumber = lineNumber;
-            newStmt.buttonId = varAssignStmt.buttonId;
-
-            newStmt.loopVar = varAssignStmt;
-
-            this.addVariableButtonToToolbox(varAssignStmt);
-            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
-        }
+        this.processNewVariable(newStmt, this.scope);
     }
 
     insertEmptyLine() {
         const curPos = this.editor.monaco.getPosition();
         const curStatement = this.focus.getFocusedStatement();
-        const parentRoot = curStatement.rootNode;
+        const curStatementRoot = curStatement.rootNode;
 
         let leftPosToCheck = 1;
         let parentStmtHasBody = false;
@@ -407,13 +412,13 @@ export class Module {
         let spaces = "";
         let atCompoundStmt = false;
 
-        if (parentRoot instanceof Statement && parentRoot.hasBody()) {
+        if (curStatementRoot instanceof Statement && curStatementRoot.hasBody()) {
             // is inside the body of another statement
-            leftPosToCheck = parentRoot.left + TAB_SPACES;
+            leftPosToCheck = curStatementRoot.left + TAB_SPACES;
             parentStmtHasBody = true;
 
             if (leftPosToCheck != 1) {
-                for (let i = 0; i < parentRoot.left + TAB_SPACES - 1; i++) spaces += " ";
+                for (let i = 0; i < curStatementRoot.left + TAB_SPACES - 1; i++) spaces += " ";
             }
         }
 
@@ -430,32 +435,39 @@ export class Module {
 
         if (curPos.column == leftPosToCheck) {
             // insert emptyStatement at this line, move other statements down
-            const emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot);
+            const emptyLine = new EmptyLineStmt(parentStmtHasBody ? curStatementRoot : this, curStatement.indexInRoot);
 
             emptyLine.build(curStatement.getLeftPosition());
 
-            if (parentStmtHasBody)
-                (parentRoot as Statement).addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
-            else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
+            if (parentStmtHasBody) {
+                (curStatementRoot as Statement).addStatement(
+                    emptyLine,
+                    curStatement.indexInRoot,
+                    curStatement.lineNumber
+                );
+            } else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 
             const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
             this.editor.executeEdits(range, null, spaces + textToAdd);
         } else {
             // insert emptyStatement on next line, move other statements down
-            const emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot + 1);
+            const emptyLine = new EmptyLineStmt(
+                parentStmtHasBody ? curStatementRoot : this,
+                curStatement.indexInRoot + 1
+            );
             emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
 
             if (parentStmtHasBody && atCompoundStmt) {
                 emptyLine.indexInRoot = 0;
                 emptyLine.rootNode = curStatement;
                 (curStatement as Statement).addStatement(emptyLine, 0, curStatement.lineNumber + 1);
-            } else if (parentStmtHasBody)
-                (parentRoot as Statement).addStatement(
+            } else if (parentStmtHasBody) {
+                (curStatementRoot as Statement).addStatement(
                     emptyLine,
                     curStatement.indexInRoot + 1,
                     curStatement.lineNumber + 1
                 );
-            else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
+            } else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
 
             const range = new monaco.Range(
                 curStatement.lineNumber,
@@ -477,23 +489,7 @@ export class Module {
         newStmt.indexInRoot = focusedNode.indexInRoot;
         newStmt.init(focusedNode.getLeftPosition());
 
-        if (newStmt.hasScope()) newStmt.scope.parentScope = this.scope;
-
-        if (newStmt instanceof VarAssignmentStmt) {
-            this.addVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
-        }
-
-        if (newStmt instanceof ForStatement) {
-            const varAssignStmt = new VarAssignmentStmt("", newStmt);
-            varAssignStmt.lineNumber = newStmt.lineNumber;
-            newStmt.buttonId = varAssignStmt.buttonId;
-
-            newStmt.loopVar = varAssignStmt;
-
-            this.addVariableButtonToToolbox(varAssignStmt);
-            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
-        }
+        this.processNewVariable(newStmt, this.scope);
 
         if (newStmt.getHeight() > 1) this.rebuildBody(newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
     }
