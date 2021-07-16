@@ -15,6 +15,27 @@ export class Focus {
         this.onNavChangeCallbacks.push(callback);
     }
 
+    getContainingDraftNode(providedContext?: Context): ast.CodeConstruct {
+        const context = providedContext ? providedContext : this.getContext();
+        const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
+
+        let node = null;
+
+        if (context.expressionToLeft?.draftModeEnabled) {
+            node = context.expressionToLeft;
+        } else if (context.expressionToRight?.draftModeEnabled) {
+            node = context.expressionToRight;
+        } else if (
+            focusedNode instanceof ast.Token &&
+            !(focusedNode.rootNode instanceof ast.Module) &&
+            focusedNode.rootNode.draftModeEnabled
+        ) {
+            node = focusedNode.rootNode;
+        }
+
+        return node;
+    }
+
     getTextEditableItem(providedContext?: Context): ast.TextEditable {
         const context = providedContext ? providedContext : this.getContext();
 

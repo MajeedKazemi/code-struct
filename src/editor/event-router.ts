@@ -13,7 +13,6 @@ export class EventRouter {
     getKeyAction(e: KeyboardEvent, providedContext?: Context): EditAction {
         const context = providedContext ? providedContext : this.module.focus.getContext();
         const inTextEditMode = this.module.focus.isTextEditable(context);
-        const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
         switch (e.key) {
             case KeyPress.ArrowUp: {
@@ -205,22 +204,11 @@ export class EventRouter {
                 else if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseValidInsertMenu);
                 } else {
-                    let node = null;
-                    if (context.expressionToLeft?.draftModeEnabled) {
-                        node = context.expressionToLeft;
-                    } else if (context.expressionToRight?.draftModeEnabled) {
-                        node = context.expressionToRight;
-                    } else if (
-                        focusedNode instanceof ast.Token &&
-                        !(focusedNode.rootNode instanceof ast.Module) &&
-                        focusedNode.rootNode.draftModeEnabled
-                    ) {
-                        node = focusedNode.rootNode;
-                    }
+                    const draftModeNode = this.module.focus.getContainingDraftNode(context);
 
-                    if (node) {
+                    if (draftModeNode) {
                         return new EditAction(EditActionType.CloseDraftMode, {
-                            codeNode: node,
+                            codeNode: draftModeNode,
                         });
                     }
                 }
