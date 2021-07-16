@@ -282,7 +282,7 @@ export class Validator {
 
         return (
             context.tokenToLeft instanceof NonEditableTkn &&
-            context.tokenToRight.rootNode instanceof ListLiteralExpression &&
+            context.tokenToLeft.rootNode instanceof ListLiteralExpression &&
             (context.tokenToLeft.text == "[" || context.tokenToLeft.text == ", ")
         );
     }

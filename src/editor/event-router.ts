@@ -166,13 +166,13 @@ export class EventRouter {
             }
 
             case KeyPress.Comma: {
-                if (this.module.validator.canAddListItemToRight(context)) {
+                const toRight = this.module.validator.canAddListItemToRight(context);
+                const toLeft = this.module.validator.canAddListItemToLeft(context);
+
+                if (toLeft || toRight) {
                     return new EditAction(EditActionType.InsertEmptyListItem, {
-                        toRight: true,
-                    });
-                } else if (this.module.validator.canAddListItemToLeft(context)) {
-                    return new EditAction(EditActionType.InsertEmptyListItem, {
-                        toLeft: true,
+                        toRight,
+                        toLeft,
                     });
                 } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
