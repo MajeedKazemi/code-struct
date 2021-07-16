@@ -22,7 +22,15 @@ export class Validator {
         this.module = module;
     }
 
-    // canBackspaceCurLine()
+    canInsertEmptyLine(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const curPosition = this.module.editor.monaco.getPosition();
+
+        return (
+            !context.selected &&
+            (curPosition.column == context.lineStatement.left || curPosition.column == context.lineStatement.right)
+        );
+    }
 
     /**
      * logic: checks if currently at an empty line.

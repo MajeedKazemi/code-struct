@@ -160,21 +160,8 @@ export class EventRouter {
 
             case KeyPress.Enter:
                 if (this.module.menuController.isMenuOpen()) return new EditAction(EditActionType.SelectMenuSuggestion);
-
-                const curSelection = this.module.editor.monaco.getSelection();
-                const curStatement = this.module.focus.getFocusedStatement();
-                const parent = curStatement.rootNode;
-                let leftPosToCheck = 1;
-
-                if (parent instanceof ast.Statement && parent.body.length > 0) {
-                    // is inside the body of another statement
-                    leftPosToCheck = parent.left + TAB_SPACES;
-                }
-
-                if (curSelection.startColumn == curSelection.endColumn) {
-                    if (curPos.column == leftPosToCheck || curPos.column == curStatement.right) {
-                        return new EditAction(EditActionType.InsertEmptyLine);
-                    }
+                else if (this.module.validator.canInsertEmptyLine()) {
+                    return new EditAction(EditActionType.InsertEmptyLine);
                 }
 
                 break;
