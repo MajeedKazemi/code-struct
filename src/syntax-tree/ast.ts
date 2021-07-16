@@ -76,20 +76,6 @@ export interface CodeConstruct {
     build(pos: monaco.Position): monaco.Position;
 
     /**
-     * Traverses the AST starting from this node to locate the smallest code construct that matches the given position
-     * @param pos The 2D point to start searching for
-     * @returns The located code construct (which includes its parents)
-     */
-    locate(pos: monaco.Position): CodeConstruct;
-
-    /**
-     * Checks if this node contains the given position (as a 2D point)
-     * @param pos the 2D point to check
-     * @returns true: contains, false: does not contain
-     */
-    contains(pos: monaco.Position): boolean;
-
-    /**
      * Finds and returns the next empty hole (name or value) in this code construct
      * @returns The found empty token or null (if nothing it didn't include any empty tokens)
      */
@@ -305,23 +291,6 @@ export abstract class Statement implements CodeConstruct {
         } else console.warn("node did not have rootNode or indexInRoot: ", this.tokens);
 
         this.notify(CallbackType.change);
-    }
-
-    contains(pos: monaco.Position): boolean {
-        if (this.lineNumber == pos.lineNumber && pos.column >= this.left && pos.column <= this.right) return true;
-
-        return false;
-    }
-
-    locate(pos: monaco.Position): CodeConstruct {
-        if (pos.lineNumber == this.lineNumber) {
-            if (pos.column == this.left) return this.tokens[0];
-            else if (pos.column == this.right) return this.tokens[this.tokens.length - 1];
-        }
-
-        if (this.contains(pos)) for (const code of this.tokens) if (code.contains(pos)) return code.locate(pos);
-
-        return null;
     }
 
     getInitialFocus(): UpdatableContext {
@@ -630,26 +599,6 @@ export abstract class Token implements CodeConstruct {
 
         if (this.text.length == 0) return new monaco.Position(pos.lineNumber, this.right);
         else return new monaco.Position(pos.lineNumber, this.right);
-    }
-
-    /**
-     * Checks if this node contains the given position (as a 2D point)
-     * @param pos the 2D point to check
-     * @returns true: contains, false: does not contain
-     */
-    contains(pos: monaco.Position): boolean {
-        if (pos.column >= this.left && pos.column <= this.right) return true;
-
-        return false;
-    }
-
-    /**
-     * For this token element, it returns it self.
-     * @param pos Not used
-     * @returns This token
-     */
-    locate(pos: monaco.Position): CodeConstruct {
-        return this;
     }
 
     /**
@@ -1007,10 +956,6 @@ export class EmptyLineStmt extends Statement {
 
     getRenderText(): string {
         return "";
-    }
-
-    locate(pos: monaco.Position): CodeConstruct {
-        return this;
     }
 }
 
@@ -1826,12 +1771,6 @@ export class IdentifierTkn extends Token implements TextEditable {
         this.validatorRegex = RegExp("^[^\\d\\W]\\w*$");
     }
 
-    contains(pos: monaco.Position): boolean {
-        if (pos.column >= this.left && pos.column <= this.right) return true;
-
-        return false;
-    }
-
     getLeft(): number {
         return this.left;
     }
@@ -1886,10 +1825,6 @@ export class OperatorTkn extends Token {
         this.operator = text;
     }
 
-    locate(pos: monaco.Position): CodeConstruct {
-        return this.rootNode;
-    }
-
     getSelection(): monaco.Selection {
         return this.rootNode.getSelection();
     }
@@ -1903,10 +1838,6 @@ export class NonEditableTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    locate(pos: monaco.Position): CodeConstruct {
-        return this.rootNode;
-    }
-
     getSelection(): monaco.Selection {
         return this.rootNode.getSelection();
     }
@@ -1918,10 +1849,6 @@ export class KeywordTkn extends Token {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-    }
-
-    locate(pos: monaco.Position): CodeConstruct {
-        return this.rootNode;
     }
 
     getSelection(): monaco.Selection {

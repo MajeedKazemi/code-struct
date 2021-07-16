@@ -65,10 +65,15 @@ export class Focus {
         const curPosition = this.module.editor.monaco.getPosition();
         const curSelection = this.module.editor.monaco.getSelection();
         const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
+        let context: Context;
 
         if (curSelection.startColumn != curSelection.endColumn) {
-            return this.getContextFromSelection(curLine, curSelection.startColumn, curSelection.endColumn);
-        } else return this.getContextFromPosition(curLine, curPosition.column);
+            context = this.getContextFromSelection(curLine, curSelection.startColumn, curSelection.endColumn);
+        } else context = this.getContextFromPosition(curLine, curPosition.column);
+
+        context.position = curPosition;
+
+        return context;
     }
 
     getFocusedStatement(): ast.Statement {

@@ -642,6 +642,8 @@ export class Module {
     }
 
     tryInsert(insertInto: CodeConstruct, insert: CodeConstruct): InsertionType {
+        const context = this.focus.getContext();
+
         if (!insertInto || !insert) {
             console.error(
                 "Failed to perform insertion check on\n   insertInto: " + insertInto + "\n   insert: " + insert
@@ -650,20 +652,21 @@ export class Module {
         }
 
         if (insert instanceof MethodCallExpr) {
-            const focusedPos = this.editor.monaco.getPosition();
-            const prevItem = insertInto
-                .getParentStatement()
-                .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
-
-            if (prevItem instanceof Expression && prevItem.returns == insert.calledOn /* TODO: and check calledOn */) {
+            if (
+                context.expressionToLeft instanceof Expression &&
+                context.expressionToLeft.returns == insert.calledOn /* TODO: and check calledOn */
+            ) {
                 // will replace the expression with this
                 // and will have the expression as the first element inside the code
-                insert.indexInRoot = prevItem.indexInRoot;
-                insert.rootNode = prevItem.rootNode;
+                insert.indexInRoot = context.expressionToLeft.indexInRoot;
+                insert.rootNode = context.expressionToLeft.rootNode;
 
                 if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement)
                     return InsertionType.Valid;
-            } else if (prevItem instanceof Expression && prevItem.returns != insert.calledOn)
+            } else if (
+                context.expressionToLeft instanceof Expression &&
+                context.expressionToLeft.returns != insert.calledOn
+            )
                 return InsertionType.Invalid;
         }
 
@@ -818,28 +821,26 @@ export class Module {
 
         if (focusedNode) {
             if (code instanceof MethodCallExpr && insertionType !== InsertionType.DraftMode) {
-                const focusedPos = context.position;
-                const prevItem = context.token
-                    .getParentStatement()
-                    .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
-
-                if (prevItem instanceof Expression && prevItem.returns == code.calledOn) {
+                if (
+                    context.expressionToLeft instanceof Expression &&
+                    context.expressionToLeft.returns == code.calledOn
+                ) {
                     // will replace the expression with this
                     // and will have the expression as the first element inside the code
-                    code.indexInRoot = prevItem.indexInRoot;
-                    code.rootNode = prevItem.rootNode;
+                    code.indexInRoot = context.expressionToLeft.indexInRoot;
+                    code.rootNode = context.expressionToLeft.rootNode;
 
                     if (code.rootNode instanceof Expression || code.rootNode instanceof Statement) {
                         code.rootNode.replace(code, code.indexInRoot);
                     }
 
-                    code.setExpression(prevItem);
+                    code.setExpression(context.expressionToLeft);
 
                     const range = new monaco.Range(
-                        focusedPos.lineNumber,
+                        context.position.lineNumber,
                         code.left,
-                        focusedPos.lineNumber,
-                        focusedPos.column
+                        context.position.lineNumber,
+                        context.position.column
                     );
 
                     if (focusedNode.notification && context.selected) {
@@ -847,14 +848,20 @@ export class Module {
                     }
 
                     this.editor.executeEdits(range, code);
-                    prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
-                } else if (prevItem instanceof Expression && prevItem.returns != code.calledOn) {
+                    context.expressionToLeft.rebuild(
+                        new monaco.Position(context.position.lineNumber, context.expressionToLeft.left),
+                        0
+                    );
+                } else if (
+                    context.expressionToLeft instanceof Expression &&
+                    context.expressionToLeft.returns != code.calledOn
+                ) {
                     //TODO: relies on tokens array not changing the index of function name
                     //Not sure why it's hardcoded, probably because identifier token is not accessible, but change that
                     this.notificationSystem.addHoverNotification(
                         focusedNode,
                         {
-                            objectType: prevItem.returns,
+                            objectType: context.expressionToLeft.returns,
                             method: (code.tokens[2] as NonEditableTkn).text,
                             calledOn: code.calledOn,
                         },
