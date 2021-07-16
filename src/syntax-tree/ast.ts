@@ -1,7 +1,8 @@
+import { Scope } from "./scope";
 import { Module } from "./module";
+import { rebuildBody } from "./body";
 import { TAB_SPACES } from "./consts";
 import * as monaco from "monaco-editor";
-import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
 import { Callback, CallbackType } from "./callback";
@@ -18,7 +19,6 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
-import { rebuildBody } from "./body";
 
 export interface CodeConstruct {
     /**
@@ -325,11 +325,12 @@ export abstract class Statement implements CodeConstruct {
     replace(code: CodeConstruct, index: number) {
         // Notify the token being replaced
         const toReplace = this.tokens[index];
+
         if (toReplace) {
             toReplace.notify(CallbackType.delete);
 
             if (!(toReplace instanceof Token)) {
-                (toReplace as Statement).tokens.forEach((token) => {
+                (toReplace as Expression).tokens.forEach((token) => {
                     if (token instanceof Token) {
                         token.notify(CallbackType.delete);
                     }
@@ -356,22 +357,6 @@ export abstract class Statement implements CodeConstruct {
 
         this.updateHasEmptyToken(code);
 
-        this.notify(CallbackType.replace);
-    }
-
-    /**
-     * Replaced the given item with the item in `this.body[index]`
-     */
-    replaceInBody(index: number, newStmt: Statement) {
-        const curLeftPos = this.body[index].getLeftPosition();
-        newStmt.init(curLeftPos);
-
-        newStmt.rootNode = this.body[index].rootNode;
-        newStmt.indexInRoot = index;
-        this.body[index] = newStmt;
-
-        this.getModule().processNewVariable(newStmt, this.scope);
-        rebuildBody(this, index + 1, curLeftPos.lineNumber + newStmt.getHeight());
         this.notify(CallbackType.replace);
     }
 

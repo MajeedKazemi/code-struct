@@ -6,7 +6,6 @@ import { DataType } from "./../syntax-tree/consts";
 export class Focus {
     module: Module;
 
-    // TODO: NYI
     onNavChangeCallbacks = new Array<(c: Context) => void>();
 
     constructor(module: Module) {

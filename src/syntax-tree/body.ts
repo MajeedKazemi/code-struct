@@ -27,3 +27,20 @@ export function rebuildBody(bodyContainer: Statement | Module, fromIndex: number
         }
     }
 }
+
+export function replaceInBody(bodyContainer: Statement | Module, atIndex: number, newStatement: Statement) {
+    const leftPos = bodyContainer.body[atIndex].getLeftPosition();
+    newStatement.init(leftPos);
+
+    newStatement.rootNode = bodyContainer.body[atIndex].rootNode;
+    newStatement.indexInRoot = atIndex;
+    bodyContainer.body[atIndex] = newStatement;
+
+    if (bodyContainer instanceof Module) {
+        bodyContainer.processNewVariable(newStatement, bodyContainer.scope);
+    } else {
+        bodyContainer.getModule().processNewVariable(newStatement, bodyContainer.scope);
+    }
+
+    rebuildBody(bodyContainer, atIndex + 1, leftPos.lineNumber + newStatement.getHeight());
+}

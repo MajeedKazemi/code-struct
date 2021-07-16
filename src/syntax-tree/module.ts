@@ -1,15 +1,16 @@
+import { TAB_SPACES } from "./consts";
+import { Hole } from "../editor/hole";
 import * as monaco from "monaco-editor";
 import { CallbackType } from "./callback";
-import { Context, Focus } from "../editor/focus";
-import { Validator } from "../editor/validator";
 import { Editor } from "../editor/editor";
-import { EventRouter } from "../editor/event-router";
-import { EventStack } from "../editor/event-stack";
-import { TypeChecker } from "./type-checker";
-import { Hole } from "../editor/hole";
-import { TAB_SPACES } from "./consts";
 import { Reference, Scope } from "./scope";
+import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { Validator } from "../editor/validator";
+import { Context, Focus } from "../editor/focus";
+import { EventStack } from "../editor/event-stack";
+import { rebuildBody, replaceInBody } from "./body";
+import { EventRouter } from "../editor/event-router";
 import { ActionExecutor } from "../editor/action-executor";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
@@ -36,7 +37,6 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { rebuildBody } from "./body";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -490,22 +490,6 @@ export class Module {
         }
     }
 
-    replaceFocusedStatement(newStmt: Statement) {
-        const focusedNode = this.focus.getContext().lineStatement;
-        const curLineNumber = this.body[focusedNode.indexInRoot].lineNumber;
-
-        this.body[focusedNode.indexInRoot] = newStmt;
-        newStmt.rootNode = focusedNode.rootNode;
-        newStmt.indexInRoot = focusedNode.indexInRoot;
-        newStmt.init(focusedNode.getLeftPosition());
-
-        this.processNewVariable(newStmt, this.scope);
-
-        if (newStmt.getHeight() > 1) {
-            rebuildBody(this, newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
-        }
-    }
-
     replaceFocusedExpression(expr: Expression) {
         const context = this.focus.getContext();
 
@@ -913,7 +897,8 @@ export class Module {
                                 }
                             }
                         } else if (!(statement instanceof ElseStatement)) {
-                            parentRoot.replaceInBody(focusedNode.indexInRoot, statement);
+                            replaceInBody(parentRoot, focusedNode.indexInRoot, statement);
+                            parentRoot.notify(CallbackType.replace);
 
                             var range = new monaco.Range(
                                 focusedPos.lineNumber,
@@ -929,7 +914,7 @@ export class Module {
                             this.editor.executeEdits(range, code);
                         }
                     } else if (!(statement instanceof ElseStatement)) {
-                        this.replaceFocusedStatement(statement);
+                        replaceInBody(this, focusedNode.indexInRoot, statement);
 
                         const range = new monaco.Range(
                             focusedPos.lineNumber,
@@ -1139,7 +1124,7 @@ export class Module {
                         : context.token.getLeftPosition();
 
                     if (code instanceof VariableReferenceExpr && focusedNode instanceof EmptyLineStmt) {
-                        this.replaceFocusedStatement(code);
+                        replaceInBody(this, focusedNode.indexInRoot, code);
                     } else {
                         this.replaceFocusedExpression(code);
                     }
