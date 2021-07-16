@@ -186,24 +186,18 @@ export class EventRouter {
             case KeyPress.Plus:
             case KeyPress.Minus:
             case KeyPress.Star: {
-                if (this.module.validator.atRightOfExpression(context)) {
+                const toRight = this.module.validator.atRightOfExpression(context);
+                const toLeft = this.module.validator.atLeftOfExpression(context);
+                const replace = this.module.validator.atEmptyExpressionHole(context);
+
+                if (toRight || toLeft || replace) {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
-                        toRight: true,
                         operator: this.getBinaryOperatorFromKey(e.key),
-                    });
-                } else if (this.module.validator.atLeftOfExpression(context)) {
-                    return new EditAction(EditActionType.InsertBinaryOperator, {
-                        toLeft: true,
-                        operator: this.getBinaryOperatorFromKey(e.key),
-                    });
-                } else if (this.module.validator.atEmptyExpressionHole(context)) {
-                    return new EditAction(EditActionType.InsertBinaryOperator, {
-                        replace: true,
-                        operator: this.getBinaryOperatorFromKey(e.key),
+                        toRight,
+                        toLeft,
+                        replace,
                     });
                 } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
             }
 
             case KeyPress.Escape: {
