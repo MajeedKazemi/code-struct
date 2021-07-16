@@ -30,7 +30,7 @@ import { EventRouter } from "../editor/event-router";
 import { EventStack } from "../editor/event-stack";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { TypeSystem } from "./type-sys";
+import { TypeChecker } from "./type-checker";
 import { Hole } from "../editor/hole";
 import { ConstructKeys, constructToToolboxButton, emptySpaces, hasMatch, Util } from "../utilities/util";
 import { TAB_SPACES } from "./consts";
@@ -53,7 +53,7 @@ export class Module {
     variableButtons: HTMLDivElement[] = [];
     notificationSystem: NotificationSystemController;
     menuController: MenuController;
-    typeSystem: TypeSystem;
+    typeSystem: TypeChecker;
 
     scope: Scope;
     draftExpressions: DraftRecord[];
@@ -63,7 +63,7 @@ export class Module {
         this.focus = new Focus(this);
         this.validator = new Validator(this);
         this.executer = new ActionExecutor(this);
-        this.typeSystem = new TypeSystem(this);
+        this.typeSystem = new TypeChecker(this);
 
         this.draftExpressions = [];
 
@@ -750,7 +750,10 @@ export class Module {
                         if (this.typeSystem.validateForLoopIterableInsertionType(insert)) {
                             return InsertionType.Valid;
                         } else if (
-                            hasMatch(Util.getInstance(this).typeConversionMap.get(insert.returns), TypeSystem.listTypes)
+                            hasMatch(
+                                Util.getInstance(this).typeConversionMap.get(insert.returns),
+                                TypeChecker.listTypes
+                            )
                         ) {
                             return InsertionType.DraftMode;
                         }
@@ -995,7 +998,7 @@ export class Module {
                                 focusedNode.rootNode.rootNode &&
                                 focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
                             ) {
-                                const newType = TypeSystem.getListTypeFromElementType(code.returns);
+                                const newType = TypeChecker.getListTypeFromElementType(code.returns);
                                 this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
                             }
 
@@ -1005,7 +1008,7 @@ export class Module {
                                 focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
                                 focusedNode instanceof TypedEmptyExpr
                             ) {
-                                const newType = TypeSystem.getElementTypeFromListType((code as Expression).returns);
+                                const newType = TypeChecker.getElementTypeFromListType((code as Expression).returns);
                                 this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
                             }
                         }

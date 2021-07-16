@@ -1,17 +1,17 @@
-import { DataType } from "./consts";
 import { Module } from "./module";
+import { DataType } from "./consts";
 import { BinaryOperatorExpr, Expression, ForStatement, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
 
-export class TypeSystem {
+export class TypeChecker {
     static varTypeMap: Map<string, DataType> = new Map<string, DataType>();
     static listTypes: Array<DataType>;
 
     module: Module;
 
     constructor(module: Module) {
-        if (!TypeSystem.listTypes) {
+        if (!TypeChecker.listTypes) {
             //it does not recognize the imports unless they are assigned inside the constructor
-            TypeSystem.listTypes = [
+            TypeChecker.listTypes = [
                 DataType.AnyList,
                 DataType.StringList,
                 DataType.NumberList,
@@ -19,6 +19,7 @@ export class TypeSystem {
                 DataType.String,
             ];
         }
+
         this.module = module;
     }
 
@@ -29,7 +30,7 @@ export class TypeSystem {
      * @returns T/F based on whether the insertion is allowed or not
      */
     validateForLoopIterableInsertionType(insertionCode: Expression) {
-        return TypeSystem.listTypes.indexOf(insertionCode.returns) > -1;
+        return TypeChecker.listTypes.indexOf(insertionCode.returns) > -1;
     }
 
     /**
@@ -61,7 +62,7 @@ export class TypeSystem {
         button.removeEventListener("click", this.module.getVarRefHandler(code), false);
 
         code.dataType = newType;
-        TypeSystem.varTypeMap.set(code.getIdentifier(), newType);
+        TypeChecker.varTypeMap.set(code.getIdentifier(), newType);
 
         button.addEventListener("click", this.module.getVarRefHandler(code).bind(this.module));
     }
@@ -73,8 +74,8 @@ export class TypeSystem {
      * @param code    expression the type of which will be used
      */
     updateForLoopVarType(forLoop: ForStatement, code: Expression) {
-        const newType = TypeSystem.getElementTypeFromListType(code.returns);
-        TypeSystem.varTypeMap.set(forLoop.getIdentifier(), newType);
+        const newType = TypeChecker.getElementTypeFromListType(code.returns);
+        TypeChecker.varTypeMap.set(forLoop.getIdentifier(), newType);
         this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);
     }
 

@@ -3,7 +3,7 @@ import { TAB_SPACES } from "./consts";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { Notification } from "../notification-system/notification";
 import { Context, UpdatableContext } from "../editor/focus";
-import { TypeSystem } from "./type-sys";
+import { TypeChecker } from "./type-checker";
 import {
     AddableType,
     BinaryOperator,
@@ -1646,9 +1646,9 @@ export class BinaryOperatorExpr extends Expression {
         //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
         if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
             if (this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic) {
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
+                TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
             } else if (this.rootNode.operatorCategory === BinaryOperatorCategory.Comparison) {
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
+                TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
         } else {
             // In the case that the root is a binOp and its holes are not empty, need to update the holes of this expr to that type as well
@@ -1878,8 +1878,8 @@ export class ListLiteralExpression extends Expression {
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
         if (this.areAllHolesEmpty()) {
-            this.returns = TypeSystem.getListTypeFromElementType(insertCode.returns);
-        } else if (TypeSystem.getElementTypeFromListType(this.returns) !== insertCode.returns) {
+            this.returns = TypeChecker.getListTypeFromElementType(insertCode.returns);
+        } else if (TypeChecker.getElementTypeFromListType(this.returns) !== insertCode.returns) {
             this.returns = DataType.AnyList;
         }
     }
