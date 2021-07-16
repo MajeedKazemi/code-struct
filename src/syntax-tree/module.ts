@@ -36,6 +36,7 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
+import { rebuildBody } from "./body";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -185,8 +186,7 @@ export class Module {
                 removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
 
                 outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
-
-                this.rebuildBody(0, 1);
+                rebuildBody(this, 0, 1);
             } else {
                 const removedItem = root.body.splice(line.indexInRoot, 1);
 
@@ -210,8 +210,7 @@ export class Module {
                 }
 
                 outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
-
-                this.rebuildBody(0, 1);
+                rebuildBody(this, 0, 1);
             }
         }
     }
@@ -229,8 +228,7 @@ export class Module {
                 removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
 
                 aboveMultilineStmt.body.push(removedItem[0]);
-
-                this.rebuildBody(0, 1);
+                rebuildBody(this, 0, 1);
             } else {
                 const aboveMultilineStmt = root.body[line.indexInRoot - 1];
                 const removedItem = root.body.splice(line.indexInRoot, 1);
@@ -250,8 +248,7 @@ export class Module {
                 }
 
                 aboveMultilineStmt.body.push(removedItem[0]);
-
-                this.rebuildBody(0, 1);
+                rebuildBody(this, 0, 1);
             }
         }
     }
@@ -280,7 +277,7 @@ export class Module {
             this.recursiveNotify(line, CallbackType.delete);
             root.body.splice(line.indexInRoot, 1, replacement);
             replacement.build(line.getLeftPosition());
-            this.rebuildBody(0, 1);
+            rebuildBody(this, 0, 1);
 
             return replacement;
         }
@@ -294,7 +291,7 @@ export class Module {
         if (root instanceof Module || root instanceof Statement) {
             this.recursiveNotify(line, CallbackType.delete);
             root.body.splice(line.indexInRoot, 1);
-            this.rebuildBody(0, 1);
+            rebuildBody(this, 0, 1);
         }
     }
 
@@ -373,6 +370,25 @@ export class Module {
         };
     }
 
+    /**
+     * Adds `code` to the body at the given index
+     * @param code the statement to be added
+     * @param index the index to add the `code` statement
+     * @param line the line number that will be given to the newly added statement
+     */
+    addStatementToBody(bodyContainer: Statement | Module, code: Statement, index: number, line: number) {
+        bodyContainer.body.splice(index, 0, code);
+        for (let i = index + 1; i < bodyContainer.body.length; i++) bodyContainer.body[i].indexInRoot++;
+
+        rebuildBody(bodyContainer, index + 1, line + code.getHeight());
+
+        this.processNewVariable(code, bodyContainer.scope);
+
+        if (bodyContainer instanceof Statement) {
+            bodyContainer.notify(CallbackType.change);
+        }
+    }
+
     processNewVariable(statement: Statement, workingScope: Scope) {
         if (statement.hasScope()) statement.scope.parentScope = workingScope;
 
@@ -391,14 +407,6 @@ export class Module {
             this.addVariableButtonToToolbox(varAssignStmt);
             statement.scope.references.push(new Reference(varAssignStmt, workingScope));
         }
-    }
-
-    addStatement(newStmt: Statement, index: number, lineNumber: number) {
-        this.body.splice(index, 0, newStmt);
-        for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
-
-        this.rebuildBody(index + 1, lineNumber + newStmt.getHeight());
-        this.processNewVariable(newStmt, this.scope);
     }
 
     insertEmptyLine() {
@@ -440,12 +448,13 @@ export class Module {
             emptyLine.build(curStatement.getLeftPosition());
 
             if (parentStmtHasBody) {
-                (curStatementRoot as Statement).addStatement(
+                this.addStatementToBody(
+                    curStatementRoot as Statement,
                     emptyLine,
                     curStatement.indexInRoot,
                     curStatement.lineNumber
                 );
-            } else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
+            } else this.addStatementToBody(this, emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 
             const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
             this.editor.executeEdits(range, null, spaces + textToAdd);
@@ -460,14 +469,15 @@ export class Module {
             if (parentStmtHasBody && atCompoundStmt) {
                 emptyLine.indexInRoot = 0;
                 emptyLine.rootNode = curStatement;
-                (curStatement as Statement).addStatement(emptyLine, 0, curStatement.lineNumber + 1);
+                this.addStatementToBody(curStatement as Statement, emptyLine, 0, curStatement.lineNumber + 1);
             } else if (parentStmtHasBody) {
-                (curStatementRoot as Statement).addStatement(
+                this.addStatementToBody(
+                    curStatementRoot as Statement,
                     emptyLine,
                     curStatement.indexInRoot + 1,
                     curStatement.lineNumber + 1
                 );
-            } else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
+            } else this.addStatementToBody(this, emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
 
             const range = new monaco.Range(
                 curStatement.lineNumber,
@@ -491,19 +501,8 @@ export class Module {
 
         this.processNewVariable(newStmt, this.scope);
 
-        if (newStmt.getHeight() > 1) this.rebuildBody(newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
-    }
-
-    rebuildBody(fromIndex: number, startLineNumber: number) {
-        let lineNumber = startLineNumber;
-
-        for (let i = fromIndex; i < this.body.length; i++) {
-            this.body[i].indexInRoot = i;
-
-            if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
-            else this.body[i].setLineNumber(lineNumber);
-
-            lineNumber += this.body[i].getHeight();
+        if (newStmt.getHeight() > 1) {
+            rebuildBody(this, newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
         }
     }
 

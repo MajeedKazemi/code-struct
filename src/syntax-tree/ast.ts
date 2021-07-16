@@ -18,6 +18,7 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
+import { rebuildBody } from "./body";
 
 export interface CodeConstruct {
     /**
@@ -254,31 +255,6 @@ export abstract class Statement implements CodeConstruct {
         for (const callback of this.callbacks[type]) callback.callback();
     }
 
-    rebuildBody(fromIndex: number, startLineNumber: number) {
-        let lineNumber = startLineNumber;
-
-        for (let i = fromIndex; i < this.body.length; i++) {
-            this.body[i].indexInRoot = i;
-
-            if (i == 0) {
-                this.setLineNumber(lineNumber);
-                lineNumber++;
-            }
-
-            if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
-            else this.body[i].setLineNumber(lineNumber);
-
-            lineNumber += this.body[i].getHeight();
-        }
-
-        // propagate the rebuild-body process to the root node
-        if (this.rootNode instanceof Module) {
-            this.rootNode.rebuildBody(this.indexInRoot + 1, lineNumber);
-        } else if (this.rootNode instanceof Statement && this.rootNode.hasBody()) {
-            this.rootNode.rebuildBody(this.indexInRoot + 1, lineNumber);
-        }
-    }
-
     init(pos: monaco.Position) {
         this.build(pos);
 
@@ -453,23 +429,8 @@ export abstract class Statement implements CodeConstruct {
         this.body[index] = newStmt;
 
         this.getModule().processNewVariable(newStmt, this.scope);
-        this.rebuildBody(index + 1, curLeftPos.lineNumber + newStmt.getHeight());
+        rebuildBody(this, index + 1, curLeftPos.lineNumber + newStmt.getHeight());
         this.notify(CallbackType.replace);
-    }
-
-    /**
-     * Adds `code` to the body at the given index
-     * @param statement the statement to be added
-     * @param index the index to add the `code` statement
-     */
-    addStatement(statement: Statement, index: number, lineNumber: number) {
-        // TODO: update-body-index -> merge these two in to another function that would take care of the indexInRoot itself.
-        // support delete, add, and etc.
-        this.body.splice(index, 0, statement);
-        for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
-
-        this.rebuildBody(index + 1, lineNumber + statement.getHeight());
-        this.notify(CallbackType.change);
     }
 
     getRenderText(): string {
@@ -900,7 +861,7 @@ export class IfStatement extends Statement {
         statement.rootNode = this;
         statement.indexInRoot = index;
 
-        this.rebuildBody(index + 1, prevPos.lineNumber + 1);
+        rebuildBody(this, index + 1, prevPos.lineNumber + 1);
     }
 
     typeValidateInsertionIntoHole(
