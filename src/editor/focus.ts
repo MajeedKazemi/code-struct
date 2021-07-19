@@ -1,7 +1,18 @@
 import * as monaco from "monaco-editor";
-import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { DataType } from "./../syntax-tree/consts";
+import {
+    CodeConstruct,
+    EditableTextTkn,
+    EmptyLineStmt,
+    Expression,
+    IdentifierTkn,
+    LiteralValExpr,
+    NonEditableTkn,
+    Statement,
+    TextEditable,
+    Token,
+} from "../syntax-tree/ast";
 
 export class Focus {
     module: Module;
@@ -16,7 +27,7 @@ export class Focus {
         this.onNavChangeCallbacks.push(callback);
     }
 
-    getContainingDraftNode(providedContext?: Context): ast.CodeConstruct {
+    getContainingDraftNode(providedContext?: Context): CodeConstruct {
         const context = providedContext ? providedContext : this.getContext();
         const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
 
@@ -27,7 +38,7 @@ export class Focus {
         } else if (context.expressionToRight?.draftModeEnabled) {
             node = context.expressionToRight;
         } else if (
-            focusedNode instanceof ast.Token &&
+            focusedNode instanceof Token &&
             !(focusedNode.rootNode instanceof Module) &&
             focusedNode.rootNode.draftModeEnabled
         ) {
@@ -37,20 +48,14 @@ export class Focus {
         return node;
     }
 
-    getTextEditableItem(providedContext?: Context): ast.TextEditable {
+    getTextEditableItem(providedContext?: Context): TextEditable {
         const context = providedContext ? providedContext : this.getContext();
 
-        if (context.token instanceof ast.IdentifierTkn || context.token instanceof ast.EditableTextTkn) {
+        if (context.token instanceof IdentifierTkn || context.token instanceof EditableTextTkn) {
             return context.token;
-        } else if (
-            context.tokenToLeft instanceof ast.IdentifierTkn ||
-            context.tokenToLeft instanceof ast.EditableTextTkn
-        ) {
+        } else if (context.tokenToLeft instanceof IdentifierTkn || context.tokenToLeft instanceof EditableTextTkn) {
             return context.tokenToLeft;
-        } else if (
-            context.tokenToRight instanceof ast.IdentifierTkn ||
-            context.tokenToRight instanceof ast.EditableTextTkn
-        ) {
+        } else if (context.tokenToRight instanceof IdentifierTkn || context.tokenToRight instanceof EditableTextTkn) {
             return context.tokenToRight;
         }
     }
@@ -75,7 +80,7 @@ export class Focus {
         return context;
     }
 
-    getFocusedStatement(): ast.Statement {
+    getFocusedStatement(): Statement {
         return this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber);
     }
 
@@ -103,7 +108,7 @@ export class Focus {
         const focusedLineStatement = this.getStatementAtLineNumber(pos.lineNumber);
 
         // clicked at an empty statement => just update focusedStatement
-        if (focusedLineStatement instanceof ast.EmptyLineStmt) {
+        if (focusedLineStatement instanceof EmptyLineStmt) {
             this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedLineStatement.left));
         }
 
@@ -119,10 +124,10 @@ export class Focus {
             // look into the tokens of the statement:
             const focusedToken = this.getTokenAtStatementColumn(focusedLineStatement, pos.column);
 
-            if (focusedToken instanceof ast.Token && focusedToken.isEmpty) {
+            if (focusedToken instanceof Token && focusedToken.isEmpty) {
                 // if clicked on a hole => select the hole
                 this.selectCode(focusedToken);
-            } else if (focusedToken instanceof ast.EditableTextTkn || focusedToken instanceof ast.IdentifierTkn) {
+            } else if (focusedToken instanceof EditableTextTkn || focusedToken instanceof IdentifierTkn) {
                 // if clicked on a text-editable code construct (identifier or a literal) => navigate to the clicked position (or select it if it's empty)
 
                 if (focusedToken.text.length != 0) this.module.editor.monaco.setPosition(pos);
@@ -137,7 +142,7 @@ export class Focus {
                     if (focusedToken.left - 1 > focusedLineStatement.left) {
                         const tokenBefore = this.getTokenAtStatementColumn(focusedLineStatement, focusedToken.left - 1);
 
-                        if (tokenBefore instanceof ast.Token && tokenBefore.isEmpty) {
+                        if (tokenBefore instanceof Token && tokenBefore.isEmpty) {
                             this.selectCode(tokenBefore);
                         }
                     }
@@ -147,7 +152,7 @@ export class Focus {
                     // navigate to the end (or the empty token right after this token)
                     const tokenAfter = this.getTokenAtStatementColumn(focusedLineStatement, focusedToken.right + 1);
 
-                    if (tokenAfter instanceof ast.Token && tokenAfter.isEmpty) {
+                    if (tokenAfter instanceof Token && tokenAfter.isEmpty) {
                         this.selectCode(tokenAfter);
                     } else {
                         this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedToken.right));
@@ -208,17 +213,14 @@ export class Focus {
             } else {
                 const tokenAfter = this.getTokenAtStatementColumn(focusedLineStatement, nextColumn);
 
-                if (tokenAfter instanceof ast.NonEditableTkn) {
+                if (tokenAfter instanceof NonEditableTkn) {
                     // should skip this NonEditableTkn, and move to the next thing after it.
 
                     const tokenAfterAfter = this.getTokenAtStatementColumn(focusedLineStatement, tokenAfter.right);
 
-                    if (tokenAfterAfter instanceof ast.Token && tokenAfterAfter.isEmpty) {
+                    if (tokenAfterAfter instanceof Token && tokenAfterAfter.isEmpty) {
                         this.selectCode(tokenAfterAfter);
-                    } else if (
-                        tokenAfterAfter instanceof ast.EditableTextTkn ||
-                        tokenAfterAfter instanceof ast.IdentifierTkn
-                    ) {
+                    } else if (tokenAfterAfter instanceof EditableTextTkn || tokenAfterAfter instanceof IdentifierTkn) {
                         this.module.editor.monaco.setPosition(
                             new monaco.Position(curPos.lineNumber, tokenAfterAfter.left)
                         );
@@ -230,11 +232,11 @@ export class Focus {
                     } else {
                         this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfter.right));
                     }
-                } else if (tokenAfter instanceof ast.Token && tokenAfter.isEmpty) {
+                } else if (tokenAfter instanceof Token && tokenAfter.isEmpty) {
                     // if char[col + 1] is H => just select H
 
                     this.selectCode(tokenAfter);
-                } else if (tokenAfter instanceof ast.EditableTextTkn || tokenAfter instanceof ast.IdentifierTkn) {
+                } else if (tokenAfter instanceof EditableTextTkn || tokenAfter instanceof IdentifierTkn) {
                     // if char[col + 1] is a literal => go through it
 
                     this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfter.left));
@@ -271,7 +273,7 @@ export class Focus {
             } else {
                 const tokenBefore = this.getTokenAtStatementColumn(focusedLineStatement, prevColumn);
 
-                if (tokenBefore instanceof ast.NonEditableTkn) {
+                if (tokenBefore instanceof NonEditableTkn) {
                     // if char[col - 1] is N => just go to the beginning of N
 
                     const tokenBeforeBefore = this.getTokenAtStatementColumn(
@@ -279,12 +281,11 @@ export class Focus {
                         tokenBefore.left - 1
                     );
 
-                    if (tokenBeforeBefore instanceof ast.Token && tokenBeforeBefore.isEmpty) {
+                    if (tokenBeforeBefore instanceof Token && tokenBeforeBefore.isEmpty) {
                         this.selectCode(tokenBeforeBefore);
                     } else if (
-                        tokenBeforeBefore instanceof ast.Token &&
-                        (tokenBeforeBefore instanceof ast.EditableTextTkn ||
-                            tokenBeforeBefore instanceof ast.IdentifierTkn)
+                        tokenBeforeBefore instanceof Token &&
+                        (tokenBeforeBefore instanceof EditableTextTkn || tokenBeforeBefore instanceof IdentifierTkn)
                     ) {
                         this.module.editor.monaco.setPosition(
                             new monaco.Position(curPos.lineNumber, tokenBeforeBefore.right)
@@ -292,11 +293,11 @@ export class Focus {
                     } else {
                         this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenBefore.left));
                     }
-                } else if (tokenBefore instanceof ast.Token && tokenBefore.isEmpty) {
+                } else if (tokenBefore instanceof Token && tokenBefore.isEmpty) {
                     // if char[col - 1] is H => just select H
 
                     this.selectCode(tokenBefore);
-                } else if (tokenBefore instanceof ast.EditableTextTkn) {
+                } else if (tokenBefore instanceof EditableTextTkn) {
                     // if char[col - 1] is a literal => go through it
                 }
             }
@@ -374,26 +375,26 @@ export class Focus {
     onEmptyLine(): boolean {
         const curLine = this.getFocusedStatement();
 
-        return curLine instanceof ast.EmptyLineStmt;
+        return curLine instanceof EmptyLineStmt;
     }
 
     /**
-     * Finds the closest ast.Token to the given column inside the given statement.
+     * Finds the closest Token to the given column inside the given statement.
      * @param statement the statement to search inside.
      * @param column the given column to search with (usually from current position)
-     * @returns the found ast.Token at the given column in which the following condition holds true: token.left <= column < token.right
+     * @returns the found Token at the given column in which the following condition holds true: token.left <= column < token.right
      */
-    private getTokenAtStatementColumn(statement: ast.Statement, column: number): ast.CodeConstruct {
-        const tokensStack = new Array<ast.CodeConstruct>();
+    private getTokenAtStatementColumn(statement: Statement, column: number): CodeConstruct {
+        const tokensStack = new Array<CodeConstruct>();
 
         tokensStack.unshift(...statement.tokens);
 
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
 
-            if (column >= curToken.left && column < curToken.right && curToken instanceof ast.Token) return curToken;
+            if (column >= curToken.left && column < curToken.right && curToken instanceof Token) return curToken;
 
-            if (curToken instanceof ast.Expression)
+            if (curToken instanceof Expression)
                 if (curToken.tokens.length > 0) tokensStack.unshift(...curToken.tokens);
                 else return curToken;
         }
@@ -415,10 +416,10 @@ export class Focus {
     /**
      * Recursively searches for all of the body and statements that have bodies and looks for the statement (line) with the given lineNumber.
      * @param line the given line number to search for.
-     * @returns the ast.Statement object of that line.
+     * @returns the Statement object of that line.
      */
-    getStatementAtLineNumber(line: number): ast.Statement {
-        const bodyStack = new Array<ast.Statement>();
+    getStatementAtLineNumber(line: number): Statement {
+        const bodyStack = new Array<Statement>();
 
         bodyStack.unshift(...this.module.body);
 
@@ -436,7 +437,7 @@ export class Focus {
      * Selects the given code construct.
      * @param code the editor will set its selection to the left and right of this given code.
      */
-    private selectCode(code: ast.CodeConstruct) {
+    private selectCode(code: CodeConstruct) {
         if (code != null) {
             const selection = new monaco.Selection(code.getLineNumber(), code.right, code.getLineNumber(), code.left);
 
@@ -444,10 +445,10 @@ export class Focus {
         }
     }
 
-    private getContextFromSelection(statement: ast.Statement, left: number, right: number): Context {
+    private getContextFromSelection(statement: Statement, left: number, right: number): Context {
         const context = new Context();
         context.lineStatement = statement;
-        const tokensStack = new Array<ast.CodeConstruct>();
+        const tokensStack = new Array<CodeConstruct>();
 
         // initialize tokensStack
         tokensStack.unshift(...statement.tokens);
@@ -458,11 +459,11 @@ export class Focus {
             if (curToken.left == left && curToken.right == right) {
                 context.selected = true;
 
-                if (curToken instanceof ast.Token) context.token = curToken;
-                else if (curToken instanceof ast.Expression) context.expression = curToken;
+                if (curToken instanceof Token) context.token = curToken;
+                else if (curToken instanceof Expression) context.expression = curToken;
 
                 return context;
-            } else if (curToken instanceof ast.Expression) {
+            } else if (curToken instanceof Expression) {
                 if (left == curToken.left && right == curToken.right) {
                     context.expression = curToken;
                     context.selected = true;
@@ -482,8 +483,8 @@ export class Focus {
         return context;
     }
 
-    private findNonTextualHole(statement: ast.Statement, column: number): ast.Token {
-        const tokensStack = new Array<ast.CodeConstruct>();
+    private findNonTextualHole(statement: Statement, column: number): Token {
+        const tokensStack = new Array<CodeConstruct>();
 
         for (const token of statement.tokens) tokensStack.unshift(token);
 
@@ -493,27 +494,27 @@ export class Focus {
             if (
                 column == curToken.left &&
                 column == curToken.right &&
-                (curToken instanceof ast.EditableTextTkn ||
-                    curToken instanceof ast.LiteralValExpr ||
-                    curToken instanceof ast.IdentifierTkn)
+                (curToken instanceof EditableTextTkn ||
+                    curToken instanceof LiteralValExpr ||
+                    curToken instanceof IdentifierTkn)
             ) {
-                if (curToken instanceof ast.LiteralValExpr && curToken.returns == DataType.Number)
-                    return curToken.tokens[0] as ast.Token;
-                else if (curToken instanceof ast.EditableTextTkn) return curToken;
-                else if (curToken instanceof ast.IdentifierTkn) return curToken;
+                if (curToken instanceof LiteralValExpr && curToken.returns == DataType.Number)
+                    return curToken.tokens[0] as Token;
+                else if (curToken instanceof EditableTextTkn) return curToken;
+                else if (curToken instanceof IdentifierTkn) return curToken;
             }
 
-            if (curToken instanceof ast.Expression)
+            if (curToken instanceof Expression)
                 if (curToken.tokens.length > 0) for (let token of curToken.tokens) tokensStack.unshift(token);
         }
 
         return null;
     }
 
-    private getContextFromPosition(statement: ast.Statement, column: number): Context {
+    private getContextFromPosition(statement: Statement, column: number): Context {
         const context = new Context();
         context.lineStatement = statement;
-        const tokensStack = new Array<ast.CodeConstruct>();
+        const tokensStack = new Array<CodeConstruct>();
 
         // initialize tokensStack
         for (const token of statement.tokens) tokensStack.unshift(token);
@@ -521,7 +522,7 @@ export class Focus {
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
 
-            if (curToken instanceof ast.Token) {
+            if (curToken instanceof Token) {
                 // this code assumes that there is no token with an empty text
 
                 if (column == curToken.left) {
@@ -573,12 +574,12 @@ export class Focus {
                     break;
                 } else if (column > curToken.left && column < curToken.right) {
                     context.token = curToken;
-                    // context.parentExpression = context.token.rootNode as ast.Expression;
+                    // context.parentExpression = context.token.rootNode as Expression;
                     context.lineStatement = context.token.getParentStatement();
 
                     break;
                 }
-            } else if (curToken instanceof ast.Expression) {
+            } else if (curToken instanceof Expression) {
                 if (curToken.tokens.length > 0) tokensStack.unshift(...curToken.tokens);
                 else {
                     console.warn(
@@ -594,8 +595,8 @@ export class Focus {
     /**
      * Finds the parent expression of a given token that meets the given 'check' condition.
      */
-    private getExpression(token: ast.Token, check: boolean): ast.Expression {
-        if (token.rootNode instanceof ast.Expression && check) return token.rootNode;
+    private getExpression(token: Token, check: boolean): Expression {
+        if (token.rootNode instanceof Expression && check) return token.rootNode;
 
         return null;
     }
@@ -603,17 +604,17 @@ export class Focus {
     /**
      * Searches the tokens tree for a token that matches the passed check() condition.
      */
-    private searchNonEmptyTokenWithCheck(statement: ast.Statement, check: (token: ast.Token) => boolean): ast.Token {
-        const tokensStack = new Array<ast.CodeConstruct>();
+    private searchNonEmptyTokenWithCheck(statement: Statement, check: (token: Token) => boolean): Token {
+        const tokensStack = new Array<CodeConstruct>();
 
         tokensStack.unshift(...statement.tokens);
 
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
 
-            if (curToken instanceof ast.Token && curToken.left != curToken.right && check(curToken)) return curToken;
+            if (curToken instanceof Token && curToken.left != curToken.right && check(curToken)) return curToken;
 
-            if (curToken instanceof ast.Expression) {
+            if (curToken instanceof Expression) {
                 if (curToken.tokens.length > 0) tokensStack.unshift(...curToken.tokens);
             }
         }
@@ -625,29 +626,29 @@ export class Focus {
 export class Context {
     // hierarchical levels:
 
-    token?: ast.Token = null;
-    tokenToLeft?: ast.Token = null;
-    tokenToRight?: ast.Token = null;
+    token?: Token = null;
+    tokenToLeft?: Token = null;
+    tokenToRight?: Token = null;
 
     /**
      * Immediate items
      */
-    // parentExpression?: ast.Expression = null;
-    expression?: ast.Expression = null;
-    expressionToLeft?: ast.Expression = null;
-    expressionToRight?: ast.Expression = null;
+    // parentExpression?: Expression = null;
+    expression?: Expression = null;
+    expressionToLeft?: Expression = null;
+    expressionToRight?: Expression = null;
 
-    lineStatement: ast.Statement;
+    lineStatement: Statement;
 
     selected?: boolean = false; //this should not be nullable
     position?: monaco.Position = null;
 }
 
 export class UpdatableContext {
-    tokenToSelect?: ast.CodeConstruct;
+    tokenToSelect?: CodeConstruct;
     positionToMove?: monaco.Position;
 
-    constructor(tokenToSelect?: ast.Token, positionToMove?: monaco.Position) {
+    constructor(tokenToSelect?: Token, positionToMove?: monaco.Position) {
         this.tokenToSelect = tokenToSelect;
         this.positionToMove = positionToMove;
     }
