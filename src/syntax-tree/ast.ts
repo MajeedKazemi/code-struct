@@ -1,7 +1,7 @@
 import { Scope } from "./scope";
 import { Module } from "./module";
 import { rebuildBody } from "./body";
-import { TAB_SPACES } from "./consts";
+import { InsertionType, TAB_SPACES } from "./consts";
 import * as monaco from "monaco-editor";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
@@ -19,6 +19,7 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
+import { Util, hasMatch } from "../utilities/util";
 
 export interface CodeConstruct {
     /**
@@ -516,6 +517,41 @@ export abstract class Expression extends Statement implements CodeConstruct {
      * @param type new return/expression hole type
      */
     performTypeUpdatesOnInsertion(type: DataType) {}
+
+    /**
+     * Return whether this construct can be repalced with replaceWith.
+     * Can replace a bin expression in only two cases
+     *   1: replaceWith has the same return type
+     *   2: replaceWith can be cast/modified to become the same type as the bin op being replaced
+     */
+     canReplaceWithConstruct(replaceWith: Expression): InsertionType{
+        //when we are replacing at the top level (meaning the item above is a Statement),
+        //we need to check types against the type of hole that used to be there and not the expression
+        //that is currently there
+        if (!(this.rootNode instanceof Expression) && !(this.rootNode instanceof Module)){
+            const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
+
+            let canConvertToParentType = hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), typesOfParentHole);
+
+            if(canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])){
+                return InsertionType.DraftMode;
+            }
+            else if(hasMatch(typesOfParentHole, [replaceWith.returns])){
+                return InsertionType.Valid;
+            }
+        }
+        else{ //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
+            if(replaceWith.returns === this.returns){
+                return InsertionType.Valid;
+            }
+            else if(replaceWith.returns !== this.returns && hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), [this.returns])){
+                return InsertionType.DraftMode;
+            }
+            else{
+                return InsertionType.Invalid;
+            }
+        } 
+    }
 }
 
 /**
