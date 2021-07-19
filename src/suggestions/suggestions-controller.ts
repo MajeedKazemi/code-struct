@@ -1,8 +1,10 @@
 import { Editor } from "../editor/editor";
-import { Validator } from "../editor/validator";
-import { Module, Reference, VarAssignmentStmt } from "../syntax-tree/ast";
-import { ConstructKeys, Util } from "../utilities/util";
 import { ConstructDoc } from "./construct-doc";
+import { Module } from "../syntax-tree/module";
+import { Validator } from "../editor/validator";
+import { Reference } from "../syntax-tree/scope";
+import { VarAssignmentStmt } from "../syntax-tree/ast";
+import { ConstructKeys, Util } from "../utilities/util";
 
 /*
  *A tree menu that can hold options for the user and link through those options to other menus.
@@ -652,13 +654,17 @@ export class MenuController {
             //add variable references
             const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
             const refs = Validator.getValidVariableReferences(focusedNode);
-            const identifiers = refs.map((ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier());
+            const identifiers = refs.map((ref) =>
+                ((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier()
+            );
             refs.forEach((ref) => {
                 if ((ref[0] as Reference).statement instanceof VarAssignmentStmt) {
                     menuMap.get("Other").push(((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier());
                     actionMap.set(
                         ((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier(),
-                        this.module.getVarRefHandler((ref[0] as Reference).statement as VarAssignmentStmt).bind(this.module)
+                        this.module
+                            .getVarRefHandler((ref[0] as Reference).statement as VarAssignmentStmt)
+                            .bind(this.module)
                     );
                 }
             });

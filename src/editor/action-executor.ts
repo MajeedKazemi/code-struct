@@ -2,12 +2,12 @@ import { Context } from "./focus";
 import * as monaco from "monaco-editor";
 import { EditActionType } from "./enums";
 import { EditAction } from "./event-router";
-import * as keywords from "../syntax-tree/keywords";
+import { Module } from "../syntax-tree/module";
 import { ConstructKeys, Util } from "../utilities/util";
+import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
+import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import {
-    Module,
-    DataType,
     IdentifierTkn,
     LiteralValExpr,
     NonEditableTkn,
@@ -18,9 +18,6 @@ import {
     Expression,
     Token,
     BinaryOperatorExpr,
-    InsertionType,
-    IfStatement,
-    BinaryOperator,
 } from "../syntax-tree/ast";
 
 export class ActionExecutor {
@@ -445,13 +442,7 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                if (action.data.literalType == DataType.Number) {
-                    this.module.insert(new LiteralValExpr(DataType.Number, action.data?.initialValue));
-                } else if (action.data.literalType == DataType.String) {
-                    this.module.insert(new LiteralValExpr(DataType.String, ""));
-                } else if (action.data.literalType == DataType.Boolean) {
-                    this.module.insert(new LiteralValExpr(DataType.Boolean, action.data?.initialValue));
-                }
+                this.module.insert(new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
 
                 this.module.editor.monaco.focus();
 
@@ -613,7 +604,9 @@ export class ActionExecutor {
             expr.indexInRoot = curOperand.indexInRoot;
             expr.rootNode = newCode;
 
-            this.module.replaceExpression(root, index, newCode);
+            root.tokens[index] = newCode;
+            root.rebuild(root.getLeftPosition(), 0);
+
             this.module.editor.executeEdits(initialBoundary, newCode);
             this.module.focus.updateContext({
                 tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
@@ -693,13 +686,13 @@ export class ActionExecutor {
             context.tokenToLeft instanceof IdentifierTkn ||
             context.tokenToRight instanceof IdentifierTkn
         ) {
-            if (Object.keys(keywords.PythonKeywords).indexOf(identifierText) > -1) {
+            if (Object.keys(PythonKeywords).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
                     focusedNode,
                     { identifier: identifierText },
                     ErrorMessage.identifierIsKeyword
                 );
-            } else if (Object.keys(keywords.BuiltInFunctions).indexOf(identifierText) > -1) {
+            } else if (Object.keys(BuiltInFunctions).indexOf(identifierText) > -1) {
                 this.module.notificationSystem.addPopUpNotification(
                     focusedNode,
                     { identifier: identifierText },

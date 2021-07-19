@@ -1,8 +1,8 @@
-import { BinaryOperator, BinaryOperatorExpr, Callback, CallbackType, CodeConstruct, DataType, Expression, FunctionCallStmt, Module, OperatorTkn, Scope, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Editor } from "../editor/editor";
-import { Notification, HoverNotification, PopUpNotification } from "./notification";
+import { Module } from "../syntax-tree/module";
 import { ErrorMessageGenerator, ErrorMessage } from "./error-msg-generator";
-import { Position } from "monaco-editor";
+import { Notification, HoverNotification, PopUpNotification } from "./notification";
+import { BinaryOperatorExpr, CodeConstruct, Expression, FunctionCallStmt, TypedEmptyExpr } from "../syntax-tree/ast";
 
 const popUpNotificationTime = 3000; //ms
 
@@ -47,7 +47,7 @@ const longTestText =
 const shortTestText =
     "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.";
 
-const defaultHighlightColour: [number,number, number, number] = [255, 191, 94, 0.3];
+const defaultHighlightColour: [number, number, number, number] = [255, 191, 94, 0.3];
 
 /**
  * Class representing the main entry point of the code into the NotificationSystem.
@@ -73,12 +73,18 @@ export class NotificationSystemController {
      * @param args       context for constructing appropriate message. See error-msg-generator.ts for more info
      * @param errMsgType type of error message the notification should display when hovered over
      */
-    addHoverNotification(codeToHighlight:CodeConstruct, args: any, warningText?: string, errMsgType?: ErrorMessage, highlightColour: [number, number, number, number] = defaultHighlightColour) {
+    addHoverNotification(
+        codeToHighlight: CodeConstruct,
+        args: any,
+        warningText?: string,
+        errMsgType?: ErrorMessage,
+        highlightColour: [number, number, number, number] = defaultHighlightColour
+    ) {
         if (!codeToHighlight.notification) {
             const notif = new HoverNotification(
                 this.editor,
                 codeToHighlight,
-                errMsgType ? this.msgGenerator.generateMsg(errMsgType, args) : (warningText ?? "Placeholder Text"),
+                errMsgType ? this.msgGenerator.generateMsg(errMsgType, args) : warningText ?? "Placeholder Text",
                 highlightColour,
                 this.notifications.length
             );
@@ -93,18 +99,27 @@ export class NotificationSystemController {
 
     /**
      * Add a pop-up notification to the editor at the specified position.
-     * 
+     *
      * If args and errMsgType are specified, there is no need to specify text as it will be auto-generated.
      */
     addPopUpNotification(code: CodeConstruct, args: any, errMsgType?: ErrorMessage, text?: string) {
-        if(text){
+        if (text) {
             this.notifications.push(
-                new PopUpNotification(this.editor, code, this.msgGenerator.generateMsg(errMsgType, args) ?? text, this.notifications.length)
+                new PopUpNotification(
+                    this.editor,
+                    code,
+                    this.msgGenerator.generateMsg(errMsgType, args) ?? text,
+                    this.notifications.length
+                )
             );
-        }
-        else{
+        } else {
             this.notifications.push(
-                new PopUpNotification(this.editor, code, this.msgGenerator.generateMsg(errMsgType, args) ?? text, this.notifications.length, )
+                new PopUpNotification(
+                    this.editor,
+                    code,
+                    this.msgGenerator.generateMsg(errMsgType, args) ?? text,
+                    this.notifications.length
+                )
             );
         }
 
@@ -126,9 +141,8 @@ export class NotificationSystemController {
             this.notifications[code.notification.systemIndex].removeFromDOM();
             this.notifications.splice(code.notification.systemIndex, 1);
             code.notification = null;
-        }
-        else{
-            console.warn("Could not remove notification from construct: " + code)
+        } else {
+            console.warn("Could not remove notification from construct: " + code);
         }
     }
 
@@ -140,7 +154,11 @@ export class NotificationSystemController {
         this.notifications = [];
     }
 
-    addBinBoolOpOperandInsertionTypeMismatchWarning(codeToHighlight: CodeConstruct, insertInto: TypedEmptyExpr, codeInserted: Expression){
+    addBinBoolOpOperandInsertionTypeMismatchWarning(
+        codeToHighlight: CodeConstruct,
+        insertInto: TypedEmptyExpr,
+        codeInserted: Expression
+    ) {
         this.addHoverNotification(
             codeToHighlight,
             { binOp: (insertInto.rootNode as BinaryOperatorExpr).operator, argType1: codeInserted.returns },
@@ -149,7 +167,11 @@ export class NotificationSystemController {
         );
     }
 
-    addFunctionCallArgumentTypeMismatchWarning(codeToHighlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
+    addFunctionCallArgumentTypeMismatchWarning(
+        codeToHighlight: CodeConstruct,
+        insertInto: TypedEmptyExpr,
+        insertCode: Expression
+    ) {
         this.addHoverNotification(
             codeToHighlight,
             {
@@ -162,7 +184,11 @@ export class NotificationSystemController {
         );
     }
 
-    addStatementHoleTypeMismatchWarning(codeToHighlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
+    addStatementHoleTypeMismatchWarning(
+        codeToHighlight: CodeConstruct,
+        insertInto: TypedEmptyExpr,
+        insertCode: Expression
+    ) {
         this.addHoverNotification(
             codeToHighlight,
             {
@@ -175,7 +201,11 @@ export class NotificationSystemController {
         );
     }
 
-    addBinOpOperandTypeMismatchWarning(codeToHightlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
+    addBinOpOperandTypeMismatchWarning(
+        codeToHightlight: CodeConstruct,
+        insertInto: TypedEmptyExpr,
+        insertCode: Expression
+    ) {
         this.addHoverNotification(
             codeToHightlight,
             {
@@ -188,7 +218,11 @@ export class NotificationSystemController {
         );
     }
 
-    addCompOpOperandTypeMismatchWarning(codeToHightlight: CodeConstruct, insertInto: TypedEmptyExpr, insertCode: Expression){
+    addCompOpOperandTypeMismatchWarning(
+        codeToHightlight: CodeConstruct,
+        insertInto: TypedEmptyExpr,
+        insertCode: Expression
+    ) {
         this.addHoverNotification(
             codeToHightlight,
             {

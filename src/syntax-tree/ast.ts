@@ -1,148 +1,24 @@
+import { Scope } from "./scope";
+import { Module } from "./module";
+import { rebuildBody } from "./body";
+import { TAB_SPACES } from "./consts";
 import * as monaco from "monaco-editor";
-import { EventRouter } from "../editor/event-router";
-import { TAB_SPACES } from "./keywords";
-import { Editor } from "../editor/editor";
-import { EventStack as EventStack } from "../editor/event-stack";
+import { TypeChecker } from "./type-checker";
+import { DraftRecord } from "../editor/draft";
+import { Callback, CallbackType } from "./callback";
+import { Context, UpdatableContext } from "../editor/focus";
+import { Notification } from "../notification-system/notification";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
-import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { HoverNotification, Notification } from "../notification-system/notification";
-import { MenuController } from "../suggestions/suggestions-controller";
-import { ConstructKeys, constructToToolboxButton, Util, hasMatch } from "../utilities/util";
-import { Focus, Context, UpdatableContext } from "../editor/focus";
-import { Hole } from "../editor/hole";
-import { Validator } from "../editor/validator";
-import { ActionExecutor } from "../editor/action-executor";
-import { TypeSystem } from "./type-sys";
-
-export class Callback {
-    static counter: number = 0;
-    callback: () => any;
-    callerId: string;
-
-    constructor(callback: () => any) {
-        this.callback = callback;
-        this.callerId = "caller-id-" + Callback.counter;
-        Callback.counter++;
-    }
-}
-
-export enum InsertionType {
-    Valid, //insertion can be made
-    Invalid, //insertion cannot be made
-    DraftMode, //insertion will trigger draft mode
-}
-
-export enum DataType {
-    Number = "Number",
-    Boolean = "Boolean",
-    String = "String",
-    Fractional = "Float",
-    Iterator = "Iterator",
-    AnyList = "ListAny",
-    Set = "Set",
-    Dict = "Dict",
-    Class = "Class",
-    Void = "Void",
-    Any = "Any",
-
-    //TODO: If there is ever time then DataType needs to be changed to a class to support nested types like these.
-    //There are cases where we want to know what is inside the list such as for for-loop counter vars. They need to know
-    //what they are iterating over otherwise no type can be assigned to them
-    NumberList = "ListInt",
-    BooleanList = "ListBool",
-    StringList = "ListStr",
-}
-
-export enum BinaryOperator {
-    Add = "+",
-    Subtract = "-",
-    Multiply = "*",
-    Divide = "/",
-    Mod = "%",
-    Pow = "**",
-    LeftShift = "<<",
-    RightShift = ">>",
-    BitOr = "|",
-    BitXor = "^",
-    BitAnd = "&",
-    FloorDiv = "//",
-
-    And = "and",
-    Or = "or",
-
-    Equal = "==",
-    NotEqual = "!=",
-    LessThan = "<",
-    LessThanEqual = "<=",
-    GreaterThan = ">",
-    GreaterThanEqual = ">=",
-    Is = "is",
-    IsNot = "is not",
-    In = "in",
-    NotIn = "not in",
-}
-
-export const arithmeticOps = [
-    BinaryOperator.Add,
-    BinaryOperator.Subtract,
-    BinaryOperator.Multiply,
-    BinaryOperator.Divide,
-    BinaryOperator.Mod,
-    BinaryOperator.Pow,
-    BinaryOperator.LeftShift,
-    BinaryOperator.RightShift,
-    BinaryOperator.BitOr,
-    BinaryOperator.BitXor,
-    BinaryOperator.BitAnd,
-    BinaryOperator.FloorDiv,
-];
-export const boolOps = [BinaryOperator.And, BinaryOperator.Or];
-export const comparisonOps = [
-    BinaryOperator.Equal,
-    BinaryOperator.NotEqual,
-    BinaryOperator.LessThan,
-    BinaryOperator.LessThanEqual,
-    BinaryOperator.GreaterThan,
-    BinaryOperator.GreaterThanEqual,
-    BinaryOperator.Is,
-    BinaryOperator.IsNot,
-    BinaryOperator.In,
-    BinaryOperator.NotIn,
-];
-
-export enum BinaryOperatorCategory {
-    Boolean = "Bool",
-    Arithmetic = "Arithmetic",
-    Comparison = "Comparison",
-    Unspecified = "Unspecified",
-}
-
-export enum UnaryOp {
-    Invert = "~",
-    Not = "not",
-    UAdd = "+",
-    USub = "-",
-}
-
-export enum AddableType {
-    NotAddable,
-
-    Statement = "Statement",
-    Expression = "Expression",
-    ExpressionModifier = "Expression Modifier",
-    Identifier = "Identifier",
-    NumberLiteral = "Number Literal",
-    StringLiteral = "String Literal",
-}
-
-export enum CallbackType {
-    change,
-    replace,
-    delete,
-    fail,
-    focusEditableHole,
-    showAvailableVars,
-}
+import {
+    AddableType,
+    BinaryOperator,
+    BinaryOperatorCategory,
+    DataType,
+    UnaryOp,
+    arithmeticOps,
+    boolOps,
+    comparisonOps,
+} from "./consts";
 
 export interface CodeConstruct {
     /**
@@ -198,20 +74,6 @@ export interface CodeConstruct {
      * @returns the final right position of the whole node (calculated after building all of the children nodes)
      */
     build(pos: monaco.Position): monaco.Position;
-
-    /**
-     * Traverses the AST starting from this node to locate the smallest code construct that matches the given position
-     * @param pos The 2D point to start searching for
-     * @returns The located code construct (which includes its parents)
-     */
-    locate(pos: monaco.Position): CodeConstruct;
-
-    /**
-     * Checks if this node contains the given position (as a 2D point)
-     * @param pos the 2D point to check
-     * @returns true: contains, false: does not contain
-     */
-    contains(pos: monaco.Position): boolean;
 
     /**
      * Finds and returns the next empty hole (name or value) in this code construct
@@ -279,7 +141,7 @@ export interface CodeConstruct {
 
     /**
      * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
-     * 
+     *
      * @param insertInto code to insert into
      * @param insertCode code being inserted
      */
@@ -379,31 +241,6 @@ export abstract class Statement implements CodeConstruct {
         for (const callback of this.callbacks[type]) callback.callback();
     }
 
-    rebuildBody(fromIndex: number, startLineNumber: number) {
-        let lineNumber = startLineNumber;
-
-        for (let i = fromIndex; i < this.body.length; i++) {
-            this.body[i].indexInRoot = i;
-
-            if (i == 0) {
-                this.setLineNumber(lineNumber);
-                lineNumber++;
-            }
-
-            if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
-            else this.body[i].setLineNumber(lineNumber);
-
-            lineNumber += this.body[i].getHeight();
-        }
-
-        // propagate the rebuild-body process to the root node
-        if (this.rootNode instanceof Module) {
-            this.rootNode.rebuildBody(this.indexInRoot + 1, lineNumber);
-        } else if (this.rootNode instanceof Statement && this.rootNode.hasBody()) {
-            this.rootNode.rebuildBody(this.indexInRoot + 1, lineNumber);
-        }
-    }
-
     init(pos: monaco.Position) {
         this.build(pos);
 
@@ -456,50 +293,6 @@ export abstract class Statement implements CodeConstruct {
         this.notify(CallbackType.change);
     }
 
-    contains(pos: monaco.Position): boolean {
-        if (this.lineNumber == pos.lineNumber && pos.column >= this.left && pos.column <= this.right) return true;
-
-        return false;
-    }
-
-    getContainingSingleLineStatement(pos: monaco.Position): Statement {
-        if (this.contains(pos)) return this;
-        else {
-            for (const line of this.body) {
-                const stmt = line.getContainingSingleLineStatement(pos);
-
-                if (stmt != null) return stmt;
-            }
-        }
-
-        return null;
-    }
-
-    getStatementAtLine(line: number): Statement {
-        let foundStmt: Statement = null;
-
-        if (this.lineNumber == line) return this;
-        else if (this.hasBody())
-            for (const stmt of this.body) {
-                foundStmt = stmt.getStatementAtLine(line);
-
-                if (foundStmt != null) return foundStmt;
-            }
-
-        return null;
-    }
-
-    locate(pos: monaco.Position): CodeConstruct {
-        if (pos.lineNumber == this.lineNumber) {
-            if (pos.column == this.left) return this.tokens[0];
-            else if (pos.column == this.right) return this.tokens[this.tokens.length - 1];
-        }
-
-        if (this.contains(pos)) for (const code of this.tokens) if (code.contains(pos)) return code.locate(pos);
-
-        return null;
-    }
-
     getInitialFocus(): UpdatableContext {
         for (let token of this.tokens) {
             if (token instanceof Token && token.isEmpty) return { tokenToSelect: token };
@@ -532,11 +325,12 @@ export abstract class Statement implements CodeConstruct {
     replace(code: CodeConstruct, index: number) {
         // Notify the token being replaced
         const toReplace = this.tokens[index];
+
         if (toReplace) {
             toReplace.notify(CallbackType.delete);
 
             if (!(toReplace instanceof Token)) {
-                (toReplace as Statement).tokens.forEach((token) => {
+                (toReplace as Expression).tokens.forEach((token) => {
                     if (token instanceof Token) {
                         token.notify(CallbackType.delete);
                     }
@@ -564,55 +358,6 @@ export abstract class Statement implements CodeConstruct {
         this.updateHasEmptyToken(code);
 
         this.notify(CallbackType.replace);
-    }
-
-    /**
-     * Replaced the given item with the item in `this.body[index]`
-     */
-    replaceInBody(index: number, newStmt: Statement) {
-        const curLeftPos = this.body[index].getLeftPosition();
-        newStmt.init(curLeftPos);
-
-        newStmt.rootNode = this.body[index].rootNode;
-        newStmt.indexInRoot = index;
-        this.body[index] = newStmt;
-
-        if (newStmt.hasScope()) newStmt.scope.parentScope = this.scope;
-
-        if (newStmt instanceof VarAssignmentStmt) {
-            this.getModule().addVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
-        }
-
-        if (newStmt instanceof ForStatement) {
-            const varAssignStmt = new VarAssignmentStmt("", newStmt);
-            varAssignStmt.lineNumber = newStmt.lineNumber;
-            newStmt.buttonId = varAssignStmt.buttonId;
-
-            newStmt.loopVar = varAssignStmt;
-
-            this.getModule().addVariableButtonToToolbox(varAssignStmt);
-            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
-        }
-
-        this.rebuildBody(index + 1, curLeftPos.lineNumber + newStmt.getHeight());
-
-        this.notify(CallbackType.replace);
-    }
-
-    /**
-     * Adds `code` to the body at the given index
-     * @param statement the statement to be added
-     * @param index the index to add the `code` statement
-     */
-    addStatement(statement: Statement, index: number, lineNumber: number) {
-        // TODO: update-body-index -> merge these two in to another function that would take care of the indexInRoot itself.
-        // support delete, add, and etc.
-        this.body.splice(index, 0, statement);
-        for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
-
-        this.rebuildBody(index + 1, lineNumber + statement.getHeight());
-        this.notify(CallbackType.change);
     }
 
     getRenderText(): string {
@@ -706,7 +451,7 @@ export abstract class Statement implements CodeConstruct {
 
     /**
      * Actions performed when a code construct is inserted within a hole of this code construct.
-     * 
+     *
      * @param insertCode code being inserted
      */
     onInsertInto(insertCode: CodeConstruct) {}
@@ -760,14 +505,14 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
     /**
      * Update types of holes within the expression as well as the expression's return type when insertCode is inserted into it.
-     * 
+     *
      * @param insertCode code being inserted.
      */
     performTypeUpdatesOnInsertInto(insertCode: Expression) {}
 
     /**
      * Update types of holes within the expression as well as the expression's return type to "type" when this expression is inserted into the AST.
-     * 
+     *
      * @param type new return/expression hole type
      */
     performTypeUpdatesOnInsertion(type: DataType) {}
@@ -839,26 +584,6 @@ export abstract class Token implements CodeConstruct {
 
         if (this.text.length == 0) return new monaco.Position(pos.lineNumber, this.right);
         else return new monaco.Position(pos.lineNumber, this.right);
-    }
-
-    /**
-     * Checks if this node contains the given position (as a 2D point)
-     * @param pos the 2D point to check
-     * @returns true: contains, false: does not contain
-     */
-    contains(pos: monaco.Position): boolean {
-        if (pos.column >= this.left && pos.column <= this.right) return true;
-
-        return false;
-    }
-
-    /**
-     * For this token element, it returns it self.
-     * @param pos Not used
-     * @returns This token
-     */
-    locate(pos: monaco.Position): CodeConstruct {
-        return this;
     }
 
     /**
@@ -1043,7 +768,7 @@ export class IfStatement extends Statement {
         statement.rootNode = this;
         statement.indexInRoot = index;
 
-        this.rebuildBody(index + 1, prevPos.lineNumber + 1);
+        rebuildBody(this, index + 1, prevPos.lineNumber + 1);
     }
 
     typeValidateInsertionIntoHole(
@@ -1216,10 +941,6 @@ export class EmptyLineStmt extends Statement {
 
     getRenderText(): string {
         return "";
-    }
-
-    locate(pos: monaco.Position): CodeConstruct {
-        return this;
     }
 }
 
@@ -1636,10 +1357,9 @@ export class BinaryOperatorExpr extends Expression {
         return this.operatorCategory === BinaryOperatorCategory.Comparison;
     }
 
-    
     /**
-     * Update 
-     * 
+     * Update
+     *
      * @param type new return/operand type
      */
     performTypeUpdatesOnInsertion(type: DataType) {
@@ -1662,7 +1382,7 @@ export class BinaryOperatorExpr extends Expression {
 
     /**
      * Removes "type" from the type array of the operands of this expression.
-     * 
+     *
      * @param type type to remove
      */
     removeTypeFromOperands(type: DataType) {
@@ -1753,7 +1473,7 @@ export class BinaryOperatorExpr extends Expression {
 
     /**
      * Return whether all holes of a nested expression are still empty when used on a nested binary operator expression.
-     * 
+     *
      * @returns true if all holes are TypedEmptyExpr. false otherwise.
      */
     areAllHolesEmpty() {
@@ -1772,9 +1492,9 @@ export class BinaryOperatorExpr extends Expression {
         //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
         if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
             if (this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic) {
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
+                TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
             } else if (this.rootNode.operatorCategory === BinaryOperatorCategory.Comparison) {
-                TypeSystem.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
+                TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
         } else {
             // In the case that the root is a binOp and its holes are not empty, need to update the holes of this expr to that type as well
@@ -2004,8 +1724,8 @@ export class ListLiteralExpression extends Expression {
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
         if (this.areAllHolesEmpty()) {
-            this.returns = TypeSystem.getListTypeFromElementType(insertCode.returns);
-        } else if (TypeSystem.getElementTypeFromListType(this.returns) !== insertCode.returns) {
+            this.returns = TypeChecker.getListTypeFromElementType(insertCode.returns);
+        } else if (TypeChecker.getElementTypeFromListType(this.returns) !== insertCode.returns) {
             this.returns = DataType.AnyList;
         }
     }
@@ -2034,12 +1754,6 @@ export class IdentifierTkn extends Token implements TextEditable {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.validatorRegex = RegExp("^[^\\d\\W]\\w*$");
-    }
-
-    contains(pos: monaco.Position): boolean {
-        if (pos.column >= this.left && pos.column <= this.right) return true;
-
-        return false;
     }
 
     getLeft(): number {
@@ -2096,10 +1810,6 @@ export class OperatorTkn extends Token {
         this.operator = text;
     }
 
-    locate(pos: monaco.Position): CodeConstruct {
-        return this.rootNode;
-    }
-
     getSelection(): monaco.Selection {
         return this.rootNode.getSelection();
     }
@@ -2111,10 +1821,6 @@ export class NonEditableTkn extends Token {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-    }
-
-    locate(pos: monaco.Position): CodeConstruct {
-        return this.rootNode;
     }
 
     getSelection(): monaco.Selection {
@@ -2130,1240 +1836,7 @@ export class KeywordTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    locate(pos: monaco.Position): CodeConstruct {
-        return this.rootNode;
-    }
-
     getSelection(): monaco.Selection {
         return this.rootNode.getSelection();
-    }
-}
-
-/**
- * The main body of the code which includes an array of statements.
- */
-export class Module {
-    static draftModeButtonClass = "draftModeButton";
-
-    body = new Array<Statement>();
-    focus: Focus;
-    validator: Validator;
-    executer: ActionExecutor;
-
-    scope: Scope;
-    editor: Editor;
-    eventRouter: EventRouter;
-    eventStack: EventStack;
-    variableButtons: HTMLDivElement[] = [];
-    notificationSystem: NotificationSystemController;
-    menuController: MenuController;
-    typeSystem: TypeSystem;
-    draftExpressions: DraftRecord[];
-
-    constructor(editorId: string) {
-        this.editor = new Editor(document.getElementById(editorId), this);
-        this.focus = new Focus(this);
-        this.validator = new Validator(this);
-        this.executer = new ActionExecutor(this);
-        this.typeSystem = new TypeSystem(this);
-
-        this.draftExpressions = [];
-
-        this.focus.subscribeCallback((c: Context) => {
-            Hole.disableEditableHoleOutlines();
-            Hole.disableVarHighlights();
-            Hole.outlineTextEditableHole(c);
-            Hole.highlightValidVarHoles(c);
-        });
-
-        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to rafactor this one to
-        //use methods like above code
-        this.focus.subscribeCallback(
-            ((c: Context) => {
-                const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
-                const validInserts = this.getAllValidInsertsList(focusedNode);
-                const validRefs = Validator.getValidVariableReferences(focusedNode);
-                const validVarIds: string[] = validRefs.map(
-                    (ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId
-                );
-
-                //mark draft mode buttons
-                this.updateDraftModeToolboxButtons(focusedNode, validInserts);
-                this.updateDraftModeToolboxVarButtons(validRefs);
-
-                //disable/enable toolbox construct buttons based on context
-                Object.keys(ConstructKeys).forEach((construct) => {
-                    if (constructToToolboxButton.has(ConstructKeys[construct])) {
-                        const button = document.getElementById(
-                            constructToToolboxButton.get(ConstructKeys[construct])
-                        ) as HTMLButtonElement;
-
-                        if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
-                            button.disabled = true;
-                            button.classList.add("disabled");
-                            button.classList.remove(Module.draftModeButtonClass);
-                        } else {
-                            button.disabled = false;
-                            button.classList.remove("disabled");
-                        }
-                    }
-                });
-
-                //disable/enable toolbox var buttons based on context
-                this.variableButtons.forEach((button) => {
-                    if (validVarIds.indexOf(button.id) > -1) {
-                        button.classList.remove("varButtonDisabled");
-                    } else {
-                        button.classList.add("varButtonDisabled");
-                        button.classList.remove(Module.draftModeButtonClass);
-                    }
-                });
-            }).bind(this)
-        );
-
-        this.focus.subscribeCallback((c: Context) => {
-            const menuController = MenuController.getInstance();
-            if (menuController.isMenuOpen()) menuController.removeMenus();
-        });
-
-        this.body.push(new EmptyLineStmt(this, 0));
-        this.scope = new Scope();
-        this.body[0].build(new monaco.Position(1, 1));
-
-        this.focus.updateContext({ tokenToSelect: this.body[0] });
-        this.editor.monaco.focus();
-
-        this.eventRouter = new EventRouter(this);
-        this.eventStack = new EventStack(this);
-
-        this.notificationSystem = new NotificationSystemController(this.editor, this);
-
-        this.variableButtons = [];
-
-        this.menuController = MenuController.getInstance();
-        this.menuController.setInstance(this, this.editor);
-    }
-
-    recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
-        code.notify(callbackType);
-        if (code instanceof Expression || code instanceof Statement) {
-            const codeStack = new Array<CodeConstruct>();
-            codeStack.unshift(...code.tokens);
-
-            if (code instanceof Statement && code.hasBody()) codeStack.unshift(...code.body);
-
-            while (codeStack.length > 0) {
-                const curCode = codeStack.pop();
-                curCode.notify(callbackType);
-
-                if (curCode instanceof Statement || curCode instanceof Expression) codeStack.unshift(...curCode.tokens);
-                if (curCode instanceof Statement && curCode.hasBody()) codeStack.unshift(...curCode.body);
-            }
-        } else if (code instanceof Token) code.notify(callbackType);
-    }
-
-    replaceExpression(root: CodeConstruct, index: number, newExpression: CodeConstruct) {
-        if (root instanceof Statement) {
-            root.tokens[index] = newExpression;
-
-            root.rebuild(root.getLeftPosition(), 0);
-        }
-    }
-
-    indentBackStatement(line: Statement) {
-        const root = line.rootNode;
-
-        if (root instanceof Statement) {
-            if (!line.hasBody()) {
-                const removedItem = root.body.splice(line.indexInRoot, 1);
-
-                let outerBody: Array<Statement>;
-
-                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
-                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
-
-                removedItem[0].rootNode = root.rootNode;
-                removedItem[0].indexInRoot = root.indexInRoot + 1;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
-
-                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
-
-                this.rebuildBody(0, 1);
-            } else {
-                const removedItem = root.body.splice(line.indexInRoot, 1);
-
-                let outerBody: Array<Statement>;
-
-                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
-                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
-
-                removedItem[0].rootNode = root.rootNode;
-                removedItem[0].indexInRoot = root.indexInRoot + 1;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
-
-                const stmtStack = new Array<Statement>();
-                stmtStack.unshift(...removedItem[0].body);
-
-                while (stmtStack.length > 0) {
-                    const curStmt = stmtStack.pop();
-                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left - TAB_SPACES));
-
-                    if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
-                }
-
-                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
-
-                this.rebuildBody(0, 1);
-            }
-        }
-    }
-
-    indentForwardStatement(line: Statement) {
-        const root = line.rootNode;
-
-        if (root instanceof Statement || root instanceof Module) {
-            if (!line.hasBody()) {
-                const aboveMultilineStmt = root.body[line.indexInRoot - 1];
-                const removedItem = root.body.splice(line.indexInRoot, 1);
-
-                removedItem[0].rootNode = aboveMultilineStmt;
-                removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
-
-                aboveMultilineStmt.body.push(removedItem[0]);
-
-                this.rebuildBody(0, 1);
-            } else {
-                const aboveMultilineStmt = root.body[line.indexInRoot - 1];
-                const removedItem = root.body.splice(line.indexInRoot, 1);
-
-                removedItem[0].rootNode = aboveMultilineStmt;
-                removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
-
-                const stmtStack = new Array<Statement>();
-                stmtStack.unshift(...removedItem[0].body);
-
-                while (stmtStack.length > 0) {
-                    const curStmt = stmtStack.pop();
-                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left + TAB_SPACES));
-
-                    if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
-                }
-
-                aboveMultilineStmt.body.push(removedItem[0]);
-
-                this.rebuildBody(0, 1);
-            }
-        }
-    }
-
-    removeItems(code: CodeConstruct, start: number, count: number): Array<CodeConstruct> {
-        if (code instanceof Statement) {
-            const removedItems = code.tokens.splice(start, count);
-
-            for (const item of removedItems) {
-                this.recursiveNotify(item, CallbackType.delete);
-            }
-
-            code.rebuild(code.getLeftPosition(), 0);
-
-            return removedItems;
-        }
-
-        return [];
-    }
-
-    removeStatement(line: Statement): CodeConstruct {
-        const root = line.rootNode;
-
-        if (root instanceof Module || root instanceof Statement) {
-            const replacement = new EmptyLineStmt(root, line.indexInRoot);
-            this.recursiveNotify(line, CallbackType.delete);
-            root.body.splice(line.indexInRoot, 1, replacement);
-            replacement.build(line.getLeftPosition());
-            this.rebuildBody(0, 1);
-
-            return replacement;
-        }
-
-        return null;
-    }
-
-    deleteLine(line: Statement) {
-        const root = line.rootNode;
-
-        if (root instanceof Module || root instanceof Statement) {
-            this.recursiveNotify(line, CallbackType.delete);
-            root.body.splice(line.indexInRoot, 1);
-            this.rebuildBody(0, 1);
-        }
-    }
-
-    removeItem(item: CodeConstruct, { replaceType = null }): CodeConstruct {
-        const root = item.rootNode;
-
-        if (root instanceof Statement) {
-            const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
-            this.recursiveNotify(item, CallbackType.delete);
-
-            root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
-
-            for (let i = 0; i < root.tokens.length; i++) {
-                root.tokens[i].indexInRoot = i;
-                root.tokens[i].rootNode = root;
-            }
-
-            root.rebuild(root.getLeftPosition(), 0);
-
-            return replacedItem;
-        }
-
-        return null;
-    }
-
-    insertAfterIndex(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
-        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
-            const root = focusedCode.rootNode;
-
-            if (root instanceof Statement && root.tokens.length > 0) {
-                root.tokens.splice(index, 0, ...items);
-
-                for (let i = 0; i < root.tokens.length; i++) {
-                    root.tokens[i].indexInRoot = i;
-                    root.tokens[i].rootNode = root;
-                }
-
-                root.rebuild(root.getLeftPosition(), 0);
-            }
-        }
-    }
-
-    reset() {
-        this.body = new Array<Statement>();
-
-        this.body.push(new EmptyLineStmt(this, 0));
-        this.scope = new Scope();
-
-        this.body[0].build(new monaco.Position(1, 1));
-        this.focus.updateContext({ tokenToSelect: this.body[0] });
-
-        this.editor.reset();
-        this.editor.monaco.focus();
-
-        this.variableButtons.forEach((button) => button.remove());
-        this.variableButtons = [];
-
-        this.notificationSystem.clearAllNotifications();
-    }
-
-    addVariableButtonToToolbox(ref: VarAssignmentStmt) {
-        const button = document.createElement("div");
-        button.classList.add("button");
-        button.id = ref.buttonId;
-
-        document.getElementById("variables").appendChild(button);
-
-        button.addEventListener("click", this.getVarRefHandler(ref).bind(this));
-
-        this.variableButtons.push(button);
-    }
-
-    getVarRefHandler(ref: VarAssignmentStmt) {
-        return function () {
-            this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
-        };
-    }
-
-    addStatement(newStmt: Statement, index: number, lineNumber: number) {
-        this.body.splice(index, 0, newStmt);
-        for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
-
-        this.rebuildBody(index + 1, lineNumber + newStmt.getHeight());
-
-        if (newStmt instanceof VarAssignmentStmt) {
-            this.addVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
-        }
-
-        if (newStmt instanceof ForStatement) {
-            const varAssignStmt = new VarAssignmentStmt("", newStmt);
-            varAssignStmt.lineNumber = lineNumber;
-            newStmt.buttonId = varAssignStmt.buttonId;
-
-            newStmt.loopVar = varAssignStmt;
-
-            this.addVariableButtonToToolbox(varAssignStmt);
-            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
-        }
-    }
-
-    insertEmptyLine() {
-        const curPos = this.editor.monaco.getPosition();
-        const curStatement = this.focus.getFocusedStatement();
-        const parentRoot = curStatement.rootNode;
-
-        let leftPosToCheck = 1;
-        let parentStmtHasBody = false;
-        let textToAdd = "\n";
-        let spaces = "";
-        let atCompoundStmt = false;
-
-        if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-            // is inside the body of another statement
-            leftPosToCheck = parentRoot.left + TAB_SPACES;
-            parentStmtHasBody = true;
-
-            if (leftPosToCheck != 1) {
-                for (let i = 0; i < parentRoot.left + TAB_SPACES - 1; i++) spaces += " ";
-            }
-        }
-
-        if (curStatement instanceof Statement && curStatement.hasBody() && curPos.column != curStatement.left) {
-            // is at the header statement of a statement with body
-            leftPosToCheck = curStatement.left + TAB_SPACES;
-            parentStmtHasBody = true;
-            atCompoundStmt = true;
-
-            if (leftPosToCheck != 1) {
-                for (let i = 0; i < curStatement.left + TAB_SPACES - 1; i++) spaces += " ";
-            }
-        }
-
-        if (curPos.column == leftPosToCheck) {
-            // insert emptyStatement at this line, move other statements down
-            const emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot);
-
-            emptyLine.build(curStatement.getLeftPosition());
-
-            if (parentStmtHasBody)
-                (parentRoot as Statement).addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
-            else this.addStatement(emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
-
-            const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
-            this.editor.executeEdits(range, null, spaces + textToAdd);
-        } else {
-            // insert emptyStatement on next line, move other statements down
-            const emptyLine = new EmptyLineStmt(parentStmtHasBody ? parentRoot : this, curStatement.indexInRoot + 1);
-            emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
-
-            if (parentStmtHasBody && atCompoundStmt) {
-                emptyLine.indexInRoot = 0;
-                emptyLine.rootNode = curStatement;
-                (curStatement as Statement).addStatement(emptyLine, 0, curStatement.lineNumber + 1);
-            } else if (parentStmtHasBody)
-                (parentRoot as Statement).addStatement(
-                    emptyLine,
-                    curStatement.indexInRoot + 1,
-                    curStatement.lineNumber + 1
-                );
-            else this.addStatement(emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
-
-            const range = new monaco.Range(
-                curStatement.lineNumber,
-                curStatement.right,
-                curStatement.lineNumber,
-                curStatement.right
-            );
-            this.editor.executeEdits(range, null, textToAdd + spaces);
-            this.focus.updateContext({ tokenToSelect: emptyLine });
-        }
-    }
-
-    replaceFocusedStatement(newStmt: Statement) {
-        const focusedNode = this.focus.getContext().lineStatement;
-        const curLineNumber = this.body[focusedNode.indexInRoot].lineNumber;
-
-        this.body[focusedNode.indexInRoot] = newStmt;
-        newStmt.rootNode = focusedNode.rootNode;
-        newStmt.indexInRoot = focusedNode.indexInRoot;
-        newStmt.init(focusedNode.getLeftPosition());
-
-        if (newStmt.hasScope()) newStmt.scope.parentScope = this.scope;
-
-        if (newStmt instanceof VarAssignmentStmt) {
-            this.addVariableButtonToToolbox(newStmt);
-            this.scope.references.push(new Reference(newStmt, this.scope));
-        }
-
-        if (newStmt instanceof ForStatement) {
-            const varAssignStmt = new VarAssignmentStmt("", newStmt);
-            varAssignStmt.lineNumber = newStmt.lineNumber;
-            newStmt.buttonId = varAssignStmt.buttonId;
-
-            newStmt.loopVar = varAssignStmt;
-
-            this.addVariableButtonToToolbox(varAssignStmt);
-            newStmt.scope.references.push(new Reference(varAssignStmt, this.scope));
-        }
-
-        if (newStmt.getHeight() > 1) this.rebuildBody(newStmt.indexInRoot + 1, curLineNumber + newStmt.getHeight());
-    }
-
-    rebuildBody(fromIndex: number, startLineNumber: number) {
-        let lineNumber = startLineNumber;
-
-        for (let i = fromIndex; i < this.body.length; i++) {
-            this.body[i].indexInRoot = i;
-
-            if (this.body[i].hasBody()) this.body[i].rebuildBody(0, lineNumber);
-            else this.body[i].setLineNumber(lineNumber);
-
-            lineNumber += this.body[i].getHeight();
-        }
-    }
-
-    replaceFocusedExpression(expr: Expression) {
-        const context = this.focus.getContext();
-
-        if (context.expression != null) {
-            const root = context.expression.rootNode as Statement;
-            root.replace(expr, context.expression.indexInRoot);
-        } else if (context.token != null) {
-            const root = context.token.rootNode as Statement;
-            root.replace(expr, context.token.indexInRoot);
-        }
-    }
-
-    ///------------------VALIDATOR BEGIN
-
-    //TODO: How we insert also depends on where we are in relation to the construct: to the left, to the right or within.
-    // > 123 ==> --- > 123      and      123 > ==> 123 > ---      and    --- ==> --- > ---
-    //I don't know if we want this function to return this type of information.
-
-    //TODO: This method will not be part of module in the future, that is why it needs a context param
-
-    //Accepts context because this will not be part of Module in the future
-    isAbleToInsertComparator(context: Context, insertEquals: boolean = false): boolean {
-        return (
-            (context.selected &&
-                context.token instanceof TypedEmptyExpr &&
-                (context.token as TypedEmptyExpr).type.indexOf(DataType.Boolean) > -1) ||
-            //TODO: This case needs to be extended further since this is not always possible
-            //      For example: randint(1, 2) cannot become randint(1 > 2, 2)
-            //      Parent needs to be involved in the check
-            //left or right is an expression
-            context.expressionToLeft.returns === DataType.Number ||
-            context.expressionToRight.returns === DataType.Number ||
-            //equals can compare types other than Number (of course >, >=, < and <= also operate on types other than Number, but ignore that for now since our tool likely does not need it)
-            (context.expressionToLeft && context.expressionToRight && insertEquals)
-        );
-    }
-
-    /**
-     * Visually mark toolbox buttons of constructs the insertion of which into insertInto will trigger draft mode.
-     *
-     * @param insertInto construct to validate insertion against
-     * @param constructs list of possible insertions
-     */
-    updateDraftModeToolboxButtons(insertInto: CodeConstruct, constructs: Array<ConstructKeys>) {
-        const dummyConstructs = Util.getInstance(this).dummyToolboxConstructs;
-        for (const construct of constructs) {
-            const constructButton = document.getElementById(constructToToolboxButton.get(construct));
-
-            if (this.tryInsert(insertInto, dummyConstructs.get(construct)) === InsertionType.DraftMode) {
-                constructButton.classList.add(Module.draftModeButtonClass);
-            } else {
-                constructButton.classList.remove(Module.draftModeButtonClass);
-            }
-        }
-    }
-
-    updateDraftModeToolboxVarButtons(refs: any[]) {
-        for (const ref of refs) {
-            const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
-            if (ref[1] === InsertionType.DraftMode) {
-                button.classList.add(Module.draftModeButtonClass);
-            } else {
-                button.classList.remove(Module.draftModeButtonClass);
-            }
-        }
-    }
-
-    /**
-     * Produce a map of Util.ConstructKeys to boolean stating whether a given construct is available for insertion
-     * or a draft mode insertion into focusedNode.
-     *
-     * @param focusedNode code construct that is used to test insertions against.
-     * @returns           A mapping from code construct to whether it can be inserted at the given focusedNode.
-     */
-    getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean> {
-        const validInserts = new Map<ConstructKeys, boolean>();
-
-        try {
-            Object.keys(ConstructKeys).forEach((key) => {
-                const insertionType = this.tryInsert(
-                    focusedNode,
-                    Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])
-                );
-
-                validInserts.set(ConstructKeys[key], insertionType === InsertionType.Invalid ? false : true);
-            });
-        } catch (e) {
-            console.error("Unable to get valid inserts map for " + focusedNode + "\n\n" + e);
-        } finally {
-            return validInserts;
-        }
-    }
-
-    /**
-     * Produce a list of all code constructs that can be inserted into focusedNode or can be inserted by activating draft mode.
-     *
-     * @param focusedNode code construct to test insertions against.
-     * @returns           a list of ConstructKeys.
-     */
-    getAllValidInsertsList(focusedNode: CodeConstruct): Array<ConstructKeys> {
-        const validInsertsList = [];
-
-        try {
-            Object.keys(ConstructKeys).forEach((key) => {
-                if (
-                    this.tryInsert(
-                        focusedNode,
-                        Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])
-                    ) !== InsertionType.Invalid
-                ) {
-                    validInsertsList.push(ConstructKeys[key]);
-                }
-            });
-        } catch (e) {
-            console.error("Unable to get valid inserts list for:");
-            console.error(focusedNode);
-            console.error(e);
-        } finally {
-            return validInsertsList;
-        }
-    }
-
-    /**
-     * Filter insertSet to contain only code constructs that can be inserted into focusedNode and constructs that will cause draft mode to be activated upon insertion.
-     *
-     * @param focusedNode code construct to test insertions against.
-     * @param insertSet   a list of ConstructKeys representing code constructs to filter.
-     * @returns           a list of ConstructKeys.
-     */
-    getValidInsertsFromSet(focusedNode: CodeConstruct, insertSet: Array<ConstructKeys>) {
-        const validInserts = this.getAllValidInsertsMap(focusedNode);
-
-        return insertSet.filter((insertionCandidate) => validInserts.get(insertionCandidate));
-    }
-
-    tryInsert(insertInto: CodeConstruct, insert: CodeConstruct): InsertionType {
-        if (!insertInto || !insert) {
-            console.error(
-                "Failed to perform insertion check on\n   insertInto: " + insertInto + "\n   insert: " + insert
-            );
-            return null;
-        }
-
-        if (insert instanceof MethodCallExpr) {
-            const focusedPos = this.editor.monaco.getPosition();
-            const prevItem = insertInto
-                .getParentStatement()
-                .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
-
-            if (prevItem instanceof Expression && prevItem.returns == insert.calledOn /* TODO: and check calledOn */) {
-                // will replace the expression with this
-                // and will have the expression as the first element inside the code
-                insert.indexInRoot = prevItem.indexInRoot;
-                insert.rootNode = prevItem.rootNode;
-
-                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement)
-                    return InsertionType.Valid;
-            } else if (prevItem instanceof Expression && prevItem.returns != insert.calledOn)
-                return InsertionType.Invalid;
-        }
-
-        if (insert.addableType != AddableType.NotAddable && insertInto.receives.indexOf(insert.addableType) > -1) {
-            const focusedPos = insertInto.getLeftPosition();
-            const parentStatement = insertInto.getParentStatement();
-            const parentRoot = parentStatement.rootNode;
-            if (insertInto.receives.indexOf(AddableType.Statement) > -1) {
-                // replaces statement with the newly inserted statement
-                const statement = insert as Statement;
-
-                if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-                    if (insert instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                        if (parentRoot.isValidElseInsertion(insertInto.indexInRoot, insert)) return InsertionType.Valid;
-                    } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
-                } else if (!(statement instanceof ElseStatement)) return InsertionType.Valid;
-                else {
-                    return InsertionType.Invalid;
-                }
-            } else if (insertInto.receives.indexOf(AddableType.Expression) > -1) {
-                let isValid = true;
-
-                if (insert instanceof VariableReferenceExpr) {
-                    // prevent out of scope referencing of a variable
-                    if (parentRoot instanceof IfStatement) {
-                        isValid = parentRoot.isValidReference(
-                            insert.uniqueId,
-                            focusedPos.lineNumber,
-                            parentStatement.indexInRoot
-                        );
-                    } else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
-                        isValid = parentRoot.scope.isValidReference(insert.uniqueId, focusedPos.lineNumber);
-                    }
-
-                    if (!isValid) return InsertionType.Invalid;
-
-                    return InsertionType.Valid;
-                }
-
-                //special case for BinaryOperatorExpression +
-                //because it can return either a string or a number, we need to determine what it returns during insertion
-                //Insertion of a BinaryOperatorExpr into a TypedEmptyExpr
-                if (
-                    isValid &&
-                    insert instanceof BinaryOperatorExpr &&
-                    insert.operator == BinaryOperator.Add &&
-                    insertInto instanceof TypedEmptyExpr
-                ) {
-                    if (
-                        insertInto.type.indexOf(DataType.String) > -1 ||
-                        insertInto.type.indexOf(DataType.Number) > -1 ||
-                        insertInto.type.indexOf(DataType.Any) > -1
-                    ) {
-                        return InsertionType.Valid;
-                    } else if (
-                        hasMatch(Util.getInstance(this).typeConversionMap.get(insert.returns), insertInto.type)
-                    ) {
-                        return InsertionType.DraftMode;
-                    }
-                }
-
-                //type checks -- different handling based on type of code construct
-                //insertInto.returns != code.returns would work, but we need more context to get the right error message
-                //Insertion of an Expression into a TypedEmptyExpr contained within some other Expression or Statement
-                if (isValid && insertInto instanceof TypedEmptyExpr && insert instanceof Expression) {
-                    //inserting an Expression into a TypedEmptyExpr of a BinaryBoolOperatorExpr
-                    if (insertInto.rootNode instanceof BinaryOperatorExpr && insertInto.rootNode.isBoolean()) {
-                        if (
-                            insert.returns != DataType.Boolean &&
-                            Util.getInstance(this).typeConversionMap.get(insert.returns).indexOf(insert.returns)
-                        )
-                            return InsertionType.DraftMode;
-                        return InsertionType.Valid;
-                    }
-                    //for-loop check is special since Iterable does not cover both str and list right now
-                    //can change it once the types are an array
-                    //inserting an Expression into the second hole of a for-loop
-                    else if (insertInto.rootNode instanceof ForStatement) {
-                        if (this.typeSystem.validateForLoopIterableInsertionType(insert)) {
-                            return InsertionType.Valid;
-                        } else if (
-                            hasMatch(Util.getInstance(this).typeConversionMap.get(insert.returns), TypeSystem.listTypes)
-                        ) {
-                            return InsertionType.DraftMode;
-                        }
-                    } else {
-                        if (
-                            insertInto.type.indexOf(insert.returns) > -1 ||
-                            insertInto.type.indexOf(DataType.Any) > -1
-                        ) {
-                            return InsertionType.Valid;
-                        } else if (
-                            hasMatch(Util.getInstance(this).typeConversionMap.get(insert.returns), insertInto.type)
-                        ) {
-                            return InsertionType.DraftMode;
-                        } else {
-                            return InsertionType.Invalid;
-                        }
-                    }
-                }
-
-                //type check for binary ops (separate from above because they don't use TypedEmptyExpressions)
-                let existingLiteralType = null;
-                if (
-                    insertInto.rootNode instanceof BinaryOperatorExpr &&
-                    !insertInto.rootNode.isBoolean() &&
-                    insert instanceof Expression
-                ) {
-                    //record the type of any hole that is already filled
-                    if (insertInto.rootNode.getLeftOperand() instanceof Expression) {
-                        existingLiteralType = (insertInto.rootNode.getLeftOperand() as Expression).returns;
-                    } else if (insertInto.rootNode.getRightOperand() instanceof Expression) {
-                        existingLiteralType = (insertInto.rootNode.getRightOperand() as Expression).returns;
-                    }
-
-                    if (existingLiteralType != null && existingLiteralType != insert.returns) {
-                        return InsertionType.Valid;
-                    } else if (
-                        existingLiteralType != null &&
-                        Util.getInstance(this).typeConversionMap.get(insert.returns).indexOf(existingLiteralType)
-                    ) {
-                        return InsertionType.DraftMode;
-                    }
-                }
-
-                return InsertionType.Valid;
-            }
-        } else return InsertionType.Invalid;
-    }
-
-    ///------------------VALIDATOR END
-
-    insert(code: CodeConstruct, insertInto?: CodeConstruct) {
-        const context = this.focus.getContext();
-        const focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
-
-        const insertionType =
-            code instanceof VariableReferenceExpr
-                ? (Validator.getValidVariableReferences(focusedNode)
-                      .filter(
-                          (record) =>
-                              ((record[0] as Reference).statement as VarAssignmentStmt).buttonId ===
-                              (code as VariableReferenceExpr).uniqueId
-                      )
-                      .map((record) => record[1])[0] as InsertionType)
-                : (this.tryInsert(focusedNode, code) as InsertionType);
-
-        let isValid = false;
-
-        if (focusedNode) {
-            if (code instanceof MethodCallExpr && insertionType !== InsertionType.DraftMode) {
-                const focusedPos = context.position;
-                const prevItem = context.token
-                    .getParentStatement()
-                    .locate(new monaco.Position(focusedPos.lineNumber, focusedPos.column - 1));
-
-                if (prevItem instanceof Expression && prevItem.returns == code.calledOn) {
-                    // will replace the expression with this
-                    // and will have the expression as the first element inside the code
-                    code.indexInRoot = prevItem.indexInRoot;
-                    code.rootNode = prevItem.rootNode;
-
-                    if (code.rootNode instanceof Expression || code.rootNode instanceof Statement) {
-                        code.rootNode.replace(code, code.indexInRoot);
-                    }
-
-                    code.setExpression(prevItem);
-
-                    const range = new monaco.Range(
-                        focusedPos.lineNumber,
-                        code.left,
-                        focusedPos.lineNumber,
-                        focusedPos.column
-                    );
-
-                    if (focusedNode.notification && context.selected) {
-                        this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                    }
-
-                    this.editor.executeEdits(range, code);
-                    prevItem.rebuild(new monaco.Position(focusedPos.lineNumber, prevItem.left), 0);
-                } else if (prevItem instanceof Expression && prevItem.returns != code.calledOn) {
-                    //TODO: relies on tokens array not changing the index of function name
-                    //Not sure why it's hardcoded, probably because identifier token is not accessible, but change that
-                    this.notificationSystem.addHoverNotification(
-                        focusedNode,
-                        {
-                            objectType: prevItem.returns,
-                            method: (code.tokens[2] as NonEditableTkn).text,
-                            calledOn: code.calledOn,
-                        },
-                        "",
-                        ErrorMessage.methodCallObjectTypeMismatch
-                    );
-                }
-            }
-
-            if (
-                code.addableType != AddableType.NotAddable &&
-                focusedNode.receives.indexOf(code.addableType) > -1 &&
-                insertionType !== InsertionType.DraftMode
-            ) {
-                //we don't always insert into a token, sometimes it may be an empty line
-                const focusedPos = this.focus.onEmptyLine()
-                    ? context.lineStatement.getLeftPosition()
-                    : context.token.getLeftPosition();
-
-                // TODO: validations => context.token.isEmpty
-
-                const parentStatement = context.lineStatement;
-                const parentRoot = parentStatement.rootNode;
-
-                if (focusedNode.receives.indexOf(AddableType.Statement) > -1) {
-                    // replaces statement with the newly inserted statement
-                    const statement = code as Statement;
-
-                    if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-                        if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                            if (parentRoot.isValidElseInsertion(focusedNode.indexInRoot, code)) {
-                                parentRoot.insertElseStatement(focusedNode.indexInRoot, code);
-
-                                const range = new monaco.Range(
-                                    focusedPos.lineNumber,
-                                    focusedPos.column - TAB_SPACES,
-                                    focusedPos.lineNumber,
-                                    focusedPos.column
-                                );
-
-                                this.editor.executeEdits(
-                                    range,
-                                    code,
-                                    code.getRenderText() + "\n" + emptySpaces(focusedPos.column - 1)
-                                );
-
-                                if (focusedNode.notification && context.selected) {
-                                    this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                                }
-                            }
-                        } else if (!(statement instanceof ElseStatement)) {
-                            parentRoot.replaceInBody(focusedNode.indexInRoot, statement);
-
-                            var range = new monaco.Range(
-                                focusedPos.lineNumber,
-                                code.left,
-                                focusedPos.lineNumber,
-                                code.right
-                            );
-
-                            if (focusedNode.notification && context.selected) {
-                                this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                            }
-
-                            this.editor.executeEdits(range, code);
-                        }
-                    } else if (!(statement instanceof ElseStatement)) {
-                        this.replaceFocusedStatement(statement);
-
-                        const range = new monaco.Range(
-                            focusedPos.lineNumber,
-                            statement.left,
-                            focusedPos.lineNumber,
-                            statement.right
-                        );
-
-                        if (focusedNode.notification) {
-                            this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                        }
-
-                        this.editor.executeEdits(range, statement);
-                    }
-
-                    const newContext = code.getInitialFocus();
-                    this.focus.updateContext(newContext);
-                } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-                    isValid = true;
-
-                    if (code instanceof VariableReferenceExpr) {
-                        // prevent out of scope referencing of a variable
-                        if (parentRoot instanceof IfStatement)
-                            isValid = parentRoot.isValidReference(
-                                code.uniqueId,
-                                focusedPos.lineNumber,
-                                parentStatement.indexInRoot
-                            );
-                        else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
-                            isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
-                        }
-
-                        if (!isValid) {
-                            //TODO: Used to hold notif for variable out of scope reference, but it was not refactored with the new refactoring. Look at any older code to add it back when there is time.
-                        }
-
-                        if (isValid && focusedNode.notification) {
-                            this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                        }
-                    }
-
-                    //type checks -- different handling based on type of code construct
-                    //focusedNode.returns != code.returns would work, but we need more context to get the right error message
-                    if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
-                        isValid = focusedNode.rootNode.typeValidateInsertionIntoHole(
-                            code,
-                            true,
-                            focusedNode,
-                            this.notificationSystem
-                        );
-
-                        if (isValid) {
-                            code.performPreInsertionUpdates(focusedNode);
-
-                            if (code.rootNode instanceof Statement) {
-                                code.rootNode.onInsertInto(code);
-                            }
-
-                            if (focusedNode.rootNode instanceof ForStatement) {
-                                this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code); //TODO: should be placed inside of doOnInsert() which is a method of all CodeConstructs
-                            }
-                            //This is for ListLiterals when their parent is a variable.
-                            //It needs to be refactored along with the rest of similar updates so that anything that has a rootNode that is a
-                            //VarAssignment changes the vars dataType.
-
-                            //Every expression needs to have this if it is being assigned to a var. So could put it inside Expression.
-                            if (
-                                focusedNode.rootNode.rootNode &&
-                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
-                            ) {
-                                const newType = TypeSystem.getListTypeFromElementType(code.returns);
-                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
-                            }
-
-                            //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
-                            if (
-                                focusedNode.rootNode instanceof MemberCallStmt &&
-                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
-                                focusedNode instanceof TypedEmptyExpr
-                            ) {
-                                const newType = TypeSystem.getElementTypeFromListType((code as Expression).returns);
-                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
-                            }
-                        }
-                    }
-
-                    if (isValid) {
-                        if (focusedNode.notification && context.selected) {
-                            this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                        }
-
-                        // replaces expression with the newly inserted expression
-                        const expr = code as Expression;
-
-                        /**
-                         * Update type of variable in toolbox.
-                         * Case 1: Variable is assigned some literal val
-                         * Case 2: Variable was assigned an arithmetic expression that is now being populated with literals.
-                         *         Therefore, variable assumes type returned by the arithmetic expression.
-                         */
-                        if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
-                        } else if (
-                            parentStatement instanceof VarAssignmentStmt &&
-                            parentStatement.dataType == DataType.Any &&
-                            focusedNode.rootNode instanceof BinaryOperatorExpr
-                        ) {
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns);
-                        }
-
-                        //update types of expressions that need an update
-                        if (focusedNode.rootNode instanceof BinaryOperatorExpr) {
-                            focusedNode.rootNode.returns = expr.returns;
-                        }
-
-                        this.replaceFocusedExpression(expr);
-
-                        const range = new monaco.Range(
-                            focusedPos.lineNumber,
-                            focusedNode.left,
-                            focusedPos.lineNumber,
-                            focusedNode.right
-                        );
-
-                        this.editor.executeEdits(range, expr);
-
-                        //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
-                        if (!focusedNode.notification) {
-                            const newContext = code.getInitialFocus();
-                            this.focus.updateContext(newContext);
-                        }
-                    }
-                }
-            } else {
-                //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
-                //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
-                if (code.addableType == AddableType.NotAddable) {
-                    console.warn("Cannot insert this code construct at focused location.");
-
-                    this.notificationSystem.addHoverNotification(focusedNode, {}, "", ErrorMessage.default);
-                } else if (
-                    focusedNode.receives.indexOf(code.addableType) == -1 &&
-                    insertionType == InsertionType.Invalid
-                ) {
-                    console.warn("Cannot insert this code construct at focused location.");
-
-                    if (focusedNode.rootNode instanceof Statement) {
-                        if (focusedNode.rootNode.getKeyword() != "") {
-                            //for, while, if, elseif
-                            this.notificationSystem.addHoverNotification(
-                                focusedNode,
-                                {
-                                    constructName: focusedNode.rootNode.getKeyword(),
-                                    addedType: code.addableType,
-                                    focusedNode: focusedNode,
-                                },
-                                "",
-                                ErrorMessage.addableTypeMismatchControlStmt
-                            );
-                        } else if (
-                            focusedNode.rootNode instanceof BinaryOperatorExpr ||
-                            focusedNode.rootNode instanceof UnaryOperatorExpr
-                        ) {
-                            this.notificationSystem.addHoverNotification(
-                                focusedNode,
-                                { addedType: code.addableType },
-                                "",
-                                ErrorMessage.addableTypeMismatchGeneral
-                            );
-                        } else {
-                            //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
-                            if (focusedNode.rootNode instanceof MethodCallStmt) {
-                                console.log("Address this once lists are fixed.");
-                            } else if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                                this.notificationSystem.addHoverNotification(
-                                    focusedNode,
-                                    { constructName: "Variable assignment", addedType: code.addableType },
-                                    "",
-                                    ErrorMessage.addableTypeMismatchVarAssignStmt
-                                );
-                            } else if (focusedNode.rootNode instanceof FunctionCallStmt) {
-                                if (code instanceof Expression) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        {
-                                            argType1: (focusedNode as TypedEmptyExpr).type,
-                                            argType2: code.returns,
-                                            methodName: focusedNode.rootNode.getFunctionName(),
-                                        },
-                                        "",
-                                        ErrorMessage.methodArgTypeMismatch
-                                    );
-                                } else if (code instanceof Statement) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        { addedType: code.addableType },
-                                        "",
-                                        ErrorMessage.addableTypeMismatchMethodArg
-                                    );
-                                }
-                            }
-                        }
-                    }
-                } else if (insertionType === InsertionType.DraftMode && code instanceof Expression) {
-                    const focusedPos = this.focus.onEmptyLine()
-                        ? context.lineStatement.getLeftPosition()
-                        : context.token.getLeftPosition();
-
-                    if (code instanceof VariableReferenceExpr && focusedNode instanceof EmptyLineStmt) {
-                        this.replaceFocusedStatement(code);
-                    } else {
-                        this.replaceFocusedExpression(code);
-                    }
-
-                    //TODO: Should we include the parent too?
-                    this.openDraftMode(code);
-
-                    const range = new monaco.Range(
-                        focusedPos.lineNumber,
-                        focusedNode.left,
-                        focusedPos.lineNumber,
-                        focusedNode.right
-                    );
-
-                    this.editor.executeEdits(range, code);
-                } else {
-                    console.warn("Cannot insert this code construct at focused location.");
-
-                    this.notificationSystem.addHoverNotification(
-                        focusedNode,
-                        { addedType: code.addableType },
-                        "",
-                        ErrorMessage.addableTypeMismatchEmptyLine
-                    );
-                }
-            }
-            this.editor.monaco.focus();
-        }
-    }
-
-    closeConstructDraftRecord(code: CodeConstruct) {
-        if (code.draftModeEnabled) {
-            code.draftModeEnabled = false;
-            const removedRecord = this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)[0];
-
-            if (removedRecord.warning) removedRecord.removeNotification();
-
-            code.draftRecord = null;
-        } else {
-            console.warn("Tried closing draft mode of construct that did not have one open.");
-        }
-    }
-
-    openDraftMode(code: Expression) {
-        code.draftModeEnabled = true;
-        this.draftExpressions.push(new DraftRecord(code, this));
-        code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
-    }
-}
-
-/**
- * These scopes are created by multi-line statements
- */
-export class Scope {
-    parentScope: Scope = null;
-    references = new Array<Reference>();
-
-    isValidReference(uniqueId: string, line: number): boolean {
-        const validReferences = this.getValidReferences(line);
-
-        for (let ref of validReferences) {
-            if (
-                (ref.statement instanceof VarAssignmentStmt && ref.statement.buttonId == uniqueId) ||
-                (ref.statement instanceof ForStatement && ref.statement.buttonId == uniqueId)
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    getValidReferences(line: number): Array<Reference> {
-        let validReferences = this.references.filter((ref) => ref.line() < line);
-
-        if (this.parentScope != null) {
-            validReferences = validReferences.concat(this.parentScope.getValidReferences(line));
-        }
-
-        return validReferences;
-    }
-}
-
-export class Reference {
-    /**
-     * Currently, either a variable or a function declaration. Could later be a class declaration.
-     */
-    statement: Statement;
-
-    /**
-     * The valid scope in which this item could be referenced.
-     */
-    scope: Scope;
-
-    constructor(statement: Statement, scope: Scope) {
-        this.statement = statement;
-        this.scope = scope;
-    }
-
-    line(): number {
-        return this.statement.lineNumber;
-    }
-}
-
-function emptySpaces(count: number) {
-    let spaces = "";
-
-    for (let i = 0; i < count; i++) spaces += " ";
-
-    return spaces;
-}
-
-export class DraftRecord {
-    code: Expression;
-    warning: HoverNotification;
-
-    private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
-
-    constructor(code: Expression, module: Module) {
-        this.code = code;
-        this.module = module;
-        this.module.notificationSystem.addHoverNotification(code, {}, "Draft Mode");
-        this.warning = code.notification;
-        this.code.notification = this.warning;
-    }
-
-    removeNotification() {
-        this.module.notificationSystem.removeNotificationFromConstruct(this.code);
     }
 }

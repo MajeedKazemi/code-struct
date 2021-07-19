@@ -1,6 +1,5 @@
 import "./css/index.css";
-import * as ast from "./syntax-tree/ast";
-
+import { Module } from "./syntax-tree/module";
 // @ts-ignore
 self.MonacoEnvironment = {
     getWorkerUrl: function (moduleId, label) {
@@ -20,4 +19,4 @@ self.MonacoEnvironment = {
     },
 };
 
-export const nova = new ast.Module("editor");
+export const nova = new Module("editor");

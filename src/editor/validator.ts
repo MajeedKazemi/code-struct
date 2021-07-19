@@ -1,19 +1,18 @@
+import { Context } from "./focus";
+import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
+import { DataType, InsertionType } from "./../syntax-tree/consts";
 import {
-    BinaryOperator,
     CodeConstruct,
-    DataType,
+    EditableTextTkn,
     EmptyLineStmt,
-    InsertionType,
+    IdentifierTkn,
     ListLiteralExpression,
-    Module,
     NonEditableTkn,
-    Reference,
     Statement,
     TypedEmptyExpr,
     VarAssignmentStmt,
 } from "../syntax-tree/ast";
-import { TypeSystem } from "../syntax-tree/type-sys";
-import { Context } from "./focus";
 
 export class Validator {
     module: Module;
@@ -22,7 +21,47 @@ export class Validator {
         this.module = module;
     }
 
-    // canBackspaceCurLine()
+    /**
+     * logic: checks if at the end of an editable text
+     * OR selected an empty editable text / identifier
+     * OR right before an editable item and need to select it
+     */
+    canMoveToNextTokenAtTextEditable(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            ((context.tokenToRight instanceof IdentifierTkn || context.tokenToRight instanceof EditableTextTkn) &&
+                context.tokenToRight.isEmpty) ||
+            context.tokenToLeft instanceof EditableTextTkn ||
+            context.tokenToLeft instanceof IdentifierTkn ||
+            (context.token?.isEmpty && context.selected)
+        );
+    }
+
+    /**
+     * logic: checks if at the beginning of an editable text
+     * OR selected an empty editable text / identifier
+     */
+    canMoveToPrevTokenAtTextEditable(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            (context.tokenToLeft instanceof IdentifierTkn && context.tokenToRight.isEmpty) ||
+            context.tokenToRight instanceof EditableTextTkn ||
+            context.tokenToRight instanceof IdentifierTkn ||
+            (context.token?.isEmpty && context.selected)
+        );
+    }
+
+    canInsertEmptyLine(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const curPosition = this.module.editor.monaco.getPosition();
+
+        return (
+            !context.selected &&
+            (curPosition.column == context.lineStatement.left || curPosition.column == context.lineStatement.right)
+        );
+    }
 
     /**
      * logic: checks if currently at an empty line.
@@ -240,7 +279,7 @@ export class Validator {
 
         return (
             context.tokenToLeft instanceof NonEditableTkn &&
-            context.tokenToRight.rootNode instanceof ListLiteralExpression &&
+            context.tokenToLeft.rootNode instanceof ListLiteralExpression &&
             (context.tokenToLeft.text == "[" || context.tokenToLeft.text == ", ")
         );
     }
