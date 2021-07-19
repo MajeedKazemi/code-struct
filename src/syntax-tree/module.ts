@@ -145,6 +145,7 @@ export class Module {
 
     recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
         code.notify(callbackType);
+
         if (code instanceof Expression || code instanceof Statement) {
             const codeStack = new Array<CodeConstruct>();
             codeStack.unshift(...code.tokens);
@@ -159,14 +160,6 @@ export class Module {
                 if (curCode instanceof Statement && curCode.hasBody()) codeStack.unshift(...curCode.body);
             }
         } else if (code instanceof Token) code.notify(callbackType);
-    }
-
-    replaceExpression(root: CodeConstruct, index: number, newExpression: CodeConstruct) {
-        if (root instanceof Statement) {
-            root.tokens[index] = newExpression;
-
-            root.rebuild(root.getLeftPosition(), 0);
-        }
     }
 
     indentBackStatement(line: Statement) {

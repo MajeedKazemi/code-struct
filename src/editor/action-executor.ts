@@ -604,7 +604,9 @@ export class ActionExecutor {
             expr.indexInRoot = curOperand.indexInRoot;
             expr.rootNode = newCode;
 
-            this.module.replaceExpression(root, index, newCode);
+            root.tokens[index] = newCode;
+            root.rebuild(root.getLeftPosition(), 0);
+
             this.module.editor.executeEdits(initialBoundary, newCode);
             this.module.focus.updateContext({
                 tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
