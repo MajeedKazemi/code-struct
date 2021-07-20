@@ -528,7 +528,10 @@ export abstract class Expression extends Statement implements CodeConstruct {
         //when we are replacing at the top level (meaning the item above is a Statement),
         //we need to check types against the type of hole that used to be there and not the expression
         //that is currently there
-        if (!(this.rootNode instanceof Expression) && !(this.rootNode instanceof Module)){
+
+        //Need exception for FunctionCallStmt because it inherits from Expression and not just Statement
+        //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
+        if ((!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) && !(this.rootNode instanceof Module)){
             const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
 
             let canConvertToParentType = hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), typesOfParentHole);
