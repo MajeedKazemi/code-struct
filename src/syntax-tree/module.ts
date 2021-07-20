@@ -37,6 +37,7 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
+import { VariableAssignmentMap } from "./variable-assignment-map";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -59,7 +60,10 @@ export class Module {
     scope: Scope;
     draftExpressions: DraftRecord[];
 
+    variableAssignmentMap: VariableAssignmentMap;
+
     constructor(editorId: string) {
+        this.variableAssignmentMap = new VariableAssignmentMap();
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
         this.validator = new Validator(this);
