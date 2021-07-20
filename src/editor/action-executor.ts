@@ -583,45 +583,33 @@ export class ActionExecutor {
          * if (--- + (--- + ---)|): --> attempting to insert a comparator or binary boolean operation should fail
          */
         if (insertionType === InsertionType.Valid) {
-            //this ensures that we can actually replace
-            const canConvertNewTypeToOldType =
-                root instanceof Expression
-                    ? Util.getInstance(this.module)
-                          .typeConversionMap.get(newCode.returns)
-                          .indexOf((root.tokens[index] as Expression).returns) > -1
-                    : true;
-            const validateRootInsertion =
-                (root.typeOfHoles[index].indexOf(newCode.returns) >= 0 || newCode.returns === DataType.Any) &&
-                canConvertNewTypeToOldType;
+            const replacementType = expr.canReplaceWithConstruct(newCode);
 
-            if (validateRootInsertion) {
-                this.module.closeConstructDraftRecord(root.tokens[index]);
-            }
             // this can never go into draft mode
-            if (toLeft) newCode.replaceLeftOperand(expr);
-            else newCode.replaceRightOperand(expr);
+            if(replacementType !== InsertionType.Invalid){
+                this.module.closeConstructDraftRecord(root.tokens[index]);
 
-            expr.indexInRoot = curOperand.indexInRoot;
-            expr.rootNode = newCode;
+                if (toLeft) newCode.replaceLeftOperand(expr);
+                else newCode.replaceRightOperand(expr);
+    
+                expr.indexInRoot = curOperand.indexInRoot;
+                expr.rootNode = newCode;
+    
+                root.tokens[index] = newCode;
+                root.rebuild(root.getLeftPosition(), 0);
+    
+                this.module.editor.executeEdits(initialBoundary, newCode);
+                this.module.focus.updateContext({
+                    tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
+                });
 
-            root.tokens[index] = newCode;
-            root.rebuild(root.getLeftPosition(), 0);
-
-            this.module.editor.executeEdits(initialBoundary, newCode);
-            this.module.focus.updateContext({
-                tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
-            });
-
-            if (!validateRootInsertion) {
-                this.module.closeConstructDraftRecord(expr);
+                if(replacementType !== InsertionType.DraftMode){
+                    this.module.closeConstructDraftRecord(expr);
+                }
+                else{
+                    this.module.openDraftMode(newCode);
+                }
             }
-
-            if (!validateRootInsertion && canConvertNewTypeToOldType) {
-                this.module.openDraftMode(newCode);
-            }
-        } else {
-            //Invalid TODO: Add warning if types don't match if 132: => if (123 + ---) > ---:
-            //call notifcation
         }
     }
 

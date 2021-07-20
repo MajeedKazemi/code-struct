@@ -1,11 +1,13 @@
 import { Scope } from "./scope";
 import { Module } from "./module";
 import { rebuildBody } from "./body";
-import { TAB_SPACES } from "./consts";
 import * as monaco from "monaco-editor";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { Validator } from "../editor/validator";
+import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
+import { InsertionType, TAB_SPACES } from "./consts";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Notification } from "../notification-system/notification";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
@@ -19,7 +21,6 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
-import { Validator } from "../editor/validator";
 
 export interface CodeConstruct {
     /**
@@ -507,6 +508,47 @@ export abstract class Expression extends Statement implements CodeConstruct {
      * @param type new return/expression hole type
      */
     performTypeUpdatesOnInsertion(type: DataType) {}
+
+    /**
+     * Return whether this construct can be repalced with replaceWith.
+     * Can replace a bin expression in only two cases
+     *   1: replaceWith has the same return type
+     *   2: replaceWith can be cast/modified to become the same type as the bin op being replaced
+     */
+    canReplaceWithConstruct(replaceWith: Expression): InsertionType {
+        //when we are replacing at the top level (meaning the item above is a Statement),
+        //we need to check types against the type of hole that used to be there and not the expression
+        //that is currently there
+
+        //Need exception for FunctionCallStmt because it inherits from Expression and not just Statement
+        //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
+        if ((!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) && !(this.rootNode instanceof Module)){
+            const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
+
+            let canConvertToParentType = hasMatch(
+                Util.getInstance(null).typeConversionMap.get(replaceWith.returns),
+                typesOfParentHole
+            );
+
+            if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
+                return InsertionType.DraftMode;
+            } else if (hasMatch(typesOfParentHole, [replaceWith.returns])) {
+                return InsertionType.Valid;
+            }
+        } else {
+            //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
+            if (replaceWith.returns === this.returns) {
+                return InsertionType.Valid;
+            } else if (
+                replaceWith.returns !== this.returns &&
+                hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), [this.returns])
+            ) {
+                return InsertionType.DraftMode;
+            } else {
+                return InsertionType.Invalid;
+            }
+        }
+    }
 }
 
 /**
