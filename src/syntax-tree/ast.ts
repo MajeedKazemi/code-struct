@@ -412,20 +412,6 @@ export abstract class Statement implements CodeConstruct {
         throw Error("Statement must have a root body.");
     }
 
-    getNextLine(): Statement {
-        let rootBody = this.getRootBody();
-
-        if (this.indexInRoot + 1 < rootBody.length) return rootBody[this.indexInRoot + 1];
-        else return null;
-    }
-
-    getPrevLine(): Statement {
-        let rootBody = this.getRootBody();
-
-        if (this.indexInRoot - 1 > 0) return rootBody[this.indexInRoot - 1];
-        else return null;
-    }
-
     /**
      * Return this statement's keyword if it has one. Otherwise return an empty string.
      *
