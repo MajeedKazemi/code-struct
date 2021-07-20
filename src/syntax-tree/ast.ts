@@ -1,11 +1,13 @@
 import { Scope } from "./scope";
 import { Module } from "./module";
 import { rebuildBody } from "./body";
-import { InsertionType, TAB_SPACES } from "./consts";
 import * as monaco from "monaco-editor";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { Validator } from "../editor/validator";
+import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
+import { InsertionType, TAB_SPACES } from "./consts";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Notification } from "../notification-system/notification";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
@@ -19,7 +21,6 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
-import { Util, hasMatch } from "../utilities/util";
 
 export interface CodeConstruct {
     /**
@@ -412,20 +413,6 @@ export abstract class Statement implements CodeConstruct {
         throw Error("Statement must have a root body.");
     }
 
-    getNextLine(): Statement {
-        let rootBody = this.getRootBody();
-
-        if (this.indexInRoot + 1 < rootBody.length) return rootBody[this.indexInRoot + 1];
-        else return null;
-    }
-
-    getPrevLine(): Statement {
-        let rootBody = this.getRootBody();
-
-        if (this.indexInRoot - 1 > 0) return rootBody[this.indexInRoot - 1];
-        else return null;
-    }
-
     /**
      * Return this statement's keyword if it has one. Otherwise return an empty string.
      *
@@ -456,6 +443,10 @@ export abstract class Statement implements CodeConstruct {
      * @param insertCode code being inserted
      */
     onInsertInto(insertCode: CodeConstruct) {}
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return false;
+    }
 }
 
 /**
@@ -524,7 +515,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
      *   1: replaceWith has the same return type
      *   2: replaceWith can be cast/modified to become the same type as the bin op being replaced
      */
-     canReplaceWithConstruct(replaceWith: Expression): InsertionType{
+    canReplaceWithConstruct(replaceWith: Expression): InsertionType {
         //when we are replacing at the top level (meaning the item above is a Statement),
         //we need to check types against the type of hole that used to be there and not the expression
         //that is currently there
@@ -534,26 +525,29 @@ export abstract class Expression extends Statement implements CodeConstruct {
         if ((!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) && !(this.rootNode instanceof Module)){
             const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
 
-            let canConvertToParentType = hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), typesOfParentHole);
+            let canConvertToParentType = hasMatch(
+                Util.getInstance(null).typeConversionMap.get(replaceWith.returns),
+                typesOfParentHole
+            );
 
-            if(canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])){
+            if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
                 return InsertionType.DraftMode;
-            }
-            else if(hasMatch(typesOfParentHole, [replaceWith.returns])){
+            } else if (hasMatch(typesOfParentHole, [replaceWith.returns])) {
                 return InsertionType.Valid;
             }
-        }
-        else{ //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
-            if(replaceWith.returns === this.returns){
+        } else {
+            //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
+            if (replaceWith.returns === this.returns) {
                 return InsertionType.Valid;
-            }
-            else if(replaceWith.returns !== this.returns && hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), [this.returns])){
+            } else if (
+                replaceWith.returns !== this.returns &&
+                hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), [this.returns])
+            ) {
                 return InsertionType.DraftMode;
-            }
-            else{
+            } else {
                 return InsertionType.Invalid;
             }
-        } 
+        }
     }
 }
 
@@ -724,6 +718,10 @@ export class WhileStatement extends Statement {
     replaceCondition(expr: Expression) {
         this.replace(expr, this.conditionIndex);
     }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
+    }
 }
 
 export class IfStatement extends Statement {
@@ -743,6 +741,10 @@ export class IfStatement extends Statement {
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     replaceCondition(expr: Expression) {
@@ -849,6 +851,15 @@ export class ElseStatement extends Statement {
         if (this.hasCondition) this.hasEmptyToken = true;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return (
+            validator.onEmptyLine(providedContext) &&
+            (this.hasCondition
+                ? validator.canInsertElifStatement(providedContext)
+                : validator.canInsertElseStatement(providedContext))
+        );
+    }
+
     replaceCondition(expr: Expression) {
         if (this.hasCondition) this.replace(expr, this.conditionIndex);
     }
@@ -895,6 +906,10 @@ export class ForStatement extends Statement {
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     rebuild(pos: monaco.Position, fromIndex: number) {
@@ -967,6 +982,10 @@ export class EmptyLineStmt extends Statement {
         this.indexInRoot = indexInRoot;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
+    }
+
     build(pos: monaco.Position): monaco.Position {
         this.lineNumber = pos.lineNumber;
         this.left = this.right = pos.column;
@@ -1008,6 +1027,10 @@ export class VarAssignmentStmt extends Statement {
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     replaceIdentifier(code: CodeConstruct) {
@@ -1056,6 +1079,10 @@ export class VariableReferenceExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
     }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext);
+    }
 }
 
 export class FunctionCallStmt extends Expression {
@@ -1101,6 +1128,12 @@ export class FunctionCallStmt extends Expression {
 
             this.hasEmptyToken = true;
         } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return this.isStatement()
+            ? validator.onEmptyLine(providedContext)
+            : validator.atEmptyExpressionHole(providedContext);
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1175,6 +1208,10 @@ export class MethodCallExpr extends Expression {
         } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atRightOfExpression(providedContext);
+    }
+
     setExpression(prevItem: Expression) {
         this.replace(prevItem, this.expressionIndex);
     }
@@ -1214,6 +1251,10 @@ export class ListElementAssignment extends Statement {
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
     }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
+    }
 }
 
 export class MethodCallStmt extends Statement {
@@ -1243,6 +1284,10 @@ export class MethodCallStmt extends Statement {
 
             this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
         } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1283,6 +1328,10 @@ export class MemberCallStmt extends Expression {
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext);
     }
 }
 
@@ -1364,6 +1413,14 @@ export class BinaryOperatorExpr extends Expression {
 
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return (
+            validator.atEmptyExpressionHole(providedContext) ||
+            validator.atLeftOfExpression(providedContext) ||
+            validator.atRightOfExpression(providedContext)
+        );
     }
 
     replaceLeftOperand(code: Expression) {
@@ -1606,6 +1663,10 @@ export class UnaryOperatorExpr extends Expression {
         this.hasEmptyToken = true;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext);
+    }
+
     replaceOperand(code: CodeConstruct) {
         this.replace(code, this.operandIndex);
     }
@@ -1730,6 +1791,10 @@ export class LiteralValExpr extends Expression {
         this.indexInRoot = indexInRoot;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext);
+    }
+
     getInitialFocus(): UpdatableContext {
         let newContext = new Context();
 
@@ -1759,6 +1824,10 @@ export class ListLiteralExpression extends Expression {
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext);
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
