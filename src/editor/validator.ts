@@ -5,8 +5,10 @@ import { DataType, InsertionType } from "./../syntax-tree/consts";
 import {
     CodeConstruct,
     EditableTextTkn,
+    ElseStatement,
     EmptyLineStmt,
     IdentifierTkn,
+    IfStatement,
     ListLiteralExpression,
     NonEditableTkn,
     Statement,
@@ -19,6 +21,69 @@ export class Validator {
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    /**
+     * logic:
+     */
+    canInsertElseStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            this.isRightBelowElifStatement(context) ||
+            this.isWithinElifStatement(context) ||
+            this.isWithinIfStatement(context) ||
+            this.isRightBelowIfStatement(context)
+        );
+    }
+
+    canInsertElifStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return this.isRightBelowElifStatement(context) || this.isWithinElifStatement(context);
+    }
+
+    isRightBelowElseStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return this.getStatementAbove(context) instanceof ElseStatement;
+    }
+
+    isWithinElseStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.lineStatement.rootNode instanceof ElseStatement;
+    }
+
+    isRightBelowElifStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const lineAbove = this.getStatementAbove(context);
+
+        return lineAbove instanceof ElseStatement && lineAbove?.hasCondition;
+    }
+
+    isWithinElifStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.lineStatement.rootNode instanceof ElseStatement && context.lineStatement.rootNode.hasCondition;
+    }
+
+    isRightBelowIfStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return this.getStatementAbove(context) instanceof IfStatement;
+    }
+
+    isWithinIfStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.lineStatement.rootNode instanceof IfStatement;
+    }
+
+    onEmptyLine(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.lineStatement instanceof EmptyLineStmt;
     }
 
     /**
@@ -106,13 +171,7 @@ export class Validator {
         const curLineNumber = context.lineStatement.lineNumber;
         const curPosition = this.module.editor.monaco.getPosition();
 
-        if (curPosition.column == context.lineStatement.left && curLineNumber > 1) {
-            const lineAbove = this.module.focus.getStatementAtLineNumber(curLineNumber - 1);
-
-            if (lineAbove instanceof EmptyLineStmt) return true;
-        }
-
-        return false;
+        return curPosition.column == context.lineStatement.left && this.getStatementAbove() instanceof EmptyLineStmt;
     }
 
     /**
@@ -300,6 +359,16 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.selected && context.token.isEmpty && context.token instanceof TypedEmptyExpr;
+    }
+
+    private getStatementAbove(providedContext?: Context): Statement {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        const curLineNumber = context.lineStatement.lineNumber;
+
+        if (curLineNumber > 1) return this.module.focus.getStatementAtLineNumber(curLineNumber - 1);
+
+        return null;
     }
 
     //returns a nested list [[Reference, InsertionType], ...]

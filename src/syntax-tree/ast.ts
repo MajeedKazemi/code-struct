@@ -19,6 +19,7 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
+import { Validator } from "../editor/validator";
 
 export interface CodeConstruct {
     /**
@@ -455,6 +456,10 @@ export abstract class Statement implements CodeConstruct {
      * @param insertCode code being inserted
      */
     onInsertInto(insertCode: CodeConstruct) {}
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return false;
+    }
 }
 
 /**
@@ -685,6 +690,10 @@ export class WhileStatement extends Statement {
     replaceCondition(expr: Expression) {
         this.replace(expr, this.conditionIndex);
     }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
+    }
 }
 
 export class IfStatement extends Statement {
@@ -704,6 +713,10 @@ export class IfStatement extends Statement {
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     replaceCondition(expr: Expression) {
@@ -810,6 +823,15 @@ export class ElseStatement extends Statement {
         if (this.hasCondition) this.hasEmptyToken = true;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return (
+            validator.onEmptyLine(providedContext) &&
+            (this.hasCondition
+                ? validator.canInsertElifStatement(providedContext)
+                : validator.canInsertElseStatement(providedContext))
+        );
+    }
+
     replaceCondition(expr: Expression) {
         if (this.hasCondition) this.replace(expr, this.conditionIndex);
     }
@@ -856,6 +878,10 @@ export class ForStatement extends Statement {
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     rebuild(pos: monaco.Position, fromIndex: number) {
@@ -928,6 +954,10 @@ export class EmptyLineStmt extends Statement {
         this.indexInRoot = indexInRoot;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
+    }
+
     build(pos: monaco.Position): monaco.Position {
         this.lineNumber = pos.lineNumber;
         this.left = this.right = pos.column;
@@ -969,6 +999,10 @@ export class VarAssignmentStmt extends Statement {
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     replaceIdentifier(code: CodeConstruct) {
@@ -1017,6 +1051,10 @@ export class VariableReferenceExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
     }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext);
+    }
 }
 
 export class FunctionCallStmt extends Expression {
@@ -1062,6 +1100,12 @@ export class FunctionCallStmt extends Expression {
 
             this.hasEmptyToken = true;
         } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return this.isStatement()
+            ? validator.onEmptyLine(providedContext)
+            : validator.atEmptyExpressionHole(providedContext);
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1136,6 +1180,10 @@ export class MethodCallExpr extends Expression {
         } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atRightOfExpression(providedContext);
+    }
+
     setExpression(prevItem: Expression) {
         this.replace(prevItem, this.expressionIndex);
     }
@@ -1175,6 +1223,10 @@ export class ListElementAssignment extends Statement {
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
     }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
+    }
 }
 
 export class MethodCallStmt extends Statement {
@@ -1204,6 +1256,10 @@ export class MethodCallStmt extends Statement {
 
             this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
         } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.onEmptyLine(providedContext);
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1244,6 +1300,10 @@ export class MemberCallStmt extends Expression {
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext);
     }
 }
 
@@ -1325,6 +1385,14 @@ export class BinaryOperatorExpr extends Expression {
 
         this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return (
+            validator.atEmptyExpressionHole(providedContext) ||
+            validator.atLeftOfExpression(providedContext) ||
+            validator.atRightOfExpression(providedContext)
+        );
     }
 
     replaceLeftOperand(code: Expression) {
@@ -1567,6 +1635,10 @@ export class UnaryOperatorExpr extends Expression {
         this.hasEmptyToken = true;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext);
+    }
+
     replaceOperand(code: CodeConstruct) {
         this.replace(code, this.operandIndex);
     }
@@ -1691,6 +1763,10 @@ export class LiteralValExpr extends Expression {
         this.indexInRoot = indexInRoot;
     }
 
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext);
+    }
+
     getInitialFocus(): UpdatableContext {
         let newContext = new Context();
 
@@ -1720,6 +1796,10 @@ export class ListLiteralExpression extends Expression {
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
 
         this.hasEmptyToken = true;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): boolean {
+        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext);
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
