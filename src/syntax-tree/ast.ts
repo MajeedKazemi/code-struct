@@ -1084,7 +1084,9 @@ export class VariableReferenceExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        if (validator.atEmptyExpressionHole(providedContext)) return InsertionType.Valid;
+        else if (validator.onEmptyLine(providedContext)) return InsertionType.DraftMode;
+        else return InsertionType.Invalid;
     }
 }
 
