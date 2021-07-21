@@ -149,3 +149,8 @@ export enum EditActionType {
     WrapExpressionWithItem,
     InsertVarAssignStatement,
 }
+
+export enum ConstructName {
+    VarAssignment = "VarAssignmentStmt",
+    Default = "Default",
+}
