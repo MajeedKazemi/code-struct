@@ -31,6 +31,19 @@ export class Scope {
 
         return validReferences;
     }
+
+    //return all existing references to the variable with the given identifier in this scope
+    //we can be sure that there is at most one variable with this identifier in the scope
+    //NOTE: the references are tied to variable assignment statements so this is equivalent to finding all assignments to a variable
+    getAllAssignmentsToVariable(identifier: string, excludeStmt?: VarAssignmentStmt | ForStatement) {
+        return this.references.filter((ref) => {
+            if (ref.statement instanceof ForStatement) {
+                return ref.statement.loopVar.getIdentifier() === identifier && excludeStmt !== ref.statement;
+            } else if (ref.statement instanceof VarAssignmentStmt) {
+                return ref.statement.getIdentifier() === identifier && excludeStmt !== ref.statement;
+            }
+        });
+    }
 }
 
 export class Reference {
