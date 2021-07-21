@@ -43,6 +43,7 @@ export enum KeyPress {
 
 export enum ButtonPress {
     InsertNewVariableStmt,
+    InsertVariableReference,
 
     InsertWhileStmt,
     InsertIfStmt,
@@ -138,7 +139,7 @@ export enum EditActionType {
     OpenSubMenu,
     CloseSubMenu,
 
-    //TODO: Remove later (for the continuos menu with categories)
+    //TODO: Remove later (for the continuous menu with categories)
     OpenValidInsertMenuSingleLevel,
 
     CloseDraftMode,
@@ -146,4 +147,5 @@ export enum EditActionType {
     InsertStatement,
     InsertExpression,
     WrapExpressionWithItem,
+    InsertVarAssignStatement,
 }

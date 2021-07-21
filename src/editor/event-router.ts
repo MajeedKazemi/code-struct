@@ -3,6 +3,7 @@ import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { ButtonPress, EditActionType, KeyPress } from "./enums";
 import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
+import { hasMatch } from "../utilities/util";
 
 export class EventRouter {
     module: Module;
@@ -340,7 +341,16 @@ export class EventRouter {
     routeToolboxEvents(e: ButtonPress, context: Context, data: any) {
         switch (e) {
             case ButtonPress.InsertNewVariableStmt: {
-                return new EditAction(EditActionType.InsertStatement, { statement: new ast.VarAssignmentStmt() });
+                return new EditAction(EditActionType.InsertVarAssignStatement, {
+                    statement: new ast.VarAssignmentStmt(),
+                });
+            }
+
+            case ButtonPress.InsertVariableReference: {
+                //TODO: Needs to be filled
+                //need to have the buttonId, the variable identifier and the data type here to send to action executor
+                // return new EditAction(EditActionType.InsertStatement, { statement: new ast.VariableReferenceExpr()) });
+                break;
             }
 
             case ButtonPress.InsertListIndexAssignment: {
@@ -628,204 +638,208 @@ export class EventRouter {
     }
 
     onButtonDown(id: string) {
-        switch (id) {
-            case "add-var-btn":
-                this.pressButton(id, ButtonPress.InsertNewVariableStmt);
+        if (this.module.variableButtons.map((buttonElement) => buttonElement.id).indexOf(id) > -1) {
+            this.pressButton(id, ButtonPress.InsertVariableReference);
+        } else {
+            switch (id) {
+                case "add-var-btn":
+                    this.pressButton(id, ButtonPress.InsertNewVariableStmt);
 
-                break;
+                    break;
 
-            case "add-list-elem-assign-btn":
-                this.pressButton(id, ButtonPress.InsertListIndexAssignment);
+                case "add-list-elem-assign-btn":
+                    this.pressButton(id, ButtonPress.InsertListIndexAssignment);
 
-                break;
+                    break;
 
-            case "add-print-btn":
-                this.pressButton(id, ButtonPress.InsertPrintFunctionStmt);
+                case "add-print-btn":
+                    this.pressButton(id, ButtonPress.InsertPrintFunctionStmt);
 
-                break;
+                    break;
 
-            case "add-randint-btn":
-                this.pressButton(id, ButtonPress.InsertRandintExpr);
+                case "add-randint-btn":
+                    this.pressButton(id, ButtonPress.InsertRandintExpr);
 
-                break;
+                    break;
 
-            case "add-range-btn":
-                this.pressButton(id, ButtonPress.InsertRangeExpr);
+                case "add-range-btn":
+                    this.pressButton(id, ButtonPress.InsertRangeExpr);
 
-                break;
+                    break;
 
-            case "add-len-btn":
-                this.pressButton(id, ButtonPress.InsertLenExpr);
+                case "add-len-btn":
+                    this.pressButton(id, ButtonPress.InsertLenExpr);
 
-                break;
+                    break;
 
-            case "add-str-btn":
-                this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: DataType.String,
-                    initialValue: "",
-                });
+                case "add-str-btn":
+                    this.pressButton(id, ButtonPress.InsertLiteral, {
+                        literalType: DataType.String,
+                        initialValue: "",
+                    });
 
-                break;
+                    break;
 
-            case "add-num-btn":
-                this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: DataType.Number,
-                    initialValue: "0",
-                });
+                case "add-num-btn":
+                    this.pressButton(id, ButtonPress.InsertLiteral, {
+                        literalType: DataType.Number,
+                        initialValue: "0",
+                    });
 
-                break;
+                    break;
 
-            case "add-true-btn":
-                this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: DataType.Boolean,
-                    initialValue: "True",
-                });
+                case "add-true-btn":
+                    this.pressButton(id, ButtonPress.InsertLiteral, {
+                        literalType: DataType.Boolean,
+                        initialValue: "True",
+                    });
 
-                break;
+                    break;
 
-            case "add-false-btn":
-                this.pressButton(id, ButtonPress.InsertLiteral, {
-                    literalType: DataType.Boolean,
-                    initialValue: "False",
-                });
+                case "add-false-btn":
+                    this.pressButton(id, ButtonPress.InsertLiteral, {
+                        literalType: DataType.Boolean,
+                        initialValue: "False",
+                    });
 
-                break;
+                    break;
 
-            case "add-bin-add-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Add });
+                case "add-bin-add-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Add });
 
-                break;
+                    break;
 
-            case "add-bin-sub-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Subtract });
+                case "add-bin-sub-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Subtract });
 
-                break;
+                    break;
 
-            case "add-bin-mul-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Multiply });
+                case "add-bin-mul-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Multiply });
 
-                break;
+                    break;
 
-            case "add-bin-div-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Divide });
+                case "add-bin-div-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Divide });
 
-                break;
+                    break;
 
-            case "add-bin-and-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.And });
+                case "add-bin-and-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.And });
 
-                break;
+                    break;
 
-            case "add-bin-or-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Or });
+                case "add-bin-or-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Or });
 
-                break;
+                    break;
 
-            case "add-comp-eq-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Equal });
+                case "add-comp-eq-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Equal });
 
-                break;
+                    break;
 
-            case "add-comp-neq-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.NotEqual });
+                case "add-comp-neq-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.NotEqual });
 
-                break;
+                    break;
 
-            case "add-comp-lt-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThan });
+                case "add-comp-lt-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThan });
 
-                break;
+                    break;
 
-            case "add-comp-lte-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThanEqual });
+                case "add-comp-lte-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThanEqual });
 
-                break;
+                    break;
 
-            case "add-comp-gt-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThan });
+                case "add-comp-gt-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThan });
 
-                break;
+                    break;
 
-            case "add-comp-gte-expr-btn":
-                this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThanEqual });
+                case "add-comp-gte-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThanEqual });
 
-                break;
+                    break;
 
-            case "add-unary-not-expr-btn":
-                this.pressButton(id, ButtonPress.InsertUnaryExpr, { operator: UnaryOp.Not });
+                case "add-unary-not-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertUnaryExpr, { operator: UnaryOp.Not });
 
-                break;
+                    break;
 
-            case "add-while-expr-btn":
-                this.pressButton(id, ButtonPress.InsertWhileStmt);
+                case "add-while-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertWhileStmt);
 
-                break;
+                    break;
 
-            case "add-if-expr-btn":
-                this.pressButton(id, ButtonPress.InsertIfStmt);
+                case "add-if-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertIfStmt);
 
-                break;
+                    break;
 
-            case "add-elif-expr-btn":
-                this.pressButton(id, ButtonPress.InsertElifStmt);
+                case "add-elif-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertElifStmt);
 
-                break;
+                    break;
 
-            case "add-else-expr-btn":
-                this.pressButton(id, ButtonPress.InsertElseStmt);
+                case "add-else-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertElseStmt);
 
-                break;
+                    break;
 
-            case "add-for-expr-btn":
-                this.pressButton(id, ButtonPress.InsertForStmt);
+                case "add-for-expr-btn":
+                    this.pressButton(id, ButtonPress.InsertForStmt);
 
-                break;
+                    break;
 
-            case "add-list-literal-btn":
-                this.pressButton(id, ButtonPress.InsertListLiteral);
+                case "add-list-literal-btn":
+                    this.pressButton(id, ButtonPress.InsertListLiteral);
 
-                break;
+                    break;
 
-            case "add-list-item-btn":
-                this.pressButton(id, ButtonPress.InsertListItem);
+                case "add-list-item-btn":
+                    this.pressButton(id, ButtonPress.InsertListItem);
 
-                break;
+                    break;
 
-            case "add-list-index-btn":
-                this.pressButton(id, ButtonPress.InsertListIndexAccessor);
+                case "add-list-index-btn":
+                    this.pressButton(id, ButtonPress.InsertListIndexAccessor);
 
-                break;
+                    break;
 
-            case "add-list-append-stmt-btn":
-                this.pressButton(id, ButtonPress.InsertListAppendMethod);
+                case "add-list-append-stmt-btn":
+                    this.pressButton(id, ButtonPress.InsertListAppendMethod);
 
-                break;
+                    break;
 
-            case "add-split-method-call-btn":
-                this.pressButton(id, ButtonPress.InsertStringSplitMethod);
+                case "add-split-method-call-btn":
+                    this.pressButton(id, ButtonPress.InsertStringSplitMethod);
 
-                break;
+                    break;
 
-            case "add-join-method-call-btn":
-                this.pressButton(id, ButtonPress.InsertStringJoinMethod);
+                case "add-join-method-call-btn":
+                    this.pressButton(id, ButtonPress.InsertStringJoinMethod);
 
-                break;
+                    break;
 
-            case "add-replace-method-call-btn":
-                this.pressButton(id, ButtonPress.InsertStringReplaceMethod);
+                case "add-replace-method-call-btn":
+                    this.pressButton(id, ButtonPress.InsertStringReplaceMethod);
 
-                break;
+                    break;
 
-            case "add-find-method-call-btn":
-                this.pressButton(id, ButtonPress.InsertStringFindMethod);
+                case "add-find-method-call-btn":
+                    this.pressButton(id, ButtonPress.InsertStringFindMethod);
 
-                break;
+                    break;
 
-            case "add-cast-str-btn":
-                this.pressButton(id, ButtonPress.InsertCastStrExpr);
-                break;
+                case "add-cast-str-btn":
+                    this.pressButton(id, ButtonPress.InsertCastStrExpr);
+                    break;
 
-            default:
+                default:
+            }
         }
     }
 

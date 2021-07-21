@@ -1,6 +1,6 @@
 import { Context } from "./focus";
 import * as monaco from "monaco-editor";
-import { EditActionType } from "./enums";
+import { ConstructName, EditActionType } from "./enums";
 import { EditAction } from "./event-router";
 import { Module } from "../syntax-tree/module";
 import { ConstructKeys, Util } from "../utilities/util";
@@ -18,7 +18,9 @@ import {
     Expression,
     Token,
     BinaryOperatorExpr,
+    VarAssignmentStmt,
 } from "../syntax-tree/ast";
+import { CallbackType } from "../syntax-tree/callback";
 
 export class ActionExecutor {
     module: Module;
@@ -43,6 +45,13 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertStatement: {
+                this.module.insert(action.data?.statement);
+
+                break;
+            }
+
+            case EditActionType.InsertVarAssignStatement: {
+                //TODO: Might want to change back to use the case above if no new logic is added
                 this.module.insert(action.data?.statement);
 
                 break;
@@ -586,27 +595,26 @@ export class ActionExecutor {
             const replacementType = expr.canReplaceWithConstruct(newCode);
 
             // this can never go into draft mode
-            if(replacementType !== InsertionType.Invalid){
+            if (replacementType !== InsertionType.Invalid) {
                 this.module.closeConstructDraftRecord(root.tokens[index]);
 
                 if (toLeft) newCode.replaceLeftOperand(expr);
                 else newCode.replaceRightOperand(expr);
-    
+
                 expr.indexInRoot = curOperand.indexInRoot;
                 expr.rootNode = newCode;
-    
+
                 root.tokens[index] = newCode;
                 root.rebuild(root.getLeftPosition(), 0);
-    
+
                 this.module.editor.executeEdits(initialBoundary, newCode);
                 this.module.focus.updateContext({
                     tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
                 });
 
-                if(replacementType !== InsertionType.DraftMode){
+                if (replacementType !== InsertionType.DraftMode) {
                     this.module.closeConstructDraftRecord(expr);
-                }
-                else{
+                } else {
                     this.module.openDraftMode(newCode);
                 }
             }
