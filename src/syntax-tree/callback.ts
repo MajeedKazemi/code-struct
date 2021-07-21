@@ -17,4 +17,5 @@ export enum CallbackType {
     fail,
     focusEditableHole,
     showAvailableVars,
+    onFocusOff,
 }
