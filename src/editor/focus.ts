@@ -13,18 +13,31 @@ import {
     TextEditable,
     Token,
 } from "../syntax-tree/ast";
+import { ConstructName } from "./enums";
+import { CallbackType } from "../syntax-tree/callback";
 
 export class Focus {
     module: Module;
 
     onNavChangeCallbacks = new Array<(c: Context) => void>();
+    onNavOffCallbacks = new Map<ConstructName, Array<(c: Context) => void>>();
 
     constructor(module: Module) {
         this.module = module;
     }
 
-    subscribeCallback(callback: (c: Context) => void) {
+    subscribeOnNavChangeCallback(callback: (c: Context) => void) {
         this.onNavChangeCallbacks.push(callback);
+    }
+
+    subscribeOnNavOffCallbacks(constructName: ConstructName, callback: (c: Context) => void) {
+        if (this.onNavOffCallbacks.get(constructName)) {
+            const callbackArr = this.onNavOffCallbacks.get(constructName);
+            callbackArr.push(callback);
+            this.onNavOffCallbacks.set(constructName, callbackArr);
+        } else {
+            this.onNavOffCallbacks.set(constructName, [callback]);
+        }
     }
 
     getContainingDraftNode(providedContext?: Context): CodeConstruct {
@@ -89,6 +102,9 @@ export class Focus {
      * the first empty hole or after the inserted code.
      */
     updateContext(newContext: UpdatableContext) {
+        const curPos = this.module.editor.monaco.getPosition();
+        const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
+
         if (newContext.tokenToSelect != undefined) {
             const selection = new monaco.Selection(
                 newContext.tokenToSelect.getLineNumber(),
@@ -101,6 +117,10 @@ export class Focus {
             this.module.editor.monaco.setPosition(newContext.positionToMove);
         }
 
+        this.fireOnNavOfCallbacks(
+            focusedLineStatement,
+            this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+        );
         this.fireOnNavChangeCallbacks();
     }
 
@@ -161,20 +181,30 @@ export class Focus {
             }
         }
 
+        this.fireOnNavOfCallbacks(
+            focusedLineStatement,
+            this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+        );
         this.fireOnNavChangeCallbacks();
     }
 
     navigateUp() {
         const curPosition = this.module.editor.monaco.getPosition();
+        const focusedLineStatement = this.getStatementAtLineNumber(curPosition.lineNumber);
 
         if (curPosition.lineNumber > 1)
             this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
         else this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, 1));
+
+        this.fireOnNavOfCallbacks(
+            focusedLineStatement,
+            this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+        );
     }
 
     navigateDown() {
         const curPosition = this.module.editor.monaco.getPosition();
-
+        const focusedLineStatement = this.getStatementAtLineNumber(curPosition.lineNumber);
         const lineBelow = this.getStatementAtLineNumber(curPosition.lineNumber + 1);
 
         if (lineBelow != null) {
@@ -184,10 +214,13 @@ export class Focus {
             const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
             this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, curLine.right));
         }
+
+        this.fireOnNavOfCallbacks(focusedLineStatement, lineBelow);
     }
 
     navigateRight() {
         const curPos = this.module.editor.monaco.getPosition();
+        const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
 
         if (this.onEndOfLine()) {
             const lineBelow = this.getStatementAtLineNumber(curPos.lineNumber + 1);
@@ -244,11 +277,16 @@ export class Focus {
             }
         }
 
+        this.fireOnNavOfCallbacks(
+            focusedLineStatement,
+            this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+        );
         this.fireOnNavChangeCallbacks();
     }
 
     navigateLeft() {
         const curPos = this.module.editor.monaco.getPosition();
+        const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
 
         if (this.onBeginningOfLine()) {
             if (curPos.lineNumber > 1) {
@@ -303,6 +341,10 @@ export class Focus {
             }
         }
 
+        this.fireOnNavOfCallbacks(
+            focusedLineStatement,
+            this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+        );
         this.fireOnNavChangeCallbacks();
     }
 
@@ -410,6 +452,26 @@ export class Focus {
 
         for (const callback of this.onNavChangeCallbacks) {
             callback(context);
+        }
+    }
+
+    /**
+     * This function will fire all of the subscribed before nav off variable assignment callbacks
+     */
+    private fireOnNavOfCallbacks(oldStatement: Statement, newStatement: Statement) {
+        const context = this.getContext();
+
+        if (oldStatement !== newStatement) {
+            oldStatement.notify(CallbackType.onFocusOff);
+
+            //these will run for all statements that have a callback attached, not just for oldStatement
+            //if you want to run a callback only on oldStatement, use CallbackType.onFocusOff
+            //Think of this array as the global list of functions that gets called when we navigate off of a certain statement type
+            //and of CallbackType.onFocusOff as the callback called on a specific code construct
+            const callbackArr = this.onNavOffCallbacks.get(oldStatement.codeConstructName) ?? [];
+            for (const callback of callbackArr) {
+                callback(context);
+            }
         }
     }
 
