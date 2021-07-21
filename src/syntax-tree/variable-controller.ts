@@ -1,5 +1,8 @@
 import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
-import { VarAssignmentStmt } from "./ast";
+import { Expression, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
+import { Module } from "./module";
+import { CodeConstruct } from "./ast";
+import { Token } from "monaco-editor";
 
 export class VariableController {
     private variableButtons: HTMLDivElement[];
@@ -26,7 +29,17 @@ export class VariableController {
         }
     }
 
-    addWarningToVarRefs() {}
+    addWarningToVarRefs(varId: string, module: Module) {
+        const varRefs = this.getVarRefsBFS(varId, module);
+        const notfiSys = module.notificationSystem;
+        for (const ref of varRefs) {
+            notfiSys.addHoverNotification(
+                ref,
+                null,
+                "This variable has been removed and cannot be referenced anymore. Consider deleting this reference."
+            );
+        }
+    }
 
     getVariableButtons(): HTMLDivElement[] {
         return this.variableButtons;
@@ -40,6 +53,28 @@ export class VariableController {
         }
 
         return buttons[0];
+    }
+
+    private getVarRefsBFS(varId: string, module: Module) {
+        const Q: CodeConstruct[] = [];
+        const result: VariableReferenceExpr[] = [];
+        Q.push(...module.body);
+
+        while (Q.length > 0) {
+            const currCodeConstruct = Q.splice(0, 1)[0];
+            if (currCodeConstruct instanceof Expression) {
+                Q.push(...currCodeConstruct.tokens);
+
+                if (currCodeConstruct instanceof VariableReferenceExpr && currCodeConstruct.uniqueId === varId) {
+                    result.push(currCodeConstruct);
+                }
+            } else if (currCodeConstruct instanceof Statement) {
+                Q.push(...currCodeConstruct.body);
+                Q.push(...currCodeConstruct.tokens);
+            }
+        }
+
+        return result;
     }
 }
 

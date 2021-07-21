@@ -37,7 +37,7 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { VariableAssignmentMap } from "./variable-assignment-map";
+import { VariableController } from "./variable-controller";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -60,19 +60,19 @@ export class Module {
     scope: Scope;
     draftExpressions: DraftRecord[];
 
-    variableAssignmentMap: VariableAssignmentMap;
+    variableController: VariableController;
 
     constructor(editorId: string) {
-        this.variableAssignmentMap = new VariableAssignmentMap();
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
         this.validator = new Validator(this);
         this.executer = new ActionExecutor(this);
         this.typeSystem = new TypeChecker(this);
+        this.variableController = new VariableController();
 
         this.draftExpressions = [];
 
-        this.focus.subscribeCallback((c: Context) => {
+        this.focus.subscribeOnNavChangeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
             Hole.disableVarHighlights();
             Hole.outlineTextEditableHole(c);
@@ -81,7 +81,7 @@ export class Module {
 
         //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to rafactor this one to
         //use methods like above code
-        this.focus.subscribeCallback(
+        this.focus.subscribeOnNavChangeCallback(
             ((c: Context) => {
                 const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
                 const validInserts = this.getAllValidInsertsList(focusedNode);
@@ -124,7 +124,7 @@ export class Module {
             }).bind(this)
         );
 
-        this.focus.subscribeCallback((c: Context) => {
+        this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const menuController = MenuController.getInstance();
             if (menuController.isMenuOpen()) menuController.removeMenus();
         });
@@ -379,8 +379,6 @@ export class Module {
 
         rebuildBody(bodyContainer, index + 1, line + code.getHeight());
 
-        this.processNewVariable(code, bodyContainer.scope);
-
         if (bodyContainer instanceof Statement) {
             bodyContainer.notify(CallbackType.change);
         }
@@ -390,7 +388,6 @@ export class Module {
         if (statement.hasScope()) statement.scope.parentScope = workingScope;
 
         if (statement instanceof VarAssignmentStmt) {
-            this.addVariableButtonToToolbox(statement);
             workingScope.references.push(new Reference(statement, workingScope));
         }
 
@@ -401,7 +398,6 @@ export class Module {
 
             statement.loopVar = varAssignStmt;
 
-            this.addVariableButtonToToolbox(varAssignStmt);
             statement.scope.references.push(new Reference(varAssignStmt, workingScope));
         }
     }
@@ -544,14 +540,14 @@ export class Module {
     }
 
     updateDraftModeToolboxVarButtons(refs: any[]) {
-        for (const ref of refs) {
+        /*  for (const ref of refs) { TODO: Resolve this
             const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
             if (ref[1] === InsertionType.DraftMode) {
                 button.classList.add(Module.draftModeButtonClass);
             } else {
                 button.classList.remove(Module.draftModeButtonClass);
             }
-        }
+        }*/
     }
 
     /**
@@ -1013,13 +1009,13 @@ export class Module {
                          *         Therefore, variable assumes type returned by the arithmetic expression.
                          */
                         if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode, expr.returns);
+                            focusedNode.rootNode.dataType = expr.returns;
                         } else if (
                             parentStatement instanceof VarAssignmentStmt &&
                             parentStatement.dataType == DataType.Any &&
                             focusedNode.rootNode instanceof BinaryOperatorExpr
                         ) {
-                            this.typeSystem.updateDataTypeOfVarRefInToolbox(parentStatement, expr.returns);
+                            parentStatement.dataType = expr.returns;
                         }
 
                         //update types of expressions that need an update
