@@ -36,5 +36,7 @@ export function replaceInBody(bodyContainer: Statement | Module, atIndex: number
     newStatement.indexInRoot = atIndex;
     bodyContainer.body[atIndex] = newStatement;
 
+    if (newStatement.hasScope()) newStatement.scope.parentScope = bodyContainer.scope;
+
     rebuildBody(bodyContainer, atIndex + 1, leftPos.lineNumber + newStatement.getHeight());
 }

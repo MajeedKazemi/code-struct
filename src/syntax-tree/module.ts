@@ -378,6 +378,7 @@ export class Module {
         for (let i = index + 1; i < bodyContainer.body.length; i++) bodyContainer.body[i].indexInRoot++;
 
         rebuildBody(bodyContainer, index + 1, line + code.getHeight());
+        if (code.hasScope()) code.scope.parentScope = bodyContainer.scope;
 
         if (bodyContainer instanceof Statement) {
             bodyContainer.notify(CallbackType.change);
@@ -385,8 +386,6 @@ export class Module {
     }
 
     processNewVariable(statement: Statement, workingScope: Scope) {
-        if (statement.hasScope()) statement.scope.parentScope = workingScope;
-
         if (statement instanceof VarAssignmentStmt) {
             workingScope.references.push(new Reference(statement, workingScope));
         }
