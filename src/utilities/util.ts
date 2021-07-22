@@ -654,3 +654,20 @@ export function emptySpaces(count: number): string {
 
     return spaces;
 }
+
+export function hasMatchWithIndex<T>(list1: T[], list2: T[]): [number, number] {
+    const matchingIndeces: [number, number] = [-1, -1];
+
+    if (list1.length === 0 || list2.length === 0) {
+        return matchingIndeces;
+    }
+
+    for (let i = 0; i < list2.length; i++) {
+        if (list1.indexOf(list2[i]) > -1) {
+            matchingIndeces[0] = list1.indexOf(list2[i]);
+            matchingIndeces[1] = i;
+        }
+    }
+
+    return matchingIndeces;
+}
