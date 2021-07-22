@@ -1,4 +1,4 @@
-import { Scope } from "./scope";
+import { Reference, Scope } from "./scope";
 import { Module } from "./module";
 import { rebuildBody } from "./body";
 import * as monaco from "monaco-editor";
@@ -21,6 +21,8 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
+import { ConstructName } from "../editor/enums";
+import { VariableController } from "./variable-controller";
 
 export interface CodeConstruct {
     /**
@@ -69,6 +71,8 @@ export interface CodeConstruct {
     draftModeEnabled: boolean;
 
     draftRecord: DraftRecord;
+
+    codeConstructName: ConstructName;
 
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
@@ -148,6 +152,8 @@ export interface CodeConstruct {
      * @param insertCode code being inserted
      */
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
+
+    onFocusOff(arg: any): void;
 }
 
 /**
@@ -173,6 +179,7 @@ export abstract class Statement implements CodeConstruct {
     typeOfHoles = new Map<number, Array<DataType>>();
     draftModeEnabled = false;
     draftRecord: DraftRecord = null;
+    codeConstructName = ConstructName.Default;
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -447,6 +454,11 @@ export abstract class Statement implements CodeConstruct {
     validateContext(validator: Validator, providedContext: Context): boolean {
         return false;
     }
+
+    //actions that need to occur when the focus is switched off of this statement
+    onFocusOff(arg: any): void {
+        return;
+    }
 }
 
 /**
@@ -522,7 +534,10 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
         //Need exception for FunctionCallStmt because it inherits from Expression and not just Statement
         //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
-        if ((!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) && !(this.rootNode instanceof Module)){
+        if (
+            (!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) &&
+            !(this.rootNode instanceof Module)
+        ) {
             const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
 
             let canConvertToParentType = hasMatch(
@@ -568,6 +583,7 @@ export abstract class Token implements CodeConstruct {
     notification = null;
     draftModeEnabled = false;
     draftRecord = null;
+    codeConstructName = ConstructName.Default;
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -667,6 +683,10 @@ export abstract class Token implements CodeConstruct {
     }
 
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+
+    onFocusOff(arg: any): void {
+        return;
+    }
 }
 
 /**
@@ -1004,17 +1024,16 @@ export class EmptyLineStmt extends Statement {
 
 export class VarAssignmentStmt extends Statement {
     static uniqueId: number = 0;
-    buttonId: string;
+    buttonId: string = ""; //note: this is used as both the DOM id of the reference button in the toolbox AND the unique id of the variable itself
     addableType = AddableType.Statement;
     private identifierIndex: number;
     private valueIndex: number;
     dataType = DataType.Any;
+    codeConstructName = ConstructName.VarAssignment;
+    private oldIdentifier: string;
 
     constructor(id?: string, root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
-
-        this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
-        VarAssignmentStmt.uniqueId++;
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
@@ -1026,7 +1045,23 @@ export class VarAssignmentStmt extends Statement {
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
+        this.oldIdentifier = this.getIdentifier();
+
         this.hasEmptyToken = true;
+
+        this.subscribe(
+            CallbackType.onFocusOff,
+            new Callback(() => {
+                this.onFocusOff();
+            })
+        );
+
+        this.subscribe(
+            CallbackType.delete,
+            new Callback(() => {
+                this.onDelete();
+            })
+        );
     }
 
     validateContext(validator: Validator, providedContext: Context): boolean {
@@ -1034,6 +1069,8 @@ export class VarAssignmentStmt extends Statement {
     }
 
     replaceIdentifier(code: CodeConstruct) {
+        this.oldIdentifier = this.getIdentifier();
+
         this.replace(code, this.identifierIndex);
     }
 
@@ -1043,20 +1080,110 @@ export class VarAssignmentStmt extends Statement {
 
     rebuild(pos: monaco.Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
-
-        this.updateButton();
     }
 
     getIdentifier(): string {
         return this.tokens[this.identifierIndex].getRenderText();
     }
 
-    updateButton() {
-        document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
+    setIdentifier(identifier: string) {
+        this.oldIdentifier = this.getIdentifier();
+
+        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
     }
 
-    setIdentifier(identifier: string) {
-        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
+    onFocusOff(): void {
+        const currentIdentifier = this.getIdentifier();
+        const varController = this.getModule().variableController;
+
+        if (currentIdentifier !== this.oldIdentifier) {
+            const currentIdentifierAssignments = (
+                this.rootNode as Statement | Module
+            ).scope.getAllAssignmentsToVariable(currentIdentifier, this.getModule(), this.lineNumber, this);
+
+            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariable(
+                this.oldIdentifier,
+                this.getModule(),
+                this.lineNumber,
+                this
+            );
+
+            //assignment of a new variable using an empty VarAssignmentStmt
+            if (this.buttonId === "") {
+                this.assignVariable(varController, currentIdentifierAssignments);
+            } else {
+                this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
+            }
+
+            this.oldIdentifier = currentIdentifier;
+        }
+    }
+
+    private assignId() {
+        if (this.buttonId === "") {
+            this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
+            VarAssignmentStmt.uniqueId++;
+        }
+    }
+
+    private assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]) {
+        if (currentIdentifierAssignments.length === 0) {
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    private assignNewVariable(varController: VariableController) {
+        this.assignId();
+        varController.addVariableRefButton(this);
+        this.getModule().processNewVariable(
+            this,
+            this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
+        );
+    }
+
+    private assignExistingVariable(currentIdentifierAssignments: Statement[]) {
+        const statement =
+            currentIdentifierAssignments[0] instanceof VarAssignmentStmt
+                ? currentIdentifierAssignments[0]
+                : (currentIdentifierAssignments[0] as ForStatement).loopVar;
+
+        this.buttonId = statement.buttonId;
+    }
+
+    private reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    ) {
+        //just removed last assignment to the old var
+        if (oldIdentifierAssignments.length === 0) {
+            varController.removeVariableRefButton(oldVarId);
+        }
+
+        if (currentIdentifierAssignments.length === 0) {
+            //variable being reassigned to is a new variable
+            this.buttonId = "";
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            //variable being reassigned to already exists
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    private onDelete() {
+        const varController = this.getModule().variableController;
+        const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
+            this.getIdentifier(),
+            this
+        );
+
+        if (assignments.length === 0) {
+            varController.removeVariableRefButton(this.buttonId);
+            varController.addWarningToVarRefs(this.buttonId, this.getModule());
+        }
     }
 }
 
