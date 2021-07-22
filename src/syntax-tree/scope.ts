@@ -69,8 +69,8 @@ export class Scope {
     }
 
     /**
-     * Find
-     * @returns
+     * This method determines whether an assignment to a given variable exists and would be covered by the scope at
+     * lineNumber. If not, then we are creating a new variable.
      */
     getAllAssignmentsToVariable(
         identifier: string,
