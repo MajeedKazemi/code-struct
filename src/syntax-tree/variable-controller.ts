@@ -1,8 +1,10 @@
 import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
-import { Expression, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
+import { Expression, IdentifierTkn, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { Module } from "./module";
 import { CodeConstruct } from "./ast";
 import { Scope } from "./scope";
+import { Focus } from "../editor/focus";
+import { DataType } from "./consts";
 
 export class VariableController {
     private variableButtons: HTMLDivElement[];
@@ -55,16 +57,59 @@ export class VariableController {
         return buttons[0];
     }
 
-    hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number) {
+    hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number, focus: Focus) {
         const availableRefs = scope
             .getValidReferences(lineNumber)
             .map((ref) => (ref.statement as VarAssignmentStmt).buttonId);
 
         for (const button of this.variableButtons) {
             if (availableRefs.indexOf(button.id) === -1) {
-                button.style.display = "none";
+                button.parentElement.style.display = "none";
             } else {
-                button.style.display = "block";
+                button.parentElement.style.display = "grid";
+                button.parentElement.children[1].innerHTML = this.displayVarType(
+                    scope,
+                    lineNumber,
+                    button.textContent,
+                    focus
+                );
+            }
+        }
+    }
+
+    displayVarType(scope: Scope, lineNumber: number, identifier: string, focus: Focus) {
+        const assignmentsToVar = scope.getAllAssignmentsToVariableWithinScope(identifier).map((ref) => ref.statement);
+
+        //find closest var assignment
+        let smallestDiffIndex = 0;
+        for (let i = 0; i < assignmentsToVar.length; i++) {
+            if (
+                lineNumber - assignmentsToVar[i].lineNumber <
+                lineNumber - assignmentsToVar[smallestDiffIndex].lineNumber
+            ) {
+                smallestDiffIndex = i;
+            }
+        }
+
+        //determine type
+        const closestStatement = assignmentsToVar[smallestDiffIndex] as VarAssignmentStmt;
+        const statementAtLine = focus.getStatementAtLineNumber(lineNumber);
+
+        if (closestStatement.rootNode === statementAtLine.rootNode) {
+            //same scope, therefore just use closest type
+            return closestStatement.dataType;
+        } else {
+            //diff scopes
+            const types = assignmentsToVar
+                .filter((assignment) => assignment.lineNumber <= lineNumber)
+                .map((filteredRecord) => (filteredRecord as VarAssignmentStmt).dataType);
+            const firstType = types[0];
+
+            //if all types are equal, then it is safe to return that type
+            if (types.every((type) => type === firstType)) {
+                return firstType;
+            } else {
+                return DataType.Any;
             }
         }
     }

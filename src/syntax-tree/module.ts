@@ -76,11 +76,12 @@ export class Module {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
             const statmentScope = statementAtLine.scope ?? (statementAtLine.rootNode as Statement | Module).scope;
 
-            console.log(statmentScope);
+            //console.log(statmentScope);
 
             this.variableController.hideUnavailableVarsInToolbox(
                 statmentScope,
-                this.editor.monaco.getPosition().lineNumber
+                this.editor.monaco.getPosition().lineNumber,
+                this.focus
             );
             Hole.disableEditableHoleOutlines();
             Hole.disableVarHighlights();
