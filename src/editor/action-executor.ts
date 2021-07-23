@@ -19,6 +19,7 @@ import {
     Token,
     BinaryOperatorExpr,
     VarAssignmentStmt,
+    VariableReferenceExpr,
 } from "../syntax-tree/ast";
 import { CallbackType } from "../syntax-tree/callback";
 
@@ -53,6 +54,29 @@ export class ActionExecutor {
             case EditActionType.InsertVarAssignStatement: {
                 //TODO: Might want to change back to use the case above if no new logic is added
                 this.module.insert(action.data?.statement);
+
+                break;
+            }
+
+            case EditActionType.InsertVariableRef: {
+                const buttonId = action.data.buttonId;
+                const identifier = document.getElementById(buttonId).innerText;
+                const dataType = this.module.variableController.getVariableTypeNearLine(
+                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+                        .scope ??
+                        (
+                            this.module.focus.getStatementAtLineNumber(
+                                this.module.editor.monaco.getPosition().lineNumber
+                            ).rootNode as Statement | Module
+                        ).scope,
+                    this.module.editor.monaco.getPosition().lineNumber,
+                    identifier,
+                    this.module.focus
+                );
+
+                const ref = new VariableReferenceExpr(identifier, dataType, buttonId);
+
+                this.module.insert(ref);
 
                 break;
             }

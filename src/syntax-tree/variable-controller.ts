@@ -8,13 +8,19 @@ import { DataType } from "./consts";
 
 export class VariableController {
     private variableButtons: HTMLDivElement[];
+    private module: Module;
 
-    constructor() {
+    constructor(module: Module) {
         this.variableButtons = [];
+        this.module = module;
     }
 
     addVariableRefButton(assignmentStmt: VarAssignmentStmt) {
-        const button = addVariableReferenceButton(assignmentStmt.getIdentifier(), assignmentStmt.buttonId);
+        const button = addVariableReferenceButton(
+            assignmentStmt.getIdentifier(),
+            assignmentStmt.buttonId,
+            this.module.eventStack
+        );
         this.variableButtons.push(button);
     }
 
@@ -67,7 +73,7 @@ export class VariableController {
                 button.parentElement.style.display = "none";
             } else {
                 button.parentElement.style.display = "grid";
-                button.parentElement.children[1].innerHTML = this.displayVarType(
+                button.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
                     scope,
                     lineNumber,
                     button.textContent,
@@ -77,7 +83,7 @@ export class VariableController {
         }
     }
 
-    displayVarType(scope: Scope, lineNumber: number, identifier: string, focus: Focus) {
+    getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, focus: Focus) {
         const assignmentsToVar = scope.getAllAssignmentsToVariableWithinScope(identifier).map((ref) => ref.statement);
 
         //find closest var assignment

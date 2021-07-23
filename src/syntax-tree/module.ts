@@ -68,7 +68,7 @@ export class Module {
         this.validator = new Validator(this);
         this.executer = new ActionExecutor(this);
         this.typeSystem = new TypeChecker(this);
-        this.variableController = new VariableController();
+        this.variableController = new VariableController(this);
 
         this.draftExpressions = [];
 

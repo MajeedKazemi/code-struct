@@ -350,6 +350,11 @@ export class EventRouter {
                 //TODO: Needs to be filled
                 //need to have the buttonId, the variable identifier and the data type here to send to action executor
                 // return new EditAction(EditActionType.InsertStatement, { statement: new ast.VariableReferenceExpr()) });
+
+                return new EditAction(EditActionType.InsertVariableRef, {
+                    buttonId: data.buttonId,
+                });
+
                 break;
             }
 
@@ -638,8 +643,13 @@ export class EventRouter {
     }
 
     onButtonDown(id: string) {
-        if (this.module.variableButtons.map((buttonElement) => buttonElement.id).indexOf(id) > -1) {
-            this.pressButton(id, ButtonPress.InsertVariableReference);
+        if (
+            this.module.variableController
+                .getVariableButtons()
+                .map((buttonElement) => buttonElement.id)
+                .indexOf(id) > -1
+        ) {
+            this.pressButton(id, ButtonPress.InsertVariableReference, { buttonId: id });
         } else {
             switch (id) {
                 case "add-var-btn":

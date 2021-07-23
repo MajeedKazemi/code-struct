@@ -1,6 +1,7 @@
 import { Reference } from "../syntax-tree/scope";
+import { EventAction, EventStack, EventType } from "./event-stack";
 
-export function addVariableReferenceButton(identifier: string, buttonId: string): HTMLDivElement {
+export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
     const container = document.createElement("grid");
     container.classList.add("var-button-container");
 
@@ -17,6 +18,12 @@ export function addVariableReferenceButton(identifier: string, buttonId: string)
     document.getElementById("vars-button-grid").appendChild(container);
 
     button.textContent = identifier;
+
+    button.addEventListener("click", () => {
+        const action = new EventAction(EventType.OnButtonDown, button.id);
+        events.stack.push(action);
+        events.apply(action);
+    });
 
     return button;
 }

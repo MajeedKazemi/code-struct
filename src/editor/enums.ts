@@ -148,6 +148,7 @@ export enum EditActionType {
     InsertExpression,
     WrapExpressionWithItem,
     InsertVarAssignStatement,
+    InsertVariableRef,
 }
 
 export enum ConstructName {

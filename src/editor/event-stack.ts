@@ -2,7 +2,7 @@ import { Module } from "../syntax-tree/module";
 
 const navigationKeys = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"];
 
-enum EventType {
+export enum EventType {
     OnKeyDown,
     OnMouseDown,
     OnButtonDown,
@@ -60,7 +60,6 @@ export class EventStack {
     attachOnButtonPress() {
         const buttons: Array<HTMLElement> = Array(...(document.querySelectorAll("#editor-toolbox .button") as any));
 
-        // TODO: Dynamic buttons create by variable assignment
         for (const button of buttons) {
             button.addEventListener("click", () => {
                 const action = new EventAction(EventType.OnButtonDown, button.id);
