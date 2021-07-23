@@ -43,12 +43,12 @@ export class Hole {
             this.element.classList.add(Hole.editableHoleClass);
 
             if (code instanceof IdentifierTkn && code.getParentStatement() instanceof ForStatement) {
-                code.subscribe(
+                /* code.subscribe(
                     CallbackType.change,
                     new Callback(() => {
                         (code.getParentStatement() as ForStatement).loopVar.setIdentifier(code.getRenderText());
                     })
-                );
+                );*/
             }
 
             code.subscribe(

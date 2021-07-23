@@ -401,13 +401,7 @@ export class Module {
         }
 
         if (statement instanceof ForStatement) {
-            const varAssignStmt = new VarAssignmentStmt("", statement);
-            varAssignStmt.lineNumber = statement.lineNumber;
-            statement.buttonId = varAssignStmt.buttonId;
-
-            statement.loopVar = varAssignStmt;
-
-            statement.scope.references.push(new Reference(varAssignStmt, workingScope));
+            statement.scope.references.push(new Reference(statement.loopVar, workingScope));
         }
     }
 

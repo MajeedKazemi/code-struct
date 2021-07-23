@@ -885,7 +885,24 @@ export class ElseStatement extends Statement {
     }
 }
 
-export class ForStatement extends Statement {
+export interface VariableContainer {
+    assignId();
+
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]);
+
+    assignNewVariable(varController: VariableController);
+
+    assignExistingVariable(currentIdentifierAssignments: Statement[]);
+
+    reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    );
+}
+
+export class ForStatement extends Statement implements VariableContainer {
     addableType = AddableType.Statement;
 
     buttonId: string;
@@ -899,6 +916,8 @@ export class ForStatement extends Statement {
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
+
+        this.buttonId = "";
 
         this.tokens.push(new NonEditableTkn("for ", this, this.tokens.length));
         this.counterIndex = this.tokens.length;
@@ -926,6 +945,23 @@ export class ForStatement extends Statement {
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
+
+        this.loopVar = new VarAssignmentStmt();
+        this.loopVar.rootNode = this;
+
+        this.subscribe(
+            CallbackType.onFocusOff,
+            new Callback(() => {
+                this.onFocusOff();
+            })
+        );
+
+        this.subscribe(
+            CallbackType.delete,
+            new Callback(() => {
+                this.onDelete();
+            })
+        );
     }
 
     validateContext(validator: Validator, providedContext: Context): boolean {
@@ -934,7 +970,7 @@ export class ForStatement extends Statement {
 
     rebuild(pos: monaco.Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
-        this.updateButton();
+        //this.updateButton();
     }
 
     replaceCounter(expr: Expression) {
@@ -970,6 +1006,108 @@ export class ForStatement extends Statement {
         }
 
         return isValidType;
+    }
+
+    onFocusOff(): void {
+        if (!this.loopVar.lineNumber) {
+            this.loopVar.lineNumber = this.lineNumber;
+        }
+
+        const currentIdentifier = this.getIdentifier();
+        const oldIdentifier = this.loopVar.getOldIdentifier();
+        const varController = this.getModule().variableController;
+
+        if (currentIdentifier !== oldIdentifier) {
+            const currentIdentifierAssignments = this.scope.getAllAssignmentsToVariable(
+                currentIdentifier,
+                this.getModule(),
+                this.lineNumber,
+                this.loopVar
+            );
+
+            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariable(
+                oldIdentifier,
+                this.getModule(),
+                this.lineNumber,
+                this.loopVar
+            );
+
+            //assignment of a new variable using an empty VarAssignmentStmt
+            if (this.buttonId === "") {
+                this.assignVariable(varController, currentIdentifierAssignments);
+            } else {
+                this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
+            }
+        }
+    }
+
+    assignId() {
+        if (this.buttonId === "") {
+            this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
+            this.loopVar.buttonId = this.buttonId;
+            VarAssignmentStmt.uniqueId++;
+        }
+    }
+
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]) {
+        if (currentIdentifierAssignments.length === 0) {
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    assignNewVariable(varController: VariableController) {
+        this.assignId();
+        varController.addVariableRefButton(this.loopVar);
+        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
+        this.getModule().processNewVariable(
+            this,
+            this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
+        );
+    }
+
+    assignExistingVariable(currentIdentifierAssignments: Statement[]) {
+        const statement =
+            currentIdentifierAssignments[0] instanceof VarAssignmentStmt
+                ? currentIdentifierAssignments[0]
+                : (currentIdentifierAssignments[0] as ForStatement).loopVar;
+
+        this.buttonId = statement.buttonId;
+    }
+
+    reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    ) {
+        //just removed last assignment to the old var
+        if (oldIdentifierAssignments.length === 0) {
+            varController.removeVariableRefButton(oldVarId);
+        }
+
+        if (currentIdentifierAssignments.length === 0) {
+            //variable being reassigned to is a new variable
+            this.buttonId = "";
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            //variable being reassigned to already exists
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    private onDelete() {
+        const varController = this.getModule().variableController;
+        const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
+            this.getIdentifier(),
+            this
+        );
+
+        if (assignments.length === 0) {
+            varController.removeVariableRefButton(this.buttonId);
+            varController.addWarningToVarRefs(this.buttonId, this.getModule());
+        }
     }
 }
 
@@ -1022,7 +1160,7 @@ export class EmptyLineStmt extends Statement {
     }
 }
 
-export class VarAssignmentStmt extends Statement {
+export class VarAssignmentStmt extends Statement implements VariableContainer {
     static uniqueId: number = 0;
     buttonId: string = ""; //note: this is used as both the DOM id of the reference button in the toolbox AND the unique id of the variable itself
     addableType = AddableType.Statement;
@@ -1086,10 +1224,19 @@ export class VarAssignmentStmt extends Statement {
         return this.tokens[this.identifierIndex].getRenderText();
     }
 
-    setIdentifier(identifier: string) {
-        this.oldIdentifier = this.getIdentifier();
+    getOldIdentifier(): string {
+        return this.oldIdentifier;
+    }
+
+    updateButton(): void {
+        document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
+    }
+
+    setIdentifier(identifier: string, oldIdentifier?: string) {
+        this.oldIdentifier = oldIdentifier ?? this.getIdentifier();
 
         (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
+        this.updateButton();
     }
 
     onFocusOff(): void {
@@ -1119,14 +1266,14 @@ export class VarAssignmentStmt extends Statement {
         }
     }
 
-    private assignId() {
+    assignId() {
         if (this.buttonId === "") {
             this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
             VarAssignmentStmt.uniqueId++;
         }
     }
 
-    private assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]) {
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]) {
         if (currentIdentifierAssignments.length === 0) {
             this.assignNewVariable(varController);
         } else if (currentIdentifierAssignments.length > 0) {
@@ -1134,7 +1281,7 @@ export class VarAssignmentStmt extends Statement {
         }
     }
 
-    private assignNewVariable(varController: VariableController) {
+    assignNewVariable(varController: VariableController) {
         this.assignId();
         varController.addVariableRefButton(this);
         this.getModule().processNewVariable(
@@ -1143,7 +1290,7 @@ export class VarAssignmentStmt extends Statement {
         );
     }
 
-    private assignExistingVariable(currentIdentifierAssignments: Statement[]) {
+    assignExistingVariable(currentIdentifierAssignments: Statement[]) {
         const statement =
             currentIdentifierAssignments[0] instanceof VarAssignmentStmt
                 ? currentIdentifierAssignments[0]
@@ -1152,7 +1299,7 @@ export class VarAssignmentStmt extends Statement {
         this.buttonId = statement.buttonId;
     }
 
-    private reassignVar(
+    reassignVar(
         oldVarId: string,
         varController: VariableController,
         currentIdentifierAssignments: Statement[],

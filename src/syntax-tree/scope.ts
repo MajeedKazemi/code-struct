@@ -90,6 +90,8 @@ export class Scope {
 
             if (currNode instanceof VarAssignmentStmt && currNode.getIdentifier() === identifier) {
                 assignments.push(currNode);
+            } else if (currNode instanceof ForStatement && currNode.loopVar.getIdentifier() === identifier) {
+                assignments.push(currNode.loopVar);
             }
 
             if (currNode instanceof Statement) {
