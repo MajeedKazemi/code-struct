@@ -73,6 +73,15 @@ export class Module {
         this.draftExpressions = [];
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
+            const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
+            const statmentScope = statementAtLine.scope ?? (statementAtLine.rootNode as Statement | Module).scope;
+
+            console.log(statmentScope);
+
+            this.variableController.hideUnavailableVarsInToolbox(
+                statmentScope,
+                this.editor.monaco.getPosition().lineNumber
+            );
             Hole.disableEditableHoleOutlines();
             Hole.disableVarHighlights();
             Hole.outlineTextEditableHole(c);

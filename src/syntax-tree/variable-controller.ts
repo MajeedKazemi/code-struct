@@ -2,7 +2,7 @@ import { addVariableReferenceButton, removeVariableReferenceButton } from "../ed
 import { Expression, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { Module } from "./module";
 import { CodeConstruct } from "./ast";
-import { Token } from "monaco-editor";
+import { Scope } from "./scope";
 
 export class VariableController {
     private variableButtons: HTMLDivElement[];
@@ -53,6 +53,20 @@ export class VariableController {
         }
 
         return buttons[0];
+    }
+
+    hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number) {
+        const availableRefs = scope
+            .getValidReferences(lineNumber)
+            .map((ref) => (ref.statement as VarAssignmentStmt).buttonId);
+
+        for (const button of this.variableButtons) {
+            if (availableRefs.indexOf(button.id) === -1) {
+                button.style.display = "none";
+            } else {
+                button.style.display = "block";
+            }
+        }
     }
 
     private getVarRefsBFS(varId: string, module: Module) {
