@@ -83,6 +83,7 @@
     grid-template-rows: 100%;
     grid-auto-flow: row;
     column-gap: 3%;
+    display: grid;
 }
 
 .var-type-text {

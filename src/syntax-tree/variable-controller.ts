@@ -83,8 +83,24 @@ export class VariableController {
         }
     }
 
-    getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, focus: Focus) {
-        const assignmentsToVar = scope.getAllVarAssignmentsAboveLine(identifier, this.module, lineNumber);
+    updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string, focus: Focus) {
+        this.variableButtons.filter((button) => button.id === buttonId)[0].parentElement.children[1].innerHTML =
+            this.getVariableTypeNearLine(scope, lineNumber, identifier, focus, false);
+    }
+
+    getVariableTypeNearLine(
+        scope: Scope,
+        lineNumber: number,
+        identifier: string,
+        focus: Focus,
+        excludeCurrentLine: boolean = true
+    ) {
+        const assignmentsToVar = scope.getAllVarAssignmentsAboveLine(
+            identifier,
+            this.module,
+            lineNumber,
+            excludeCurrentLine
+        );
 
         //find closest var assignment
         let smallestDiffIndex = 0;

@@ -154,6 +154,8 @@ export interface CodeConstruct {
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 
     onFocusOff(arg: any): void;
+
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 }
 
 /**
@@ -687,6 +689,8 @@ export abstract class Token implements CodeConstruct {
     onFocusOff(arg: any): void {
         return;
     }
+
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
 }
 
 /**
@@ -1065,6 +1069,14 @@ export class ForStatement extends Statement implements VariableContainer {
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
         );
+
+        this.getModule().variableController.updateVarButtonWithType(
+            this.buttonId,
+            this.scope ?? (this.rootNode as Module | Statement).scope, //NOTE: You just need the closest parent scope, but I think in all cases it will be the scope of the root node since we are either inside of the Module's body or another statement's
+            this.lineNumber,
+            this.getIdentifier(),
+            this.getModule().focus
+        );
     }
 
     assignExistingVariable(currentIdentifierAssignments: Statement[]) {
@@ -1287,6 +1299,14 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         this.getModule().processNewVariable(
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
+        );
+
+        this.getModule().variableController.updateVarButtonWithType(
+            this.buttonId,
+            this.scope ?? (this.rootNode as Module | Statement).scope, //NOTE: You just need the closest parent scope, but I think in all cases it will be the scope of the root node since we are either inside of the Module's body or another statement's
+            this.lineNumber,
+            this.getIdentifier(),
+            this.getModule().focus
         );
     }
 

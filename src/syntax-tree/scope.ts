@@ -146,8 +146,17 @@ export class Scope {
         return assignments;
     }
 
-    getAllVarAssignmentsAboveLine(identifier: string, module: Module, lineNumber: number) {
-        return this.getAllAssignmentsToVar(identifier, module).filter((stmt) => stmt.lineNumber < lineNumber);
+    getAllVarAssignmentsAboveLine(
+        identifier: string,
+        module: Module,
+        lineNumber: number,
+        excludeCurrentLine: boolean = true
+    ) {
+        if (excludeCurrentLine) {
+            return this.getAllAssignmentsToVar(identifier, module).filter((stmt) => stmt.lineNumber < lineNumber);
+        }
+
+        return this.getAllAssignmentsToVar(identifier, module).filter((stmt) => stmt.lineNumber <= lineNumber);
     }
 }
 
