@@ -42,15 +42,6 @@ export class Hole {
         if (code instanceof EditableTextTkn || code instanceof IdentifierTkn) {
             this.element.classList.add(Hole.editableHoleClass);
 
-            if (code instanceof IdentifierTkn && code.getParentStatement() instanceof ForStatement) {
-                /* code.subscribe(
-                    CallbackType.change,
-                    new Callback(() => {
-                        (code.getParentStatement() as ForStatement).loopVar.setIdentifier(code.getRenderText());
-                    })
-                );*/
-            }
-
             code.subscribe(
                 CallbackType.focusEditableHole,
                 new Callback(() => {

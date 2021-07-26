@@ -117,7 +117,7 @@ export class Focus {
             this.module.editor.monaco.setPosition(newContext.positionToMove);
         }
 
-        this.fireOnNavOfCallbacks(
+        this.fireOnNavOffCallbacks(
             focusedLineStatement,
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
@@ -181,7 +181,7 @@ export class Focus {
             }
         }
 
-        this.fireOnNavOfCallbacks(
+        this.fireOnNavOffCallbacks(
             focusedLineStatement,
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
@@ -196,7 +196,7 @@ export class Focus {
             this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
         else this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, 1));
 
-        this.fireOnNavOfCallbacks(
+        this.fireOnNavOffCallbacks(
             focusedLineStatement,
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
@@ -215,7 +215,7 @@ export class Focus {
             this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, curLine.right));
         }
 
-        this.fireOnNavOfCallbacks(focusedLineStatement, lineBelow);
+        this.fireOnNavOffCallbacks(focusedLineStatement, lineBelow);
     }
 
     navigateRight() {
@@ -277,7 +277,7 @@ export class Focus {
             }
         }
 
-        this.fireOnNavOfCallbacks(
+        this.fireOnNavOffCallbacks(
             focusedLineStatement,
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
@@ -341,7 +341,7 @@ export class Focus {
             }
         }
 
-        this.fireOnNavOfCallbacks(
+        this.fireOnNavOffCallbacks(
             focusedLineStatement,
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
@@ -458,7 +458,7 @@ export class Focus {
     /**
      * This function will fire all of the subscribed before nav off variable assignment callbacks
      */
-    private fireOnNavOfCallbacks(oldStatement: Statement, newStatement: Statement) {
+    private fireOnNavOffCallbacks(oldStatement: Statement, newStatement: Statement) {
         const context = this.getContext();
 
         if (oldStatement !== newStatement) {
