@@ -3,7 +3,6 @@ import { Expression, IdentifierTkn, Statement, VarAssignmentStmt, VariableRefere
 import { Module } from "./module";
 import { CodeConstruct } from "./ast";
 import { Scope } from "./scope";
-import { Focus } from "../editor/focus";
 import { DataType } from "./consts";
 
 export class VariableController {
@@ -63,7 +62,7 @@ export class VariableController {
         return buttons[0];
     }
 
-    hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number, focus: Focus) {
+    hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number) {
         const availableRefs = scope
             .getValidReferences(lineNumber)
             .map((ref) => (ref.statement as VarAssignmentStmt).buttonId);
@@ -76,25 +75,19 @@ export class VariableController {
                 button.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
                     scope,
                     lineNumber,
-                    button.textContent,
-                    focus
+                    button.textContent
                 );
             }
         }
     }
 
-    updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string, focus: Focus) {
+    updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string) {
         this.variableButtons.filter((button) => button.id === buttonId)[0].parentElement.children[1].innerHTML =
-            this.getVariableTypeNearLine(scope, lineNumber, identifier, focus, false);
+            this.getVariableTypeNearLine(scope, lineNumber, identifier, false);
     }
 
-    getVariableTypeNearLine(
-        scope: Scope,
-        lineNumber: number,
-        identifier: string,
-        focus: Focus,
-        excludeCurrentLine: boolean = true
-    ) {
+    getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true) {
+        const focus = this.module.focus;
         const assignmentsToVar = scope.getAllVarAssignmentsAboveLine(
             identifier,
             this.module,

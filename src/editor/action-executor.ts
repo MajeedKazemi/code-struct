@@ -70,8 +70,7 @@ export class ActionExecutor {
                             ).rootNode as Statement | Module
                         ).scope,
                     this.module.editor.monaco.getPosition().lineNumber,
-                    identifier,
-                    this.module.focus
+                    identifier
                 );
 
                 const ref = new VariableReferenceExpr(identifier, dataType, buttonId);

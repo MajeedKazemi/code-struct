@@ -1083,8 +1083,7 @@ export class ForStatement extends Statement implements VariableContainer {
             this.buttonId,
             this.scope ?? (this.rootNode as Module | Statement).scope, //NOTE: You just need the closest parent scope, but I think in all cases it will be the scope of the root node since we are either inside of the Module's body or another statement's
             this.lineNumber,
-            this.getIdentifier(),
-            this.getModule().focus
+            this.getIdentifier()
         );
     }
 
@@ -1301,8 +1300,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             ) {
                 varController.hideUnavailableVarsInToolbox(
                     (this.rootNode as Module | Statement).scope,
-                    this.lineNumber,
-                    this.getModule().focus
+                    this.lineNumber
                 );
             }
         }
@@ -1335,8 +1333,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             this.buttonId,
             this.scope ?? (this.rootNode as Module | Statement).scope, //NOTE: You just need the closest parent scope, but I think in all cases it will be the scope of the root node since we are either inside of the Module's body or another statement's
             this.lineNumber,
-            this.getIdentifier(),
-            this.getModule().focus
+            this.getIdentifier()
         );
     }
 

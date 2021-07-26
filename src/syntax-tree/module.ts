@@ -80,8 +80,7 @@ export class Module {
 
             this.variableController.hideUnavailableVarsInToolbox(
                 statmentScope,
-                this.editor.monaco.getPosition().lineNumber,
-                this.focus
+                this.editor.monaco.getPosition().lineNumber
             );
             Hole.disableEditableHoleOutlines();
             Hole.disableVarHighlights();
@@ -543,14 +542,14 @@ export class Module {
     }
 
     updateDraftModeToolboxVarButtons(refs: any[]) {
-        /*  for (const ref of refs) { TODO: Resolve this
+        for (const ref of refs) {
             const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
             if (ref[1] === InsertionType.DraftMode) {
                 button.classList.add(Module.draftModeButtonClass);
             } else {
                 button.classList.remove(Module.draftModeButtonClass);
             }
-        }*/
+        }
     }
 
     /**
