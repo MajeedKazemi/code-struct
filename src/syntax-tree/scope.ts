@@ -60,7 +60,7 @@ export class Scope {
         let currStatement: Statement | Module = stmt;
         const scopes: Scope[] = [];
 
-        while (!(currStatement instanceof Module)) {
+        while (currStatement && !(currStatement instanceof Module)) {
             scopes.push((currStatement.rootNode as Statement | Module).scope);
             currStatement = currStatement.rootNode as Statement | Module;
         }
@@ -68,18 +68,8 @@ export class Scope {
         return scopes;
     }
 
-    /**
-     * This method determines whether an assignment to a given variable exists and would be covered by the scope at
-     * lineNumber. If not, then we are creating a new variable.
-     */
-    getAllAssignmentsToVariable(
-        identifier: string,
-        module: Module,
-        lineNumber: number,
-        excludeStmt?: VarAssignmentStmt
-    ) {
-        let assignments: VarAssignmentStmt[] = [];
-
+    private getAllAssignmentsToVar(identifier: string, module: Module) {
+        const assignments: VarAssignmentStmt[] = [];
         //Find all assignments to vars with this identifier
         const Q: CodeConstruct[] = [];
         Q.push(...module.body);
@@ -100,13 +90,28 @@ export class Scope {
             }
         }
 
+        return assignments;
+    }
+
+    /**
+     * This method determines whether an assignment to a given variable exists and would be covered by the scope at
+     * lineNumber. If not, then we are creating a new variable. It returns all such assignments in an array.
+     */
+    getAllVarAssignmentsToNewVar(
+        identifier: string,
+        module: Module,
+        lineNumber: number,
+        excludeStmt: VarAssignmentStmt = null
+    ) {
+        let assignments: VarAssignmentStmt[] = this.getAllAssignmentsToVar(identifier, module);
+
         //We know these are the same vaiable if their scopes match at some point
         let statement = module.focus.getStatementAtLineNumber(lineNumber);
 
         //find the scope that contains the current line
         let workingScope = statement.scope;
         let currStatement = statement;
-        while (!workingScope && currStatement.rootNode) {
+        while (!workingScope && currStatement && currStatement.rootNode) {
             workingScope = (currStatement.rootNode as Module | Statement).scope;
 
             if (currStatement.rootNode instanceof Module) {
@@ -123,8 +128,6 @@ export class Scope {
                 const oldAssignmentScopes = this.getAllScopesOfStmt(assignmentStmt);
                 const matchInfo = hasMatchWithIndex(newAssignmentScopes, oldAssignmentScopes);
 
-                console.log(matchInfo);
-                console.log(lineNumber > assignmentStmt.lineNumber);
                 if (lineNumber < assignmentStmt.lineNumber) {
                     //new var is above old var assignment; new is in-scope of old
                     return true;
@@ -133,14 +136,18 @@ export class Scope {
                     return false;
                 } else if (matchInfo[0] === matchInfo[1]) {
                     //if var scopes are on the same level, then they are the same as long as the roots of both assignments match
-                    return assignmentStmt.rootNode === excludeStmt.rootNode;
+                    return excludeStmt ? assignmentStmt.rootNode === excludeStmt.rootNode : false;
                 } else {
-                    return assignmentStmt.scope === excludeStmt.scope; //two vars are in same scope
+                    return excludeStmt ? assignmentStmt.scope === excludeStmt.scope : false; //two vars are in same scope
                 }
             }
         });
 
         return assignments;
+    }
+
+    getAllVarAssignmentsAboveLine(identifier: string, module: Module, lineNumber: number) {
+        return this.getAllAssignmentsToVar(identifier, module).filter((stmt) => stmt.lineNumber < lineNumber);
     }
 }
 

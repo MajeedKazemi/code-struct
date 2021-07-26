@@ -1018,14 +1018,14 @@ export class ForStatement extends Statement implements VariableContainer {
         const varController = this.getModule().variableController;
 
         if (currentIdentifier !== oldIdentifier) {
-            const currentIdentifierAssignments = this.scope.getAllAssignmentsToVariable(
+            const currentIdentifierAssignments = this.scope.getAllVarAssignmentsToNewVar(
                 currentIdentifier,
                 this.getModule(),
                 this.lineNumber,
                 this.loopVar
             );
 
-            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariable(
+            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllVarAssignmentsToNewVar(
                 oldIdentifier,
                 this.getModule(),
                 this.lineNumber,
@@ -1246,9 +1246,9 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         if (currentIdentifier !== this.oldIdentifier) {
             const currentIdentifierAssignments = (
                 this.rootNode as Statement | Module
-            ).scope.getAllAssignmentsToVariable(currentIdentifier, this.getModule(), this.lineNumber, this);
+            ).scope.getAllVarAssignmentsToNewVar(currentIdentifier, this.getModule(), this.lineNumber, this);
 
-            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariable(
+            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllVarAssignmentsToNewVar(
                 this.oldIdentifier,
                 this.getModule(),
                 this.lineNumber,

@@ -84,7 +84,7 @@ export class VariableController {
     }
 
     getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, focus: Focus) {
-        const assignmentsToVar = scope.getAllAssignmentsToVariableWithinScope(identifier).map((ref) => ref.statement);
+        const assignmentsToVar = scope.getAllVarAssignmentsAboveLine(identifier, this.module, lineNumber);
 
         //find closest var assignment
         let smallestDiffIndex = 0;
