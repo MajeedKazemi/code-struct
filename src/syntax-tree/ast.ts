@@ -1317,6 +1317,18 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                 : (currentIdentifierAssignments[0] as ForStatement).loopVar;
 
         this.buttonId = statement.buttonId;
+
+        if (this.lineNumber < statement.lineNumber) {
+            (statement.rootNode as Module | Statement).scope.references.splice(
+                (statement.rootNode as Module | Statement).scope.references
+                    .map((ref) => ref.statement)
+                    .indexOf(statement),
+                1
+            );
+            (this.rootNode as Module | Statement).scope.references.push(
+                new Reference(this, (this.rootNode as Module | Statement).scope)
+            );
+        }
     }
 
     reassignVar(
