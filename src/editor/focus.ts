@@ -467,7 +467,7 @@ export class Focus {
             //these will run for all statements that have a callback attached, not just for oldStatement
             //if you want to run a callback only on oldStatement, use CallbackType.onFocusOff
             //Think of this array as the global list of functions that gets called when we navigate off of a certain statement type
-            //and of CallbackType.onFocusOff as the callback called on a specific code construct
+            //and of CallbackType.onFocusOff as the callback called on a specific instance of  a code construct
             const callbackArr = this.onNavOffCallbacks.get(oldStatement.codeConstructName) ?? [];
             for (const callback of callbackArr) {
                 callback(context);

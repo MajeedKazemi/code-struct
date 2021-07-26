@@ -653,7 +653,7 @@ export class MenuController {
 
             //add variable references
             const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
-            const refs = Validator.getValidVariableReferences(focusedNode);
+            const refs = Validator.getValidVariableReferences(focusedNode, this.module.variableController);
             const identifiers = refs.map((ref) =>
                 ((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier()
             );

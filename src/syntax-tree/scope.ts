@@ -146,7 +146,7 @@ export class Scope {
         return assignments;
     }
 
-    getAllVarAssignmentsAboveLine(
+    getAllAssignmentsToVarAboveLine(
         identifier: string,
         module: Module,
         lineNumber: number,

@@ -2,8 +2,9 @@ import { addVariableReferenceButton, removeVariableReferenceButton } from "../ed
 import { Expression, IdentifierTkn, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { Module } from "./module";
 import { CodeConstruct } from "./ast";
-import { Scope } from "./scope";
-import { DataType } from "./consts";
+import { Reference, Scope } from "./scope";
+import { DataType, InsertionType } from "./consts";
+import { Validator } from "../editor/validator";
 
 export class VariableController {
     private variableButtons: HTMLDivElement[];
@@ -88,7 +89,7 @@ export class VariableController {
 
     getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true) {
         const focus = this.module.focus;
-        const assignmentsToVar = scope.getAllVarAssignmentsAboveLine(
+        const assignmentsToVar = scope.getAllAssignmentsToVarAboveLine(
             identifier,
             this.module,
             lineNumber,
@@ -119,13 +120,56 @@ export class VariableController {
                 .filter((assignment) => assignment.lineNumber <= lineNumber)
                 .map((filteredRecord) => (filteredRecord as VarAssignmentStmt).dataType);
             const firstType = types[0];
+            const statementAtLineScope = statementAtLine.hasScope()
+                ? statementAtLine.scope
+                : (statementAtLine.rootNode as Module | Statement).scope;
+            const closestStatementScope = closestStatement.hasScope()
+                ? closestStatement.scope
+                : (closestStatement.rootNode as Module | Statement).scope;
 
             //if all types are equal, then it is safe to return that type
             if (types.every((type) => type === firstType)) {
                 return firstType;
+            } else if (statementAtLineScope.parentScope === closestStatementScope) {
+                /**
+                 * abc = 123
+                 * abc = ""
+                 *
+                 * if ---:
+                 *    ref abc here should be string, not Any
+                 */
+                return types[types.length - 1];
             } else {
                 return DataType.Any;
             }
+        }
+    }
+
+    updateButtonsInsertionType() {
+        const c = this.module.focus.getContext();
+        const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
+        const refInsertionType = Validator.getValidVariableReferences(focusedNode, this);
+
+        for (const ref of refInsertionType) {
+            const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
+
+            if (ref[1] === InsertionType.Valid) {
+                button.classList.remove("varButtonDisabled");
+                button.classList.remove(Module.draftModeButtonClass);
+            } else if (ref[1] === InsertionType.Invalid) {
+                button.classList.add("varButtonDisabled");
+                button.classList.remove(Module.draftModeButtonClass);
+            } else if (ref[1] === InsertionType.DraftMode) {
+                button.classList.remove("varButtonDisabled");
+                button.classList.add(Module.draftModeButtonClass);
+            }
+        }
+
+        if (refInsertionType.length === 0) {
+            this.variableButtons.forEach((button) => {
+                button.classList.add("varButtonDisabled");
+                button.classList.remove(Module.draftModeButtonClass);
+            });
         }
     }
 

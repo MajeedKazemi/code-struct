@@ -15,6 +15,7 @@ import {
     TypedEmptyExpr,
     VarAssignmentStmt,
 } from "../syntax-tree/ast";
+import { VariableController } from "../syntax-tree/variable-controller";
 
 export class Validator {
     module: Module;
@@ -372,9 +373,12 @@ export class Validator {
     }
 
     //returns a nested list [[Reference, InsertionType], ...]
-    static getValidVariableReferences(code: CodeConstruct): Array<(Reference | InsertionType)[]> {
+    static getValidVariableReferences(
+        code: CodeConstruct,
+        variableController: VariableController
+    ): [Reference, InsertionType][] {
         const refs: Reference[] = [];
-        const mappedRefs: Array<(Reference | InsertionType)[]> = []; //no point of making this a map since we don't have access to the refs whereever this method is used. Otherwise would have to use buttonId or uniqueId as keys into the map.
+        const mappedRefs: [Reference, InsertionType][] = []; //no point of making this a map since we don't have access to the refs whereever this method is used. Otherwise would have to use buttonId or uniqueId as keys into the map.
 
         try {
             if (code instanceof TypedEmptyExpr || code instanceof EmptyLineStmt) {
@@ -402,7 +406,13 @@ export class Validator {
                     if (ref.statement instanceof VarAssignmentStmt) {
                         if (code instanceof TypedEmptyExpr) {
                             if (
-                                code.type.indexOf((ref.statement as VarAssignmentStmt).dataType) > -1 ||
+                                code.type.indexOf(
+                                    variableController.getVariableTypeNearLine(
+                                        scope,
+                                        code.getLineNumber(),
+                                        ref.statement.getIdentifier()
+                                    )
+                                ) > -1 ||
                                 code.type.indexOf(DataType.Any) > -1
                             ) {
                                 mappedRefs.push([ref, InsertionType.Valid]);

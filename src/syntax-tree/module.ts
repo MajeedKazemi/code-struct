@@ -72,16 +72,24 @@ export class Module {
 
         this.draftExpressions = [];
 
+        Hole.setModule(this);
+
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
             const statmentScope = statementAtLine.scope ?? (statementAtLine.rootNode as Statement | Module).scope;
-
-            //console.log(statmentScope);
 
             this.variableController.hideUnavailableVarsInToolbox(
                 statmentScope,
                 this.editor.monaco.getPosition().lineNumber
             );
+
+            Hole.disableEditableHoleOutlines();
+            Hole.disableVarHighlights();
+            Hole.outlineTextEditableHole(c);
+            Hole.highlightValidVarHoles(c);
+        });
+
+        this.focus.subscribeOnNavChangeCallback((c: Context) => {
             Hole.disableEditableHoleOutlines();
             Hole.disableVarHighlights();
             Hole.outlineTextEditableHole(c);
@@ -94,14 +102,10 @@ export class Module {
             ((c: Context) => {
                 const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
                 const validInserts = this.getAllValidInsertsList(focusedNode);
-                const validRefs = Validator.getValidVariableReferences(focusedNode);
-                const validVarIds: string[] = validRefs.map(
-                    (ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId
-                );
 
                 //mark draft mode buttons
                 this.updateDraftModeToolboxButtons(focusedNode, validInserts);
-                this.updateDraftModeToolboxVarButtons(validRefs);
+                this.variableController.updateButtonsInsertionType();
 
                 //disable/enable toolbox construct buttons based on context
                 Object.keys(ConstructKeys).forEach((construct) => {
@@ -118,16 +122,6 @@ export class Module {
                             button.disabled = false;
                             button.classList.remove("disabled");
                         }
-                    }
-                });
-
-                //disable/enable toolbox var buttons based on context
-                this.variableButtons.forEach((button) => {
-                    if (validVarIds.indexOf(button.id) > -1) {
-                        button.classList.remove("varButtonDisabled");
-                    } else {
-                        button.classList.add("varButtonDisabled");
-                        button.classList.remove(Module.draftModeButtonClass);
                     }
                 });
             }).bind(this)
@@ -541,17 +535,6 @@ export class Module {
         }
     }
 
-    updateDraftModeToolboxVarButtons(refs: any[]) {
-        for (const ref of refs) {
-            const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
-            if (ref[1] === InsertionType.DraftMode) {
-                button.classList.add(Module.draftModeButtonClass);
-            } else {
-                button.classList.remove(Module.draftModeButtonClass);
-            }
-        }
-    }
-
     /**
      * Produce a map of Util.ConstructKeys to boolean stating whether a given construct is available for insertion
      * or a draft mode insertion into focusedNode.
@@ -787,7 +770,7 @@ export class Module {
 
         const insertionType =
             code instanceof VariableReferenceExpr
-                ? (Validator.getValidVariableReferences(focusedNode)
+                ? (Validator.getValidVariableReferences(focusedNode, this.variableController)
                       .filter(
                           (record) =>
                               ((record[0] as Reference).statement as VarAssignmentStmt).buttonId ===

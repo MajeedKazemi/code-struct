@@ -11,11 +11,15 @@ import {
     VarAssignmentStmt,
     ForStatement,
 } from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
+import { InsertionType } from "../syntax-tree/consts";
 
 export class Hole {
     static editableHoleClass = "editableHole";
-    static availableVarHoleClass = "inScopeHole";
+    static validVarIdentifierHole = "validVarIdentifierHole";
+    static draftVarIdentifierHole = "draftVarIdentifierHole";
     static holes: Hole[] = [];
+    static module: Module;
 
     element: HTMLDivElement;
     editor: Editor;
@@ -52,18 +56,35 @@ export class Hole {
             code.subscribe(
                 CallbackType.showAvailableVars,
                 new Callback(() => {
-                    const validIdentifierIds = Validator.getValidVariableReferences(code).map(
+                    const c = Hole.module.focus.getContext();
+                    const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
+
+                    const refInsertionTypes = Validator.getValidVariableReferences(
+                        focusedNode,
+                        Hole.module.variableController
+                    );
+                    const validIdentifierIds = refInsertionTypes.map(
                         (ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId
                     );
+
+                    const refInsertionTypeMap = new Map<string, InsertionType>();
+                    for (let i = 0; i < validIdentifierIds.length; i++) {
+                        refInsertionTypeMap.set(validIdentifierIds[i], refInsertionTypes[i][1]);
+                    }
 
                     for (const hole of Hole.holes) {
                         if (
                             (hole.code.rootNode instanceof VarAssignmentStmt ||
                                 hole.code.rootNode instanceof ForStatement) &&
-                            validIdentifierIds.indexOf(hole.code.rootNode.buttonId) > -1 &&
                             hole.code instanceof IdentifierTkn
                         ) {
-                            hole.element.classList.add(Hole.availableVarHoleClass);
+                            if (refInsertionTypeMap.get(hole.code.rootNode.buttonId) === InsertionType.Valid) {
+                                hole.element.classList.add(Hole.validVarIdentifierHole);
+                            } else if (
+                                refInsertionTypeMap.get(hole.code.rootNode.buttonId) === InsertionType.DraftMode
+                            ) {
+                                hole.element.classList.add(Hole.draftVarIdentifierHole);
+                            }
                         }
                     }
                 })
@@ -129,6 +150,10 @@ export class Hole {
         this.removed = true;
     }
 
+    static setModule(module: Module) {
+        this.module = module;
+    }
+
     static disableEditableHoleOutlines() {
         Hole.holes.forEach((hole) => {
             hole.element.classList.remove(Hole.editableHoleClass);
@@ -137,7 +162,8 @@ export class Hole {
 
     static disableVarHighlights() {
         Hole.holes.forEach((hole) => {
-            hole.element.classList.remove(Hole.availableVarHoleClass);
+            hole.element.classList.remove(Hole.validVarIdentifierHole);
+            hole.element.classList.remove(Hole.draftVarIdentifierHole);
         });
     }
 

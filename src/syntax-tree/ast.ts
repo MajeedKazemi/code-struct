@@ -1051,6 +1051,8 @@ export class ForStatement extends Statement implements VariableContainer {
             } else {
                 this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
             }
+
+            varController.updateButtonsInsertionType();
         }
     }
 
@@ -1303,6 +1305,8 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                     this.lineNumber
                 );
             }
+
+            varController.updateButtonsInsertionType();
         }
     }
 
@@ -1381,7 +1385,6 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     onInsertInto(insertCode: Expression) {
-        console.log("VAR INSERT INTO");
         if (insertCode instanceof ListLiteralExpression) {
             this.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
         } else {
