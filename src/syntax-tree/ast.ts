@@ -1275,6 +1275,19 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             }
 
             this.oldIdentifier = currentIdentifier;
+
+            //special case: when we focus off of a var assignment inside of an if with just the assignment it in, the reference button should not appear
+            //in the toolbox
+            if (
+                (this.rootNode instanceof IfStatement || this.rootNode instanceof ElseStatement) &&
+                this.rootNode.body.length === 1
+            ) {
+                varController.hideUnavailableVarsInToolbox(
+                    (this.rootNode as Module | Statement).scope,
+                    this.lineNumber,
+                    this.getModule().focus
+                );
+            }
         }
     }
 
@@ -1318,7 +1331,8 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
         this.buttonId = statement.buttonId;
 
-        if (this.lineNumber < statement.lineNumber) {
+        //if we reassign above current line number, then we might have changed scopes
+        if (this.lineNumber < statement.lineNumber && statement.rootNode !== this.rootNode) {
             (statement.rootNode as Module | Statement).scope.references.splice(
                 (statement.rootNode as Module | Statement).scope.references
                     .map((ref) => ref.statement)
