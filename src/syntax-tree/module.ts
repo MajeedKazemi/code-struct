@@ -965,34 +965,8 @@ export class Module {
                         if (isValid) {
                             code.performPreInsertionUpdates(focusedNode);
 
-                            if (code.rootNode instanceof Statement) {
-                                code.rootNode.onInsertInto(code);
-                            }
-
-                            if (focusedNode.rootNode instanceof ForStatement) {
-                                this.typeSystem.updateForLoopVarType(focusedNode.rootNode, code); //TODO: should be placed inside of doOnInsert() which is a method of all CodeConstructs
-                            }
-                            //This is for ListLiterals when their parent is a variable.
-                            //It needs to be refactored along with the rest of similar updates so that anything that has a rootNode that is a
-                            //VarAssignment changes the vars dataType.
-
-                            //Every expression needs to have this if it is being assigned to a var. So could put it inside Expression.
-                            if (
-                                focusedNode.rootNode.rootNode &&
-                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt
-                            ) {
-                                const newType = TypeChecker.getListTypeFromElementType(code.returns);
-                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
-                            }
-
-                            //inserting a list identifier into a MemberCallStmt needs to update the variable's type if it is being assigned to one
-                            if (
-                                focusedNode.rootNode instanceof MemberCallStmt &&
-                                focusedNode.rootNode.rootNode instanceof VarAssignmentStmt &&
-                                focusedNode instanceof TypedEmptyExpr
-                            ) {
-                                const newType = TypeChecker.getElementTypeFromListType((code as Expression).returns);
-                                this.typeSystem.updateDataTypeOfVarRefInToolbox(focusedNode.rootNode.rootNode, newType);
+                            if (focusedNode.rootNode instanceof Statement) {
+                                focusedNode.rootNode.onInsertInto(code);
                             }
                         }
                     }

@@ -566,6 +566,15 @@ export abstract class Expression extends Statement implements CodeConstruct {
             }
         }
     }
+
+    updateVariableType(dataType: DataType) {
+        //TODO: This probably needs to be recursive since this won't catch nested expression type updates
+        if (this.rootNode instanceof VarAssignmentStmt) {
+            this.rootNode.dataType = dataType;
+        } else if (this.rootNode instanceof ForStatement) {
+            this.rootNode.loopVar.dataType = TypeChecker.getElementTypeFromListType(dataType);
+        }
+    }
 }
 
 /**
@@ -1109,6 +1118,14 @@ export class ForStatement extends Statement implements VariableContainer {
         }
     }
 
+    onInsertInto(insertCode: Expression) {
+        if (insertCode instanceof ListLiteralExpression) {
+            this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+        } else {
+            this.loopVar.dataType = insertCode.returns;
+        }
+    }
+
     private onDelete() {
         const varController = this.getModule().variableController;
         const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
@@ -1363,6 +1380,15 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         } else if (currentIdentifierAssignments.length > 0) {
             //variable being reassigned to already exists
             this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    onInsertInto(insertCode: Expression) {
+        console.log("VAR INSERT INTO");
+        if (insertCode instanceof ListLiteralExpression) {
+            this.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+        } else {
+            this.dataType = insertCode.returns;
         }
     }
 
@@ -2151,11 +2177,15 @@ export class ListLiteralExpression extends Expression {
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
+        let dataType;
         if (this.areAllHolesEmpty()) {
-            this.returns = TypeChecker.getListTypeFromElementType(insertCode.returns);
+            dataType = TypeChecker.getListTypeFromElementType(insertCode.returns);
         } else if (TypeChecker.getElementTypeFromListType(this.returns) !== insertCode.returns) {
-            this.returns = DataType.AnyList;
+            dataType = DataType.AnyList;
         }
+
+        this.returns = dataType;
+        this.updateVariableType(dataType);
     }
 
     //return whether all elements of this list are of type TypedEmptyExpr
@@ -2165,6 +2195,10 @@ export class ListLiteralExpression extends Expression {
         const numberOfEmptyHoles = elements.filter((element) => element instanceof TypedEmptyExpr).length;
 
         return numberOfEmptyHoles === numberOfElements;
+    }
+
+    onInsertInto(insertCode: Expression) {
+        this.performTypeUpdatesOnInsertInto(insertCode);
     }
 }
 
