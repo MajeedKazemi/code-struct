@@ -24,62 +24,109 @@ export class Validator {
     }
 
     /**
-     * logic:
+     * logic: if next statement is either else or elif => false
+     * if prev is either if or elif => return true
      */
-    canInsertElseStatement(providedContext?: Context): boolean {
+    canInsertElseStmtAtCurIndent(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
-            this.isRightBelowElifStatement(context) ||
-            this.isWithinElifStatement(context) ||
-            this.isWithinIfStatement(context) ||
-            this.isRightBelowIfStatement(context)
-        );
+        const prevStmt = this.getPrevSibling(context);
+        const nextStmt = this.getNextSibling(context);
+
+        if (nextStmt instanceof ElseStatement) return false; // either else or elif
+
+        if (prevStmt instanceof IfStatement || (prevStmt instanceof ElseStatement && prevStmt.hasCondition))
+            return true;
+
+        return false;
     }
 
-    canInsertElifStatement(providedContext?: Context): boolean {
+    /**
+     * logic: if next statement is either else => false
+     * if prev is either if or elif => return true
+     */
+    canInsertElifStmtAtCurIndent(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const prevStmt = this.getPrevSibling(context);
+
+        if (prevStmt instanceof ElseStatement && !prevStmt.hasCondition) return false;
+
+        if (prevStmt instanceof IfStatement || (prevStmt instanceof ElseStatement && prevStmt.hasCondition))
+            return true;
+
+        return false;
+    }
+
+    /**
+     * This function expects that we've tried inserting the else at the current indent
+     * before calling this function.
+     *
+     * logic: returns false if inside else, or the item's root has a sibling before it which was an else,
+     * or the item's root has a sibling after it which is either an if or an elif.
+     * returns true => within if AND the current body does not have a else/elif sibling afterwards
+     * returns true => within elif AND the current body does not have an else sibling afterwards
+     */
+    canInsertElseStmtAtPrevIndent(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return this.isRightBelowElifStatement(context) || this.isWithinElifStatement(context);
+        const prevStmtOfRoot = this.getPrevSiblingOfRoot(context);
+        const nextStmtOfRoot = this.getNextSiblingOfRoot(context);
+        const curStmtRoot = context.lineStatement.rootNode as Statement | Module;
+
+        if (
+            (curStmtRoot instanceof ElseStatement && !curStmtRoot.hasCondition) ||
+            nextStmtOfRoot instanceof ElseStatement ||
+            (prevStmtOfRoot instanceof ElseStatement && !prevStmtOfRoot.hasCondition)
+        ) {
+            // if inside else statement
+            // if this item's root has a sibling afterward which is either an else or an elif
+            // if this item's root has a sibling before it which was an else
+            return false;
+        }
+
+        if (curStmtRoot instanceof IfStatement && !(nextStmtOfRoot instanceof ElseStatement)) return true;
+        if (
+            curStmtRoot instanceof ElseStatement &&
+            curStmtRoot.hasCondition &&
+            !(nextStmtOfRoot instanceof ElseStatement && !nextStmtOfRoot.hasCondition)
+        )
+            return true;
+
+        return false;
     }
 
-    isRightBelowElseStatement(providedContext?: Context): boolean {
+    /**
+     * This function expects that we've tried inserting the elif at the current indent
+     * before calling this function.
+     *
+     * logic: returns false if inside else, or the item's root has a sibling before it which was an else.
+     * returns true if current item's root is either an if or an elif.
+     */
+    canInsertElifStmtAtPrevIndent(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return this.getStatementAbove(context) instanceof ElseStatement;
+        const prevStmtOfRoot = this.getPrevSiblingOfRoot(context);
+        const curStmtRoot = context.lineStatement.rootNode as Statement | Module;
+
+        if (
+            (curStmtRoot instanceof ElseStatement && !curStmtRoot.hasCondition) ||
+            (prevStmtOfRoot instanceof ElseStatement && !prevStmtOfRoot.hasCondition)
+        ) {
+            // if inside else statement
+            // if this item's root has a sibling before it which was an else
+            return false;
+        }
+
+        if (curStmtRoot instanceof IfStatement || (curStmtRoot instanceof ElseStatement && curStmtRoot.hasCondition)) {
+            return true;
+        }
+
+        return false;
     }
 
-    isWithinElseStatement(providedContext?: Context): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        return context.lineStatement.rootNode instanceof ElseStatement;
-    }
-
-    isRightBelowElifStatement(providedContext?: Context): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-        const lineAbove = this.getStatementAbove(context);
-
-        return lineAbove instanceof ElseStatement && lineAbove?.hasCondition;
-    }
-
-    isWithinElifStatement(providedContext?: Context): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        return context.lineStatement.rootNode instanceof ElseStatement && context.lineStatement.rootNode.hasCondition;
-    }
-
-    isRightBelowIfStatement(providedContext?: Context): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        return this.getStatementAbove(context) instanceof IfStatement;
-    }
-
-    isWithinIfStatement(providedContext?: Context): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        return context.lineStatement.rootNode instanceof IfStatement;
-    }
-
+    /**
+     * Checks if context.lineStatement is an empty line
+     */
     onEmptyLine(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
@@ -171,7 +218,7 @@ export class Validator {
         const curLineNumber = context.lineStatement.lineNumber;
         const curPosition = this.module.editor.monaco.getPosition();
 
-        return curPosition.column == context.lineStatement.left && this.getStatementAbove() instanceof EmptyLineStmt;
+        return curPosition.column == context.lineStatement.left && this.getLineAbove() instanceof EmptyLineStmt;
     }
 
     /**
@@ -361,7 +408,61 @@ export class Validator {
         return context.selected && context.token.isEmpty && context.token instanceof TypedEmptyExpr;
     }
 
-    private getStatementAbove(providedContext?: Context): Statement {
+    private getPrevSibling(providedContext?: Context): Statement {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return this.getStatementInBody(
+            context.lineStatement.rootNode as Statement | Module,
+            context.lineStatement.indexInRoot - 1
+        );
+    }
+
+    private getNextSibling(providedContext?: Context): Statement {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return this.getStatementInBody(
+            context.lineStatement.rootNode as Statement | Module,
+            context.lineStatement.indexInRoot + 1
+        );
+    }
+
+    private getNextSiblingOfRoot(providedContext?: Context): Statement {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const curRoot = context.lineStatement.rootNode;
+
+        if (curRoot instanceof Statement) {
+            return this.getStatementInBody(curRoot.rootNode as Statement | Module, curRoot.indexInRoot + 1);
+        }
+
+        return null;
+    }
+
+    private getPrevSiblingOfRoot(providedContext?: Context): Statement {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const curRoot = context.lineStatement.rootNode;
+
+        if (curRoot instanceof Statement) {
+            return this.getStatementInBody(curRoot.rootNode as Statement | Module, curRoot.indexInRoot - 1);
+        }
+
+        return null;
+    }
+
+    private getStatementInBody(bodyContainer: Statement | Module, index: number): Statement {
+        if (index >= 0 && index < bodyContainer.body.length) {
+            return bodyContainer.body[index];
+        }
+
+        return null;
+    }
+
+    private getLineBelow(providedContext?: Context): Statement {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber + 1);
+    }
+
+    private getLineAbove(providedContext?: Context): Statement {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         const curLineNumber = context.lineStatement.lineNumber;
@@ -374,7 +475,7 @@ export class Validator {
     //returns a nested list [[Reference, InsertionType], ...]
     static getValidVariableReferences(code: CodeConstruct): Array<(Reference | InsertionType)[]> {
         const refs: Reference[] = [];
-        const mappedRefs: Array<(Reference | InsertionType)[]> = []; //no point of making this a map since we don't have access to the refs whereever this method is used. Otherwise would have to use buttonId or uniqueId as keys into the map.
+        const mappedRefs: Array<(Reference | InsertionType)[]> = []; //no point of making this a map since we don't have access to the refs wherever this method is used. Otherwise would have to use buttonId or uniqueId as keys into the map.
 
         try {
             if (code instanceof TypedEmptyExpr || code instanceof EmptyLineStmt) {

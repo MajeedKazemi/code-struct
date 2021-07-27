@@ -413,6 +413,8 @@ export class EventRouter {
                         expression,
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertLiteral:
@@ -442,6 +444,8 @@ export class EventRouter {
                         operator: data?.operator,
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertUnaryExpr: {
@@ -456,6 +460,8 @@ export class EventRouter {
                         operator: data?.operator,
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertWhileStmt: {
@@ -471,15 +477,33 @@ export class EventRouter {
             }
 
             case ButtonPress.InsertElifStmt: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.ElseStatement(true),
-                });
+                const canInsertAtCurIndent = this.module.validator.canInsertElifStmtAtCurIndent(context);
+                const canInsertAtPrevIndent = this.module.validator.canInsertElifStmtAtPrevIndent(context);
+
+                // prioritize inserting at current indentation over prev one
+                if (canInsertAtCurIndent || canInsertAtPrevIndent) {
+                    return new EditAction(EditActionType.InsertElseStatement, {
+                        hasCondition: true,
+                        outside: canInsertAtCurIndent,
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertElseStmt: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.ElseStatement(false),
-                });
+                const canInsertAtCurIndent = this.module.validator.canInsertElseStmtAtCurIndent(context);
+                const canInsertAtPrevIndent = this.module.validator.canInsertElseStmtAtPrevIndent(context);
+
+                // prioritize inserting at current indentation over prev one
+                if (canInsertAtCurIndent || canInsertAtPrevIndent) {
+                    return new EditAction(EditActionType.InsertElseStatement, {
+                        hasCondition: false,
+                        outside: canInsertAtCurIndent,
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertForStmt: {
@@ -502,6 +526,8 @@ export class EventRouter {
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertEmptyList);
                 }
+
+                break;
             }
 
             case ButtonPress.InsertCastStrExpr: {
@@ -518,6 +544,8 @@ export class EventRouter {
                         expression,
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertListItem: {
@@ -532,6 +560,8 @@ export class EventRouter {
                 }
 
                 this.module.editor.monaco.focus();
+
+                break;
             }
 
             case ButtonPress.InsertListIndexAccessor: {
@@ -542,6 +572,8 @@ export class EventRouter {
                         expression: new ast.MemberCallStmt(DataType.Any),
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertListAppendMethod: {
@@ -554,6 +586,8 @@ export class EventRouter {
                         ]),
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertStringSplitMethod: {
@@ -569,6 +603,8 @@ export class EventRouter {
                         ),
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertStringJoinMethod: {
@@ -590,6 +626,8 @@ export class EventRouter {
                         ),
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertStringReplaceMethod: {
@@ -608,6 +646,8 @@ export class EventRouter {
                         ),
                     });
                 }
+
+                break;
             }
 
             case ButtonPress.InsertStringFindMethod: {
@@ -623,8 +663,12 @@ export class EventRouter {
                         ),
                     });
                 }
+
+                break;
             }
         }
+
+        return new EditAction(EditActionType.None);
     }
 
     onButtonDown(id: string) {

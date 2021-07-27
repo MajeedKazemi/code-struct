@@ -832,7 +832,6 @@ export class IfStatement extends Statement {
 }
 
 export class ElseStatement extends Statement {
-    rootNode: IfStatement;
     addableType = AddableType.Statement;
     private conditionIndex: number;
     hasCondition: boolean = false;
@@ -857,8 +856,10 @@ export class ElseStatement extends Statement {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) &&
             (this.hasCondition
-                ? validator.canInsertElifStatement(providedContext)
-                : validator.canInsertElseStatement(providedContext))
+                ? validator.canInsertElifStmtAtCurIndent(providedContext) ||
+                  validator.canInsertElifStmtAtPrevIndent(providedContext)
+                : validator.canInsertElseStmtAtCurIndent(providedContext) ||
+                  validator.canInsertElseStmtAtPrevIndent(providedContext))
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }

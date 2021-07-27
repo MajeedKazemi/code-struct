@@ -146,4 +146,6 @@ export enum EditActionType {
     InsertStatement,
     InsertExpression,
     WrapExpressionWithItem,
+
+    InsertElseStatement,
 }
