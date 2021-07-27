@@ -76,7 +76,8 @@ export class Validator {
         if (
             (curStmtRoot instanceof ElseStatement && !curStmtRoot.hasCondition) ||
             nextStmtOfRoot instanceof ElseStatement ||
-            (prevStmtOfRoot instanceof ElseStatement && !prevStmtOfRoot.hasCondition)
+            (prevStmtOfRoot instanceof ElseStatement && !prevStmtOfRoot.hasCondition) ||
+            context.lineStatement.indexInRoot == 0
         ) {
             // if inside else statement
             // if this item's root has a sibling afterward which is either an else or an elif
@@ -110,7 +111,8 @@ export class Validator {
 
         if (
             (curStmtRoot instanceof ElseStatement && !curStmtRoot.hasCondition) ||
-            (prevStmtOfRoot instanceof ElseStatement && !prevStmtOfRoot.hasCondition)
+            (prevStmtOfRoot instanceof ElseStatement && !prevStmtOfRoot.hasCondition) ||
+            context.lineStatement.indexInRoot == 0
         ) {
             // if inside else statement
             // if this item's root has a sibling before it which was an else
