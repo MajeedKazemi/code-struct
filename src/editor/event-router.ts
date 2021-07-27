@@ -108,7 +108,11 @@ export class EventRouter {
             }
 
             case KeyPress.Backspace: {
-                if (inTextEditMode && !(context.tokenToLeft instanceof ast.NonEditableTkn)) {
+                if (
+                    inTextEditMode &&
+                    !(context.tokenToLeft instanceof ast.NonEditableTkn) &&
+                    !this.module.validator.onBeginningOfLine(context)
+                ) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToStart);
                     else return new EditAction(EditActionType.DeletePrevChar);
                 } else if (this.module.validator.canDeletePrevStatement(context)) {

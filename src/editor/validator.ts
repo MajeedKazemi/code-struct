@@ -23,6 +23,12 @@ export class Validator {
         this.module = module;
     }
 
+    onBeginningOfLine(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.position.column == context.lineStatement.left;
+    }
+
     /**
      * logic: if next statement is either else or elif => false
      * if prev is either if or elif => return true
