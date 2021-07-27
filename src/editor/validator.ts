@@ -314,6 +314,8 @@ export class Validator {
             context.lineStatement.rootNode instanceof Statement &&
             context.lineStatement.rootNode.hasBody()
         ) {
+            if (context.lineStatement instanceof ElseStatement) return false;
+
             const rootsBody = context.lineStatement.rootNode.body;
 
             return (
@@ -335,6 +337,8 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         if (this.module.focus.onBeginningOfLine()) {
+            if (context.lineStatement instanceof ElseStatement) return false;
+
             if (context.lineStatement.lineNumber > 2) {
                 const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
 
