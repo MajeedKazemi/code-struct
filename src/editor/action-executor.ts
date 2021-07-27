@@ -22,6 +22,7 @@ import {
     ElseStatement,
     EmptyLineStmt,
 } from "../syntax-tree/ast";
+import { Reference } from "../syntax-tree/scope";
 
 export class ActionExecutor {
     module: Module;
@@ -79,6 +80,20 @@ export class ActionExecutor {
                         this.getBoundaries(context.lineStatement, { selectIndent: true }),
                         newStatement
                     );
+
+                    const topReferences = new Array<Reference>();
+                    const bottomReferences = new Array<Reference>();
+
+                    for (const ref of curStmtRoot.scope.references) {
+                        if (ref.statement.indexInRoot > context.lineStatement.indexInRoot) {
+                            bottomReferences.push(ref);
+                        } else topReferences.push(ref);
+                    }
+
+                    if (bottomReferences.length > 0) {
+                        curStmtRoot.scope.references = topReferences;
+                        newStatement.scope.references = bottomReferences;
+                    }
 
                     for (const [i, stmt] of toMoveStatements.entries()) {
                         stmt.rootNode = newStatement;
