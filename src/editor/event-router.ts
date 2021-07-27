@@ -344,49 +344,69 @@ export class EventRouter {
     routeToolboxEvents(e: ButtonPress, context: Context, data: any) {
         switch (e) {
             case ButtonPress.InsertNewVariableStmt: {
-                return new EditAction(EditActionType.InsertStatement, { statement: new ast.VarAssignmentStmt() });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, { statement: new ast.VarAssignmentStmt() });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertListIndexAssignment: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.ListElementAssignment(),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.ListElementAssignment(),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertPrintFunctionStmt: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.FunctionCallStmt(
-                        "print",
-                        [new ast.Argument([DataType.Any], "item", false)],
-                        DataType.Void
-                    ),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.FunctionCallStmt(
+                            "print",
+                            [new ast.Argument([DataType.Any], "item", false)],
+                            DataType.Void
+                        ),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertRandintExpr: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.FunctionCallStmt(
-                        "randint",
-                        [
-                            new ast.Argument([DataType.Number], "start", false),
-                            new ast.Argument([DataType.Number], "end", false),
-                        ],
-                        DataType.Number
-                    ),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.FunctionCallStmt(
+                            "randint",
+                            [
+                                new ast.Argument([DataType.Number], "start", false),
+                                new ast.Argument([DataType.Number], "end", false),
+                            ],
+                            DataType.Number
+                        ),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertRangeExpr: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.FunctionCallStmt(
-                        "range",
-                        [
-                            new ast.Argument([DataType.Number], "start", false),
-                            new ast.Argument([DataType.Number], "end", false),
-                        ],
-                        DataType.NumberList
-                    ),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.FunctionCallStmt(
+                            "range",
+                            [
+                                new ast.Argument([DataType.Number], "start", false),
+                                new ast.Argument([DataType.Number], "end", false),
+                            ],
+                            DataType.NumberList
+                        ),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertLenExpr: {
@@ -469,15 +489,23 @@ export class EventRouter {
             }
 
             case ButtonPress.InsertWhileStmt: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.WhileStatement(),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.WhileStatement(),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertIfStmt: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.IfStatement(),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.IfStatement(),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertElifStmt: {
@@ -511,15 +539,23 @@ export class EventRouter {
             }
 
             case ButtonPress.InsertForStmt: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.ForStatement(),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.ForStatement(),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertForStmt: {
-                return new EditAction(EditActionType.InsertStatement, {
-                    statement: new ast.ForStatement(),
-                });
+                if (!this.module.validator.isAboveElseStatement()) {
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ast.ForStatement(),
+                    });
+                }
+
+                break;
             }
 
             case ButtonPress.InsertListLiteral: {

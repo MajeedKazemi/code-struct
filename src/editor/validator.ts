@@ -23,6 +23,12 @@ export class Validator {
         this.module = module;
     }
 
+    isAboveElseStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return this.getNextSibling(context) instanceof ElseStatement;
+    }
+
     onBeginningOfLine(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
