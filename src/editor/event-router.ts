@@ -347,15 +347,9 @@ export class EventRouter {
             }
 
             case ButtonPress.InsertVariableReference: {
-                //TODO: Needs to be filled
-                //need to have the buttonId, the variable identifier and the data type here to send to action executor
-                // return new EditAction(EditActionType.InsertStatement, { statement: new ast.VariableReferenceExpr()) });
-
                 return new EditAction(EditActionType.InsertVariableRef, {
                     buttonId: data.buttonId,
                 });
-
-                break;
             }
 
             case ButtonPress.InsertListIndexAssignment: {
