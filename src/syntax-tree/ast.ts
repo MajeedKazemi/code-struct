@@ -1177,7 +1177,6 @@ export class ExprDotMethodStmt extends Expression {
     functionName: string = "";
 
     constructor(
-        expression: Expression,
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
@@ -1195,7 +1194,8 @@ export class ExprDotMethodStmt extends Expression {
         if (this.isStatement()) this.addableType = AddableType.Statement;
         else this.addableType = AddableType.Expression;
 
-        this.tokens.push(expression);
+        // just inserting a dummy expression
+        this.tokens.push(null);
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
@@ -1216,8 +1216,19 @@ export class ExprDotMethodStmt extends Expression {
         } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
     }
 
+    setExpression(expr: Expression) {
+        expr.rootNode = this;
+        expr.indexInRoot = 0;
+
+        this.tokens[0] = expr;
+    }
+
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atRightOfExpression(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        const doTypesMatch = providedContext?.expressionToLeft?.returns == this.exprType;
+
+        return validator.atRightOfExpression(providedContext) && doTypesMatch
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {

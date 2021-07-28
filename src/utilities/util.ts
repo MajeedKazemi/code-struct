@@ -279,7 +279,6 @@ export class Util {
             [
                 ConstructKeys.AppendCall,
                 new ExprDotMethodStmt(
-                    null,
                     "append",
                     [new Argument([DataType.Any], "object", false)],
                     DataType.Void,
@@ -289,7 +288,6 @@ export class Util {
             [
                 ConstructKeys.SplitCall,
                 new ExprDotMethodStmt(
-                    null,
                     "split",
                     [new Argument([DataType.String], "sep", false)],
                     DataType.StringList,
@@ -299,7 +297,6 @@ export class Util {
             [
                 ConstructKeys.JoinCall,
                 new ExprDotMethodStmt(
-                    null,
                     "join",
                     [
                         new Argument(
@@ -315,7 +312,6 @@ export class Util {
             [
                 ConstructKeys.ReplaceCall,
                 new ExprDotMethodStmt(
-                    null,
                     "replace",
                     [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
                     DataType.String,
@@ -325,7 +321,6 @@ export class Util {
             [
                 ConstructKeys.FindCall,
                 new ExprDotMethodStmt(
-                    null,
                     "find",
                     [new Argument([DataType.String], "item", false)],
                     DataType.Number,

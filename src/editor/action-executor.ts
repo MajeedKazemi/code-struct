@@ -3,6 +3,7 @@ import * as monaco from "monaco-editor";
 import { EditActionType } from "./enums";
 import { EditAction } from "./event-router";
 import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
 import { ConstructKeys, Util } from "../utilities/util";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
@@ -21,9 +22,8 @@ import {
     BinaryOperatorExpr,
     ElseStatement,
     EmptyLineStmt,
-    IfStatement,
+    ExprDotMethodStmt,
 } from "../syntax-tree/ast";
-import { Reference } from "../syntax-tree/scope";
 
 export class ActionExecutor {
     module: Module;
@@ -407,6 +407,42 @@ export class ActionExecutor {
 
                     this.module.editor.executeEdits(editRange, null, "");
                     preventDefaultEvent = false;
+                }
+
+                break;
+            }
+
+            case EditActionType.InsertDotMethod: {
+                const initialBoundary = this.getBoundaries(context.expressionToLeft);
+                const root = context.expressionToLeft.rootNode as Statement;
+                const index = context.expressionToLeft.indexInRoot;
+
+                const newCode = new ExprDotMethodStmt(
+                    action.data.functionName,
+                    action.data.args,
+                    action.data.returns,
+                    action.data.exprType
+                );
+
+                const replacementType = context.expressionToLeft.canReplaceWithConstruct(newCode);
+
+                if (replacementType !== InsertionType.Invalid) {
+                    this.module.closeConstructDraftRecord(root.tokens[index]);
+
+                    newCode.setExpression(context.expressionToLeft);
+                    newCode.indexInRoot = index;
+                    newCode.rootNode = root;
+                    root.tokens[index] = newCode;
+                    root.rebuild(root.getLeftPosition(), 0);
+
+                    this.module.editor.executeEdits(initialBoundary, newCode);
+                    this.module.focus.updateContext(newCode.getInitialFocus());
+
+                    if (replacementType !== InsertionType.DraftMode) {
+                        this.module.closeConstructDraftRecord(context.expressionToLeft);
+                    } else {
+                        this.module.openDraftMode(newCode);
+                    }
                 }
 
                 break;
