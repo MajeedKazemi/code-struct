@@ -1052,6 +1052,7 @@ export class ForStatement extends Statement implements VariableContainer {
                 this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
             }
 
+            //TODO: Same as the comment in VarAssignmentStmt
             varController.updateButtonsInsertionType();
         }
     }
