@@ -158,6 +158,11 @@ export class Scope {
 
         return this.getAllAssignmentsToVar(identifier, module).filter((stmt) => stmt.lineNumber <= lineNumber);
     }
+
+    replaceReferenceStatement(currStmt: VarAssignmentStmt, newStmt: VarAssignmentStmt) {
+        const ref = this.references.filter((ref) => ref.statement === currStmt)[0]; //only one reference per var in scope
+        ref.statement = newStmt;
+    }
 }
 
 export class Reference {

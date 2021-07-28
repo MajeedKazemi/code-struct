@@ -1360,6 +1360,11 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             (this.rootNode as Module | Statement).scope.references.push(
                 new Reference(this, (this.rootNode as Module | Statement).scope)
             );
+        } else if (this.lineNumber < statement.lineNumber && statement.rootNode === this.rootNode) {
+            //scope is the same
+            //in this case we need to update the reference to be the line above current one
+            const scope = this.scope ?? (this.rootNode as Module | Statement).scope;
+            scope.replaceReferenceStatement(statement, this);
         }
     }
 
