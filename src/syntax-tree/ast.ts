@@ -983,7 +983,6 @@ export class ForStatement extends Statement implements VariableContainer {
 
     rebuild(pos: monaco.Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
-        //this.updateButton();
     }
 
     replaceCounter(expr: Expression) {
@@ -1045,15 +1044,20 @@ export class ForStatement extends Statement implements VariableContainer {
                 this.loopVar
             );
 
-            //assignment of a new variable using an empty VarAssignmentStmt
             if (this.buttonId === "") {
+                //when we are changing a new var assignment statement
                 this.assignVariable(varController, currentIdentifierAssignments);
             } else {
+                //when we are changing an existing var assignment statement
                 this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
             }
 
-            //TODO: Same as the comment in VarAssignmentStmt
-            varController.updateButtonsInsertionType();
+            varController.updateVarButtonWithType(
+                this.loopVar.buttonId,
+                this.scope,
+                this.lineNumber,
+                this.getIdentifier()
+            );
         }
     }
 
@@ -1097,6 +1101,9 @@ export class ForStatement extends Statement implements VariableContainer {
                 : (currentIdentifierAssignments[0] as ForStatement).loopVar;
 
         this.buttonId = statement.buttonId;
+        this.loopVar.buttonId = statement.buttonId;
+
+        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
     }
 
     reassignVar(
@@ -1286,17 +1293,22 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                 this
             );
 
-            //assignment of a new variable using an empty VarAssignmentStmt
             if (this.buttonId === "") {
+                //when we are changing a new var assignment statement
                 this.assignVariable(varController, currentIdentifierAssignments);
             } else {
+                //when we are changing an existing var assignment statement
                 this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
             }
 
             this.oldIdentifier = currentIdentifier;
 
-            //TODO: This updates all buttons, but we really only want to update the one attached to this var
-            varController.updateButtonsInsertionType();
+            varController.updateVarButtonWithType(
+                this.buttonId,
+                (this.rootNode as Module | Statement).scope,
+                this.lineNumber,
+                this.getIdentifier()
+            );
         }
     }
 
