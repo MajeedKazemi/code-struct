@@ -114,7 +114,9 @@ export enum EditActionType {
     DeleteStatement,
 
     IndentBackwards,
+    IndentBackwardsIfStmt,
     IndentForwards,
+    IndentForwardsIfStmt,
 
     InsertChar,
 
@@ -147,11 +149,14 @@ export enum EditActionType {
     InsertStatement,
     InsertExpression,
     WrapExpressionWithItem,
+  
     InsertVarAssignStatement,
     InsertVariableRef,
+    InsertElseStatement,
+
 }
 
 export enum ConstructName {
     VarAssignment = "VarAssignmentStmt",
-    Default = "Default",
+    Default = "Default"
 }
