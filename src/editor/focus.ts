@@ -180,12 +180,6 @@ export class Focus {
                 }
             }
         }
-
-        this.fireOnNavOffCallbacks(
-            focusedLineStatement,
-            this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-        );
-        this.fireOnNavChangeCallbacks();
     }
 
     navigateUp() {
