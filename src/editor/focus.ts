@@ -200,6 +200,7 @@ export class Focus {
             focusedLineStatement,
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
+        this.fireOnNavChangeCallbacks();
     }
 
     navigateDown() {
@@ -216,6 +217,7 @@ export class Focus {
         }
 
         this.fireOnNavOffCallbacks(focusedLineStatement, lineBelow);
+        this.fireOnNavChangeCallbacks();
     }
 
     navigateRight() {

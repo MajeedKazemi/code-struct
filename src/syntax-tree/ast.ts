@@ -1294,18 +1294,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
             this.oldIdentifier = currentIdentifier;
 
-            //special case: when we focus off of a var assignment inside of an if with just the assignment it in, the reference button should not appear
-            //in the toolbox
-            if (
-                (this.rootNode instanceof IfStatement || this.rootNode instanceof ElseStatement) &&
-                this.rootNode.body.length === 1
-            ) {
-                varController.hideUnavailableVarsInToolbox(
-                    (this.rootNode as Module | Statement).scope,
-                    this.lineNumber
-                );
-            }
-
+            //TODO: This updates all buttons, but we really only want to update the one attached to this var
             varController.updateButtonsInsertionType();
         }
     }
