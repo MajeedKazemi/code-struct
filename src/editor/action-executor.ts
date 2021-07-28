@@ -4,9 +4,10 @@ import { ConstructName, EditActionType } from "./enums";
 import { EditAction } from "./event-router";
 import { Module } from "../syntax-tree/module";
 import { ConstructKeys, Util } from "../utilities/util";
-import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
+import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
+import { BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
 import {
     IdentifierTkn,
     LiteralValExpr,
@@ -22,6 +23,11 @@ import {
     VariableReferenceExpr,
 } from "../syntax-tree/ast";
 import { CallbackType } from "../syntax-tree/callback";
+    ElseStatement,
+    EmptyLineStmt,
+    IfStatement,
+} from "../syntax-tree/ast";
+import { Reference } from "../syntax-tree/scope";
 
 export class ActionExecutor {
     module: Module;
@@ -39,6 +45,81 @@ export class ActionExecutor {
         let preventDefaultEvent = true;
 
         switch (action.type) {
+            case EditActionType.InsertElseStatement: {
+                const newStatement = new ElseStatement(action.data.hasCondition);
+
+                if (action.data.outside) {
+                    // when the else is being inserted outside
+                    const elseRoot = context.lineStatement.rootNode as Module | Statement;
+                    newStatement.rootNode = elseRoot;
+                    newStatement.indexInRoot = context.lineStatement.indexInRoot;
+                    newStatement.body.push(new EmptyLineStmt(newStatement, 0));
+
+                    replaceInBody(elseRoot, newStatement.indexInRoot, newStatement);
+                    rebuildBody(elseRoot, newStatement.indexInRoot, context.lineStatement.lineNumber);
+                    this.module.editor.executeEdits(this.getBoundaries(context.lineStatement), newStatement);
+                } else {
+                    // when being inserted inside
+                    const curStmtRoot = context.lineStatement.rootNode as Statement;
+                    const elseRoot = curStmtRoot.rootNode as Module | Statement;
+                    newStatement.rootNode = elseRoot;
+                    newStatement.indexInRoot = curStmtRoot.indexInRoot + 1;
+
+                    // indent back and place all of the code below it as its child
+                    const toMoveStatements = curStmtRoot.body.splice(
+                        context.lineStatement.indexInRoot,
+                        curStmtRoot.body.length - context.lineStatement.indexInRoot
+                    );
+
+                    // remove the empty line statement
+                    toMoveStatements.splice(0, 1)[0];
+
+                    if (toMoveStatements.length == 0) newStatement.body.push(new EmptyLineStmt(newStatement, 0));
+                    const providedLeftPos = new monaco.Position(
+                        context.lineStatement.lineNumber,
+                        context.lineStatement.left - TAB_SPACES
+                    );
+                    newStatement.build(providedLeftPos);
+
+                    this.module.editor.executeEdits(
+                        this.getBoundaries(context.lineStatement, { selectIndent: true }),
+                        newStatement
+                    );
+
+                    const topReferences = new Array<Reference>();
+                    const bottomReferences = new Array<Reference>();
+
+                    for (const ref of curStmtRoot.scope.references) {
+                        if (ref.statement.indexInRoot > context.lineStatement.indexInRoot) {
+                            bottomReferences.push(ref);
+                        } else topReferences.push(ref);
+                    }
+
+                    if (bottomReferences.length > 0) {
+                        curStmtRoot.scope.references = topReferences;
+                        newStatement.scope.references = bottomReferences;
+                    }
+
+                    for (const [i, stmt] of toMoveStatements.entries()) {
+                        stmt.rootNode = newStatement;
+                        stmt.indexInRoot = i;
+                        newStatement.body.push(stmt);
+                    }
+
+                    newStatement.init(providedLeftPos);
+                    newStatement.rootNode = elseRoot;
+                    newStatement.indexInRoot = newStatement.indexInRoot;
+                    this.module.addStatementToBody(
+                        elseRoot,
+                        newStatement,
+                        newStatement.indexInRoot,
+                        providedLeftPos.lineNumber
+                    );
+                }
+
+                break;
+            }
+
             case EditActionType.InsertExpression: {
                 this.module.insert(action.data?.expression);
 
@@ -152,9 +233,45 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.IndentBackwardsIfStmt: {
+                const root = context.lineStatement.rootNode as Statement | Module;
+
+                const toIndentStatements = new Array<Statement>();
+
+                for (let i = context.lineStatement.indexInRoot; i < root.body.length; i++) {
+                    toIndentStatements.push(root.body[i]);
+                }
+
+                for (const stmt of toIndentStatements.reverse()) {
+                    this.module.editor.indentRecursively(stmt, { backward: true });
+                    this.module.indentBackStatement(stmt);
+                }
+
+                break;
+            }
+
             case EditActionType.IndentBackwards: {
                 this.module.editor.indentRecursively(context.lineStatement, { backward: true });
                 this.module.indentBackStatement(context.lineStatement);
+
+                break;
+            }
+
+            case EditActionType.IndentForwardsIfStmt: {
+                const root = context.lineStatement.rootNode as Statement | Module;
+
+                const toIndentStatements = new Array<Statement>();
+
+                for (let i = context.lineStatement.indexInRoot; i < root.body.length; i++) {
+                    toIndentStatements.push(root.body[i]);
+
+                    if (i + 1 < root.body.length && !(root.body[i + 1] instanceof ElseStatement)) break;
+                }
+
+                for (const stmt of toIndentStatements) {
+                    this.module.editor.indentRecursively(stmt, { backward: false });
+                    this.module.indentForwardStatement(stmt);
+                }
 
                 break;
             }
@@ -652,7 +769,7 @@ export class ActionExecutor {
         } else return this.getBoundaries(codes[0]);
     }
 
-    private getBoundaries(code: CodeConstruct): monaco.Range {
+    private getBoundaries(code: CodeConstruct, { selectIndent = false } = {}): monaco.Range {
         const lineNumber = code.getLineNumber();
 
         if (code instanceof Statement && code.hasBody()) {
@@ -674,7 +791,9 @@ export class ActionExecutor {
 
             return new monaco.Range(lineNumber, code.left, endLineNumber, endColumn);
         } else if (code instanceof Statement || code instanceof Token) {
-            return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
+            if (selectIndent) {
+                return new monaco.Range(lineNumber, code.left - TAB_SPACES, lineNumber, code.right);
+            } else return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
         }
     }
 

@@ -90,6 +90,7 @@ export class Editor {
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
         this.addHoles(code);
+        this.monaco.focus();
     }
 
     indentRecursively(statement: Statement, { backward = false }) {

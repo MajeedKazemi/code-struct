@@ -176,24 +176,26 @@ export class Module {
             if (!line.hasBody()) {
                 const removedItem = root.body.splice(line.indexInRoot, 1);
 
-                let outerBody: Array<Statement>;
-
-                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
-                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
+                let outerRoot = root.rootNode as Module | Statement;
 
                 removedItem[0].rootNode = root.rootNode;
                 removedItem[0].indexInRoot = root.indexInRoot + 1;
                 removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
 
-                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
+                outerRoot.body.splice(root.indexInRoot + 1, 0, ...removedItem);
                 rebuildBody(this, 0, 1);
+
+                if (line instanceof VarAssignmentStmt) {
+                    root.scope.references = root.scope.references.filter((ref) => {
+                        ref.statement !== line;
+                    });
+                }
+
+                outerRoot.scope.references.push(new Reference(line, outerRoot.scope));
             } else {
                 const removedItem = root.body.splice(line.indexInRoot, 1);
 
-                let outerBody: Array<Statement>;
-
-                if (root.rootNode instanceof Module) outerBody = root.rootNode.body;
-                else if (root.rootNode instanceof Statement) outerBody = root.rootNode.body;
+                let outerRoot = root.rootNode as Module | Statement;
 
                 removedItem[0].rootNode = root.rootNode;
                 removedItem[0].indexInRoot = root.indexInRoot + 1;
@@ -209,7 +211,9 @@ export class Module {
                     if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
                 }
 
-                outerBody.splice(root.indexInRoot + 1, 0, ...removedItem);
+                removedItem[0].scope.parentScope = outerRoot.scope;
+
+                outerRoot.body.splice(root.indexInRoot + 1, 0, ...removedItem);
                 rebuildBody(this, 0, 1);
             }
         }
@@ -229,6 +233,14 @@ export class Module {
 
                 aboveMultilineStmt.body.push(removedItem[0]);
                 rebuildBody(this, 0, 1);
+
+                if (line instanceof VarAssignmentStmt) {
+                    root.scope.references = root.scope.references.filter((ref) => {
+                        ref.statement !== line;
+                    });
+                }
+
+                aboveMultilineStmt.scope.references.push(new Reference(line, aboveMultilineStmt.scope));
             } else {
                 const aboveMultilineStmt = root.body[line.indexInRoot - 1];
                 const removedItem = root.body.splice(line.indexInRoot, 1);
@@ -249,6 +261,8 @@ export class Module {
 
                 aboveMultilineStmt.body.push(removedItem[0]);
                 rebuildBody(this, 0, 1);
+
+                line.scope.parentScope = aboveMultilineStmt.scope;
             }
         }
     }
