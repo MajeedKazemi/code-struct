@@ -63,33 +63,49 @@ export class Hole {
                         focusedNode,
                         Hole.module.variableController
                     );
-                    const validIdentifierIds = refInsertionTypes.map(
-                        (ref) => ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId
-                    );
 
-                    const refInsertionTypeMap = new Map<string, InsertionType>();
+                    const validIdentifierIds = refInsertionTypes.map((ref) => [
+                        ((ref[0] as Reference).statement as VarAssignmentStmt).buttonId,
+                        (ref[0] as Reference).line(),
+                    ]);
+
+                    const refInsertionTypeMap = new Map<string, [InsertionType, number]>();
                     for (let i = 0; i < validIdentifierIds.length; i++) {
-                        refInsertionTypeMap.set(validIdentifierIds[i], refInsertionTypes[i][1]);
+                        refInsertionTypeMap.set(validIdentifierIds[i][0] as string, [
+                            refInsertionTypes[i][1],
+                            validIdentifierIds[i][1] as number,
+                        ]);
                     }
 
                     for (const hole of Hole.holes) {
                         if (
                             (hole.code.rootNode instanceof VarAssignmentStmt ||
                                 hole.code.rootNode instanceof ForStatement) &&
-                            hole.code instanceof IdentifierTkn
+                            hole.code instanceof IdentifierTkn &&
+                            refInsertionTypeMap.has(hole.code.rootNode.buttonId)
                         ) {
-                            if (refInsertionTypeMap.get(hole.code.rootNode.buttonId) === InsertionType.Valid) {
-                                hole.element.classList.add(Hole.validVarIdentifierHole);
-                            } else if (
-                                refInsertionTypeMap.get(hole.code.rootNode.buttonId) === InsertionType.DraftMode
-                            ) {
-                                hole.element.classList.add(Hole.draftVarIdentifierHole);
+                            if (hole.code.getLineNumber() < this.editor.monaco.getPosition().lineNumber) {
+                                if (refInsertionTypeMap.get(hole.code.rootNode.buttonId)[0] === InsertionType.Valid) {
+                                    hole.element.classList.add(Hole.validVarIdentifierHole);
+                                } else if (
+                                    refInsertionTypeMap.get(hole.code.rootNode.buttonId)[0] === InsertionType.DraftMode
+                                ) {
+                                    hole.element.classList.add(Hole.draftVarIdentifierHole);
+                                }
                             }
                         }
                     }
                 })
             );
         }
+
+        /**
+         * &&
+                            hole.code.getLineNumber() <
+                                (refInsertionTypeMap.has(hole.code.rootNode.buttonId)
+                                    ? refInsertionTypeMap.get(hole.code.rootNode.buttonId)[1]
+                                    : -1)
+         */
 
         code.subscribe(
             CallbackType.delete,
