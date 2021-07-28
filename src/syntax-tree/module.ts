@@ -634,8 +634,9 @@ export class Module {
         const context = this.focus.getContext();
 
         // TODO: Workaround for now to test ExprDotMethodStmt statements
+        const focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
 
-        if (insert instanceof ExprDotMethodStmt) {
+        if (insert instanceof ExprDotMethodStmt && insertInto === focusedNode) {
             if (insert.validateContext(this.validator, context) == InsertionType.Valid) {
                 return context.expressionToLeft.canReplaceWithConstruct(insert);
             }
