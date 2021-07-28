@@ -180,21 +180,26 @@ export class Focus {
                 }
             }
         }
+
+        this.fireOnNavChangeCallbacks();
     }
 
     navigateUp() {
         const curPosition = this.module.editor.monaco.getPosition();
         const focusedLineStatement = this.getStatementAtLineNumber(curPosition.lineNumber);
 
-        if (curPosition.lineNumber > 1)
-            this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
-        else this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, 1));
-
         this.fireOnNavOffCallbacks(
             focusedLineStatement,
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
-        this.fireOnNavChangeCallbacks();
+
+        if (curPosition.lineNumber > 1)
+            this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
+        else {
+            this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, 1));
+
+            this.fireOnNavChangeCallbacks();
+        }
     }
 
     navigateDown() {
@@ -202,16 +207,17 @@ export class Focus {
         const focusedLineStatement = this.getStatementAtLineNumber(curPosition.lineNumber);
         const lineBelow = this.getStatementAtLineNumber(curPosition.lineNumber + 1);
 
+        this.fireOnNavOffCallbacks(focusedLineStatement, lineBelow);
+
         if (lineBelow != null) {
             this.navigatePos(new monaco.Position(curPosition.lineNumber + 1, curPosition.column));
         } else {
             // navigate to the end of current line
             const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
             this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, curLine.right));
-        }
 
-        this.fireOnNavOffCallbacks(focusedLineStatement, lineBelow);
-        this.fireOnNavChangeCallbacks();
+            this.fireOnNavChangeCallbacks();
+        }
     }
 
     navigateRight() {

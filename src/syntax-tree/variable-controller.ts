@@ -1,5 +1,5 @@
 import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
-import { Expression, IdentifierTkn, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
+import { Expression, ForStatement, IdentifierTkn, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { Module } from "./module";
 import { CodeConstruct } from "./ast";
 import { Reference, Scope } from "./scope";
@@ -34,6 +34,7 @@ export class VariableController {
 
         if (indexOfButton > -1) {
             removeVariableReferenceButton(varId);
+            this.variableButtons.splice(indexOfButton, 1);
         }
     }
 
@@ -171,6 +172,30 @@ export class VariableController {
                 button.classList.remove(Module.draftModeButtonClass);
             });
         }
+    }
+
+    getAllAssignmentsToVar(varId: string, module: Module) {
+        const Q: CodeConstruct[] = [];
+        const result: VarAssignmentStmt[] = [];
+        Q.push(...module.body);
+
+        while (Q.length > 0) {
+            const currCodeConstruct = Q.splice(0, 1)[0];
+            if (currCodeConstruct instanceof Expression) {
+                Q.push(...currCodeConstruct.tokens);
+            } else if (currCodeConstruct instanceof Statement) {
+                Q.push(...currCodeConstruct.body);
+                Q.push(...currCodeConstruct.tokens);
+
+                if (currCodeConstruct instanceof VarAssignmentStmt && currCodeConstruct.buttonId === varId) {
+                    result.push(currCodeConstruct);
+                } else if (currCodeConstruct instanceof ForStatement && currCodeConstruct.loopVar.buttonId === varId) {
+                    result.push(currCodeConstruct.loopVar);
+                }
+            }
+        }
+
+        return result;
     }
 
     private getVarRefsBFS(varId: string, module: Module) {

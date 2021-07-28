@@ -13,6 +13,7 @@ export class Editor {
     mousePosMonaco: monaco.Position;
     mousePosWindow: number[] = [0, 0];
     scrollOffsetTop: number = 0;
+    oldCursorLineNumber: number = 1;
 
     constructor(parentEl: HTMLElement, module: Module) {
         this.monaco = monaco.editor.create(parentEl, {

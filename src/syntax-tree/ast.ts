@@ -1282,33 +1282,52 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         const varController = this.getModule().variableController;
 
         if (currentIdentifier !== this.oldIdentifier) {
-            const currentIdentifierAssignments = (
-                this.rootNode as Statement | Module
-            ).scope.getAllVarAssignmentsToNewVar(currentIdentifier, this.getModule(), this.lineNumber, this);
+            if (currentIdentifier === "   ") {
+                this.removeAssignment();
 
-            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllVarAssignmentsToNewVar(
-                this.oldIdentifier,
-                this.getModule(),
-                this.lineNumber,
-                this
-            );
+                if (
+                    (this.rootNode as Module | Statement).scope.references.filter(
+                        (ref) => (ref.statement as VarAssignmentStmt).getIdentifier() === this.oldIdentifier
+                    ).length === 0 &&
+                    varController.getAllAssignmentsToVar(this.buttonId, this.getModule()).length === 0
+                ) {
+                    varController.removeVariableRefButton(this.buttonId);
+                    varController.addWarningToVarRefs(this.buttonId, this.getModule());
+                }
 
-            if (this.buttonId === "") {
-                //when we are changing a new var assignment statement
-                this.assignVariable(varController, currentIdentifierAssignments);
+                this.buttonId = "";
+                this.oldIdentifier = "   ";
             } else {
-                //when we are changing an existing var assignment statement
-                this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
+                const currentIdentifierAssignments = (
+                    this.rootNode as Statement | Module
+                ).scope.getAllVarAssignmentsToNewVar(currentIdentifier, this.getModule(), this.lineNumber, this);
+
+                const oldIdentifierAssignments = (
+                    this.rootNode as Statement | Module
+                ).scope.getAllVarAssignmentsToNewVar(this.oldIdentifier, this.getModule(), this.lineNumber, this);
+
+                if (this.buttonId === "") {
+                    //when we are changing a new var assignment statement
+                    this.assignVariable(varController, currentIdentifierAssignments);
+                } else {
+                    //when we are changing an existing var assignment statement
+                    this.reassignVar(
+                        this.buttonId,
+                        varController,
+                        currentIdentifierAssignments,
+                        oldIdentifierAssignments
+                    );
+                }
+
+                this.oldIdentifier = currentIdentifier;
+
+                varController.updateVarButtonWithType(
+                    this.buttonId,
+                    (this.rootNode as Module | Statement).scope,
+                    this.lineNumber,
+                    this.getIdentifier()
+                );
             }
-
-            this.oldIdentifier = currentIdentifier;
-
-            varController.updateVarButtonWithType(
-                this.buttonId,
-                (this.rootNode as Module | Statement).scope,
-                this.lineNumber,
-                this.getIdentifier()
-            );
         }
     }
 
@@ -1359,15 +1378,12 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                     .indexOf(statement),
                 1
             );
-            (this.rootNode as Module | Statement).scope.references.push(
-                new Reference(this, (this.rootNode as Module | Statement).scope)
-            );
-        } else if (this.lineNumber < statement.lineNumber && statement.rootNode === this.rootNode) {
-            //scope is the same
-            //in this case we need to update the reference to be the line above current one
-            const scope = this.scope ?? (this.rootNode as Module | Statement).scope;
-            scope.replaceReferenceStatement(statement, this);
         }
+
+        this.getModule().processNewVariable(
+            this,
+            this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
+        );
     }
 
     reassignVar(
@@ -1399,16 +1415,31 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         }
     }
 
+    removeAssignment() {
+        (this.rootNode as Module | Statement).scope.references.splice(
+            (this.rootNode as Module | Statement).scope.references.map((ref) => ref.statement).indexOf(this),
+            1
+        );
+    }
+
     private onDelete() {
         const varController = this.getModule().variableController;
-        const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
-            this.getIdentifier(),
-            this
-        );
 
-        if (assignments.length === 0) {
-            varController.removeVariableRefButton(this.buttonId);
-            varController.addWarningToVarRefs(this.buttonId, this.getModule());
+        if (this.buttonId !== "") {
+            (this.rootNode as Module | Statement).scope.references = (
+                this.rootNode as Module | Statement
+            ).scope.references.filter((ref) => ref.statement !== this);
+
+            //deleting a variable by deleting its identifier first and then immediately deleting the statement without focusing off it
+            const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
+                this.oldIdentifier,
+                this
+            );
+
+            if (assignments.length === 0) {
+                varController.removeVariableRefButton(this.buttonId);
+                varController.addWarningToVarRefs(this.buttonId, this.getModule());
+            }
         }
     }
 }
