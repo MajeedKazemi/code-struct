@@ -444,8 +444,8 @@ export abstract class Statement implements CodeConstruct {
      */
     onInsertInto(insertCode: CodeConstruct) {}
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return false;
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return InsertionType.Invalid;
     }
 }
 
@@ -522,7 +522,10 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
         //Need exception for FunctionCallStmt because it inherits from Expression and not just Statement
         //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
-        if ((!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) && !(this.rootNode instanceof Module)){
+        if (
+            (!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) &&
+            !(this.rootNode instanceof Module)
+        ) {
             const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
 
             let canConvertToParentType = hasMatch(
@@ -719,8 +722,8 @@ export class WhileStatement extends Statement {
         this.replace(expr, this.conditionIndex);
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.onEmptyLine(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
@@ -743,8 +746,8 @@ export class IfStatement extends Statement {
         this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.onEmptyLine(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     replaceCondition(expr: Expression) {
@@ -829,7 +832,6 @@ export class IfStatement extends Statement {
 }
 
 export class ElseStatement extends Statement {
-    rootNode: IfStatement;
     addableType = AddableType.Statement;
     private conditionIndex: number;
     hasCondition: boolean = false;
@@ -851,13 +853,15 @@ export class ElseStatement extends Statement {
         if (this.hasCondition) this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return (
-            validator.onEmptyLine(providedContext) &&
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) &&
             (this.hasCondition
-                ? validator.canInsertElifStatement(providedContext)
-                : validator.canInsertElseStatement(providedContext))
-        );
+                ? validator.canInsertElifStmtAtCurIndent(providedContext) ||
+                  validator.canInsertElifStmtAtPrevIndent(providedContext)
+                : validator.canInsertElseStmtAtCurIndent(providedContext) ||
+                  validator.canInsertElseStmtAtPrevIndent(providedContext))
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceCondition(expr: Expression) {
@@ -908,8 +912,8 @@ export class ForStatement extends Statement {
         this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.onEmptyLine(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     rebuild(pos: monaco.Position, fromIndex: number) {
@@ -982,8 +986,8 @@ export class EmptyLineStmt extends Statement {
         this.indexInRoot = indexInRoot;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.onEmptyLine(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     build(pos: monaco.Position): monaco.Position {
@@ -1029,8 +1033,8 @@ export class VarAssignmentStmt extends Statement {
         this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.onEmptyLine(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     replaceIdentifier(code: CodeConstruct) {
@@ -1080,8 +1084,10 @@ export class VariableReferenceExpr extends Expression {
         this.indexInRoot = indexInRoot;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.atEmptyExpressionHole(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        if (validator.atEmptyExpressionHole(providedContext)) return InsertionType.Valid;
+        else if (validator.onEmptyLine(providedContext)) return InsertionType.DraftMode;
+        else return InsertionType.Invalid;
     }
 }
 
@@ -1130,10 +1136,14 @@ export class FunctionCallStmt extends Expression {
         } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return this.isStatement()
-            ? validator.onEmptyLine(providedContext)
-            : validator.atEmptyExpressionHole(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return (
+            this.isStatement()
+                ? validator.onEmptyLine(providedContext)
+                : validator.atEmptyExpressionHole(providedContext)
+        )
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1208,8 +1218,8 @@ export class MethodCallExpr extends Expression {
         } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.atRightOfExpression(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atRightOfExpression(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     setExpression(prevItem: Expression) {
@@ -1252,8 +1262,8 @@ export class ListElementAssignment extends Statement {
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.onEmptyLine(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
@@ -1286,8 +1296,8 @@ export class MethodCallStmt extends Statement {
         } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.onEmptyLine(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1330,8 +1340,8 @@ export class MemberCallStmt extends Expression {
         this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.atEmptyExpressionHole(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
@@ -1415,12 +1425,12 @@ export class BinaryOperatorExpr extends Expression {
         this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return (
-            validator.atEmptyExpressionHole(providedContext) ||
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atEmptyExpressionHole(providedContext) ||
             validator.atLeftOfExpression(providedContext) ||
             validator.atRightOfExpression(providedContext)
-        );
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceLeftOperand(code: Expression) {
@@ -1663,8 +1673,10 @@ export class UnaryOperatorExpr extends Expression {
         this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceOperand(code: CodeConstruct) {
@@ -1791,8 +1803,8 @@ export class LiteralValExpr extends Expression {
         this.indexInRoot = indexInRoot;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.atEmptyExpressionHole(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     getInitialFocus(): UpdatableContext {
@@ -1826,8 +1838,10 @@ export class ListLiteralExpression extends Expression {
         this.hasEmptyToken = true;
     }
 
-    validateContext(validator: Validator, providedContext: Context): boolean {
-        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext);
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {

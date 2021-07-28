@@ -113,7 +113,9 @@ export enum EditActionType {
     DeleteStatement,
 
     IndentBackwards,
+    IndentBackwardsIfStmt,
     IndentForwards,
+    IndentForwardsIfStmt,
 
     InsertChar,
 
@@ -146,4 +148,6 @@ export enum EditActionType {
     InsertStatement,
     InsertExpression,
     WrapExpressionWithItem,
+
+    InsertElseStatement,
 }
