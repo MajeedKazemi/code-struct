@@ -113,7 +113,9 @@ export enum EditActionType {
     DeleteStatement,
 
     IndentBackwards,
+    IndentBackwardsIfStmt,
     IndentForwards,
+    IndentForwardsIfStmt,
 
     InsertChar,
 

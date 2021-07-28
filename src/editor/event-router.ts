@@ -121,6 +121,8 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeletePrevLine);
                 } else if (this.module.validator.canIndentBack(context)) {
                     return new EditAction(EditActionType.IndentBackwards);
+                } else if (this.module.validator.canIndentBackIfStatement(context)) {
+                    return new EditAction(EditActionType.IndentBackwardsIfStmt);
                 } else if (this.module.validator.canDeletePrevToken(context)) {
                     return new EditAction(EditActionType.DeletePrevToken);
                 } else if (this.module.validator.canBackspaceCurEmptyLine(context)) {
@@ -143,6 +145,8 @@ export class EventRouter {
             case KeyPress.Tab: {
                 if (this.module.validator.canIndentForward(context)) {
                     return new EditAction(EditActionType.IndentForwards);
+                } else if (this.module.validator.canIndentForwardIfStatement(context)) {
+                    return new EditAction(EditActionType.IndentForwardsIfStmt);
                 }
 
                 break;

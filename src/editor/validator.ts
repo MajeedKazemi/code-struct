@@ -1,7 +1,7 @@
 import { Context } from "./focus";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
-import { DataType, InsertionType } from "./../syntax-tree/consts";
+import { DataType, InsertionType, TAB_SPACES } from "./../syntax-tree/consts";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -229,7 +229,6 @@ export class Validator {
      */
     canDeletePrevLine(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-        const curLineNumber = context.lineStatement.lineNumber;
         const curPosition = this.module.editor.monaco.getPosition();
 
         return curPosition.column == context.lineStatement.left && this.getLineAbove() instanceof EmptyLineStmt;
@@ -298,6 +297,51 @@ export class Validator {
         return context.expressionToLeft != null && !this.module.focus.isTextEditable(providedContext);
     }
 
+    canIndentBackIfStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (
+            this.module.focus.onBeginningOfLine() &&
+            context.lineStatement.rootNode instanceof Statement &&
+            context.lineStatement.rootNode.hasBody() &&
+            context.lineStatement instanceof IfStatement &&
+            !(this.getNextSiblingOfRoot() instanceof ElseStatement) &&
+            !this.canDeletePrevLine(context)
+        ) {
+            const rootsBody = context.lineStatement.rootNode.body;
+
+            if (rootsBody.length != 1) {
+                for (let i = context.lineStatement.indexInRoot + 1; i < rootsBody.length; i++) {
+                    if (!(rootsBody[i] instanceof ElseStatement)) return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    isAboveLineIndentedForward(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.lineStatement.lineNumber > 2) {
+            const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
+
+            return context.lineStatement.left == lineAbove.left - TAB_SPACES;
+        }
+    }
+
+    canIndentForwardIfStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            this.module.focus.onBeginningOfLine() &&
+            this.isAboveLineIndentedForward() &&
+            context.lineStatement instanceof IfStatement
+        );
+    }
+
     /**
      * logic:
      * checks if at the beginning of a line
@@ -312,10 +356,11 @@ export class Validator {
         if (
             this.module.focus.onBeginningOfLine() &&
             context.lineStatement.rootNode instanceof Statement &&
+            !(context.lineStatement instanceof ElseStatement) &&
+            !(context.lineStatement instanceof IfStatement) &&
+            !(this.getNextSiblingOfRoot(context) instanceof ElseStatement) &&
             context.lineStatement.rootNode.hasBody()
         ) {
-            if (context.lineStatement instanceof ElseStatement) return false;
-
             const rootsBody = context.lineStatement.rootNode.body;
 
             return (
@@ -336,17 +381,12 @@ export class Validator {
     canIndentForward(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        if (this.module.focus.onBeginningOfLine()) {
-            if (context.lineStatement instanceof ElseStatement) return false;
-
-            if (context.lineStatement.lineNumber > 2) {
-                const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
-
-                return lineAbove.left != context.lineStatement.left;
-            }
-        }
-
-        return false;
+        return (
+            this.module.focus.onBeginningOfLine() &&
+            !(context.lineStatement instanceof ElseStatement) &&
+            !(context.lineStatement instanceof IfStatement) &&
+            this.isAboveLineIndentedForward()
+        );
     }
 
     canInsertEmptyList(providedContext?: Context): boolean {

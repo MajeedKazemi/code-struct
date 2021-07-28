@@ -21,6 +21,7 @@ import {
     BinaryOperatorExpr,
     ElseStatement,
     EmptyLineStmt,
+    IfStatement,
 } from "../syntax-tree/ast";
 import { Reference } from "../syntax-tree/scope";
 
@@ -199,9 +200,45 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.IndentBackwardsIfStmt: {
+                const root = context.lineStatement.rootNode as Statement | Module;
+
+                const toIndentStatements = new Array<Statement>();
+
+                for (let i = context.lineStatement.indexInRoot; i < root.body.length; i++) {
+                    toIndentStatements.push(root.body[i]);
+                }
+
+                for (const stmt of toIndentStatements.reverse()) {
+                    this.module.editor.indentRecursively(stmt, { backward: true });
+                    this.module.indentBackStatement(stmt);
+                }
+
+                break;
+            }
+
             case EditActionType.IndentBackwards: {
                 this.module.editor.indentRecursively(context.lineStatement, { backward: true });
                 this.module.indentBackStatement(context.lineStatement);
+
+                break;
+            }
+
+            case EditActionType.IndentForwardsIfStmt: {
+                const root = context.lineStatement.rootNode as Statement | Module;
+
+                const toIndentStatements = new Array<Statement>();
+
+                for (let i = context.lineStatement.indexInRoot; i < root.body.length; i++) {
+                    toIndentStatements.push(root.body[i]);
+
+                    if (i + 1 < root.body.length && !(root.body[i + 1] instanceof ElseStatement)) break;
+                }
+
+                for (const stmt of toIndentStatements) {
+                    this.module.editor.indentRecursively(stmt, { backward: false });
+                    this.module.indentForwardStatement(stmt);
+                }
 
                 break;
             }
