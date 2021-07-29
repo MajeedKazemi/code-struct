@@ -24,6 +24,10 @@ export class Validator {
         this.module = module;
     }
 
+    // canInsertStatement() {
+    //     focusedNode.receives.indexOf(AddableType.Statement) > -1
+    // }
+
     isAboveElseStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 

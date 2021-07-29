@@ -22,6 +22,8 @@ export class Focus {
     onNavChangeCallbacks = new Array<(c: Context) => void>();
     onNavOffCallbacks = new Map<ConstructName, Array<(c: Context) => void>>();
 
+    prevPosition: monaco.Position = null;
+
     constructor(module: Module) {
         this.module = module;
     }
@@ -180,6 +182,17 @@ export class Focus {
                 }
             }
         }
+
+        const curPos = this.module.editor.monaco.getPosition();
+
+        if (this.prevPosition != null && this.prevPosition.lineNumber != curPos.lineNumber) {
+            this.fireOnNavOffCallbacks(
+                this.getStatementAtLineNumber(this.prevPosition.lineNumber),
+                this.getStatementAtLineNumber(curPos.lineNumber)
+            );
+        }
+
+        this.prevPosition = curPos;
 
         this.fireOnNavChangeCallbacks();
     }
@@ -460,7 +473,7 @@ export class Focus {
     /**
      * This function will fire all of the subscribed before nav off variable assignment callbacks
      */
-    private fireOnNavOffCallbacks(oldStatement: Statement, newStatement: Statement) {
+    fireOnNavOffCallbacks(oldStatement: Statement, newStatement: Statement) {
         const context = this.getContext();
 
         if (oldStatement !== newStatement) {

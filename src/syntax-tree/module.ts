@@ -410,7 +410,7 @@ export class Module {
         }
     }
 
-    insertEmptyLine() {
+    insertEmptyLine(): Statement {
         const curPos = this.editor.monaco.getPosition();
         const curStatement = this.focus.getFocusedStatement();
         const curStatementRoot = curStatement.rootNode;
@@ -459,6 +459,8 @@ export class Module {
 
             const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
             this.editor.executeEdits(range, null, spaces + textToAdd);
+
+            return emptyLine;
         } else {
             // insert emptyStatement on next line, move other statements down
             const emptyLine = new EmptyLineStmt(
@@ -488,6 +490,8 @@ export class Module {
             );
             this.editor.executeEdits(range, null, textToAdd + spaces);
             this.focus.updateContext({ tokenToSelect: emptyLine });
+
+            return emptyLine;
         }
     }
 
@@ -799,71 +803,9 @@ export class Module {
                 // TODO: validations => context.token.isEmpty
 
                 const parentStatement = context.lineStatement;
-                const parentRoot = parentStatement.rootNode;
+                const parentRoot = parentStatement.rootNode as Statement | Module;
 
-                if (focusedNode.receives.indexOf(AddableType.Statement) > -1) {
-                    // replaces statement with the newly inserted statement
-                    const statement = code as Statement;
-
-                    if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-                        if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                            if (parentRoot.isValidElseInsertion(focusedNode.indexInRoot, code)) {
-                                parentRoot.insertElseStatement(focusedNode.indexInRoot, code);
-
-                                const range = new monaco.Range(
-                                    focusedPos.lineNumber,
-                                    focusedPos.column - TAB_SPACES,
-                                    focusedPos.lineNumber,
-                                    focusedPos.column
-                                );
-
-                                this.editor.executeEdits(
-                                    range,
-                                    code,
-                                    code.getRenderText() + "\n" + emptySpaces(focusedPos.column - 1)
-                                );
-
-                                if (focusedNode.notification && context.selected) {
-                                    this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                                }
-                            }
-                        } else if (!(statement instanceof ElseStatement)) {
-                            replaceInBody(parentRoot, focusedNode.indexInRoot, statement);
-                            parentRoot.notify(CallbackType.replace);
-
-                            var range = new monaco.Range(
-                                focusedPos.lineNumber,
-                                code.left,
-                                focusedPos.lineNumber,
-                                code.right
-                            );
-
-                            if (focusedNode.notification && context.selected) {
-                                this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                            }
-
-                            this.editor.executeEdits(range, code);
-                        }
-                    } else if (!(statement instanceof ElseStatement)) {
-                        replaceInBody(this, focusedNode.indexInRoot, statement);
-
-                        const range = new monaco.Range(
-                            focusedPos.lineNumber,
-                            statement.left,
-                            focusedPos.lineNumber,
-                            statement.right
-                        );
-
-                        if (focusedNode.notification) {
-                            this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                        }
-
-                        this.editor.executeEdits(range, statement);
-                    }
-
-                    const newContext = code.getInitialFocus();
-                    this.focus.updateContext(newContext);
-                } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
+                if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
                     isValid = true;
 
                     if (code instanceof VariableReferenceExpr) {

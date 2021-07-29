@@ -1,9 +1,10 @@
 import { Context } from "./focus";
 import * as monaco from "monaco-editor";
-import { ConstructName, EditActionType } from "./enums";
+import { EditActionType } from "./enums";
 import { EditAction } from "./event-router";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { CallbackType } from "../syntax-tree/callback";
 import { ConstructKeys, Util } from "../utilities/util";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
@@ -20,15 +21,11 @@ import {
     Expression,
     Token,
     BinaryOperatorExpr,
-    VarAssignmentStmt,
     VariableReferenceExpr,
-} from "../syntax-tree/ast";
-import { CallbackType } from "../syntax-tree/callback";
     ElseStatement,
     EmptyLineStmt,
     ExprDotMethodStmt,
 } from "../syntax-tree/ast";
-import { CallbackType } from "../syntax-tree/callback";
 
 export class ActionExecutor {
     module: Module;
@@ -128,14 +125,14 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertStatement: {
-                this.module.insert(action.data?.statement);
+                this.insertStatement(context, action.data?.statement as Statement);
 
                 break;
             }
 
             case EditActionType.InsertVarAssignStatement: {
                 //TODO: Might want to change back to use the case above if no new logic is added
-                this.module.insert(action.data?.statement);
+                this.insertStatement(context, action.data?.statement as Statement);
 
                 break;
             }
@@ -309,7 +306,8 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyLine: {
-                this.module.insertEmptyLine();
+                const newEmptyLine = this.module.insertEmptyLine();
+                this.module.focus.fireOnNavOffCallbacks(context.lineStatement, newEmptyLine);
 
                 break;
             }
@@ -765,6 +763,28 @@ export class ActionExecutor {
         }
 
         return preventDefaultEvent;
+    }
+
+    private insertStatement(context: Context, statement: Statement) {
+        const root = context.lineStatement.rootNode as Statement | Module;
+
+        replaceInBody(root, context.lineStatement.indexInRoot, statement);
+
+        if (root instanceof Statement) root.notify(CallbackType.replace);
+
+        var range = new monaco.Range(
+            context.lineStatement.lineNumber,
+            statement.left,
+            context.lineStatement.lineNumber,
+            statement.right
+        );
+
+        if (context.lineStatement.notification && context.selected) {
+            this.module.notificationSystem.removeNotificationFromConstruct(context.lineStatement);
+        }
+
+        this.module.editor.executeEdits(range, statement);
+        this.module.focus.updateContext(statement.getInitialFocus());
     }
 
     private replaceWithBinaryOp(op: BinaryOperator, expr: Expression, { toLeft = false, toRight = false }) {
