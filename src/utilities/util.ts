@@ -13,8 +13,7 @@ import {
     ListLiteralExpression,
     LiteralValExpr,
     MemberCallStmt,
-    MethodCallExpr,
-    MethodCallStmt,
+    ExprDotMethodStmt,
     UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
@@ -203,6 +202,7 @@ export class Util {
         //stores information about what types an object or literal of a given type can be converted to either through casting or
         //some other manipulation such as [number] or number === --- or accessing some property such as list.length > 0
         this.typeConversionMap = new Map<DataType, Array<DataType>>([
+            [DataType.Void, []],
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
             [DataType.String, [DataType.StringList, DataType.Boolean]],
             [DataType.Boolean, [DataType.BooleanList]],
@@ -275,11 +275,19 @@ export class Util {
             [ConstructKeys.Else, new ElseStatement(false)],
             [ConstructKeys.For, new ForStatement()],
             [ConstructKeys.ListLiteral, new ListLiteralExpression()],
-            [ConstructKeys.AppendCall, new MethodCallStmt("append", [new Argument([DataType.Any], "object", false)])],
             [ConstructKeys.MemberCall, new MemberCallStmt(DataType.AnyList)],
             [
+                ConstructKeys.AppendCall,
+                new ExprDotMethodStmt(
+                    "append",
+                    [new Argument([DataType.Any], "object", false)],
+                    DataType.Void,
+                    DataType.AnyList
+                ),
+            ],
+            [
                 ConstructKeys.SplitCall,
-                new MethodCallExpr(
+                new ExprDotMethodStmt(
                     "split",
                     [new Argument([DataType.String], "sep", false)],
                     DataType.StringList,
@@ -288,7 +296,7 @@ export class Util {
             ],
             [
                 ConstructKeys.JoinCall,
-                new MethodCallExpr(
+                new ExprDotMethodStmt(
                     "join",
                     [
                         new Argument(
@@ -303,7 +311,7 @@ export class Util {
             ],
             [
                 ConstructKeys.ReplaceCall,
-                new MethodCallExpr(
+                new ExprDotMethodStmt(
                     "replace",
                     [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
                     DataType.String,
@@ -312,7 +320,7 @@ export class Util {
             ],
             [
                 ConstructKeys.FindCall,
-                new MethodCallExpr(
+                new ExprDotMethodStmt(
                     "find",
                     [new Argument([DataType.String], "item", false)],
                     DataType.Number,
@@ -531,79 +539,79 @@ export class Util {
                     this.module.insert(new ListLiteralExpression());
                 },
             ],
-            [
-                ConstructKeys.AppendCall,
-                () => {
-                    this.module.insert(new MethodCallStmt("append", [new Argument([DataType.Any], "object", false)]));
-                },
-            ],
+            // [
+            //     ConstructKeys.AppendCall,
+            //     () => {
+            //         this.module.insert(new MethodCallStmt("append", [new Argument([DataType.Any], "object", false)]));
+            //     },
+            // ],
             [
                 ConstructKeys.MemberCall,
                 () => {
                     this.module.insert(new MemberCallStmt(DataType.AnyList));
                 },
             ],
-            [
-                ConstructKeys.SplitCall,
-                () => {
-                    this.module.insert(
-                        new MethodCallExpr(
-                            "split",
-                            [new Argument([DataType.String], "sep", false)],
-                            DataType.StringList,
-                            DataType.String
-                        )
-                    );
-                },
-            ],
-            [
-                ConstructKeys.JoinCall,
-                () => {
-                    this.module.insert(
-                        new MethodCallExpr(
-                            "join",
-                            [
-                                new Argument(
-                                    [DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList],
-                                    "items",
-                                    false
-                                ),
-                            ],
-                            DataType.String,
-                            DataType.String
-                        )
-                    );
-                },
-            ],
-            [
-                ConstructKeys.ReplaceCall,
-                () => {
-                    this.module.insert(
-                        new MethodCallExpr(
-                            "replace",
-                            [
-                                new Argument([DataType.String], "old", false),
-                                new Argument([DataType.String], "new", false),
-                            ],
-                            DataType.String,
-                            DataType.String
-                        )
-                    );
-                },
-            ],
-            [
-                ConstructKeys.FindCall,
-                () => {
-                    this.module.insert(
-                        new MethodCallExpr(
-                            "find",
-                            [new Argument([DataType.String], "item", false)],
-                            DataType.Number,
-                            DataType.String
-                        )
-                    );
-                },
-            ],
+            // [
+            //     ConstructKeys.SplitCall,
+            //     () => {
+            //         this.module.insert(
+            //             new MethodCallExpr(
+            //                 "split",
+            //                 [new Argument([DataType.String], "sep", false)],
+            //                 DataType.StringList,
+            //                 DataType.String
+            //             )
+            //         );
+            //     },
+            // ],
+            // [
+            //     ConstructKeys.JoinCall,
+            //     () => {
+            //         this.module.insert(
+            //             new MethodCallExpr(
+            //                 "join",
+            //                 [
+            //                     new Argument(
+            //                         [DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList],
+            //                         "items",
+            //                         false
+            //                     ),
+            //                 ],
+            //                 DataType.String,
+            //                 DataType.String
+            //             )
+            //         );
+            //     },
+            // ],
+            // [
+            //     ConstructKeys.ReplaceCall,
+            //     () => {
+            //         this.module.insert(
+            //             new MethodCallExpr(
+            //                 "replace",
+            //                 [
+            //                     new Argument([DataType.String], "old", false),
+            //                     new Argument([DataType.String], "new", false),
+            //                 ],
+            //                 DataType.String,
+            //                 DataType.String
+            //             )
+            //         );
+            //     },
+            // ],
+            // [
+            //     ConstructKeys.FindCall,
+            //     () => {
+            //         this.module.insert(
+            //             new MethodCallExpr(
+            //                 "find",
+            //                 [new Argument([DataType.String], "item", false)],
+            //                 DataType.Number,
+            //                 DataType.String
+            //             )
+            //         );
+            //     },
+            // ],
             [
                 ConstructKeys.ListElementAssignment,
                 () => {

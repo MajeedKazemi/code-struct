@@ -149,9 +149,10 @@ export enum EditActionType {
     InsertStatement,
     InsertExpression,
     WrapExpressionWithItem,
-  
+ 
     InsertVarAssignStatement,
     InsertVariableRef,
+    InsertDotMethod,
     InsertElseStatement,
 
 }
