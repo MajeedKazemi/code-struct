@@ -856,27 +856,6 @@ export class Module {
                         // replaces expression with the newly inserted expression
                         const expr = code as Expression;
 
-                        /**
-                         * Update type of variable in toolbox.
-                         * Case 1: Variable is assigned some literal val
-                         * Case 2: Variable was assigned an arithmetic expression that is now being populated with literals.
-                         *         Therefore, variable assumes type returned by the arithmetic expression.
-                         */
-                        if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                            focusedNode.rootNode.dataType = expr.returns;
-                        } else if (
-                            parentStatement instanceof VarAssignmentStmt &&
-                            parentStatement.dataType == DataType.Any &&
-                            focusedNode.rootNode instanceof BinaryOperatorExpr
-                        ) {
-                            parentStatement.dataType = expr.returns;
-                        }
-
-                        //update types of expressions that need an update
-                        if (focusedNode.rootNode instanceof BinaryOperatorExpr) {
-                            focusedNode.rootNode.returns = expr.returns;
-                        }
-
                         this.replaceFocusedExpression(expr);
 
                         const range = new monaco.Range(
