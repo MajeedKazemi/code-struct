@@ -22,14 +22,12 @@ import {
     CodeConstruct,
     ElseStatement,
     EmptyLineStmt,
+    ExprDotMethodStmt,
     Expression,
     ForStatement,
     FunctionCallStmt,
     IfStatement,
     MemberCallStmt,
-    MethodCallExpr,
-    MethodCallStmt,
-    NonEditableTkn,
     Statement,
     Token,
     TypedEmptyExpr,
@@ -635,30 +633,22 @@ export class Module {
     tryInsert(insertInto: CodeConstruct, insert: CodeConstruct): InsertionType {
         const context = this.focus.getContext();
 
+        // TODO: Workaround for now to test ExprDotMethodStmt statements
+        const focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
+
+        if (insert instanceof ExprDotMethodStmt && insertInto === focusedNode) {
+            if (insert.validateContext(this.validator, context) == InsertionType.Valid) {
+                return context.expressionToLeft.canReplaceWithConstruct(insert);
+            }
+
+            return InsertionType.Invalid;
+        }
+
         if (!insertInto || !insert) {
             console.error(
                 "Failed to perform insertion check on\n   insertInto: " + insertInto + "\n   insert: " + insert
             );
             return null;
-        }
-
-        if (insert instanceof MethodCallExpr) {
-            if (
-                context.expressionToLeft instanceof Expression &&
-                context.expressionToLeft.returns == insert.calledOn /* TODO: and check calledOn */
-            ) {
-                // will replace the expression with this
-                // and will have the expression as the first element inside the code
-                insert.indexInRoot = context.expressionToLeft.indexInRoot;
-                insert.rootNode = context.expressionToLeft.rootNode;
-
-                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement)
-                    return InsertionType.Valid;
-            } else if (
-                context.expressionToLeft instanceof Expression &&
-                context.expressionToLeft.returns != insert.calledOn
-            )
-                return InsertionType.Invalid;
         }
 
         if (insert.addableType != AddableType.NotAddable && insertInto.receives.indexOf(insert.addableType) > -1) {
@@ -811,57 +801,6 @@ export class Module {
         let isValid = false;
 
         if (focusedNode) {
-            if (code instanceof MethodCallExpr && insertionType !== InsertionType.DraftMode) {
-                if (
-                    context.expressionToLeft instanceof Expression &&
-                    context.expressionToLeft.returns == code.calledOn
-                ) {
-                    // will replace the expression with this
-                    // and will have the expression as the first element inside the code
-                    code.indexInRoot = context.expressionToLeft.indexInRoot;
-                    code.rootNode = context.expressionToLeft.rootNode;
-
-                    if (code.rootNode instanceof Expression || code.rootNode instanceof Statement) {
-                        code.rootNode.replace(code, code.indexInRoot);
-                    }
-
-                    code.setExpression(context.expressionToLeft);
-
-                    const range = new monaco.Range(
-                        context.position.lineNumber,
-                        code.left,
-                        context.position.lineNumber,
-                        context.position.column
-                    );
-
-                    if (focusedNode.notification && context.selected) {
-                        this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                    }
-
-                    this.editor.executeEdits(range, code);
-                    context.expressionToLeft.rebuild(
-                        new monaco.Position(context.position.lineNumber, context.expressionToLeft.left),
-                        0
-                    );
-                } else if (
-                    context.expressionToLeft instanceof Expression &&
-                    context.expressionToLeft.returns != code.calledOn
-                ) {
-                    //TODO: relies on tokens array not changing the index of function name
-                    //Not sure why it's hardcoded, probably because identifier token is not accessible, but change that
-                    this.notificationSystem.addHoverNotification(
-                        focusedNode,
-                        {
-                            objectType: context.expressionToLeft.returns,
-                            method: (code.tokens[2] as NonEditableTkn).text,
-                            calledOn: code.calledOn,
-                        },
-                        "",
-                        ErrorMessage.methodCallObjectTypeMismatch
-                    );
-                }
-            }
-
             if (
                 code.addableType != AddableType.NotAddable &&
                 focusedNode.receives.indexOf(code.addableType) > -1 &&
@@ -1092,10 +1031,7 @@ export class Module {
                                 ErrorMessage.addableTypeMismatchGeneral
                             );
                         } else {
-                            //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
-                            if (focusedNode.rootNode instanceof MethodCallStmt) {
-                                console.log("Address this once lists are fixed.");
-                            } else if (focusedNode.rootNode instanceof VarAssignmentStmt) {
+                            if (focusedNode.rootNode instanceof VarAssignmentStmt) {
                                 this.notificationSystem.addHoverNotification(
                                     focusedNode,
                                     { constructName: "Variable assignment", addedType: code.addableType },

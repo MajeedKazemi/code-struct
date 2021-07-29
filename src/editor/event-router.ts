@@ -624,10 +624,11 @@ export class EventRouter {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MethodCallStmt("append", [
-                            new ast.Argument([DataType.Any], "object", false),
-                        ]),
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "append",
+                        returns: DataType.Void,
+                        args: [new ast.Argument([DataType.Any], "object", false)],
+                        exprType: DataType.AnyList,
                     });
                 }
 
@@ -638,13 +639,11 @@ export class EventRouter {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MethodCallExpr(
-                            "split",
-                            [new ast.Argument([DataType.String], "sep", false)],
-                            DataType.StringList,
-                            DataType.String
-                        ),
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "split",
+                        returns: DataType.StringList,
+                        args: [new ast.Argument([DataType.String], "sep", false)],
+                        exprType: DataType.String,
                     });
                 }
 
@@ -655,19 +654,17 @@ export class EventRouter {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MethodCallExpr(
-                            "join",
-                            [
-                                new ast.Argument(
-                                    [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
-                                    "items",
-                                    false
-                                ),
-                            ],
-                            DataType.String,
-                            DataType.String
-                        ),
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "join",
+                        returns: DataType.String,
+                        args: [
+                            new ast.Argument(
+                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                                "items",
+                                false
+                            ),
+                        ],
+                        exprType: DataType.String,
                     });
                 }
 
@@ -678,16 +675,14 @@ export class EventRouter {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MethodCallExpr(
-                            "replace",
-                            [
-                                new ast.Argument([DataType.String], "old", false),
-                                new ast.Argument([DataType.String], "new", false),
-                            ],
-                            DataType.String,
-                            DataType.String
-                        ),
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "replace",
+                        returns: DataType.String,
+                        args: [
+                            new ast.Argument([DataType.String], "old", false),
+                            new ast.Argument([DataType.String], "new", false),
+                        ],
+                        exprType: DataType.String,
                     });
                 }
 
@@ -698,13 +693,11 @@ export class EventRouter {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MethodCallExpr(
-                            "find",
-                            [new ast.Argument([DataType.String], "item", false)],
-                            DataType.Number,
-                            DataType.String
-                        ),
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "find",
+                        returns: DataType.Number,
+                        args: [new ast.Argument([DataType.String], "item", false)],
+                        exprType: DataType.String,
                     });
                 }
 

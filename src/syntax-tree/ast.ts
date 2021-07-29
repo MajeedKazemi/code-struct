@@ -1170,36 +1170,32 @@ export class FunctionCallStmt extends Expression {
     }
 }
 
-export class MethodCallExpr extends Expression {
-    // onInsert => just check if focusedPos - 1 is an expression and has a correct returns data type
-    // it will be added inside the prev expression
-
+export class ExprDotMethodStmt extends Expression {
     private argumentsIndices = new Array<number>();
-    private expressionIndex: number;
+    exprType: DataType;
     addableType: AddableType;
-    calledOn: DataType;
+    functionName: string = "";
 
     constructor(
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
-        calledOn: DataType,
-        root?: Expression,
+        exprType: DataType,
+        root?: CodeConstruct | Module,
         indexInRoot?: number
     ) {
         super(returns);
 
-        this.calledOn = calledOn;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+        this.functionName = functionName;
+        this.exprType = exprType;
 
-        if (args.length > 0) this.hasEmptyToken = false;
+        if (this.isStatement()) this.addableType = AddableType.Statement;
+        else this.addableType = AddableType.Expression;
 
-        this.addableType = AddableType.ExpressionModifier;
-
-        this.expressionIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+        // just inserting a dummy expression
+        this.tokens.push(null);
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
@@ -1215,19 +1211,41 @@ export class MethodCallExpr extends Expression {
             }
 
             this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-        } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
+
+            this.hasEmptyToken = true;
+        } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
+    }
+
+    // implement an onDelete method that will be called when a code is being deleted. it removes the particular holes and etc.
+    onDelete() {
+        for (let i = 2; i < this.tokens.length; i++) this.tokens[i].notify(CallbackType.delete);
+    }
+
+    setExpression(expr: Expression) {
+        expr.rootNode = this;
+        expr.indexInRoot = 0;
+
+        this.tokens[0] = expr;
+    }
+
+    getExpression(): Expression {
+        return this.tokens[0] as Expression;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atRightOfExpression(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
+        const doTypesMatch = providedContext?.expressionToLeft?.returns == this.exprType;
 
-    setExpression(prevItem: Expression) {
-        this.replace(prevItem, this.expressionIndex);
+        return validator.atRightOfExpression(providedContext) && doTypesMatch
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
         this.replace(to, this.argumentsIndices[index]);
+    }
+
+    getFunctionName(): string {
+        return this.functionName;
     }
 }
 
@@ -1264,44 +1282,6 @@ export class ListElementAssignment extends Statement {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
-}
-
-export class MethodCallStmt extends Statement {
-    addableType: AddableType;
-    private argumentsIndices = new Array<number>();
-
-    constructor(functionName: string, args: Array<Argument>, root?: Expression, indexInRoot?: number) {
-        super();
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.addableType = AddableType.Statement;
-
-        if (args.length > 0) {
-            this.hasEmptyToken = false;
-            this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
-
-            for (let i = 0; i < args.length; i++) {
-                let arg = args[i];
-
-                this.argumentsIndices.push(this.tokens.length);
-                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
-                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
-
-                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
-            }
-
-            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-        } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
-    }
-
-    validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
-
-    replaceArgument(index: number, to: CodeConstruct) {
-        this.replace(to, this.argumentsIndices[index]);
     }
 }
 
