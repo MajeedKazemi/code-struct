@@ -463,11 +463,7 @@ export class ActionExecutor {
                     this.module.editor.executeEdits(initialBoundary, newCode);
                     this.module.focus.updateContext(newCode.getInitialFocus());
 
-                    if (replacementType !== InsertionType.DraftMode) {
-                        this.module.closeConstructDraftRecord(context.expressionToLeft);
-                    } else {
-                        this.module.openDraftMode(newCode);
-                    }
+                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(newCode);
                 }
 
                 break;
