@@ -1216,11 +1216,20 @@ export class ExprDotMethodStmt extends Expression {
         } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
     }
 
+    // implement an onDelete method that will be called when a code is being deleted. it removes the particular holes and etc.
+    onDelete() {
+        for (let i = 2; i < this.tokens.length; i++) this.tokens[i].notify(CallbackType.delete);
+    }
+
     setExpression(expr: Expression) {
         expr.rootNode = this;
         expr.indexInRoot = 0;
 
         this.tokens[0] = expr;
+    }
+
+    getExpression(): Expression {
+        return this.tokens[0] as Expression;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {

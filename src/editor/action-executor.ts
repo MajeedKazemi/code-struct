@@ -24,6 +24,7 @@ import {
     EmptyLineStmt,
     ExprDotMethodStmt,
 } from "../syntax-tree/ast";
+import { CallbackType } from "../syntax-tree/callback";
 
 export class ActionExecutor {
     module: Module;
@@ -140,13 +141,37 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteNextToken: {
-                this.deleteCode(context.expressionToRight);
+                if (context.expressionToRight.rootNode instanceof ExprDotMethodStmt) {
+                    this.deleteCode(context.expressionToRight.rootNode);
+                } else this.deleteCode(context.expressionToRight);
 
                 break;
             }
 
             case EditActionType.DeletePrevToken: {
-                this.deleteCode(context.expressionToLeft);
+                if (context.expressionToLeft instanceof ExprDotMethodStmt) {
+                    // replace
+                    const initialBoundary = this.getBoundaries(context.expressionToLeft);
+                    const expr = context.expressionToLeft.getExpression();
+                    const insertionType = expr.canReplaceWithConstruct(expr);
+                    this.module.closeConstructDraftRecord(context.expressionToLeft);
+
+                    const root = context.expressionToLeft.getParentStatement();
+                    const dotMethodExpRoot = context.expressionToLeft.rootNode as Statement;
+                    context.expressionToLeft.onDelete();
+
+                    dotMethodExpRoot.tokens[context.expressionToLeft.indexInRoot] = expr;
+                    expr.rootNode = dotMethodExpRoot;
+                    expr.indexInRoot = context.expressionToLeft.indexInRoot;
+
+                    root.rebuild(root.getLeftPosition(), 0);
+
+                    this.module.editor.executeEdits(initialBoundary, expr);
+
+                    if (insertionType === InsertionType.DraftMode) {
+                        this.module.openDraftMode(expr);
+                    }
+                } else this.deleteCode(context.expressionToLeft);
 
                 break;
             }
