@@ -1,18 +1,17 @@
-import { Reference, Scope } from "./scope";
+import { Scope } from "./scope";
 import { Module } from "./module";
 import { rebuildBody } from "./body";
-import * as monaco from "monaco-editor";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
-import { ConstructName } from "../editor/enums";
+import { ConstructName } from "../editor/consts";
 import { Validator } from "../editor/validator";
+import { Position, Selection } from "monaco-editor";
 import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import { InsertionType, TAB_SPACES } from "./consts";
 import { VariableController } from "./variable-controller";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Notification } from "../notification-system/notification";
-import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import {
     AddableType,
     BinaryOperator,
@@ -79,7 +78,7 @@ export interface CodeConstruct {
      * @param pos the left position to start building the nodes from
      * @returns the final right position of the whole node (calculated after building all of the children nodes)
      */
-    build(pos: monaco.Position): monaco.Position;
+    build(pos: Position): Position;
 
     /**
      * Finds and returns the next empty hole (name or value) in this code construct
@@ -100,12 +99,12 @@ export interface CodeConstruct {
     /**
      * Returns the left-position `(lineNumber, column)` of this code-construct in the rendered text.
      */
-    getLeftPosition(): monaco.Position;
+    getLeftPosition(): Position;
 
     /**
      * Returns a `Selection` object for this particular code-construct when it is selected
      */
-    getSelection(): monaco.Selection;
+    getSelection(): Selection;
 
     /**
      * Returns the parent statement of this code-construct (an element of the Module.body array).
@@ -249,15 +248,15 @@ export abstract class Statement implements CodeConstruct {
         for (const callback of this.callbacks[type]) callback.callback();
     }
 
-    init(pos: monaco.Position) {
+    init(pos: Position) {
         this.build(pos);
 
         if (this.hasBody())
             for (let i = 0; i < this.body.length; i++)
-                this.body[i].build(new monaco.Position(pos.lineNumber + i + 1, pos.column + TAB_SPACES));
+                this.body[i].build(new Position(pos.lineNumber + i + 1, pos.column + TAB_SPACES));
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.lineNumber = pos.lineNumber;
         this.left = pos.column;
 
@@ -277,7 +276,7 @@ export abstract class Statement implements CodeConstruct {
      * @param pos the left position to start building the nodes from
      * @param fromIndex the index of the node that was edited.
      */
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         let curPos = pos;
 
         // rebuild siblings:
@@ -311,7 +310,7 @@ export abstract class Statement implements CodeConstruct {
             }
         }
 
-        return { positionToMove: new monaco.Position(this.getLineNumber(), this.right) };
+        return { positionToMove: new Position(this.getLineNumber(), this.right) };
     }
 
     /**
@@ -361,7 +360,7 @@ export abstract class Statement implements CodeConstruct {
         //The focus goes to the end of line
         this.tokens[index] = code;
 
-        if (rebuildColumn) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
+        if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), index);
 
         this.updateHasEmptyToken(code);
 
@@ -390,12 +389,12 @@ export abstract class Statement implements CodeConstruct {
         return this.lineNumber;
     }
 
-    getLeftPosition(): monaco.Position {
-        return new monaco.Position(this.getLineNumber(), this.left);
+    getLeftPosition(): Position {
+        return new Position(this.getLineNumber(), this.left);
     }
 
-    getSelection(): monaco.Selection {
-        return new monaco.Selection(this.lineNumber, this.right, this.lineNumber, this.left);
+    getSelection(): Selection {
+        return new Selection(this.lineNumber, this.right, this.lineNumber, this.left);
     }
 
     getParentStatement(): Statement {
@@ -485,10 +484,10 @@ export abstract class Expression extends Statement implements CodeConstruct {
         else if (this.rootNode instanceof Expression) return this.rootNode.getLineNumber();
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const line = this.lineNumber >= 0 ? this.lineNumber : this.getLineNumber();
 
-        return new monaco.Selection(line, this.right, line, this.left);
+        return new Selection(line, this.right, line, this.left);
     }
 
     getParentStatement(): Statement {
@@ -618,7 +617,7 @@ export abstract class Token implements CodeConstruct {
      * @param pos the left position to start building this node's right position.
      * @returns the final right position of this node: for tokens it equals to `this.left + this.text.length - 1`
      */
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.left = pos.column;
 
         if (this.text.length == 0) {
@@ -630,8 +629,8 @@ export abstract class Token implements CodeConstruct {
 
         this.notify(CallbackType.change);
 
-        if (this.text.length == 0) return new monaco.Position(pos.lineNumber, this.right);
-        else return new monaco.Position(pos.lineNumber, this.right);
+        if (this.text.length == 0) return new Position(pos.lineNumber, this.right);
+        else return new Position(pos.lineNumber, this.right);
     }
 
     /**
@@ -641,7 +640,7 @@ export abstract class Token implements CodeConstruct {
     getInitialFocus(): UpdatableContext {
         if (this.isEmpty) return { tokenToSelect: this };
 
-        return { positionToMove: new monaco.Position(this.getLineNumber(), this.right) };
+        return { positionToMove: new Position(this.getLineNumber(), this.right) };
     }
 
     getRenderText(): string {
@@ -653,14 +652,14 @@ export abstract class Token implements CodeConstruct {
         else return (this.rootNode as Expression).getLineNumber();
     }
 
-    getLeftPosition(): monaco.Position {
-        return new monaco.Position(this.getLineNumber(), this.left);
+    getLeftPosition(): Position {
+        return new Position(this.getLineNumber(), this.left);
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const line = this.getLineNumber();
 
-        return new monaco.Selection(line, this.right, line, this.left);
+        return new Selection(line, this.right, line, this.left);
     }
 
     getParentStatement(): Statement {
@@ -821,7 +820,7 @@ export class IfStatement extends Statement {
         for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
 
         // rebuild else statement, and body
-        statement.init(new monaco.Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
+        statement.init(new Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
         statement.rootNode = this;
         statement.indexInRoot = index;
 
@@ -950,7 +949,7 @@ export class ForStatement extends Statement implements VariableContainer {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
     }
 
@@ -1136,11 +1135,11 @@ export class EmptyLineStmt extends Statement {
         return validator.canInsertEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.lineNumber = pos.lineNumber;
         this.left = this.right = pos.column;
 
-        return new monaco.Position(this.lineNumber, this.right);
+        return new Position(this.lineNumber, this.right);
     }
 
     getInitialFocus(): UpdatableContext {
@@ -1208,7 +1207,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         this.replace(code, this.valueIndex);
     }
 
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
     }
 
@@ -1965,15 +1964,10 @@ export class EditableTextTkn extends Token implements TextEditable {
         this.validatorRegex = regex;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const leftPos = this.getLeftPosition();
 
-        return new monaco.Selection(
-            leftPos.lineNumber,
-            leftPos.column + this.text.length,
-            leftPos.lineNumber,
-            leftPos.column
-        );
+        return new Selection(leftPos.lineNumber, leftPos.column + this.text.length, leftPos.lineNumber, leftPos.column);
     }
 
     getLeft(): number {
@@ -1996,7 +1990,7 @@ export class EditableTextTkn extends Token implements TextEditable {
         }
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.left = pos.column;
 
         if (this.text.length == 0) {
@@ -2006,7 +2000,7 @@ export class EditableTextTkn extends Token implements TextEditable {
 
         this.notify(CallbackType.change);
 
-        return new monaco.Position(pos.lineNumber, this.right);
+        return new Position(pos.lineNumber, this.right);
     }
 }
 
@@ -2078,10 +2072,10 @@ export class LiteralValExpr extends Expression {
         switch (this.returns) {
             case DataType.String:
             case DataType.Number:
-                return { positionToMove: new monaco.Position(this.lineNumber, this.left + 1) };
+                return { positionToMove: new Position(this.lineNumber, this.left + 1) };
 
             case DataType.Boolean:
-                return { positionToMove: new monaco.Position(this.lineNumber, this.right) };
+                return { positionToMove: new Position(this.lineNumber, this.right) };
         }
     }
 }
@@ -2214,7 +2208,7 @@ export class OperatorTkn extends Token {
         this.operator = text;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }
@@ -2227,7 +2221,7 @@ export class NonEditableTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }
@@ -2240,7 +2234,7 @@ export class KeywordTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }

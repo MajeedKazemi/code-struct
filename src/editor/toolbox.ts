@@ -1,4 +1,3 @@
-import { Reference } from "../syntax-tree/scope";
 import { EventAction, EventStack, EventType } from "./event-stack";
 
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {

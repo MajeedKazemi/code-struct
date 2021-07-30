@@ -1,22 +1,22 @@
+import { rebuildBody } from "./body";
 import { TAB_SPACES } from "./consts";
 import { Hole } from "../editor/hole";
-import * as monaco from "monaco-editor";
 import { CallbackType } from "./callback";
 import { Editor } from "../editor/editor";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { Position, Range } from "monaco-editor";
 import { Validator } from "../editor/validator";
 import { Context, Focus } from "../editor/focus";
 import { EventStack } from "../editor/event-stack";
-import { rebuildBody, replaceInBody } from "./body";
 import { EventRouter } from "../editor/event-router";
+import { VariableController } from "./variable-controller";
 import { ActionExecutor } from "../editor/action-executor";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { AddableType, BinaryOperator, DataType, InsertionType } from "./consts";
+import { ConstructKeys, constructToToolboxButton, hasMatch, Util } from "../utilities/util";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
-import { ConstructKeys, constructToToolboxButton, emptySpaces, hasMatch, Util } from "../utilities/util";
 import {
     BinaryOperatorExpr,
     CodeConstruct,
@@ -25,17 +25,13 @@ import {
     ExprDotMethodStmt,
     Expression,
     ForStatement,
-    FunctionCallStmt,
     IfStatement,
-    MemberCallStmt,
     Statement,
     Token,
     TypedEmptyExpr,
-    UnaryOperatorExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { VariableController } from "./variable-controller";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -132,7 +128,7 @@ export class Module {
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
-        this.body[0].build(new monaco.Position(1, 1));
+        this.body[0].build(new Position(1, 1));
 
         this.focus.updateContext({ tokenToSelect: this.body[0] });
         this.editor.monaco.focus();
@@ -178,7 +174,7 @@ export class Module {
 
                 removedItem[0].rootNode = root.rootNode;
                 removedItem[0].indexInRoot = root.indexInRoot + 1;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left - TAB_SPACES));
 
                 outerRoot.body.splice(root.indexInRoot + 1, 0, ...removedItem);
                 rebuildBody(this, 0, 1);
@@ -197,14 +193,14 @@ export class Module {
 
                 removedItem[0].rootNode = root.rootNode;
                 removedItem[0].indexInRoot = root.indexInRoot + 1;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left - TAB_SPACES));
 
                 const stmtStack = new Array<Statement>();
                 stmtStack.unshift(...removedItem[0].body);
 
                 while (stmtStack.length > 0) {
                     const curStmt = stmtStack.pop();
-                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left - TAB_SPACES));
+                    curStmt.build(new Position(curStmt.lineNumber, curStmt.left - TAB_SPACES));
 
                     if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
                 }
@@ -227,7 +223,7 @@ export class Module {
 
                 removedItem[0].rootNode = aboveMultilineStmt;
                 removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left + TAB_SPACES));
 
                 aboveMultilineStmt.body.push(removedItem[0]);
                 rebuildBody(this, 0, 1);
@@ -245,14 +241,14 @@ export class Module {
 
                 removedItem[0].rootNode = aboveMultilineStmt;
                 removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left + TAB_SPACES));
 
                 const stmtStack = new Array<Statement>();
                 stmtStack.unshift(...removedItem[0].body);
 
                 while (stmtStack.length > 0) {
                     const curStmt = stmtStack.pop();
-                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left + TAB_SPACES));
+                    curStmt.build(new Position(curStmt.lineNumber, curStmt.left + TAB_SPACES));
 
                     if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
                 }
@@ -352,7 +348,7 @@ export class Module {
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
 
-        this.body[0].build(new monaco.Position(1, 1));
+        this.body[0].build(new Position(1, 1));
         this.focus.updateContext({ tokenToSelect: this.body[0] });
 
         this.editor.reset();
@@ -457,7 +453,7 @@ export class Module {
                 );
             } else this.addStatementToBody(this, emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 
-            const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
+            const range = new Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
             this.editor.executeEdits(range, null, spaces + textToAdd);
 
             return emptyLine;
@@ -467,7 +463,7 @@ export class Module {
                 parentStmtHasBody ? curStatementRoot : this,
                 curStatement.indexInRoot + 1
             );
-            emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
+            emptyLine.build(new Position(curStatement.lineNumber + 1, leftPosToCheck));
 
             if (parentStmtHasBody && atCompoundStmt) {
                 emptyLine.indexInRoot = 0;
@@ -482,7 +478,7 @@ export class Module {
                 );
             } else this.addStatementToBody(this, emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
 
-            const range = new monaco.Range(
+            const range = new Range(
                 curStatement.lineNumber,
                 curStatement.right,
                 curStatement.lineNumber,

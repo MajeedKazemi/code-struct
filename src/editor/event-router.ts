@@ -1,9 +1,9 @@
 import { Context } from "./focus";
+import { EditAction } from "./data-types";
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { ButtonPress, EditActionType, KeyPress } from "./enums";
-import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
-import { hasMatch } from "../utilities/util";
+import { BinaryOperator, DataType } from "./../syntax-tree/consts";
+import { InsertActionType, EditActionType, KeyPress, InsertActionMap } from "./consts";
 
 export class EventRouter {
     module: Module;
@@ -295,34 +295,6 @@ export class EventRouter {
         return new EditAction(EditActionType.None);
     }
 
-    getBinaryOperatorFromKey(key: string): BinaryOperator {
-        switch (key) {
-            case KeyPress.GreaterThan:
-                return BinaryOperator.GreaterThan;
-
-            case KeyPress.LessThan:
-                return BinaryOperator.LessThan;
-
-            case KeyPress.Equals:
-                return BinaryOperator.Equal;
-
-            case KeyPress.ForwardSlash:
-                return BinaryOperator.Divide;
-
-            case KeyPress.Plus:
-                return BinaryOperator.Add;
-
-            case KeyPress.Minus:
-                return BinaryOperator.Subtract;
-
-            case KeyPress.Star:
-                return BinaryOperator.Multiply;
-
-            default:
-                return null;
-        }
-    }
-
     onKeyDown(e) {
         const context = this.module.focus.getContext();
         const action = this.getKeyAction(e.browserEvent, context);
@@ -346,21 +318,21 @@ export class EventRouter {
         this.module.editor.scrollOffsetTop = e.scrollTop;
     }
 
-    routeToolboxEvents(e: ButtonPress, context: Context, data: any) {
+    routeToolboxEvents(e: InsertActionType, context: Context, data: any): EditAction {
         switch (e) {
-            case ButtonPress.InsertNewVariableStmt: {
+            case InsertActionType.InsertNewVariableStmt: {
                 return new EditAction(EditActionType.InsertVarAssignStatement, {
                     statement: new ast.VarAssignmentStmt(),
                 });
             }
 
-            case ButtonPress.InsertVariableReference: {
+            case InsertActionType.InsertVariableReference: {
                 return new EditAction(EditActionType.InsertVariableRef, {
                     buttonId: data.buttonId,
                 });
             }
 
-            case ButtonPress.InsertListIndexAssignment: {
+            case InsertActionType.InsertListIndexAssignment: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: new ast.ListElementAssignment(),
@@ -370,7 +342,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertPrintFunctionStmt: {
+            case InsertActionType.InsertPrintFunctionStmt: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: new ast.FunctionCallStmt(
@@ -384,7 +356,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertRandintExpr: {
+            case InsertActionType.InsertRandintExpr: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: new ast.FunctionCallStmt(
@@ -401,7 +373,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertRangeExpr: {
+            case InsertActionType.InsertRangeExpr: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: new ast.FunctionCallStmt(
@@ -418,7 +390,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertLenExpr: {
+            case InsertActionType.InsertLenExpr: {
                 const expression = new ast.FunctionCallStmt(
                     "len",
                     [
@@ -450,17 +422,17 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertLiteral:
-            case ButtonPress.InsertLiteral:
-            case ButtonPress.InsertLiteral:
-            case ButtonPress.InsertLiteral: {
+            case InsertActionType.InsertLiteral:
+            case InsertActionType.InsertLiteral:
+            case InsertActionType.InsertLiteral:
+            case InsertActionType.InsertLiteral: {
                 return new EditAction(EditActionType.InsertLiteral, {
                     literalType: data?.literalType,
                     initialValue: data?.initialValue,
                 });
             }
 
-            case ButtonPress.InsertBinaryExpr: {
+            case InsertActionType.InsertBinaryExpr: {
                 if (this.module.validator.atRightOfExpression(context)) {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
                         toRight: true,
@@ -481,7 +453,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertUnaryExpr: {
+            case InsertActionType.InsertUnaryExpr: {
                 if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.InsertUnaryOperator, {
                         wrap: true,
@@ -497,7 +469,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertWhileStmt: {
+            case InsertActionType.InsertWhileStmt: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: new ast.WhileStatement(),
@@ -507,7 +479,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertIfStmt: {
+            case InsertActionType.InsertIfStmt: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: new ast.IfStatement(),
@@ -517,7 +489,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertElifStmt: {
+            case InsertActionType.InsertElifStmt: {
                 const canInsertAtCurIndent = this.module.validator.canInsertElifStmtAtCurIndent(context);
                 const canInsertAtPrevIndent = this.module.validator.canInsertElifStmtAtPrevIndent(context);
 
@@ -532,7 +504,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertElseStmt: {
+            case InsertActionType.InsertElseStmt: {
                 const canInsertAtCurIndent = this.module.validator.canInsertElseStmtAtCurIndent(context);
                 const canInsertAtPrevIndent = this.module.validator.canInsertElseStmtAtPrevIndent(context);
 
@@ -547,7 +519,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertForStmt: {
+            case InsertActionType.InsertForStmt: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: new ast.ForStatement(),
@@ -557,7 +529,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertListLiteral: {
+            case InsertActionType.InsertListLiteral: {
                 if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.WrapExpressionWithItem, {
                         expression: new ast.ListLiteralExpression(),
@@ -569,7 +541,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertCastStrExpr: {
+            case InsertActionType.InsertCastStrExpr: {
                 const expression = new ast.FunctionCallStmt(
                     "str",
                     [new ast.Argument([DataType.Any], "value", false)],
@@ -587,7 +559,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertListItem: {
+            case InsertActionType.InsertListItem: {
                 if (this.module.validator.canAddListItemToRight(context)) {
                     return new EditAction(EditActionType.InsertEmptyListItem, {
                         toRight: true,
@@ -603,7 +575,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertListIndexAccessor: {
+            case InsertActionType.InsertListIndexAccessor: {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type to be a list
 
@@ -615,7 +587,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertListAppendMethod: {
+            case InsertActionType.InsertListAppendMethod: {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
@@ -630,7 +602,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertStringSplitMethod: {
+            case InsertActionType.InsertStringSplitMethod: {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
@@ -645,7 +617,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertStringJoinMethod: {
+            case InsertActionType.InsertStringJoinMethod: {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
@@ -666,7 +638,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertStringReplaceMethod: {
+            case InsertActionType.InsertStringReplaceMethod: {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
@@ -684,7 +656,7 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertStringFindMethod: {
+            case InsertActionType.InsertStringFindMethod: {
                 if (this.module.validator.atRightOfExpression(context)) {
                     // TODO: should also check the type
 
@@ -704,230 +676,53 @@ export class EventRouter {
     }
 
     onButtonDown(id: string) {
+        const context = this.module.focus.getContext();
+
+        if ((document.getElementById(id) as HTMLButtonElement).disabled) return;
+
         if (
             this.module.variableController
                 .getVariableButtons()
                 .map((buttonElement) => buttonElement.id)
                 .indexOf(id) > -1
         ) {
-            this.pressButton(id, ButtonPress.InsertVariableReference, { buttonId: id });
-        } else {
-            switch (id) {
-                case "add-var-btn":
-                    this.pressButton(id, ButtonPress.InsertNewVariableStmt);
-
-                    break;
-
-                case "add-list-elem-assign-btn":
-                    this.pressButton(id, ButtonPress.InsertListIndexAssignment);
-
-                    break;
-
-                case "add-print-btn":
-                    this.pressButton(id, ButtonPress.InsertPrintFunctionStmt);
-
-                    break;
-
-                case "add-randint-btn":
-                    this.pressButton(id, ButtonPress.InsertRandintExpr);
-
-                    break;
-
-                case "add-range-btn":
-                    this.pressButton(id, ButtonPress.InsertRangeExpr);
-
-                    break;
-
-                case "add-len-btn":
-                    this.pressButton(id, ButtonPress.InsertLenExpr);
-
-                    break;
-
-                case "add-str-btn":
-                    this.pressButton(id, ButtonPress.InsertLiteral, {
-                        literalType: DataType.String,
-                        initialValue: "",
-                    });
-
-                    break;
-
-                case "add-num-btn":
-                    this.pressButton(id, ButtonPress.InsertLiteral, {
-                        literalType: DataType.Number,
-                        initialValue: "0",
-                    });
-
-                    break;
-
-                case "add-true-btn":
-                    this.pressButton(id, ButtonPress.InsertLiteral, {
-                        literalType: DataType.Boolean,
-                        initialValue: "True",
-                    });
-
-                    break;
-
-                case "add-false-btn":
-                    this.pressButton(id, ButtonPress.InsertLiteral, {
-                        literalType: DataType.Boolean,
-                        initialValue: "False",
-                    });
-
-                    break;
-
-                case "add-bin-add-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Add });
-
-                    break;
-
-                case "add-bin-sub-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Subtract });
-
-                    break;
-
-                case "add-bin-mul-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Multiply });
-
-                    break;
-
-                case "add-bin-div-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Divide });
-
-                    break;
-
-                case "add-bin-and-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.And });
-
-                    break;
-
-                case "add-bin-or-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Or });
-
-                    break;
-
-                case "add-comp-eq-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.Equal });
-
-                    break;
-
-                case "add-comp-neq-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.NotEqual });
-
-                    break;
-
-                case "add-comp-lt-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThan });
-
-                    break;
-
-                case "add-comp-lte-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.LessThanEqual });
-
-                    break;
-
-                case "add-comp-gt-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThan });
-
-                    break;
-
-                case "add-comp-gte-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertBinaryExpr, { operator: BinaryOperator.GreaterThanEqual });
-
-                    break;
-
-                case "add-unary-not-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertUnaryExpr, { operator: UnaryOp.Not });
-
-                    break;
-
-                case "add-while-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertWhileStmt);
-
-                    break;
-
-                case "add-if-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertIfStmt);
-
-                    break;
-
-                case "add-elif-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertElifStmt);
-
-                    break;
-
-                case "add-else-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertElseStmt);
-
-                    break;
-
-                case "add-for-expr-btn":
-                    this.pressButton(id, ButtonPress.InsertForStmt);
-
-                    break;
-
-                case "add-list-literal-btn":
-                    this.pressButton(id, ButtonPress.InsertListLiteral);
-
-                    break;
-
-                case "add-list-item-btn":
-                    this.pressButton(id, ButtonPress.InsertListItem);
-
-                    break;
-
-                case "add-list-index-btn":
-                    this.pressButton(id, ButtonPress.InsertListIndexAccessor);
-
-                    break;
-
-                case "add-list-append-stmt-btn":
-                    this.pressButton(id, ButtonPress.InsertListAppendMethod);
-
-                    break;
-
-                case "add-split-method-call-btn":
-                    this.pressButton(id, ButtonPress.InsertStringSplitMethod);
-
-                    break;
-
-                case "add-join-method-call-btn":
-                    this.pressButton(id, ButtonPress.InsertStringJoinMethod);
-
-                    break;
-
-                case "add-replace-method-call-btn":
-                    this.pressButton(id, ButtonPress.InsertStringReplaceMethod);
-
-                    break;
-
-                case "add-find-method-call-btn":
-                    this.pressButton(id, ButtonPress.InsertStringFindMethod);
-
-                    break;
-
-                case "add-cast-str-btn":
-                    this.pressButton(id, ButtonPress.InsertCastStrExpr);
-                    break;
-
-                default:
-            }
+            this.module.executer.execute(
+                this.routeToolboxEvents(InsertActionType.InsertVariableReference, context, { buttonId: id }),
+                context
+            );
+        } else if (InsertActionMap[id]) {
+            this.module.executer.execute(
+                this.routeToolboxEvents(InsertActionMap[id].action, context, InsertActionMap[id].data),
+                context
+            );
         }
     }
 
-    private pressButton(buttonId: string, e: ButtonPress, data?: any) {
-        if (!(document.getElementById(buttonId) as HTMLButtonElement).disabled) {
-            const context = this.module.focus.getContext();
-            this.module.executer.execute(this.routeToolboxEvents(e, context, data), context);
+    private getBinaryOperatorFromKey(key: string): BinaryOperator {
+        switch (key) {
+            case KeyPress.GreaterThan:
+                return BinaryOperator.GreaterThan;
+
+            case KeyPress.LessThan:
+                return BinaryOperator.LessThan;
+
+            case KeyPress.Equals:
+                return BinaryOperator.Equal;
+
+            case KeyPress.ForwardSlash:
+                return BinaryOperator.Divide;
+
+            case KeyPress.Plus:
+                return BinaryOperator.Add;
+
+            case KeyPress.Minus:
+                return BinaryOperator.Subtract;
+
+            case KeyPress.Star:
+                return BinaryOperator.Multiply;
+
+            default:
+                return null;
         }
-    }
-}
-
-export class EditAction {
-    type: EditActionType;
-    data: any;
-
-    constructor(type: EditActionType, data?: any) {
-        this.type = type;
-        this.data = data;
     }
 }

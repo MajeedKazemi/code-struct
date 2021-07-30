@@ -1,8 +1,8 @@
 import { Context } from "./focus";
-import * as monaco from "monaco-editor";
-import { EditActionType } from "./enums";
-import { EditAction } from "./event-router";
+import { EditActionType } from "./consts";
+import { EditAction } from "./data-types";
 import { Module } from "../syntax-tree/module";
+import { Position, Range } from "monaco-editor";
 import { Reference } from "../syntax-tree/scope";
 import { CallbackType } from "../syntax-tree/callback";
 import { ConstructKeys, Util } from "../utilities/util";
@@ -26,7 +26,6 @@ import {
     EmptyLineStmt,
     ExprDotMethodStmt,
 } from "../syntax-tree/ast";
-import { Validator } from "./validator";
 
 export class ActionExecutor {
     module: Module;
@@ -74,7 +73,7 @@ export class ActionExecutor {
                     toMoveStatements.splice(0, 1)[0];
 
                     if (toMoveStatements.length == 0) newStatement.body.push(new EmptyLineStmt(newStatement, 0));
-                    const providedLeftPos = new monaco.Position(
+                    const providedLeftPos = new Position(
                         context.lineStatement.lineNumber,
                         context.lineStatement.left - TAB_SPACES
                     );
@@ -216,21 +215,21 @@ export class ActionExecutor {
 
             case EditActionType.DeleteCurLine: {
                 this.module.deleteLine(context.lineStatement);
-                let range: monaco.Range;
+                let range: Range;
 
                 if (action.data?.pressedBackspace) {
                     const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
                     this.module.focus.updateContext({
-                        positionToMove: new monaco.Position(lineAbove.lineNumber, lineAbove.right),
+                        positionToMove: new Position(lineAbove.lineNumber, lineAbove.right),
                     });
-                    range = new monaco.Range(
+                    range = new Range(
                         context.lineStatement.lineNumber,
                         context.lineStatement.left,
                         lineAbove.lineNumber,
                         lineAbove.right
                     );
                 } else {
-                    range = new monaco.Range(
+                    range = new Range(
                         context.lineStatement.lineNumber,
                         context.lineStatement.left,
                         context.lineStatement.lineNumber + 1,
@@ -245,7 +244,7 @@ export class ActionExecutor {
 
             case EditActionType.DeletePrevLine: {
                 const prevLine = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
-                const deleteRange = new monaco.Range(
+                const deleteRange = new Range(
                     prevLine.lineNumber,
                     prevLine.left,
                     prevLine.lineNumber + 1,
@@ -349,7 +348,7 @@ export class ActionExecutor {
                 this.validateIdentifier(context, newText);
 
                 if (token.setEditedText(newText)) {
-                    let editRange = new monaco.Range(
+                    let editRange = new Range(
                         cursorPos.lineNumber,
                         cursorPos.column,
                         cursorPos.lineNumber,
@@ -357,7 +356,7 @@ export class ActionExecutor {
                     );
 
                     if (selectedText.startColumn != selectedText.endColumn) {
-                        editRange = new monaco.Range(
+                        editRange = new Range(
                             cursorPos.lineNumber,
                             selectedText.startColumn,
                             cursorPos.lineNumber,
@@ -430,12 +429,7 @@ export class ActionExecutor {
                         identifier.text = "   ";
                         identifier.isEmpty = true;
                         this.module.editor.executeEdits(
-                            new monaco.Range(
-                                cursorPos.lineNumber,
-                                identifier.left,
-                                cursorPos.lineNumber,
-                                identifier.right
-                            ),
+                            new Range(cursorPos.lineNumber, identifier.left, cursorPos.lineNumber, identifier.right),
                             null,
                             "   "
                         );
@@ -447,7 +441,7 @@ export class ActionExecutor {
                 }
 
                 if (token.setEditedText(newText)) {
-                    let editRange = new monaco.Range(
+                    let editRange = new Range(
                         cursorPos.lineNumber,
                         cursorPos.column,
                         cursorPos.lineNumber,
@@ -455,7 +449,7 @@ export class ActionExecutor {
                     );
 
                     if (selectedText.startColumn != selectedText.endColumn) {
-                        editRange = new monaco.Range(
+                        editRange = new Range(
                             cursorPos.lineNumber,
                             selectedText.startColumn,
                             cursorPos.lineNumber,
@@ -555,7 +549,7 @@ export class ActionExecutor {
                 root.rebuild(root.getLeftPosition(), 0);
                 this.module.editor.executeEdits(initialBoundary, newCode);
                 this.module.focus.updateContext({
-                    positionToMove: new monaco.Position(newCode.lineNumber, newCode.right),
+                    positionToMove: new Position(newCode.lineNumber, newCode.right),
                 });
 
                 if (!isValidRootInsertion) {
@@ -783,7 +777,7 @@ export class ActionExecutor {
             //TODO: Should we include the parent too?
             this.module.openDraftMode(code);
 
-            const range = new monaco.Range(
+            const range = new Range(
                 focusedPos.lineNumber,
                 context.token.left,
                 focusedPos.lineNumber,
@@ -795,18 +789,13 @@ export class ActionExecutor {
     }
 
     private insertExpression(context: Context, code: Expression) {
-        let isValid = true;
+        let isValid: InsertionType;
         const root = context.lineStatement.rootNode as Statement | Module;
 
         //type checks -- different handling based on type of code construct
         //focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr && code instanceof Expression) {
-            isValid = context.token.rootNode.typeValidateInsertionIntoHole(
-                code,
-                true,
-                context.token,
-                this.module.notificationSystem
-            );
+            isValid = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
             if (isValid) {
                 code.performPreInsertionUpdates(context.token);
@@ -827,7 +816,7 @@ export class ActionExecutor {
 
             this.module.replaceFocusedExpression(expr);
 
-            const range = new monaco.Range(
+            const range = new Range(
                 context.position.lineNumber,
                 context.token.left,
                 context.position.lineNumber,
@@ -851,7 +840,7 @@ export class ActionExecutor {
 
         if (root instanceof Statement) root.notify(CallbackType.replace);
 
-        var range = new monaco.Range(
+        var range = new Range(
             context.lineStatement.lineNumber,
             statement.left,
             context.lineStatement.lineNumber,
@@ -917,15 +906,15 @@ export class ActionExecutor {
         }
     }
 
-    private getCascadedBoundary(codes: Array<CodeConstruct>): monaco.Range {
+    private getCascadedBoundary(codes: Array<CodeConstruct>): Range {
         if (codes.length > 1) {
             const lineNumber = codes[0].getLineNumber();
 
-            return new monaco.Range(lineNumber, codes[0].left, lineNumber, codes[codes.length - 1].right);
+            return new Range(lineNumber, codes[0].left, lineNumber, codes[codes.length - 1].right);
         } else return this.getBoundaries(codes[0]);
     }
 
-    private getBoundaries(code: CodeConstruct, { selectIndent = false } = {}): monaco.Range {
+    private getBoundaries(code: CodeConstruct, { selectIndent = false } = {}): Range {
         const lineNumber = code.getLineNumber();
 
         if (code instanceof Statement && code.hasBody()) {
@@ -945,11 +934,11 @@ export class ActionExecutor {
                 }
             }
 
-            return new monaco.Range(lineNumber, code.left, endLineNumber, endColumn);
+            return new Range(lineNumber, code.left, endLineNumber, endColumn);
         } else if (code instanceof Statement || code instanceof Token) {
             if (selectIndent) {
-                return new monaco.Range(lineNumber, code.left - TAB_SPACES, lineNumber, code.right);
-            } else return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
+                return new Range(lineNumber, code.left - TAB_SPACES, lineNumber, code.right);
+            } else return new Range(lineNumber, code.left, lineNumber, code.right);
         }
     }
 

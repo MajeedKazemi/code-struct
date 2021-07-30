@@ -1,4 +1,4 @@
-import * as monaco from "monaco-editor";
+import { Selection } from "monaco-editor";
 import { Editor } from "../editor/editor";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
@@ -43,7 +43,7 @@ abstract class ConstructVisualElement {
     /**
      * Current selection of the element. Used for calculating displacement during position changes.
      */
-    protected selection: monaco.Selection;
+    protected selection: Selection;
 
     /**
      * Editor object.

@@ -1,4 +1,6 @@
 import { Module } from "../syntax-tree/module";
+import { EditAction } from "../editor/data-types";
+import { EditActionType } from "../editor/consts";
 import { ConstructDoc } from "../suggestions/construct-doc";
 import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 import {
@@ -18,8 +20,6 @@ import {
     VarAssignmentStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
-import { EditAction } from "../editor/event-router";
-import { EditActionType } from "../editor/enums";
 
 /**
  * IMPORTANT!!!
