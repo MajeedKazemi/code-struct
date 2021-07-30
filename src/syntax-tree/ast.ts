@@ -4,10 +4,12 @@ import { rebuildBody } from "./body";
 import * as monaco from "monaco-editor";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { ConstructName } from "../editor/enums";
 import { Validator } from "../editor/validator";
 import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import { InsertionType, TAB_SPACES } from "./consts";
+import { VariableController } from "./variable-controller";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Notification } from "../notification-system/notification";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
@@ -21,8 +23,6 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
-import { ConstructName } from "../editor/enums";
-import { VariableController } from "./variable-controller";
 
 export interface CodeConstruct {
     /**
@@ -129,21 +129,18 @@ export interface CodeConstruct {
 
     /**
      * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
-     * Optionally creates a warning in the editor in case of a type mismatch between insertCode and insertInto if enableWarnings is set to true.
+     *
+     * NOTE: The reason why you have to call it on the future parent of insertCode instead of insertCode itself is because before insertCode is inserted into the AST
+     * we cannot access the parent's holes through insertCode.rootNode and get their types that way.
+     *
+     * NOTE: The reason why insertInto is a parameter is because some constructs have multiple holes and we need to know the one we are inserting into.
      *
      * @param insertCode     code being inserted
-     * @param enableWarnings determines whether a warning is created or not in case of a type mismatch
      * @param insertInto     hole being inserted into
-     * @param notifSystem    this module's notification system object
      *
      * @returns True if insertCode's type is accepted by insertInto according to what the parent of insertInto is. Returns False otherwise.
      */
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType;
 
     /**
      * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
@@ -433,13 +430,13 @@ export abstract class Statement implements CodeConstruct {
         return "";
     }
 
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType {
+        if (insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1) {
+            return InsertionType.Valid;
+        } //types match or one of them is Any
+
+        //need to check if the type being inserted can be converted into any of the types that the hole accepts
+        return insertInto.canReplaceWithConstruct(insertCode);
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
@@ -498,15 +495,6 @@ export abstract class Expression extends Statement implements CodeConstruct {
         if (this.isStatement()) return this as Statement;
         else if (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) return this.rootNode;
         else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
     }
 
     /**
@@ -684,15 +672,6 @@ export abstract class Token implements CodeConstruct {
         } else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
     }
 
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return false;
-    }
-
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
 
     onFocusOff(arg: any): void {
@@ -700,6 +679,10 @@ export abstract class Token implements CodeConstruct {
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr) {
+        return InsertionType.Invalid;
+    }
 }
 
 /**
@@ -843,21 +826,6 @@ export class IfStatement extends Statement {
         statement.indexInRoot = index;
 
         rebuildBody(this, index + 1, prevPos.lineNumber + 1);
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
     }
 }
 
@@ -1004,21 +972,6 @@ export class ForStatement extends Statement implements VariableContainer {
 
     getIterableCodeObject(): CodeConstruct {
         return this.tokens[this.rangeIndex];
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = insertInto.type.indexOf(insertCode.returns) > -1;
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
     }
 
     onFocusOff(): void {
@@ -1180,7 +1133,7 @@ export class EmptyLineStmt extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.canInsertEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     build(pos: monaco.Position): monaco.Position {
@@ -1533,21 +1486,6 @@ export class FunctionCallStmt extends Expression {
 
     getFunctionName(): string {
         return this.functionName;
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addFunctionCallArgumentTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
     }
 }
 
@@ -1969,40 +1907,6 @@ export class BinaryOperatorExpr extends Expression {
 
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        let isValidType = false;
-
-        if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
-            isValidType = insertCode.returns != DataType.Boolean;
-        } else {
-            isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto, notifSystem);
-        }
-
-        if (enableWarnings && !isValidType) {
-            switch (this.operatorCategory) {
-                case BinaryOperatorCategory.Arithmetic:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                case BinaryOperatorCategory.Boolean:
-                    notifSystem.addBinBoolOpOperandInsertionTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                case BinaryOperatorCategory.Comparison:
-                    notifSystem.addCompOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                default:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-            }
-        }
-
-        return isValidType;
-    }
 }
 
 export class UnaryOperatorExpr extends Expression {
@@ -2287,6 +2191,15 @@ export class TypedEmptyExpr extends Token {
         this.type = type;
 
         this.receives.push(AddableType.Expression);
+    }
+
+    canReplaceWithConstruct(replaceWith: Expression): InsertionType {
+        //check if the type of replaceWith can be converted into any of the hole's types
+        if (hasMatch(this.type, [replaceWith.returns])) {
+            InsertionType.DraftMode;
+        }
+
+        return InsertionType.Invalid;
     }
 }
 
