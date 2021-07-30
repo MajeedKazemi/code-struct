@@ -557,16 +557,6 @@ export class EventRouter {
                 break;
             }
 
-            case ButtonPress.InsertForStmt: {
-                if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.ForStatement(),
-                    });
-                }
-
-                break;
-            }
-
             case ButtonPress.InsertListLiteral: {
                 if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.WrapExpressionWithItem, {

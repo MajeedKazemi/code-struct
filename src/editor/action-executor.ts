@@ -26,6 +26,7 @@ import {
     EmptyLineStmt,
     ExprDotMethodStmt,
 } from "../syntax-tree/ast";
+import { Validator } from "./validator";
 
 export class ActionExecutor {
     module: Module;
@@ -119,7 +120,8 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertExpression: {
-                this.module.insert(action.data?.expression);
+                this.insertExpression(context, action.data?.expression);
+                this.updateDraftMode(context, action.data?.expression);
 
                 break;
             }
@@ -154,7 +156,7 @@ export class ActionExecutor {
 
                 const ref = new VariableReferenceExpr(identifier, dataType, buttonId);
 
-                this.module.insert(ref);
+                this.insertExpression(context, ref);
 
                 break;
             }
@@ -506,7 +508,8 @@ export class ActionExecutor {
                 } else if (action.data.toLeft) {
                     this.replaceWithBinaryOp(action.data.operator, context.expressionToRight, { toRight: true });
                 } else if (action.data.replace) {
-                    this.module.insert(
+                    this.insertExpression(
+                        context,
                         new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
                     );
                 }
@@ -566,7 +569,7 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyList: {
-                this.module.insert(new ListLiteralExpression());
+                this.insertExpression(context, new ListLiteralExpression());
 
                 break;
             }
@@ -646,7 +649,7 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                this.module.insert(new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
+                this.insertExpression(context, new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
 
                 this.module.editor.monaco.focus();
 
@@ -763,6 +766,82 @@ export class ActionExecutor {
         }
 
         return preventDefaultEvent;
+    }
+
+    private updateDraftMode(context: Context, code: Expression) {
+        const insertionType = this.module.tryInsert(context.token, code) as InsertionType;
+
+        //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
+        //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
+        if (insertionType === InsertionType.DraftMode && code instanceof Expression) {
+            const focusedPos = this.module.focus.onEmptyLine()
+                ? context.lineStatement.getLeftPosition()
+                : context.token.getLeftPosition();
+
+            this.module.replaceFocusedExpression(code);
+
+            //TODO: Should we include the parent too?
+            this.module.openDraftMode(code);
+
+            const range = new monaco.Range(
+                focusedPos.lineNumber,
+                context.token.left,
+                focusedPos.lineNumber,
+                context.token.right
+            );
+
+            this.module.editor.executeEdits(range, code);
+        }
+    }
+
+    private insertExpression(context: Context, code: Expression) {
+        let isValid = true;
+        const root = context.lineStatement.rootNode as Statement | Module;
+
+        //type checks -- different handling based on type of code construct
+        //focusedNode.returns != code.returns would work, but we need more context to get the right error message
+        if (context.token instanceof TypedEmptyExpr && code instanceof Expression) {
+            isValid = context.token.rootNode.typeValidateInsertionIntoHole(
+                code,
+                true,
+                context.token,
+                this.module.notificationSystem
+            );
+
+            if (isValid) {
+                code.performPreInsertionUpdates(context.token);
+
+                if (context.token.rootNode instanceof Statement) {
+                    context.token.rootNode.onInsertInto(code);
+                }
+            }
+        }
+
+        if (isValid) {
+            if (context.token.notification && context.selected) {
+                this.module.notificationSystem.removeNotificationFromConstruct(context.token);
+            }
+
+            // replaces expression with the newly inserted expression
+            const expr = code as Expression;
+
+            this.module.replaceFocusedExpression(expr);
+
+            const range = new monaco.Range(
+                context.position.lineNumber,
+                context.token.left,
+                context.position.lineNumber,
+                context.token.right
+            );
+
+            this.module.editor.executeEdits(range, expr);
+
+            //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
+            if (!context.token.notification) {
+                const newContext = code.getInitialFocus();
+                this.module.focus.updateContext(newContext);
+            }
+        }
     }
 
     private insertStatement(context: Context, statement: Statement) {

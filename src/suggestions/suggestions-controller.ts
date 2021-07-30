@@ -832,19 +832,21 @@ export class MenuController {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
-            options.forEach((option) => {
-                if (
-                    Object.keys(ConstructKeys)
-                        .map((key) => ConstructKeys[key])
-                        .indexOf(option) > -1
-                ) {
-                    menuOptions.set(option as ConstructKeys, () => {
-                        this.module.insert(
-                            Util.getInstance(this.module).dummyToolboxConstructs.get(option as ConstructKeys)
-                        );
-                    });
-                } else menuOptions.set(option, null);
-            });
+            // TODO: need to fix this in the pre-validator
+
+            // options.forEach((option) => {
+            //     if (
+            //         Object.keys(ConstructKeys)
+            //             .map((key) => ConstructKeys[key])
+            //             .indexOf(option) > -1
+            //     ) {
+            //         menuOptions.set(option as ConstructKeys, () => {
+            //             this.module.insert(
+            //                 Util.getInstance(this.module).dummyToolboxConstructs.get(option as ConstructKeys)
+            //             );
+            //         });
+            //     } else menuOptions.set(option, null);
+            // });
 
             const menu = new Menu(menuOptions, options);
 
