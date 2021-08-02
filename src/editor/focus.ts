@@ -465,7 +465,7 @@ export class Focus {
     fireOnNavOffCallbacks(oldStatement: Statement, newStatement: Statement) {
         const context = this.getContext();
 
-        if (oldStatement !== newStatement) {
+        if (oldStatement && oldStatement !== newStatement) {
             oldStatement.notify(CallbackType.onFocusOff);
 
             //these will run for all statements that have a callback attached, not just for oldStatement

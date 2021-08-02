@@ -96,6 +96,7 @@ export class EditCodeAction extends UserAction {
     code: Statement | Expression;
     insertActionType: InsertActionType;
     insertData: any = {};
+    // getInstanceCaller: () => Statement | Expression;
 
     constructor(
         optionName: string,
@@ -103,13 +104,19 @@ export class EditCodeAction extends UserAction {
         code: Statement | Expression,
         insertActionType: InsertActionType,
         insertData: any = {}
+        // getInstanceCaller: () => Statement | Expression
     ) {
         super(optionName, cssId);
 
         this.code = code;
         this.insertActionType = insertActionType;
         this.insertData = insertData;
+        // this.getInstanceCaller = getInstanceCaller;
     }
+
+    // getCode() {
+    //     return this.getInstanceCaller();
+    // }
 
     validateAction(validator: Validator, context: Context): InsertionType {
         const astInsertionType = this.code.validateContext(validator, context);
