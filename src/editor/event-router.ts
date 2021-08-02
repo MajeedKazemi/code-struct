@@ -359,8 +359,8 @@ export class EventRouter {
 
             case InsertActionType.InsertRandintExpr: {
                 if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.FunctionCallStmt(
+                    return new EditAction(EditActionType.InsertExpression, {
+                        expression: new ast.FunctionCallStmt(
                             "randint",
                             [
                                 new ast.Argument([DataType.Number], "start", false),
@@ -376,8 +376,8 @@ export class EventRouter {
 
             case InsertActionType.InsertRangeExpr: {
                 if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.FunctionCallStmt(
+                    return new EditAction(EditActionType.InsertExpression, {
+                        expression: new ast.FunctionCallStmt(
                             "range",
                             [
                                 new ast.Argument([DataType.Number], "start", false),

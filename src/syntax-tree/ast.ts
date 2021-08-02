@@ -8,7 +8,7 @@ import { Validator } from "../editor/validator";
 import { Position, Selection } from "monaco-editor";
 import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
-import { InsertionType, TAB_SPACES } from "./consts";
+import { InsertionType, ListTypes, TAB_SPACES } from "./consts";
 import { VariableController } from "./variable-controller";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Notification } from "../notification-system/notification";
@@ -1081,7 +1081,7 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 
     onInsertInto(insertCode: Expression) {
-        if (insertCode instanceof ListLiteralExpression) {
+        if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
             this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
         } else {
             this.loopVar.dataType = insertCode.returns;
@@ -2106,10 +2106,11 @@ export class ListLiteralExpression extends Expression {
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
-        let dataType;
+        let dataType = this.returns;
+
         if (this.areAllHolesEmpty()) {
             dataType = TypeChecker.getListTypeFromElementType(insertCode.returns);
-        } else if (TypeChecker.getElementTypeFromListType(this.returns) !== insertCode.returns) {
+        } else if (this.getFilledHolesType() !== insertCode.returns) {
             dataType = DataType.AnyList;
         }
 
@@ -2128,6 +2129,23 @@ export class ListLiteralExpression extends Expression {
 
     onInsertInto(insertCode: Expression) {
         this.performTypeUpdatesOnInsertInto(insertCode);
+    }
+
+    private getFilledHolesType(): DataType {
+        const elements = this.tokens.filter(
+            (tkn) => !(tkn instanceof TypedEmptyExpr) && !(tkn instanceof NonEditableTkn)
+        );
+        const types: DataType[] = [];
+
+        for (const expr of elements) if (expr instanceof Expression) types.push(expr.returns);
+
+        if (types.length > 0) {
+            const initialType = types[0];
+
+            if (types.every((type) => type === initialType)) return initialType;
+        }
+
+        return DataType.Any;
     }
 }
 
