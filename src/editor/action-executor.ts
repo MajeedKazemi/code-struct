@@ -764,16 +764,10 @@ export class ActionExecutor {
     private updateDraftMode(context: Context, code: Expression) {
         //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
         //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
-        const focusedPos = context.token.getLeftPosition();
-
         this.module.replaceFocusedExpression(code);
 
         //TODO: Should we include the parent too?
         this.module.openDraftMode(code);
-
-        const range = new Range(focusedPos.lineNumber, context.token.left, focusedPos.lineNumber, context.token.right);
-
-        this.module.editor.executeEdits(range, code);
     }
 
     private insertExpression(context: Context, code: Expression) {
