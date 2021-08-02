@@ -5,6 +5,7 @@ import { Validator } from "../editor/validator";
 import { Reference } from "../syntax-tree/scope";
 import { VarAssignmentStmt } from "../syntax-tree/ast";
 import { ConstructKeys, Util } from "../utilities/util";
+import { KeyCode } from "monaco-editor";
 
 /*
  *A tree menu that can hold options for the user and link through those options to other menus.
