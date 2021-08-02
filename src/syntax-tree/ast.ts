@@ -2204,8 +2204,8 @@ export class TypedEmptyExpr extends Token {
 
     canReplaceWithConstruct(replaceWith: Expression): InsertionType {
         //check if the type of replaceWith can be converted into any of the hole's types
-        if (hasMatch(this.type, [replaceWith.returns])) {
-            InsertionType.DraftMode;
+        if (hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), this.type)) {
+            return InsertionType.DraftMode;
         }
 
         return InsertionType.Invalid;

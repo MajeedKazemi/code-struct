@@ -120,7 +120,6 @@ export class ActionExecutor {
 
             case EditActionType.InsertExpression: {
                 this.insertExpression(context, action.data?.expression);
-                this.updateDraftMode(context, action.data?.expression);
 
                 break;
             }
@@ -763,73 +762,59 @@ export class ActionExecutor {
     }
 
     private updateDraftMode(context: Context, code: Expression) {
-        const insertionType = this.module.tryInsert(context.token, code) as InsertionType;
-
         //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
         //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
-        if (insertionType === InsertionType.DraftMode && code instanceof Expression) {
-            const focusedPos = this.module.focus.onEmptyLine()
-                ? context.lineStatement.getLeftPosition()
-                : context.token.getLeftPosition();
+        const focusedPos = context.token.getLeftPosition();
 
-            this.module.replaceFocusedExpression(code);
+        this.module.replaceFocusedExpression(code);
 
-            //TODO: Should we include the parent too?
-            this.module.openDraftMode(code);
+        //TODO: Should we include the parent too?
+        this.module.openDraftMode(code);
 
-            const range = new Range(
-                focusedPos.lineNumber,
-                context.token.left,
-                focusedPos.lineNumber,
-                context.token.right
-            );
+        const range = new Range(focusedPos.lineNumber, context.token.left, focusedPos.lineNumber, context.token.right);
 
-            this.module.editor.executeEdits(range, code);
-        }
+        this.module.editor.executeEdits(range, code);
     }
 
     private insertExpression(context: Context, code: Expression) {
-        let isValid: InsertionType;
-        const root = context.lineStatement.rootNode as Statement | Module;
+        // type checks -- different handling based on type of code construct
+        // focusedNode.returns != code.returns would work, but we need more context to get the right error message
+        if (context.token instanceof TypedEmptyExpr) {
+            const insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
-        //type checks -- different handling based on type of code construct
-        //focusedNode.returns != code.returns would work, but we need more context to get the right error message
-        if (context.token instanceof TypedEmptyExpr && code instanceof Expression) {
-            isValid = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
-
-            if (isValid == InsertionType.Valid) {
+            if (insertionType != InsertionType.Invalid) {
                 code.performPreInsertionUpdates(context.token);
 
                 if (context.token.rootNode instanceof Statement) {
                     context.token.rootNode.onInsertInto(code);
                 }
+
+                if (context.token.notification && context.selected) {
+                    this.module.notificationSystem.removeNotificationFromConstruct(context.token);
+                }
+
+                // replaces expression with the newly inserted expression
+                const expr = code as Expression;
+
+                this.module.replaceFocusedExpression(expr);
+
+                const range = new Range(
+                    context.position.lineNumber,
+                    context.token.left,
+                    context.position.lineNumber,
+                    context.token.right
+                );
+
+                this.module.editor.executeEdits(range, expr);
+
+                //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
+                if (!context.token.notification) {
+                    const newContext = code.getInitialFocus();
+                    this.module.focus.updateContext(newContext);
+                }
             }
-        }
 
-        if (isValid == InsertionType.Valid) {
-            if (context.token.notification && context.selected) {
-                this.module.notificationSystem.removeNotificationFromConstruct(context.token);
-            }
-
-            // replaces expression with the newly inserted expression
-            const expr = code as Expression;
-
-            this.module.replaceFocusedExpression(expr);
-
-            const range = new Range(
-                context.position.lineNumber,
-                context.token.left,
-                context.position.lineNumber,
-                context.token.right
-            );
-
-            this.module.editor.executeEdits(range, expr);
-
-            //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
-            if (!context.token.notification) {
-                const newContext = code.getInitialFocus();
-                this.module.focus.updateContext(newContext);
-            }
+            if (insertionType == InsertionType.DraftMode) this.updateDraftMode(context, code);
         }
     }
 
