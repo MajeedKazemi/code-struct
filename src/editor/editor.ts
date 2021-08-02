@@ -1,22 +1,22 @@
 import { Hole } from "./hole";
 import { Cursor } from "./cursor";
-import * as monaco from "monaco-editor";
 import { Module } from "../syntax-tree/module";
 import { TAB_SPACES } from "../syntax-tree/consts";
+import { Position, Range, editor, Selection } from "monaco-editor";
 import { CodeConstruct, EditableTextTkn, IdentifierTkn, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 
 export class Editor {
     module: Module;
     cursor: Cursor;
-    monaco: monaco.editor.IStandaloneCodeEditor;
+    monaco: editor.IStandaloneCodeEditor;
     holes: Hole[];
-    mousePosMonaco: monaco.Position;
+    mousePosMonaco: Position;
     mousePosWindow: number[] = [0, 0];
     scrollOffsetTop: number = 0;
     oldCursorLineNumber: number = 1;
 
     constructor(parentEl: HTMLElement, module: Module) {
-        this.monaco = monaco.editor.create(parentEl, {
+        this.monaco = editor.create(parentEl, {
             value: "",
             language: "python",
             minimap: {
@@ -56,7 +56,7 @@ export class Editor {
 
     focusSelection() {
         // if (selection.startColumn == selection.endColumn) {
-        //     this.monaco.setPosition(new monaco.Position(selection.startLineNumber, selection.startColumn));
+        //     this.monaco.setPosition(new Position(selection.startLineNumber, selection.startColumn));
         // } else {
         //     this.cursor.setSelection(selection, code);
         //     this.monaco.setSelection(selection);
@@ -82,7 +82,7 @@ export class Editor {
         }
     }
 
-    executeEdits(range: monaco.Range, code: CodeConstruct, overwrite: string = null) {
+    executeEdits(range: Range, code: CodeConstruct, overwrite: string = null) {
         let text = overwrite;
 
         if (overwrite == null) text = code.getRenderText();
@@ -95,7 +95,7 @@ export class Editor {
 
     indentRecursively(statement: Statement, { backward = false }) {
         this.module.editor.executeEdits(
-            new monaco.Range(
+            new Range(
                 statement.lineNumber,
                 statement.left,
                 statement.lineNumber,
@@ -114,7 +114,7 @@ export class Editor {
                 const curStmt = stmtStack.pop();
 
                 this.module.editor.executeEdits(
-                    new monaco.Range(
+                    new Range(
                         curStmt.lineNumber,
                         curStmt.left,
                         curStmt.lineNumber,
@@ -135,14 +135,14 @@ export class Editor {
 
         for (const code of codeList) text += code.getRenderText();
 
-        const range = new monaco.Range(curPos.lineNumber, curPos.column, curPos.lineNumber, curPos.column);
+        const range = new Range(curPos.lineNumber, curPos.column, curPos.lineNumber, curPos.column);
 
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
         for (const code of codeList) this.addHoles(code);
     }
 
-    computeBoundingBox(selection: monaco.Selection) {
+    computeBoundingBox(selection: Selection) {
         const x = this.monaco.getOffsetForColumn(selection.startLineNumber, selection.startColumn);
         const y = this.monaco.getTopForLineNumber(selection.startLineNumber);
 

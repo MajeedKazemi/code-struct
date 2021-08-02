@@ -1,16 +1,17 @@
-import { Reference, Scope } from "./scope";
+import { Scope } from "./scope";
 import { Module } from "./module";
 import { rebuildBody } from "./body";
-import * as monaco from "monaco-editor";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { ConstructName } from "../editor/consts";
 import { Validator } from "../editor/validator";
+import { Position, Selection } from "monaco-editor";
 import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
-import { InsertionType, TAB_SPACES } from "./consts";
+import { InsertionType, ListTypes, TAB_SPACES } from "./consts";
+import { VariableController } from "./variable-controller";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Notification } from "../notification-system/notification";
-import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import {
     AddableType,
     BinaryOperator,
@@ -21,8 +22,6 @@ import {
     boolOps,
     comparisonOps,
 } from "./consts";
-import { ConstructName } from "../editor/enums";
-import { VariableController } from "./variable-controller";
 
 export interface CodeConstruct {
     /**
@@ -79,7 +78,7 @@ export interface CodeConstruct {
      * @param pos the left position to start building the nodes from
      * @returns the final right position of the whole node (calculated after building all of the children nodes)
      */
-    build(pos: monaco.Position): monaco.Position;
+    build(pos: Position): Position;
 
     /**
      * Finds and returns the next empty hole (name or value) in this code construct
@@ -100,12 +99,12 @@ export interface CodeConstruct {
     /**
      * Returns the left-position `(lineNumber, column)` of this code-construct in the rendered text.
      */
-    getLeftPosition(): monaco.Position;
+    getLeftPosition(): Position;
 
     /**
      * Returns a `Selection` object for this particular code-construct when it is selected
      */
-    getSelection(): monaco.Selection;
+    getSelection(): Selection;
 
     /**
      * Returns the parent statement of this code-construct (an element of the Module.body array).
@@ -129,21 +128,18 @@ export interface CodeConstruct {
 
     /**
      * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
-     * Optionally creates a warning in the editor in case of a type mismatch between insertCode and insertInto if enableWarnings is set to true.
+     *
+     * NOTE: The reason why you have to call it on the future parent of insertCode instead of insertCode itself is because before insertCode is inserted into the AST
+     * we cannot access the parent's holes through insertCode.rootNode and get their types that way.
+     *
+     * NOTE: The reason why insertInto is a parameter is because some constructs have multiple holes and we need to know the one we are inserting into.
      *
      * @param insertCode     code being inserted
-     * @param enableWarnings determines whether a warning is created or not in case of a type mismatch
      * @param insertInto     hole being inserted into
-     * @param notifSystem    this module's notification system object
      *
      * @returns True if insertCode's type is accepted by insertInto according to what the parent of insertInto is. Returns False otherwise.
      */
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType;
 
     /**
      * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
@@ -252,15 +248,15 @@ export abstract class Statement implements CodeConstruct {
         for (const callback of this.callbacks[type]) callback.callback();
     }
 
-    init(pos: monaco.Position) {
+    init(pos: Position) {
         this.build(pos);
 
         if (this.hasBody())
             for (let i = 0; i < this.body.length; i++)
-                this.body[i].build(new monaco.Position(pos.lineNumber + i + 1, pos.column + TAB_SPACES));
+                this.body[i].build(new Position(pos.lineNumber + i + 1, pos.column + TAB_SPACES));
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.lineNumber = pos.lineNumber;
         this.left = pos.column;
 
@@ -280,7 +276,7 @@ export abstract class Statement implements CodeConstruct {
      * @param pos the left position to start building the nodes from
      * @param fromIndex the index of the node that was edited.
      */
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         let curPos = pos;
 
         // rebuild siblings:
@@ -314,7 +310,7 @@ export abstract class Statement implements CodeConstruct {
             }
         }
 
-        return { positionToMove: new monaco.Position(this.getLineNumber(), this.right) };
+        return { positionToMove: new Position(this.getLineNumber(), this.right) };
     }
 
     /**
@@ -364,7 +360,7 @@ export abstract class Statement implements CodeConstruct {
         //The focus goes to the end of line
         this.tokens[index] = code;
 
-        if (rebuildColumn) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
+        if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), index);
 
         this.updateHasEmptyToken(code);
 
@@ -393,12 +389,12 @@ export abstract class Statement implements CodeConstruct {
         return this.lineNumber;
     }
 
-    getLeftPosition(): monaco.Position {
-        return new monaco.Position(this.getLineNumber(), this.left);
+    getLeftPosition(): Position {
+        return new Position(this.getLineNumber(), this.left);
     }
 
-    getSelection(): monaco.Selection {
-        return new monaco.Selection(this.lineNumber, this.right, this.lineNumber, this.left);
+    getSelection(): Selection {
+        return new Selection(this.lineNumber, this.right, this.lineNumber, this.left);
     }
 
     getParentStatement(): Statement {
@@ -433,13 +429,13 @@ export abstract class Statement implements CodeConstruct {
         return "";
     }
 
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType {
+        if (insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1) {
+            return InsertionType.Valid;
+        } //types match or one of them is Any
+
+        //need to check if the type being inserted can be converted into any of the types that the hole accepts
+        return insertInto.canReplaceWithConstruct(insertCode);
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
@@ -488,25 +484,16 @@ export abstract class Expression extends Statement implements CodeConstruct {
         else if (this.rootNode instanceof Expression) return this.rootNode.getLineNumber();
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const line = this.lineNumber >= 0 ? this.lineNumber : this.getLineNumber();
 
-        return new monaco.Selection(line, this.right, line, this.left);
+        return new Selection(line, this.right, line, this.left);
     }
 
     getParentStatement(): Statement {
         if (this.isStatement()) return this as Statement;
         else if (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) return this.rootNode;
         else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
     }
 
     /**
@@ -630,7 +617,7 @@ export abstract class Token implements CodeConstruct {
      * @param pos the left position to start building this node's right position.
      * @returns the final right position of this node: for tokens it equals to `this.left + this.text.length - 1`
      */
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.left = pos.column;
 
         if (this.text.length == 0) {
@@ -642,8 +629,8 @@ export abstract class Token implements CodeConstruct {
 
         this.notify(CallbackType.change);
 
-        if (this.text.length == 0) return new monaco.Position(pos.lineNumber, this.right);
-        else return new monaco.Position(pos.lineNumber, this.right);
+        if (this.text.length == 0) return new Position(pos.lineNumber, this.right);
+        else return new Position(pos.lineNumber, this.right);
     }
 
     /**
@@ -653,7 +640,7 @@ export abstract class Token implements CodeConstruct {
     getInitialFocus(): UpdatableContext {
         if (this.isEmpty) return { tokenToSelect: this };
 
-        return { positionToMove: new monaco.Position(this.getLineNumber(), this.right) };
+        return { positionToMove: new Position(this.getLineNumber(), this.right) };
     }
 
     getRenderText(): string {
@@ -665,14 +652,14 @@ export abstract class Token implements CodeConstruct {
         else return (this.rootNode as Expression).getLineNumber();
     }
 
-    getLeftPosition(): monaco.Position {
-        return new monaco.Position(this.getLineNumber(), this.left);
+    getLeftPosition(): Position {
+        return new Position(this.getLineNumber(), this.left);
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const line = this.getLineNumber();
 
-        return new monaco.Selection(line, this.right, line, this.left);
+        return new Selection(line, this.right, line, this.left);
     }
 
     getParentStatement(): Statement {
@@ -684,15 +671,6 @@ export abstract class Token implements CodeConstruct {
         } else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
     }
 
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return false;
-    }
-
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
 
     onFocusOff(arg: any): void {
@@ -700,6 +678,10 @@ export abstract class Token implements CodeConstruct {
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr) {
+        return InsertionType.Invalid;
+    }
 }
 
 /**
@@ -838,26 +820,11 @@ export class IfStatement extends Statement {
         for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
 
         // rebuild else statement, and body
-        statement.init(new monaco.Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
+        statement.init(new Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
         statement.rootNode = this;
         statement.indexInRoot = index;
 
         rebuildBody(this, index + 1, prevPos.lineNumber + 1);
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
     }
 }
 
@@ -982,7 +949,7 @@ export class ForStatement extends Statement implements VariableContainer {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
     }
 
@@ -1004,21 +971,6 @@ export class ForStatement extends Statement implements VariableContainer {
 
     getIterableCodeObject(): CodeConstruct {
         return this.tokens[this.rangeIndex];
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = insertInto.type.indexOf(insertCode.returns) > -1;
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
     }
 
     onFocusOff(): void {
@@ -1129,7 +1081,7 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 
     onInsertInto(insertCode: Expression) {
-        if (insertCode instanceof ListLiteralExpression) {
+        if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
             this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
         } else {
             this.loopVar.dataType = insertCode.returns;
@@ -1180,14 +1132,14 @@ export class EmptyLineStmt extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.canInsertEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.lineNumber = pos.lineNumber;
         this.left = this.right = pos.column;
 
-        return new monaco.Position(this.lineNumber, this.right);
+        return new Position(this.lineNumber, this.right);
     }
 
     getInitialFocus(): UpdatableContext {
@@ -1255,7 +1207,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         this.replace(code, this.valueIndex);
     }
 
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
     }
 
@@ -1534,53 +1486,36 @@ export class FunctionCallStmt extends Expression {
     getFunctionName(): string {
         return this.functionName;
     }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addFunctionCallArgumentTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
-    }
 }
 
-export class MethodCallExpr extends Expression {
-    // onInsert => just check if focusedPos - 1 is an expression and has a correct returns data type
-    // it will be added inside the prev expression
-
+export class ExprDotMethodStmt extends Expression {
     private argumentsIndices = new Array<number>();
-    private expressionIndex: number;
+    exprType: DataType;
     addableType: AddableType;
-    calledOn: DataType;
+    functionName: string = "";
+    args: Array<Argument>;
 
     constructor(
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
-        calledOn: DataType,
-        root?: Expression,
+        exprType: DataType,
+        root?: CodeConstruct | Module,
         indexInRoot?: number
     ) {
         super(returns);
 
-        this.calledOn = calledOn;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+        this.functionName = functionName;
+        this.exprType = exprType;
+        this.args = args;
 
-        if (args.length > 0) this.hasEmptyToken = false;
+        if (this.isStatement()) this.addableType = AddableType.Statement;
+        else this.addableType = AddableType.Expression;
 
-        this.addableType = AddableType.ExpressionModifier;
-
-        this.expressionIndex = this.tokens.length;
-        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+        // just inserting a dummy expression
+        this.tokens.push(null);
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
@@ -1596,19 +1531,41 @@ export class MethodCallExpr extends Expression {
             }
 
             this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-        } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
+
+            this.hasEmptyToken = true;
+        } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
+    }
+
+    // implement an onDelete method that will be called when a code is being deleted. it removes the particular holes and etc.
+    onDelete() {
+        for (let i = 2; i < this.tokens.length; i++) this.tokens[i].notify(CallbackType.delete);
+    }
+
+    setExpression(expr: Expression) {
+        expr.rootNode = this;
+        expr.indexInRoot = 0;
+
+        this.tokens[0] = expr;
+    }
+
+    getExpression(): Expression {
+        return this.tokens[0] as Expression;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atRightOfExpression(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
+        const doTypesMatch = providedContext?.expressionToLeft?.returns == this.exprType;
 
-    setExpression(prevItem: Expression) {
-        this.replace(prevItem, this.expressionIndex);
+        return validator.atRightOfExpression(providedContext) && doTypesMatch
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
         this.replace(to, this.argumentsIndices[index]);
+    }
+
+    getFunctionName(): string {
+        return this.functionName;
     }
 }
 
@@ -1645,44 +1602,6 @@ export class ListElementAssignment extends Statement {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
-}
-
-export class MethodCallStmt extends Statement {
-    addableType: AddableType;
-    private argumentsIndices = new Array<number>();
-
-    constructor(functionName: string, args: Array<Argument>, root?: Expression, indexInRoot?: number) {
-        super();
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.addableType = AddableType.Statement;
-
-        if (args.length > 0) {
-            this.hasEmptyToken = false;
-            this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
-
-            for (let i = 0; i < args.length; i++) {
-                let arg = args[i];
-
-                this.argumentsIndices.push(this.tokens.length);
-                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
-                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
-
-                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
-            }
-
-            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-        } else this.tokens.push(new NonEditableTkn("." + functionName + "()", this, this.tokens.length));
-    }
-
-    validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
-
-    replaceArgument(index: number, to: CodeConstruct) {
-        this.replace(to, this.argumentsIndices[index]);
     }
 }
 
@@ -1989,40 +1908,6 @@ export class BinaryOperatorExpr extends Expression {
 
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        let isValidType = false;
-
-        if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
-            isValidType = insertCode.returns != DataType.Boolean;
-        } else {
-            isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto, notifSystem);
-        }
-
-        if (enableWarnings && !isValidType) {
-            switch (this.operatorCategory) {
-                case BinaryOperatorCategory.Arithmetic:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                case BinaryOperatorCategory.Boolean:
-                    notifSystem.addBinBoolOpOperandInsertionTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                case BinaryOperatorCategory.Comparison:
-                    notifSystem.addCompOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                default:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-            }
-        }
-
-        return isValidType;
-    }
 }
 
 export class UnaryOperatorExpr extends Expression {
@@ -2081,15 +1966,10 @@ export class EditableTextTkn extends Token implements TextEditable {
         this.validatorRegex = regex;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const leftPos = this.getLeftPosition();
 
-        return new monaco.Selection(
-            leftPos.lineNumber,
-            leftPos.column + this.text.length,
-            leftPos.lineNumber,
-            leftPos.column
-        );
+        return new Selection(leftPos.lineNumber, leftPos.column + this.text.length, leftPos.lineNumber, leftPos.column);
     }
 
     getLeft(): number {
@@ -2112,7 +1992,7 @@ export class EditableTextTkn extends Token implements TextEditable {
         }
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.left = pos.column;
 
         if (this.text.length == 0) {
@@ -2122,7 +2002,7 @@ export class EditableTextTkn extends Token implements TextEditable {
 
         this.notify(CallbackType.change);
 
-        return new monaco.Position(pos.lineNumber, this.right);
+        return new Position(pos.lineNumber, this.right);
     }
 }
 
@@ -2194,10 +2074,10 @@ export class LiteralValExpr extends Expression {
         switch (this.returns) {
             case DataType.String:
             case DataType.Number:
-                return { positionToMove: new monaco.Position(this.lineNumber, this.left + 1) };
+                return { positionToMove: new Position(this.lineNumber, this.left + 1) };
 
             case DataType.Boolean:
-                return { positionToMove: new monaco.Position(this.lineNumber, this.right) };
+                return { positionToMove: new Position(this.lineNumber, this.right) };
         }
     }
 }
@@ -2226,10 +2106,11 @@ export class ListLiteralExpression extends Expression {
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
-        let dataType;
+        let dataType = this.returns;
+
         if (this.areAllHolesEmpty()) {
             dataType = TypeChecker.getListTypeFromElementType(insertCode.returns);
-        } else if (TypeChecker.getElementTypeFromListType(this.returns) !== insertCode.returns) {
+        } else if (this.getFilledHolesType() !== insertCode.returns) {
             dataType = DataType.AnyList;
         }
 
@@ -2248,6 +2129,36 @@ export class ListLiteralExpression extends Expression {
 
     onInsertInto(insertCode: Expression) {
         this.performTypeUpdatesOnInsertInto(insertCode);
+    }
+
+    private getFilledHolesType(): DataType {
+        const elements = this.tokens.filter(
+            (tkn) => !(tkn instanceof TypedEmptyExpr) && !(tkn instanceof NonEditableTkn)
+        );
+        const types: DataType[] = [];
+
+        for (const expr of elements) if (expr instanceof Expression) types.push(expr.returns);
+
+        if (types.length > 0) {
+            const initialType = types[0];
+
+            if (types.every((type) => type === initialType)) return initialType;
+        }
+
+        return DataType.Any;
+    }
+}
+
+export class ListCommaDummy extends Expression {
+    constructor() {
+        super(DataType.Void);
+    }
+
+    // this is the only reason why we have this ListCommaDummy expression :)
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.canAddListItemToLeft() || validator.canAddListItemToRight()
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -2308,6 +2219,15 @@ export class TypedEmptyExpr extends Token {
 
         this.receives.push(AddableType.Expression);
     }
+
+    canReplaceWithConstruct(replaceWith: Expression): InsertionType {
+        //check if the type of replaceWith can be converted into any of the hole's types
+        if (hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), this.type)) {
+            return InsertionType.DraftMode;
+        }
+
+        return InsertionType.Invalid;
+    }
 }
 
 export class OperatorTkn extends Token {
@@ -2321,7 +2241,7 @@ export class OperatorTkn extends Token {
         this.operator = text;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }
@@ -2334,7 +2254,7 @@ export class NonEditableTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }
@@ -2347,7 +2267,7 @@ export class KeywordTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }

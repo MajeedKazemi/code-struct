@@ -1,43 +1,37 @@
+import { rebuildBody } from "./body";
 import { TAB_SPACES } from "./consts";
 import { Hole } from "../editor/hole";
-import * as monaco from "monaco-editor";
 import { CallbackType } from "./callback";
 import { Editor } from "../editor/editor";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { Position, Range } from "monaco-editor";
 import { Validator } from "../editor/validator";
 import { Context, Focus } from "../editor/focus";
 import { EventStack } from "../editor/event-stack";
-import { rebuildBody, replaceInBody } from "./body";
 import { EventRouter } from "../editor/event-router";
+import { VariableController } from "./variable-controller";
 import { ActionExecutor } from "../editor/action-executor";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { AddableType, BinaryOperator, DataType, InsertionType } from "./consts";
+import { ConstructKeys, constructToToolboxButton, hasMatch, Util } from "../utilities/util";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
-import { ConstructKeys, constructToToolboxButton, emptySpaces, hasMatch, Util } from "../utilities/util";
 import {
     BinaryOperatorExpr,
     CodeConstruct,
     ElseStatement,
     EmptyLineStmt,
+    ExprDotMethodStmt,
     Expression,
     ForStatement,
-    FunctionCallStmt,
     IfStatement,
-    MemberCallStmt,
-    MethodCallExpr,
-    MethodCallStmt,
-    NonEditableTkn,
     Statement,
     Token,
     TypedEmptyExpr,
-    UnaryOperatorExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { VariableController } from "./variable-controller";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -134,7 +128,7 @@ export class Module {
 
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
-        this.body[0].build(new monaco.Position(1, 1));
+        this.body[0].build(new Position(1, 1));
 
         this.focus.updateContext({ tokenToSelect: this.body[0] });
         this.editor.monaco.focus();
@@ -180,7 +174,7 @@ export class Module {
 
                 removedItem[0].rootNode = root.rootNode;
                 removedItem[0].indexInRoot = root.indexInRoot + 1;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left - TAB_SPACES));
 
                 outerRoot.body.splice(root.indexInRoot + 1, 0, ...removedItem);
                 rebuildBody(this, 0, 1);
@@ -199,14 +193,14 @@ export class Module {
 
                 removedItem[0].rootNode = root.rootNode;
                 removedItem[0].indexInRoot = root.indexInRoot + 1;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left - TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left - TAB_SPACES));
 
                 const stmtStack = new Array<Statement>();
                 stmtStack.unshift(...removedItem[0].body);
 
                 while (stmtStack.length > 0) {
                     const curStmt = stmtStack.pop();
-                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left - TAB_SPACES));
+                    curStmt.build(new Position(curStmt.lineNumber, curStmt.left - TAB_SPACES));
 
                     if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
                 }
@@ -229,7 +223,7 @@ export class Module {
 
                 removedItem[0].rootNode = aboveMultilineStmt;
                 removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left + TAB_SPACES));
 
                 aboveMultilineStmt.body.push(removedItem[0]);
                 rebuildBody(this, 0, 1);
@@ -247,14 +241,14 @@ export class Module {
 
                 removedItem[0].rootNode = aboveMultilineStmt;
                 removedItem[0].indexInRoot = aboveMultilineStmt.body.length;
-                removedItem[0].build(new monaco.Position(line.lineNumber, line.left + TAB_SPACES));
+                removedItem[0].build(new Position(line.lineNumber, line.left + TAB_SPACES));
 
                 const stmtStack = new Array<Statement>();
                 stmtStack.unshift(...removedItem[0].body);
 
                 while (stmtStack.length > 0) {
                     const curStmt = stmtStack.pop();
-                    curStmt.build(new monaco.Position(curStmt.lineNumber, curStmt.left + TAB_SPACES));
+                    curStmt.build(new Position(curStmt.lineNumber, curStmt.left + TAB_SPACES));
 
                     if (curStmt.hasBody()) stmtStack.unshift(...curStmt.body);
                 }
@@ -354,7 +348,7 @@ export class Module {
         this.body.push(new EmptyLineStmt(this, 0));
         this.scope = new Scope();
 
-        this.body[0].build(new monaco.Position(1, 1));
+        this.body[0].build(new Position(1, 1));
         this.focus.updateContext({ tokenToSelect: this.body[0] });
 
         this.editor.reset();
@@ -412,7 +406,7 @@ export class Module {
         }
     }
 
-    insertEmptyLine() {
+    insertEmptyLine(): Statement {
         const curPos = this.editor.monaco.getPosition();
         const curStatement = this.focus.getFocusedStatement();
         const curStatementRoot = curStatement.rootNode;
@@ -459,15 +453,17 @@ export class Module {
                 );
             } else this.addStatementToBody(this, emptyLine, curStatement.indexInRoot, curStatement.lineNumber);
 
-            const range = new monaco.Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
+            const range = new Range(curStatement.lineNumber - 1, 1, curStatement.lineNumber - 1, 1);
             this.editor.executeEdits(range, null, spaces + textToAdd);
+
+            return emptyLine;
         } else {
             // insert emptyStatement on next line, move other statements down
             const emptyLine = new EmptyLineStmt(
                 parentStmtHasBody ? curStatementRoot : this,
                 curStatement.indexInRoot + 1
             );
-            emptyLine.build(new monaco.Position(curStatement.lineNumber + 1, leftPosToCheck));
+            emptyLine.build(new Position(curStatement.lineNumber + 1, leftPosToCheck));
 
             if (parentStmtHasBody && atCompoundStmt) {
                 emptyLine.indexInRoot = 0;
@@ -482,7 +478,7 @@ export class Module {
                 );
             } else this.addStatementToBody(this, emptyLine, curStatement.indexInRoot + 1, curStatement.lineNumber + 1);
 
-            const range = new monaco.Range(
+            const range = new Range(
                 curStatement.lineNumber,
                 curStatement.right,
                 curStatement.lineNumber,
@@ -490,6 +486,8 @@ export class Module {
             );
             this.editor.executeEdits(range, null, textToAdd + spaces);
             this.focus.updateContext({ tokenToSelect: emptyLine });
+
+            return emptyLine;
         }
     }
 
@@ -620,30 +618,22 @@ export class Module {
     tryInsert(insertInto: CodeConstruct, insert: CodeConstruct): InsertionType {
         const context = this.focus.getContext();
 
+        // TODO: Workaround for now to test ExprDotMethodStmt statements
+        const focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
+
+        if (insert instanceof ExprDotMethodStmt && insertInto === focusedNode) {
+            if (insert.validateContext(this.validator, context) == InsertionType.Valid) {
+                return context.expressionToLeft.canReplaceWithConstruct(insert);
+            }
+
+            return InsertionType.Invalid;
+        }
+
         if (!insertInto || !insert) {
             console.error(
                 "Failed to perform insertion check on\n   insertInto: " + insertInto + "\n   insert: " + insert
             );
             return null;
-        }
-
-        if (insert instanceof MethodCallExpr) {
-            if (
-                context.expressionToLeft instanceof Expression &&
-                context.expressionToLeft.returns == insert.calledOn /* TODO: and check calledOn */
-            ) {
-                // will replace the expression with this
-                // and will have the expression as the first element inside the code
-                insert.indexInRoot = context.expressionToLeft.indexInRoot;
-                insert.rootNode = context.expressionToLeft.rootNode;
-
-                if (insert.rootNode instanceof Expression || insert.rootNode instanceof Statement)
-                    return InsertionType.Valid;
-            } else if (
-                context.expressionToLeft instanceof Expression &&
-                context.expressionToLeft.returns != insert.calledOn
-            )
-                return InsertionType.Invalid;
         }
 
         if (insert.addableType != AddableType.NotAddable && insertInto.receives.indexOf(insert.addableType) > -1) {
@@ -778,348 +768,11 @@ export class Module {
 
     ///------------------VALIDATOR END
 
-    insert(code: CodeConstruct, insertInto?: CodeConstruct) {
-        const context = this.focus.getContext();
-        const focusedNode = insertInto ?? this.focus.onEmptyLine() ? context.lineStatement : context.token;
+    //insert(code: CodeConstruct, insertInto?: CodeConstruct) {
+    //     const context = this.focus.getContext();
 
-        const insertionType =
-            code instanceof VariableReferenceExpr
-                ? (Validator.getValidVariableReferences(focusedNode, this.variableController)
-                      .filter(
-                          (record) =>
-                              ((record[0] as Reference).statement as VarAssignmentStmt).buttonId ===
-                              (code as VariableReferenceExpr).uniqueId
-                      )
-                      .map((record) => record[1])[0] as InsertionType)
-                : (this.tryInsert(focusedNode, code) as InsertionType);
-
-        let isValid = false;
-
-        if (focusedNode) {
-            if (code instanceof MethodCallExpr && insertionType !== InsertionType.DraftMode) {
-                if (
-                    context.expressionToLeft instanceof Expression &&
-                    context.expressionToLeft.returns == code.calledOn
-                ) {
-                    // will replace the expression with this
-                    // and will have the expression as the first element inside the code
-                    code.indexInRoot = context.expressionToLeft.indexInRoot;
-                    code.rootNode = context.expressionToLeft.rootNode;
-
-                    if (code.rootNode instanceof Expression || code.rootNode instanceof Statement) {
-                        code.rootNode.replace(code, code.indexInRoot);
-                    }
-
-                    code.setExpression(context.expressionToLeft);
-
-                    const range = new monaco.Range(
-                        context.position.lineNumber,
-                        code.left,
-                        context.position.lineNumber,
-                        context.position.column
-                    );
-
-                    if (focusedNode.notification && context.selected) {
-                        this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                    }
-
-                    this.editor.executeEdits(range, code);
-                    context.expressionToLeft.rebuild(
-                        new monaco.Position(context.position.lineNumber, context.expressionToLeft.left),
-                        0
-                    );
-                } else if (
-                    context.expressionToLeft instanceof Expression &&
-                    context.expressionToLeft.returns != code.calledOn
-                ) {
-                    //TODO: relies on tokens array not changing the index of function name
-                    //Not sure why it's hardcoded, probably because identifier token is not accessible, but change that
-                    this.notificationSystem.addHoverNotification(
-                        focusedNode,
-                        {
-                            objectType: context.expressionToLeft.returns,
-                            method: (code.tokens[2] as NonEditableTkn).text,
-                            calledOn: code.calledOn,
-                        },
-                        "",
-                        ErrorMessage.methodCallObjectTypeMismatch
-                    );
-                }
-            }
-
-            if (
-                code.addableType != AddableType.NotAddable &&
-                focusedNode.receives.indexOf(code.addableType) > -1 &&
-                insertionType !== InsertionType.DraftMode
-            ) {
-                //we don't always insert into a token, sometimes it may be an empty line
-                const focusedPos = this.focus.onEmptyLine()
-                    ? context.lineStatement.getLeftPosition()
-                    : context.token.getLeftPosition();
-
-                // TODO: validations => context.token.isEmpty
-
-                const parentStatement = context.lineStatement;
-                const parentRoot = parentStatement.rootNode;
-
-                if (focusedNode.receives.indexOf(AddableType.Statement) > -1) {
-                    // replaces statement with the newly inserted statement
-                    const statement = code as Statement;
-
-                    if (parentRoot instanceof Statement && parentRoot.hasBody()) {
-                        if (code instanceof ElseStatement && parentRoot instanceof IfStatement) {
-                            if (parentRoot.isValidElseInsertion(focusedNode.indexInRoot, code)) {
-                                parentRoot.insertElseStatement(focusedNode.indexInRoot, code);
-
-                                const range = new monaco.Range(
-                                    focusedPos.lineNumber,
-                                    focusedPos.column - TAB_SPACES,
-                                    focusedPos.lineNumber,
-                                    focusedPos.column
-                                );
-
-                                this.editor.executeEdits(
-                                    range,
-                                    code,
-                                    code.getRenderText() + "\n" + emptySpaces(focusedPos.column - 1)
-                                );
-
-                                if (focusedNode.notification && context.selected) {
-                                    this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                                }
-                            }
-                        } else if (!(statement instanceof ElseStatement)) {
-                            replaceInBody(parentRoot, focusedNode.indexInRoot, statement);
-                            parentRoot.notify(CallbackType.replace);
-
-                            var range = new monaco.Range(
-                                focusedPos.lineNumber,
-                                code.left,
-                                focusedPos.lineNumber,
-                                code.right
-                            );
-
-                            if (focusedNode.notification && context.selected) {
-                                this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                            }
-
-                            this.editor.executeEdits(range, code);
-                        }
-                    } else if (!(statement instanceof ElseStatement)) {
-                        replaceInBody(this, focusedNode.indexInRoot, statement);
-
-                        const range = new monaco.Range(
-                            focusedPos.lineNumber,
-                            statement.left,
-                            focusedPos.lineNumber,
-                            statement.right
-                        );
-
-                        if (focusedNode.notification) {
-                            this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                        }
-
-                        this.editor.executeEdits(range, statement);
-                    }
-
-                    const newContext = code.getInitialFocus();
-                    this.focus.updateContext(newContext);
-                } else if (focusedNode.receives.indexOf(AddableType.Expression) > -1) {
-                    isValid = true;
-
-                    if (code instanceof VariableReferenceExpr) {
-                        // prevent out of scope referencing of a variable
-                        if (parentRoot instanceof IfStatement)
-                            isValid = parentRoot.isValidReference(
-                                code.uniqueId,
-                                focusedPos.lineNumber,
-                                parentStatement.indexInRoot
-                            );
-                        else if (parentRoot instanceof Module || parentRoot instanceof Statement) {
-                            isValid = parentRoot.scope.isValidReference(code.uniqueId, focusedPos.lineNumber);
-                        }
-
-                        if (!isValid) {
-                            //TODO: Used to hold notif for variable out of scope reference, but it was not refactored with the new refactoring. Look at any older code to add it back when there is time.
-                        }
-
-                        if (isValid && focusedNode.notification) {
-                            this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                        }
-                    }
-
-                    //type checks -- different handling based on type of code construct
-                    //focusedNode.returns != code.returns would work, but we need more context to get the right error message
-                    if (isValid && focusedNode instanceof TypedEmptyExpr && code instanceof Expression) {
-                        isValid = focusedNode.rootNode.typeValidateInsertionIntoHole(
-                            code,
-                            true,
-                            focusedNode,
-                            this.notificationSystem
-                        );
-
-                        if (isValid) {
-                            code.performPreInsertionUpdates(focusedNode);
-
-                            if (focusedNode.rootNode instanceof Statement) {
-                                focusedNode.rootNode.onInsertInto(code);
-                            }
-                        }
-                    }
-
-                    if (isValid) {
-                        if (focusedNode.notification && context.selected) {
-                            this.notificationSystem.removeNotificationFromConstruct(focusedNode);
-                        }
-
-                        // replaces expression with the newly inserted expression
-                        const expr = code as Expression;
-
-                        /**
-                         * Update type of variable in toolbox.
-                         * Case 1: Variable is assigned some literal val
-                         * Case 2: Variable was assigned an arithmetic expression that is now being populated with literals.
-                         *         Therefore, variable assumes type returned by the arithmetic expression.
-                         */
-                        if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                            focusedNode.rootNode.dataType = expr.returns;
-                        } else if (
-                            parentStatement instanceof VarAssignmentStmt &&
-                            parentStatement.dataType == DataType.Any &&
-                            focusedNode.rootNode instanceof BinaryOperatorExpr
-                        ) {
-                            parentStatement.dataType = expr.returns;
-                        }
-
-                        //update types of expressions that need an update
-                        if (focusedNode.rootNode instanceof BinaryOperatorExpr) {
-                            focusedNode.rootNode.returns = expr.returns;
-                        }
-
-                        this.replaceFocusedExpression(expr);
-
-                        const range = new monaco.Range(
-                            focusedPos.lineNumber,
-                            focusedNode.left,
-                            focusedPos.lineNumber,
-                            focusedNode.right
-                        );
-
-                        this.editor.executeEdits(range, expr);
-
-                        //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
-                        if (!focusedNode.notification) {
-                            const newContext = code.getInitialFocus();
-                            this.focus.updateContext(newContext);
-                        }
-                    }
-                }
-            } else {
-                //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
-                //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
-                if (code.addableType == AddableType.NotAddable) {
-                    console.warn("Cannot insert this code construct at focused location.");
-
-                    this.notificationSystem.addHoverNotification(focusedNode, {}, "", ErrorMessage.default);
-                } else if (
-                    focusedNode.receives.indexOf(code.addableType) == -1 &&
-                    insertionType == InsertionType.Invalid
-                ) {
-                    console.warn("Cannot insert this code construct at focused location.");
-
-                    if (focusedNode.rootNode instanceof Statement) {
-                        if (focusedNode.rootNode.getKeyword() != "") {
-                            //for, while, if, elseif
-                            this.notificationSystem.addHoverNotification(
-                                focusedNode,
-                                {
-                                    constructName: focusedNode.rootNode.getKeyword(),
-                                    addedType: code.addableType,
-                                    focusedNode: focusedNode,
-                                },
-                                "",
-                                ErrorMessage.addableTypeMismatchControlStmt
-                            );
-                        } else if (
-                            focusedNode.rootNode instanceof BinaryOperatorExpr ||
-                            focusedNode.rootNode instanceof UnaryOperatorExpr
-                        ) {
-                            this.notificationSystem.addHoverNotification(
-                                focusedNode,
-                                { addedType: code.addableType },
-                                "",
-                                ErrorMessage.addableTypeMismatchGeneral
-                            );
-                        } else {
-                            //parent = VarAssignmentStmt || MethodCallStmt || EmptyLineStmt --although last one should not ever be present here
-                            if (focusedNode.rootNode instanceof MethodCallStmt) {
-                                console.log("Address this once lists are fixed.");
-                            } else if (focusedNode.rootNode instanceof VarAssignmentStmt) {
-                                this.notificationSystem.addHoverNotification(
-                                    focusedNode,
-                                    { constructName: "Variable assignment", addedType: code.addableType },
-                                    "",
-                                    ErrorMessage.addableTypeMismatchVarAssignStmt
-                                );
-                            } else if (focusedNode.rootNode instanceof FunctionCallStmt) {
-                                if (code instanceof Expression) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        {
-                                            argType1: (focusedNode as TypedEmptyExpr).type,
-                                            argType2: code.returns,
-                                            methodName: focusedNode.rootNode.getFunctionName(),
-                                        },
-                                        "",
-                                        ErrorMessage.methodArgTypeMismatch
-                                    );
-                                } else if (code instanceof Statement) {
-                                    this.notificationSystem.addHoverNotification(
-                                        focusedNode,
-                                        { addedType: code.addableType },
-                                        "",
-                                        ErrorMessage.addableTypeMismatchMethodArg
-                                    );
-                                }
-                            }
-                        }
-                    }
-                } else if (insertionType === InsertionType.DraftMode && code instanceof Expression) {
-                    const focusedPos = this.focus.onEmptyLine()
-                        ? context.lineStatement.getLeftPosition()
-                        : context.token.getLeftPosition();
-
-                    if (code instanceof VariableReferenceExpr && focusedNode instanceof EmptyLineStmt) {
-                        replaceInBody(this, focusedNode.indexInRoot, code);
-                    } else {
-                        this.replaceFocusedExpression(code);
-                    }
-
-                    //TODO: Should we include the parent too?
-                    this.openDraftMode(code);
-
-                    const range = new monaco.Range(
-                        focusedPos.lineNumber,
-                        focusedNode.left,
-                        focusedPos.lineNumber,
-                        focusedNode.right
-                    );
-
-                    this.editor.executeEdits(range, code);
-                } else {
-                    console.warn("Cannot insert this code construct at focused location.");
-
-                    this.notificationSystem.addHoverNotification(
-                        focusedNode,
-                        { addedType: code.addableType },
-                        "",
-                        ErrorMessage.addableTypeMismatchEmptyLine
-                    );
-                }
-            }
-            this.editor.monaco.focus();
-        }
-    }
+    //    this.editor.monaco.focus();
+    //}
 
     closeConstructDraftRecord(code: CodeConstruct) {
         if (code.draftModeEnabled) {

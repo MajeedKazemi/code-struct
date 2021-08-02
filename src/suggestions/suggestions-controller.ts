@@ -696,7 +696,7 @@ export class MenuController {
                 }
 
                 //remove menus with empty options
-                //(is not recursive so won't catch an option that links to a menu whose options were all removed which exists within another menu)
+                //(this is not recursive so it won't catch an option that links to a menu whose options were all removed which exists within another menu)
                 if (menuMap.get(menuKey).length == 0) {
                     menuMap.delete(menuKey);
                     keys = keys.filter((keyToKeep) => keyToKeep != menuKey);
@@ -747,8 +747,19 @@ export class MenuController {
                 }
             });
 
+            //TODO: Redesign of how building a menu works
+            /**
+             * 1. Need to make these methods accept a map returned from action-filter.ts
+             *  1.2. No need to run own validations here anymore. At most need to run the methods from aciton-filter.ts here and use their output
+             * 2. linkMenuThroughOption() is what creates the tree structure by assigning child menus to a parent
+             * 3. indentChildren() is what creates the tree structure visually when the menu is displayed
+             * 4. So all that has to be changed really is how the map argument of this function is generated in buildAvailableInsertsMenu()
+             */
+
             //set actions
+            //for every menu
             keys.forEach((menuKey) => {
+                //for every option within menu
                 map.get(menuKey).forEach((option) => {
                     if (actionMap.has(option)) {
                         menus.get(menuKey).getOptionByText(option).selectAction = actionMap.get(option);
@@ -833,19 +844,21 @@ export class MenuController {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
-            options.forEach((option) => {
-                if (
-                    Object.keys(ConstructKeys)
-                        .map((key) => ConstructKeys[key])
-                        .indexOf(option) > -1
-                ) {
-                    menuOptions.set(option as ConstructKeys, () => {
-                        this.module.insert(
-                            Util.getInstance(this.module).dummyToolboxConstructs.get(option as ConstructKeys)
-                        );
-                    });
-                } else menuOptions.set(option, null);
-            });
+            // TODO: need to fix this in the pre-validator
+
+            // options.forEach((option) => {
+            //     if (
+            //         Object.keys(ConstructKeys)
+            //             .map((key) => ConstructKeys[key])
+            //             .indexOf(option) > -1
+            //     ) {
+            //         menuOptions.set(option as ConstructKeys, () => {
+            //             this.module.insert(
+            //                 Util.getInstance(this.module).dummyToolboxConstructs.get(option as ConstructKeys)
+            //             );
+            //         });
+            //     } else menuOptions.set(option, null);
+            // });
 
             const menu = new Menu(menuOptions, options);
 

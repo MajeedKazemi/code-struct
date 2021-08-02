@@ -1,6 +1,8 @@
-import * as monaco from "monaco-editor";
+import { ConstructName } from "./consts";
 import { Module } from "../syntax-tree/module";
 import { DataType } from "./../syntax-tree/consts";
+import { Position, Selection } from "monaco-editor";
+import { CallbackType } from "../syntax-tree/callback";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -13,14 +15,14 @@ import {
     TextEditable,
     Token,
 } from "../syntax-tree/ast";
-import { ConstructName } from "./enums";
-import { CallbackType } from "../syntax-tree/callback";
 
 export class Focus {
     module: Module;
 
     onNavChangeCallbacks = new Array<(c: Context) => void>();
     onNavOffCallbacks = new Map<ConstructName, Array<(c: Context) => void>>();
+
+    prevPosition: Position = null;
 
     constructor(module: Module) {
         this.module = module;
@@ -106,7 +108,7 @@ export class Focus {
         const focusedLineStatement = this.getStatementAtLineNumber(curPos.lineNumber);
 
         if (newContext.tokenToSelect != undefined) {
-            const selection = new monaco.Selection(
+            const selection = new Selection(
                 newContext.tokenToSelect.getLineNumber(),
                 newContext.tokenToSelect.right,
                 newContext.tokenToSelect.getLineNumber(),
@@ -124,22 +126,22 @@ export class Focus {
         this.fireOnNavChangeCallbacks();
     }
 
-    navigatePos(pos: monaco.Position) {
+    navigatePos(pos: Position) {
         const focusedLineStatement = this.getStatementAtLineNumber(pos.lineNumber);
 
         // clicked at an empty statement => just update focusedStatement
         if (focusedLineStatement instanceof EmptyLineStmt) {
-            this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedLineStatement.left));
+            this.module.editor.monaco.setPosition(new Position(pos.lineNumber, focusedLineStatement.left));
         }
 
         // clicked before a statement => navigate to the beginning of the statement
         else if (pos.column <= focusedLineStatement.left) {
-            this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedLineStatement.left));
+            this.module.editor.monaco.setPosition(new Position(pos.lineNumber, focusedLineStatement.left));
         }
 
         // clicked before a statement => navigate to the end of the line
         else if (pos.column >= focusedLineStatement.right) {
-            this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedLineStatement.right));
+            this.module.editor.monaco.setPosition(new Position(pos.lineNumber, focusedLineStatement.right));
         } else {
             // look into the tokens of the statement:
             const focusedToken = this.getTokenAtStatementColumn(focusedLineStatement, pos.column);
@@ -167,7 +169,7 @@ export class Focus {
                         }
                     }
 
-                    this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedToken.left));
+                    this.module.editor.monaco.setPosition(new Position(pos.lineNumber, focusedToken.left));
                 } else {
                     // navigate to the end (or the empty token right after this token)
                     const tokenAfter = this.getTokenAtStatementColumn(focusedLineStatement, focusedToken.right + 1);
@@ -175,11 +177,22 @@ export class Focus {
                     if (tokenAfter instanceof Token && tokenAfter.isEmpty) {
                         this.selectCode(tokenAfter);
                     } else {
-                        this.module.editor.monaco.setPosition(new monaco.Position(pos.lineNumber, focusedToken.right));
+                        this.module.editor.monaco.setPosition(new Position(pos.lineNumber, focusedToken.right));
                     }
                 }
             }
         }
+
+        const curPos = this.module.editor.monaco.getPosition();
+
+        if (this.prevPosition != null && this.prevPosition.lineNumber != curPos.lineNumber) {
+            this.fireOnNavOffCallbacks(
+                this.getStatementAtLineNumber(this.prevPosition.lineNumber),
+                this.getStatementAtLineNumber(curPos.lineNumber)
+            );
+        }
+
+        this.prevPosition = curPos;
 
         this.fireOnNavChangeCallbacks();
     }
@@ -193,10 +206,9 @@ export class Focus {
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
 
-        if (curPosition.lineNumber > 1)
-            this.navigatePos(new monaco.Position(curPosition.lineNumber - 1, curPosition.column));
+        if (curPosition.lineNumber > 1) this.navigatePos(new Position(curPosition.lineNumber - 1, curPosition.column));
         else {
-            this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, 1));
+            this.module.editor.monaco.setPosition(new Position(curPosition.lineNumber, 1));
 
             this.fireOnNavChangeCallbacks();
         }
@@ -210,11 +222,11 @@ export class Focus {
         this.fireOnNavOffCallbacks(focusedLineStatement, lineBelow);
 
         if (lineBelow != null) {
-            this.navigatePos(new monaco.Position(curPosition.lineNumber + 1, curPosition.column));
+            this.navigatePos(new Position(curPosition.lineNumber + 1, curPosition.column));
         } else {
             // navigate to the end of current line
             const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
-            this.module.editor.monaco.setPosition(new monaco.Position(curPosition.lineNumber, curLine.right));
+            this.module.editor.monaco.setPosition(new Position(curPosition.lineNumber, curLine.right));
 
             this.fireOnNavChangeCallbacks();
         }
@@ -228,7 +240,7 @@ export class Focus {
             const lineBelow = this.getStatementAtLineNumber(curPos.lineNumber + 1);
 
             if (lineBelow != null) {
-                this.module.editor.monaco.setPosition(new monaco.Position(lineBelow.lineNumber, lineBelow.left));
+                this.module.editor.monaco.setPosition(new Position(lineBelow.lineNumber, lineBelow.left));
             }
         } else {
             const curSelection = this.module.editor.monaco.getSelection();
@@ -242,9 +254,7 @@ export class Focus {
                 curSelection.endColumn == focusedLineStatement.right
             ) {
                 // if selected a thing that is at the beginning of a line (usually an identifier) => nav to the beginning of the line
-                this.module.editor.monaco.setPosition(
-                    new monaco.Position(curPos.lineNumber, focusedLineStatement.right)
-                );
+                this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, focusedLineStatement.right));
             } else {
                 const tokenAfter = this.getTokenAtStatementColumn(focusedLineStatement, nextColumn);
 
@@ -256,16 +266,12 @@ export class Focus {
                     if (tokenAfterAfter instanceof Token && tokenAfterAfter.isEmpty) {
                         this.selectCode(tokenAfterAfter);
                     } else if (tokenAfterAfter instanceof EditableTextTkn || tokenAfterAfter instanceof IdentifierTkn) {
-                        this.module.editor.monaco.setPosition(
-                            new monaco.Position(curPos.lineNumber, tokenAfterAfter.left)
-                        );
+                        this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, tokenAfterAfter.left));
                     } else if (tokenAfterAfter != null) {
                         // probably its another expression, but should go to the beginning of it
-                        this.module.editor.monaco.setPosition(
-                            new monaco.Position(curPos.lineNumber, tokenAfterAfter.left)
-                        );
+                        this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, tokenAfterAfter.left));
                     } else {
-                        this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfter.right));
+                        this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, tokenAfter.right));
                     }
                 } else if (tokenAfter instanceof Token && tokenAfter.isEmpty) {
                     // if char[col + 1] is H => just select H
@@ -274,7 +280,7 @@ export class Focus {
                 } else if (tokenAfter instanceof EditableTextTkn || tokenAfter instanceof IdentifierTkn) {
                     // if char[col + 1] is a literal => go through it
 
-                    this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenAfter.left));
+                    this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, tokenAfter.left));
                 }
             }
         }
@@ -295,7 +301,7 @@ export class Focus {
                 const lineBelow = this.getStatementAtLineNumber(curPos.lineNumber - 1);
 
                 if (lineBelow != null) {
-                    this.module.editor.monaco.setPosition(new monaco.Position(lineBelow.lineNumber, lineBelow.right));
+                    this.module.editor.monaco.setPosition(new Position(lineBelow.lineNumber, lineBelow.right));
                 }
             }
         } else {
@@ -307,9 +313,7 @@ export class Focus {
 
             if (curSelection.startColumn != curSelection.endColumn && curPos.column == focusedLineStatement.left) {
                 // if selected a thing that is at the beginning of a line (usually an identifier) => nav to the beginning of the line
-                this.module.editor.monaco.setPosition(
-                    new monaco.Position(curPos.lineNumber, focusedLineStatement.left)
-                );
+                this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, focusedLineStatement.left));
             } else {
                 const tokenBefore = this.getTokenAtStatementColumn(focusedLineStatement, prevColumn);
 
@@ -327,11 +331,9 @@ export class Focus {
                         tokenBeforeBefore instanceof Token &&
                         (tokenBeforeBefore instanceof EditableTextTkn || tokenBeforeBefore instanceof IdentifierTkn)
                     ) {
-                        this.module.editor.monaco.setPosition(
-                            new monaco.Position(curPos.lineNumber, tokenBeforeBefore.right)
-                        );
+                        this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, tokenBeforeBefore.right));
                     } else {
-                        this.module.editor.monaco.setPosition(new monaco.Position(curPos.lineNumber, tokenBefore.left));
+                        this.module.editor.monaco.setPosition(new Position(curPos.lineNumber, tokenBefore.left));
                     }
                 } else if (tokenBefore instanceof Token && tokenBefore.isEmpty) {
                     // if char[col - 1] is H => just select H
@@ -460,10 +462,10 @@ export class Focus {
     /**
      * This function will fire all of the subscribed before nav off variable assignment callbacks
      */
-    private fireOnNavOffCallbacks(oldStatement: Statement, newStatement: Statement) {
+    fireOnNavOffCallbacks(oldStatement: Statement, newStatement: Statement) {
         const context = this.getContext();
 
-        if (oldStatement !== newStatement) {
+        if (oldStatement && oldStatement !== newStatement) {
             oldStatement.notify(CallbackType.onFocusOff);
 
             //these will run for all statements that have a callback attached, not just for oldStatement
@@ -503,7 +505,7 @@ export class Focus {
      */
     private selectCode(code: CodeConstruct) {
         if (code != null) {
-            const selection = new monaco.Selection(code.getLineNumber(), code.right, code.getLineNumber(), code.left);
+            const selection = new Selection(code.getLineNumber(), code.right, code.getLineNumber(), code.left);
 
             this.module.editor.monaco.setSelection(selection);
         }
@@ -705,14 +707,14 @@ export class Context {
     lineStatement: Statement;
 
     selected?: boolean = false; //this should not be nullable
-    position?: monaco.Position = null;
+    position?: Position = null;
 }
 
 export class UpdatableContext {
     tokenToSelect?: CodeConstruct;
-    positionToMove?: monaco.Position;
+    positionToMove?: Position;
 
-    constructor(tokenToSelect?: Token, positionToMove?: monaco.Position) {
+    constructor(tokenToSelect?: Token, positionToMove?: Position) {
         this.tokenToSelect = tokenToSelect;
         this.positionToMove = positionToMove;
     }
