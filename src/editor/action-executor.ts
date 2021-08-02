@@ -761,15 +761,6 @@ export class ActionExecutor {
         return preventDefaultEvent;
     }
 
-    private updateDraftMode(context: Context, code: Expression) {
-        //TODO: This type of logic should not be inside the  It should be moved somewhere like a validator class or even the notification-system-controller.
-        //However with the current architecture this is the best solution. The AST has all the information needed to make these decisions.
-        this.module.replaceFocusedExpression(code);
-
-        //TODO: Should we include the parent too?
-        this.module.openDraftMode(code);
-    }
-
     private insertExpression(context: Context, code: Expression) {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
@@ -808,7 +799,7 @@ export class ActionExecutor {
                 }
             }
 
-            if (insertionType == InsertionType.DraftMode) this.updateDraftMode(context, code);
+            if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
         }
     }
 
