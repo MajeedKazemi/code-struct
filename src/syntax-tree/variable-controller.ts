@@ -24,6 +24,15 @@ export class VariableController {
         this.variableButtons.push(button);
     }
 
+    isVariableReferenceButton(buttonId: string) {
+        return (
+            this.module.variableController
+                .getVariableButtons()
+                .map((buttonElement) => buttonElement.id)
+                .indexOf(buttonId) > -1
+        );
+    }
+
     removeVariableRefButton(varId: string) {
         let indexOfButton = -1;
         for (let i = 0; i < this.variableButtons.length; i++) {

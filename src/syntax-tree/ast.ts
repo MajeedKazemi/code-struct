@@ -1493,6 +1493,7 @@ export class ExprDotMethodStmt extends Expression {
     exprType: DataType;
     addableType: AddableType;
     functionName: string = "";
+    args: Array<Argument>;
 
     constructor(
         functionName: string,
@@ -1508,6 +1509,7 @@ export class ExprDotMethodStmt extends Expression {
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
         this.exprType = exprType;
+        this.args = args;
 
         if (this.isStatement()) this.addableType = AddableType.Statement;
         else this.addableType = AddableType.Expression;
@@ -2126,6 +2128,19 @@ export class ListLiteralExpression extends Expression {
 
     onInsertInto(insertCode: Expression) {
         this.performTypeUpdatesOnInsertInto(insertCode);
+    }
+}
+
+export class ListCommaDummy extends Expression {
+    constructor() {
+        super(DataType.Void);
+    }
+
+    // this is the only reason why we have this ListCommaDummy expression :)
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.canAddListItemToLeft() || validator.canAddListItemToRight()
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 

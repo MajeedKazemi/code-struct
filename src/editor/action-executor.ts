@@ -140,10 +140,10 @@ export class ActionExecutor {
 
             case EditActionType.InsertVariableRef: {
                 const buttonId = action.data.buttonId;
+                // TODO: we can be consistent within the code and just pass the id as part of the data
                 const identifier = document.getElementById(buttonId).innerText;
                 const dataType = this.module.variableController.getVariableTypeNearLine(
-                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-                        .scope ??
+                    this.module.focus.getFocusedStatement().scope ??
                         (
                             this.module.focus.getStatementAtLineNumber(
                                 this.module.editor.monaco.getPosition().lineNumber
@@ -797,7 +797,7 @@ export class ActionExecutor {
         if (context.token instanceof TypedEmptyExpr && code instanceof Expression) {
             isValid = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
-            if (isValid) {
+            if (isValid == InsertionType.Valid) {
                 code.performPreInsertionUpdates(context.token);
 
                 if (context.token.rootNode instanceof Statement) {
@@ -806,7 +806,7 @@ export class ActionExecutor {
             }
         }
 
-        if (isValid) {
+        if (isValid == InsertionType.Valid) {
             if (context.token.notification && context.selected) {
                 this.module.notificationSystem.removeNotificationFromConstruct(context.token);
             }

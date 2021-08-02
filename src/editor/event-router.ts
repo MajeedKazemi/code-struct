@@ -3,7 +3,8 @@ import { EditAction } from "./data-types";
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { BinaryOperator, DataType } from "./../syntax-tree/consts";
-import { InsertActionType, EditActionType, KeyPress, InsertActionMap } from "./consts";
+import { InsertActionType, EditActionType, KeyPress, Actions } from "./consts";
+import { EditCodeAction } from "./action-filter";
 
 export class EventRouter {
     module: Module;
@@ -318,8 +319,8 @@ export class EventRouter {
         this.module.editor.scrollOffsetTop = e.scrollTop;
     }
 
-    routeToolboxEvents(e: InsertActionType, context: Context, data: any): EditAction {
-        switch (e) {
+    routeToolboxEvents(e: EditCodeAction, context: Context): EditAction {
+        switch (e.insertActionType) {
             case InsertActionType.InsertNewVariableStmt: {
                 return new EditAction(EditActionType.InsertVarAssignStatement, {
                     statement: new ast.VarAssignmentStmt(),
@@ -328,7 +329,7 @@ export class EventRouter {
 
             case InsertActionType.InsertVariableReference: {
                 return new EditAction(EditActionType.InsertVariableRef, {
-                    buttonId: data.buttonId,
+                    buttonId: e.insertData.buttonId,
                 });
             }
 
@@ -422,13 +423,10 @@ export class EventRouter {
                 break;
             }
 
-            case InsertActionType.InsertLiteral:
-            case InsertActionType.InsertLiteral:
-            case InsertActionType.InsertLiteral:
             case InsertActionType.InsertLiteral: {
                 return new EditAction(EditActionType.InsertLiteral, {
-                    literalType: data?.literalType,
-                    initialValue: data?.initialValue,
+                    literalType: e.insertData?.literalType,
+                    initialValue: e.insertData?.initialValue,
                 });
             }
 
@@ -436,17 +434,17 @@ export class EventRouter {
                 if (this.module.validator.atRightOfExpression(context)) {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
                         toRight: true,
-                        operator: data?.operator,
+                        operator: e.insertData?.operator,
                     });
                 } else if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
                         toLeft: true,
-                        operator: data?.operator,
+                        operator: e.insertData?.operator,
                     });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
                         replace: true,
-                        operator: data?.operator,
+                        operator: e.insertData?.operator,
                     });
                 }
 
@@ -457,12 +455,12 @@ export class EventRouter {
                 if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.InsertUnaryOperator, {
                         wrap: true,
-                        operator: data?.operator,
+                        operator: e.insertData?.operator,
                     });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertUnaryOperator, {
                         replace: true,
-                        operator: data?.operator,
+                        operator: e.insertData?.operator,
                     });
                 }
 
@@ -680,21 +678,18 @@ export class EventRouter {
 
         if ((document.getElementById(id) as HTMLButtonElement).disabled) return;
 
-        if (
-            this.module.variableController
-                .getVariableButtons()
-                .map((buttonElement) => buttonElement.id)
-                .indexOf(id) > -1
-        ) {
+        if (this.module.variableController.isVariableReferenceButton(id)) {
             this.module.executer.execute(
-                this.routeToolboxEvents(InsertActionType.InsertVariableReference, context, { buttonId: id }),
+                this.module.eventRouter.routeToolboxEvents(
+                    new EditCodeAction(id, "", null, InsertActionType.InsertVariableReference, { buttonId: id }),
+                    context
+                ),
                 context
             );
-        } else if (InsertActionMap[id]) {
-            this.module.executer.execute(
-                this.routeToolboxEvents(InsertActionMap[id].action, context, InsertActionMap[id].data),
-                context
-            );
+        } else {
+            const action = Actions.instance().actionsMap.get(id);
+
+            if (action) this.module.executer.execute(this.routeToolboxEvents(action, context), context);
         }
     }
 

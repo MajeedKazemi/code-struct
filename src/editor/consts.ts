@@ -1,5 +1,23 @@
-import { InsertActionData } from "./data-types";
+import { EditAction, InsertActionData } from "./data-types";
 import { BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
+import { EditCodeAction } from "./action-filter";
+import {
+    Argument,
+    BinaryOperatorExpr,
+    ElseStatement,
+    ExprDotMethodStmt,
+    ForStatement,
+    FunctionCallStmt,
+    IfStatement,
+    ListCommaDummy,
+    ListElementAssignment,
+    ListLiteralExpression,
+    LiteralValExpr,
+    MemberCallStmt,
+    UnaryOperatorExpr,
+    VarAssignmentStmt,
+    WhileStatement,
+} from "../syntax-tree/ast";
 
 export enum KeyPress {
     // navigation:
@@ -163,175 +181,391 @@ export enum InsertActionType {
     InsertStringReplaceMethod,
     InsertStringFindMethod,
 }
+export class Actions {
+    private static inst: Actions;
+    actionsList: Array<EditCodeAction>;
+    actionsMap: Map<string, EditCodeAction>;
 
-export const InsertActionMap = new Map<string, InsertActionData>();
+    private constructor() {
+        this.actionsList = new Array<EditCodeAction>(
+            new EditCodeAction(
+                "var = ---",
+                "add-var-btn",
+                new VarAssignmentStmt(),
+                InsertActionType.InsertNewVariableStmt
+            ),
 
-export const InsertVarStmtAction = new InsertActionData("add-var-btn", InsertActionType.InsertNewVariableStmt);
-InsertActionMap.set(InsertVarStmtAction.cssId, InsertVarStmtAction);
+            new EditCodeAction(
+                "---[---] = ---",
+                "add-list-elem-assign-btn",
+                new ListElementAssignment(),
+                InsertActionType.InsertListIndexAssignment
+            ),
 
-export const InsertListIndexStmtAction = new InsertActionData(
-    "add-list-elem-assign-btn",
-    InsertActionType.InsertListIndexAssignment
-);
-InsertActionMap.set(InsertListIndexStmtAction.cssId, InsertListIndexStmtAction);
+            new EditCodeAction(
+                "print()",
+                "add-print-btn",
+                new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void),
+                InsertActionType.InsertPrintFunctionStmt
+            ),
 
-export const InsertPrintCallAction = new InsertActionData("add-print-btn", InsertActionType.InsertPrintFunctionStmt);
-InsertActionMap.set(InsertPrintCallAction.cssId, InsertPrintCallAction);
+            new EditCodeAction(
+                "randint(---, ---)",
+                "add-randint-btn",
+                new FunctionCallStmt(
+                    "randint",
+                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
+                    DataType.Number
+                ),
+                InsertActionType.InsertRandintExpr
+            ),
 
-export const InsertRandintCallAction = new InsertActionData("add-randint-btn", InsertActionType.InsertRandintExpr);
-InsertActionMap.set(InsertRandintCallAction.cssId, InsertRandintCallAction);
+            new EditCodeAction(
+                "range(---)",
+                "add-range-btn",
+                new FunctionCallStmt(
+                    "range",
+                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
+                    DataType.NumberList
+                ),
+                InsertActionType.InsertRangeExpr
+            ),
 
-export const InsertRangeCallAction = new InsertActionData("add-range-btn", InsertActionType.InsertRangeExpr);
-InsertActionMap.set(InsertRangeCallAction.cssId, InsertRangeCallAction);
+            new EditCodeAction(
+                "len(---)",
+                "add-len-btn",
+                new FunctionCallStmt(
+                    "len",
+                    [
+                        new Argument(
+                            [
+                                DataType.AnyList,
+                                DataType.StringList,
+                                DataType.BooleanList,
+                                DataType.NumberList,
+                                DataType.String,
+                            ],
+                            "list",
+                            false
+                        ),
+                    ],
+                    DataType.Number
+                ),
+                InsertActionType.InsertLenExpr
+            ),
 
-export const InsertLenCallAction = new InsertActionData("add-len-btn", InsertActionType.InsertLenExpr);
-InsertActionMap.set(InsertLenCallAction.cssId, InsertLenCallAction);
+            new EditCodeAction(
+                '""',
+                "add-str-btn",
+                new LiteralValExpr(DataType.String, ""),
+                InsertActionType.InsertLiteral,
+                {
+                    literalType: DataType.String,
+                    initialValue: "",
+                }
+            ),
+            new EditCodeAction(
+                "0",
+                "add-num-btn",
+                new LiteralValExpr(DataType.Number, "0"),
+                InsertActionType.InsertLiteral,
+                {
+                    literalType: DataType.Number,
+                    initialValue: "0",
+                }
+            ),
 
-export const InsertStrLiteralAction = new InsertActionData("add-str-btn", InsertActionType.InsertLiteral, {
-    literalType: DataType.String,
-    initialValue: "",
-});
-InsertActionMap.set(InsertStrLiteralAction.cssId, InsertStrLiteralAction);
+            new EditCodeAction(
+                "True",
+                "add-true-btn",
+                new LiteralValExpr(DataType.Boolean, "True"),
+                InsertActionType.InsertLiteral,
+                {
+                    literalType: DataType.Boolean,
+                    initialValue: "True",
+                }
+            ),
 
-export const InsertNumLiteralAction = new InsertActionData("add-num-btn", InsertActionType.InsertLiteral, {
-    literalType: DataType.Number,
-    initialValue: "0",
-});
-InsertActionMap.set(InsertNumLiteralAction.cssId, InsertNumLiteralAction);
+            new EditCodeAction(
+                "False",
+                "add-false-btn",
+                new LiteralValExpr(DataType.Boolean, "False"),
+                InsertActionType.InsertLiteral,
+                {
+                    literalType: DataType.Boolean,
+                    initialValue: "False",
+                }
+            ),
 
-export const InsertBoolTrueAction = new InsertActionData("add-true-btn", InsertActionType.InsertLiteral, {
-    literalType: DataType.Boolean,
-    initialValue: "True",
-});
-InsertActionMap.set(InsertBoolTrueAction.cssId, InsertBoolTrueAction);
+            new EditCodeAction(
+                "--- + ---",
+                "add-bin-add-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number), //NOTE: For + this will be reassigned in the constructor
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.Add,
+                }
+            ),
 
-export const InsertBoolFalseAction = new InsertActionData("add-false-btn", InsertActionType.InsertLiteral, {
-    literalType: DataType.Boolean,
-    initialValue: "False",
-});
-InsertActionMap.set(InsertBoolTrueAction.cssId, InsertBoolTrueAction);
+            new EditCodeAction(
+                "--- - ---",
+                "add-bin-sub-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.Subtract,
+                }
+            ),
 
-export const InsertBinAddAction = new InsertActionData("add-bin-add-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.Add,
-});
-InsertActionMap.set(InsertBoolTrueAction.cssId, InsertBoolTrueAction);
+            new EditCodeAction(
+                "--- * ---",
+                "add-bin-mul-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Number),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.Multiply,
+                }
+            ),
 
-export const InsertBinSubAction = new InsertActionData("add-bin-sub-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.Subtract,
-});
-InsertActionMap.set(InsertBinSubAction.cssId, InsertBinSubAction);
+            new EditCodeAction(
+                "--- / ---",
+                "add-bin-div-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Number),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.Divide,
+                }
+            ),
 
-export const InsertBinMulAction = new InsertActionData("add-bin-mul-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.Multiply,
-});
-InsertActionMap.set(InsertBinMulAction.cssId, InsertBinMulAction);
+            new EditCodeAction(
+                "--- and ---",
+                "add-bin-and-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.And,
+                }
+            ),
 
-export const InsertBinDivAction = new InsertActionData("add-bin-div-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.Divide,
-});
-InsertActionMap.set(InsertBinDivAction.cssId, InsertBinDivAction);
+            new EditCodeAction(
+                "--- or ---",
+                "add-bin-or-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.Or,
+                }
+            ),
 
-export const InsertBinAndAction = new InsertActionData("add-bin-and-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.And,
-});
-InsertActionMap.set(InsertBinAndAction.cssId, InsertBinAndAction);
+            new EditCodeAction(
+                "--- == ---",
+                "add-comp-eq-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.Equal,
+                }
+            ),
 
-export const InsertBinOrAction = new InsertActionData("add-bin-or-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.Or,
-});
-InsertActionMap.set(InsertBinOrAction.cssId, InsertBinOrAction);
+            new EditCodeAction(
+                "--- != ---",
+                "add-comp-neq-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.NotEqual,
+                }
+            ),
 
-export const InsertBinEqAction = new InsertActionData("add-comp-eq-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.Equal,
-});
-InsertActionMap.set(InsertBinEqAction.cssId, InsertBinEqAction);
+            new EditCodeAction(
+                "--- < ---",
+                "add-comp-lt-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.LessThan,
+                }
+            ),
 
-export const InsertBinNeqAction = new InsertActionData("add-comp-neq-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.NotEqual,
-});
-InsertActionMap.set(InsertBinNeqAction.cssId, InsertBinNeqAction);
+            new EditCodeAction(
+                "--- <= ---",
+                "add-comp-lte-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.LessThanEqual,
+                }
+            ),
 
-export const InsertBinLtAction = new InsertActionData("add-comp-lt-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.LessThan,
-});
-InsertActionMap.set(InsertBinLtAction.cssId, InsertBinLtAction);
+            new EditCodeAction(
+                "--- > ---",
+                "add-comp-gt-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.GreaterThan,
+                }
+            ),
 
-export const InsertBinLteAction = new InsertActionData("add-comp-lte-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.LessThanEqual,
-});
-InsertActionMap.set(InsertBinLteAction.cssId, InsertBinLteAction);
+            new EditCodeAction(
+                "--- >= ---",
+                "add-comp-gte-expr-btn",
+                new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
+                InsertActionType.InsertBinaryExpr,
+                {
+                    operator: BinaryOperator.GreaterThanEqual,
+                }
+            ),
 
-export const InsertBinGtAction = new InsertActionData("add-comp-gt-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.GreaterThan,
-});
-InsertActionMap.set(InsertBinGtAction.cssId, InsertBinGtAction);
+            new EditCodeAction(
+                "not ---",
+                "add-unary-not-expr-btn",
+                new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean),
+                InsertActionType.InsertUnaryExpr,
+                {
+                    operator: UnaryOp.Not,
+                }
+            ),
 
-export const InsertBinGteAction = new InsertActionData("add-comp-gte-expr-btn", InsertActionType.InsertBinaryExpr, {
-    operator: BinaryOperator.GreaterThanEqual,
-});
-InsertActionMap.set(InsertBinGteAction.cssId, InsertBinGteAction);
+            new EditCodeAction(
+                ".find(---)",
+                "add-find-method-call-btn",
+                new ExprDotMethodStmt(
+                    "find",
+                    [new Argument([DataType.String], "item", false)],
+                    DataType.String,
+                    DataType.String
+                ),
+                InsertActionType.InsertStringFindMethod
+            ),
 
-export const InsertUnaryNotAction = new InsertActionData("add-unary-not-expr-btn", InsertActionType.InsertUnaryExpr, {
-    operator: UnaryOp.Not,
-});
-InsertActionMap.set(InsertUnaryNotAction.cssId, InsertUnaryNotAction);
+            new EditCodeAction(
+                "while (---) :",
+                "add-while-expr-btn",
+                new WhileStatement(),
+                InsertActionType.InsertWhileStmt
+            ),
 
-export const InsertWhileStmtAction = new InsertActionData("add-while-expr-btn", InsertActionType.InsertWhileStmt);
-InsertActionMap.set(InsertWhileStmtAction.cssId, InsertWhileStmtAction);
+            new EditCodeAction("if (---) :", "add-if-expr-btn", new IfStatement(), InsertActionType.InsertIfStmt),
 
-export const InsertIfStmtAction = new InsertActionData("add-if-expr-btn", InsertActionType.InsertIfStmt);
-InsertActionMap.set(InsertIfStmtAction.cssId, InsertIfStmtAction);
+            new EditCodeAction(
+                "elif (---) :",
+                "add-elif-expr-btn",
+                new ElseStatement(true),
+                InsertActionType.InsertElifStmt
+            ),
 
-export const InsertElifStmtAction = new InsertActionData("add-elif-expr-btn", InsertActionType.InsertElifStmt);
-InsertActionMap.set(InsertElifStmtAction.cssId, InsertElifStmtAction);
+            new EditCodeAction(
+                "else (---) :",
+                "add-else-expr-btn",
+                new ElseStatement(false),
+                InsertActionType.InsertElseStmt
+            ),
 
-export const InsertElseStmtAction = new InsertActionData("add-else-expr-btn", InsertActionType.InsertElseStmt);
-InsertActionMap.set(InsertElseStmtAction.cssId, InsertElseStmtAction);
+            new EditCodeAction(
+                "for --- in --- :",
+                "add-for-expr-btn",
+                new ForStatement(),
+                InsertActionType.InsertForStmt
+            ),
 
-export const InsertForStmtAction = new InsertActionData("add-for-expr-btn", InsertActionType.InsertForStmt);
-InsertActionMap.set(InsertForStmtAction.cssId, InsertForStmtAction);
+            new EditCodeAction(
+                "[]",
+                "add-list-literal-btn",
+                new ListLiteralExpression(),
+                InsertActionType.InsertListLiteral
+            ),
 
-export const InsertListLiteralAction = new InsertActionData("add-list-literal-btn", InsertActionType.InsertListLiteral);
-InsertActionMap.set(InsertListLiteralAction.cssId, InsertListLiteralAction);
+            new EditCodeAction(", ---", "add-list-item-btn", new ListCommaDummy(), InsertActionType.InsertListItem),
 
-export const InsertListItemAction = new InsertActionData("add-list-item-btn", InsertActionType.InsertListItem);
-InsertActionMap.set(InsertListItemAction.cssId, InsertListItemAction);
+            new EditCodeAction(
+                "---[---] = ---",
+                "add-list-index-btn",
+                new MemberCallStmt(DataType.Any),
+                InsertActionType.InsertListIndexAccessor
+            ),
 
-export const InsertListAccessorAction = new InsertActionData(
-    "add-list-index-btn",
-    InsertActionType.InsertListIndexAccessor
-);
-InsertActionMap.set(InsertListAccessorAction.cssId, InsertListAccessorAction);
+            new EditCodeAction(
+                ".append(---)",
+                "add-list-append-stmt-btn",
+                new ExprDotMethodStmt(
+                    "append",
+                    [new Argument([DataType.Any], "object", false)],
+                    DataType.Void,
+                    DataType.AnyList
+                ),
+                InsertActionType.InsertListAppendMethod
+            ),
 
-export const InsertListAppendCallAction = new InsertActionData(
-    "add-list-append-stmt-btn",
-    InsertActionType.InsertListAppendMethod
-);
-InsertActionMap.set(InsertListAppendCallAction.cssId, InsertListAppendCallAction);
+            new EditCodeAction(
+                ".replace(---, ---)",
+                "add-replace-method-call-btn",
+                new ExprDotMethodStmt(
+                    "replace",
+                    [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
+                    DataType.String,
+                    DataType.String
+                ),
+                InsertActionType.InsertStringReplaceMethod
+            ),
 
-export const InsertSplitCallAction = new InsertActionData(
-    "add-split-method-call-btn",
-    InsertActionType.InsertStringSplitMethod
-);
-InsertActionMap.set(InsertSplitCallAction.cssId, InsertSplitCallAction);
+            new EditCodeAction(
+                ".join(---)",
+                "add-join-method-call-btn",
+                new ExprDotMethodStmt(
+                    "join",
+                    [
+                        new Argument(
+                            [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                            "items",
+                            false
+                        ),
+                    ],
+                    DataType.String,
 
-export const InsertJoinCallAction = new InsertActionData(
-    "add-join-method-call-btn",
-    InsertActionType.InsertStringJoinMethod
-);
-InsertActionMap.set(InsertJoinCallAction.cssId, InsertJoinCallAction);
+                    DataType.String
+                ),
+                InsertActionType.InsertStringJoinMethod,
+                {
+                    functionName: "join",
+                    returns: DataType.String,
+                    args: [
+                        new Argument(
+                            [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                            "items",
+                            false
+                        ),
+                    ],
+                    exprType: DataType.String,
+                }
+            ),
 
-export const InsertReplaceCallAction = new InsertActionData(
-    "add-replace-method-call-btn",
-    InsertActionType.InsertStringReplaceMethod
-);
-InsertActionMap.set(InsertReplaceCallAction.cssId, InsertReplaceCallAction);
+            new EditCodeAction(
+                ".split(---)",
+                "add-split-method-call-btn",
+                new ExprDotMethodStmt(
+                    "split",
+                    [new Argument([DataType.String], "sep", false)],
+                    DataType.StringList,
+                    DataType.String
+                ),
+                InsertActionType.InsertStringSplitMethod
+            ),
 
-export const InsertFindCallAction = new InsertActionData(
-    "add-find-method-call-btn",
-    InsertActionType.InsertStringFindMethod
-);
-InsertActionMap.set(InsertFindCallAction.cssId, InsertFindCallAction);
+            new EditCodeAction(
+                "str(---)",
+                "add-cast-str-btn",
+                new FunctionCallStmt("str", [new Argument([DataType.Any], "value", false)], DataType.String),
+                InsertActionType.InsertCastStrExpr
+            )
+        );
 
-export const InsertStrCastAction = new InsertActionData("add-cast-str-btn", InsertActionType.InsertCastStrExpr);
-InsertActionMap.set(InsertStrCastAction.cssId, InsertStrCastAction);
+        this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
+    }
+
+    static instance(): Actions {
+        if (!Actions.inst) Actions.inst = new Actions();
+
+        return Actions.inst;
+    }
+}

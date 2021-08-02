@@ -2,8 +2,11 @@ import { Context } from "./focus";
 import { Validator } from "./validator";
 import { Module } from "../syntax-tree/module";
 import { ActionExecutor } from "./action-executor";
-import { InsertionType } from "../syntax-tree/consts";
-import { Expression, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
+import { DataType, InsertionType } from "../syntax-tree/consts";
+import { Expression, FunctionCallStmt, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import { Actions, InsertActionType } from "./consts";
+import { Reference } from "../syntax-tree/scope";
+import { EventRouter } from "./event-router";
 
 export class ActionFilter {
     module: Module;
@@ -14,21 +17,62 @@ export class ActionFilter {
 
     // static list of user actions + edit actions
 
-    validateInsertions() {
+    validateInsertions(): Map<string, [InsertionType, Function]> {
         const context = this.module.focus.getContext();
-        // loop over all code-constructs and call their validateContext() + typeValidation() => insertionType
+        const validOptionMap: Map<string, [InsertionType, Function]> = new Map<string, [InsertionType, Function]>(); //<option name, function to call on click>
+        //need to know InsertionType in case we want to make any visual changes to those options in the suggestion menu
 
+        // loop over all code-constructs and call their validateContext() + typeValidation() => insertionType
         // we are assuming that the action executor will calculate the insertionType again in the exectue() function
+        for (const action of Actions.instance().actionsList) {
+            validOptionMap.set(action.optionName, [
+                action.validateAction(this.module.validator, context),
+                (() => {
+                    action.performAction(this.module.executer, this.module.eventRouter, context);
+                }).bind(this),
+            ]);
+        }
+
+        return validOptionMap;
     }
 
-    validateEdits() {}
+    validateEdits() {
+        throw new Error("Not Implemented");
+    }
 
-    validateVariableInsertions() {
-        // this.module.variableController
-        // get everything from the variable controller
-        // create userActions for them
-        // create specific cascaded menu actions for them ?!
-        // run their validation
+    validateVariableInsertions(): Map<string, [InsertionType, Function]> {
+        const context = this.module.focus.getContext();
+        const validOptionMap: Map<string, [InsertionType, Function]> = new Map<string, [InsertionType, Function]>(); //<option name, function to call on click>
+
+        const availableVars: [Reference, InsertionType][] = Validator.getValidVariableReferences(
+            context.selected ? context.token : context.lineStatement,
+            this.module.variableController
+        );
+
+        for (const varRecord of availableVars) {
+            const varStmt = varRecord[0].statement as VarAssignmentStmt;
+
+            validOptionMap.set(varStmt.getIdentifier(), [
+                varRecord[1],
+                (() => {
+                    this.module.executer.execute(
+                        this.module.eventRouter.routeToolboxEvents(
+                            new EditCodeAction(
+                                varStmt.getIdentifier(),
+                                varStmt.buttonId,
+                                varStmt,
+                                InsertActionType.InsertVariableReference,
+                                { buttonId: varStmt.buttonId }
+                            ),
+                            context
+                        ),
+                        context
+                    );
+                }).bind(this),
+            ]);
+        }
+
+        return validOptionMap;
     }
 }
 
@@ -45,16 +89,26 @@ export class UserAction {
         return InsertionType.Invalid;
     }
 
-    performAction(executor: ActionExecutor) {}
+    performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {}
 }
 
 export class EditCodeAction extends UserAction {
     code: Statement | Expression;
+    insertActionType: InsertActionType;
+    insertData: any = {};
 
-    constructor(optionName: string, cssId: string, code: Statement | Expression) {
+    constructor(
+        optionName: string,
+        cssId: string,
+        code: Statement | Expression,
+        insertActionType: InsertActionType,
+        insertData: any = {}
+    ) {
         super(optionName, cssId);
 
         this.code = code;
+        this.insertActionType = insertActionType;
+        this.insertData = insertData;
     }
 
     validateAction(validator: Validator, context: Context): InsertionType {
@@ -73,8 +127,8 @@ export class EditCodeAction extends UserAction {
         }
     }
 
-    performAction() {
-        // executer.execute(this.routeToolboxEvents(insertAction.action, context, insertAction.data), context);
+    performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {
+        // executor.execute(eventRouter.routeToolboxEvents(this.insertActionType, context, this.insertData), context);
     }
 }
 
@@ -93,5 +147,3 @@ export class InsertCodeAction extends UserAction {
     }
     performAction() {}
 }
-
-export const AvailableActions = [];
