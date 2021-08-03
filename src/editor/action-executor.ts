@@ -137,28 +137,6 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.InsertVariableRef: {
-                const buttonId = action.data.buttonId;
-                // TODO: we can be consistent within the code and just pass the id as part of the data
-                const identifier = document.getElementById(buttonId).innerText;
-                const dataType = this.module.variableController.getVariableTypeNearLine(
-                    this.module.focus.getFocusedStatement().scope ??
-                        (
-                            this.module.focus.getStatementAtLineNumber(
-                                this.module.editor.monaco.getPosition().lineNumber
-                            ).rootNode as Statement | Module
-                        ).scope,
-                    this.module.editor.monaco.getPosition().lineNumber,
-                    identifier
-                );
-
-                const ref = new VariableReferenceExpr(identifier, dataType, buttonId);
-
-                this.insertExpression(context, ref);
-
-                break;
-            }
-
             case EditActionType.InsertUnaryOperator: {
                 // TODO
                 if (action.data?.replace) {
@@ -467,29 +445,23 @@ export class ActionExecutor {
                 const initialBoundary = this.getBoundaries(context.expressionToLeft);
                 const root = context.expressionToLeft.rootNode as Statement;
                 const index = context.expressionToLeft.indexInRoot;
+                const methodCall = action.data.method as ExprDotMethodStmt;
 
-                const newCode = new ExprDotMethodStmt(
-                    action.data.functionName,
-                    action.data.args,
-                    action.data.returns,
-                    action.data.exprType
-                );
-
-                const replacementType = context.expressionToLeft.canReplaceWithConstruct(newCode);
+                const replacementType = context.expressionToLeft.canReplaceWithConstruct(methodCall);
 
                 if (replacementType !== InsertionType.Invalid) {
                     this.module.closeConstructDraftRecord(root.tokens[index]);
 
-                    newCode.setExpression(context.expressionToLeft);
-                    newCode.indexInRoot = index;
-                    newCode.rootNode = root;
-                    root.tokens[index] = newCode;
+                    methodCall.setExpression(context.expressionToLeft);
+                    methodCall.indexInRoot = index;
+                    methodCall.rootNode = root;
+                    root.tokens[index] = methodCall;
                     root.rebuild(root.getLeftPosition(), 0);
 
-                    this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext(newCode.getInitialFocus());
+                    this.module.editor.executeEdits(initialBoundary, methodCall);
+                    this.module.focus.updateContext(methodCall.getInitialFocus());
 
-                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(newCode);
+                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(methodCall);
                 }
 
                 break;
@@ -679,7 +651,7 @@ export class ActionExecutor {
 
             case EditActionType.DisplayEqualsSuggestion:
                 suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
-                suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
+                // suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
 
                 this.module.menuController.buildSingleLevelMenu(
                     suggestions,
@@ -694,6 +666,8 @@ export class ActionExecutor {
 
             case EditActionType.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
+                    /*
+                    TODO: Make this work with ActionFilter
                     const validInserts = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildAvailableInsertsMenu(
                         validInserts,
@@ -702,7 +676,7 @@ export class ActionExecutor {
                             left: selection.startColumn * this.module.editor.computeCharWidth(),
                             top: selection.startLineNumber * this.module.editor.computeCharHeight(),
                         }
-                    );
+                    );*/
                 } else this.module.menuController.removeMenus();
 
                 break;
@@ -710,8 +684,9 @@ export class ActionExecutor {
             //TODO: Remove later
             case EditActionType.OpenValidInsertMenuSingleLevel:
                 if (!this.module.menuController.isMenuOpen()) {
-                    const suggestions = this.module.getAllValidInsertsList(focusedNode);
-                    this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
+                    //TODO: Make this work with ActionFilter
+                    //const suggestions = this.module.getAllValidInsertsList(focusedNode);
+                    //this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
                 } else this.module.menuController.removeMenus();
 
                 break;
@@ -759,6 +734,26 @@ export class ActionExecutor {
         }
 
         return preventDefaultEvent;
+    }
+
+    insertVariableReference(buttonId: string, providedContext?: Context) {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        // TODO: we can be consistent within the code and just pass the id as part of the data
+        const identifier = document.getElementById(buttonId).innerText;
+        const dataType = this.module.variableController.getVariableTypeNearLine(
+            this.module.focus.getFocusedStatement().scope ??
+                (
+                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+                        .rootNode as Statement | Module
+                ).scope,
+            this.module.editor.monaco.getPosition().lineNumber,
+            identifier
+        );
+
+        const ref = new VariableReferenceExpr(identifier, dataType, buttonId);
+
+        this.insertExpression(context, ref);
     }
 
     private insertExpression(context: Context, code: Expression) {
@@ -839,7 +834,7 @@ export class ActionExecutor {
 
         const curOperand = toLeft ? newCode.getLeftOperand() : newCode.getRightOperand();
         const otherOperand = toLeft ? newCode.getRightOperand() : newCode.getLeftOperand();
-        const insertionType = this.module.tryInsert(curOperand, expr);
+        const insertionType = newCode.typeValidateInsertionIntoHole(expr, curOperand as TypedEmptyExpr);
 
         /**
          * Special cases

@@ -59,29 +59,7 @@ export class ActionFilter {
                 new InsertionRecord(
                     varRecord[1],
                     (() => {
-                        this.module.executer.execute(
-                            this.module.eventRouter.routeToolboxEvents(
-                                new EditCodeAction(
-                                    varStmt.getIdentifier(),
-                                    varStmt.buttonId,
-                                    () =>
-                                        new VariableReferenceExpr(
-                                            varStmt.getIdentifier(),
-                                            this.module.variableController.getVariableTypeNearLine(
-                                                context.lineStatement.getParentStatement().scope,
-                                                context.lineStatement.lineNumber,
-                                                varStmt.getIdentifier(),
-                                                false
-                                            ),
-                                            varStmt.buttonId
-                                        ),
-                                    InsertActionType.InsertVariableReference,
-                                    { buttonId: varStmt.buttonId }
-                                ),
-                                context
-                            ),
-                            context
-                        );
+                        this.module.executer.insertVariableReference(varStmt.buttonId, context);
                     }).bind(this),
                     varStmt.buttonId
                 )
@@ -125,7 +103,6 @@ export class EditCodeAction extends UserAction {
         this.getCodeFunction = getCodeFunction;
         this.insertActionType = insertActionType;
         this.insertData = insertData;
-        this.getCodeFunction = getCodeFunction;
     }
 
     getCode() {
@@ -150,7 +127,7 @@ export class EditCodeAction extends UserAction {
     }
 
     performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {
-        // executor.execute(eventRouter.routeToolboxEvents(this.insertActionType, context, this.insertData), context);
+        executor.execute(eventRouter.routeToolboxEvents(this, context), context);
     }
 }
 
