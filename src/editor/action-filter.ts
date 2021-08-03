@@ -100,6 +100,26 @@ export class ActionFilter {
         return this.convertInsertionMapToList(this.validateVariableInsertions());
     }
 
+    getValidInsertsFromSet(optionNames: string[]): InsertionRecord[] {
+        const constructMap = this.validateInsertions();
+        const varMap = this.validateVariableInsertions();
+        const editsMap = this.validateEdits();
+
+        const inserts: InsertionRecord[] = [];
+
+        for (const option of optionNames) {
+            if (constructMap.get(option) && constructMap.get(option).insertionType !== InsertionType.Invalid) {
+                inserts.push(constructMap.get(option));
+            } else if (varMap.get(option) && varMap.get(option).insertionType !== InsertionType.Invalid) {
+                inserts.push(varMap.get(option));
+            } else if (editsMap.get(option) && editsMap.get(option).insertionType !== InsertionType.Invalid) {
+                inserts.push(editsMap.get(option));
+            }
+        }
+
+        return inserts;
+    }
+
     private convertInsertionMapToList(insertionMap: Map<string, InsertionRecord>): InsertionRecord[] {
         const inserts = [];
         for (const [key, value] of insertionMap.entries()) {
