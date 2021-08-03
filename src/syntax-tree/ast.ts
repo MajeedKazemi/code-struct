@@ -1470,13 +1470,11 @@ export class FunctionCallStmt extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return (
-            this.isStatement()
-                ? validator.onEmptyLine(providedContext)
-                : validator.atEmptyExpressionHole(providedContext)
-        )
-            ? InsertionType.Valid
-            : InsertionType.Invalid;
+        if (this.isStatement()) {
+            return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        }
+
+        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {

@@ -2,8 +2,16 @@ import { Context } from "./focus";
 import { Validator } from "./validator";
 import { Module } from "../syntax-tree/module";
 import { ActionExecutor } from "./action-executor";
-import { InsertionType } from "../syntax-tree/consts";
-import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt, VariableReferenceExpr } from "../syntax-tree/ast";
+import { DataType, InsertionType } from "../syntax-tree/consts";
+import {
+    EmptyLineStmt,
+    Expression,
+    FunctionCallStmt,
+    Statement,
+    TypedEmptyExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+} from "../syntax-tree/ast";
 import { Actions, InsertActionType } from "./consts";
 import { Reference } from "../syntax-tree/scope";
 import { EventRouter } from "./event-router";
@@ -39,7 +47,7 @@ export class ActionFilter {
     }
 
     validateEdits(): Map<string, InsertionRecord> {
-        console.warn("validateEdits() is not implemented.")
+        console.warn("validateEdits() is not implemented.");
 
         return new Map<string, InsertionRecord>();
     }
@@ -71,31 +79,31 @@ export class ActionFilter {
         return validOptionMap;
     }
 
-    getAllValidInsertsList(): InsertionRecord[]{
-        const inserts = []
-        inserts.push(...this.getValidConstructInsertions())
-        inserts.push(...this.getValidEditInsertions())
-        inserts.push(...this.getValidVariableInsertions())
+    getAllValidInsertsList(): InsertionRecord[] {
+        const inserts = [];
+        inserts.push(...this.getValidConstructInsertions());
+        inserts.push(...this.getValidEditInsertions());
+        inserts.push(...this.getValidVariableInsertions());
 
         return inserts;
     }
 
-    getValidVariableInsertions(): InsertionRecord[]{
-        return this.convertInsertionMapToList(this.validateInsertions())
+    getValidVariableInsertions(): InsertionRecord[] {
+        return this.convertInsertionMapToList(this.validateInsertions());
     }
 
-    getValidEditInsertions(): InsertionRecord[]{
-        return this.convertInsertionMapToList(this.validateEdits())
+    getValidEditInsertions(): InsertionRecord[] {
+        return this.convertInsertionMapToList(this.validateEdits());
     }
 
-    getValidConstructInsertions(): InsertionRecord[]{
-        return this.convertInsertionMapToList(this.validateVariableInsertions())
+    getValidConstructInsertions(): InsertionRecord[] {
+        return this.convertInsertionMapToList(this.validateVariableInsertions());
     }
 
     private convertInsertionMapToList(insertionMap: Map<string, InsertionRecord>): InsertionRecord[] {
-        const inserts = []
-        for(const [key, value] of insertionMap.entries()){
-            inserts.push(value)
+        const inserts = [];
+        for (const [key, value] of insertionMap.entries()) {
+            inserts.push(value);
         }
 
         return inserts;
@@ -150,6 +158,9 @@ export class EditCodeAction extends UserAction {
         } else if (astInsertionType !== InsertionType.Invalid && code instanceof Expression) {
             if (context.selected) {
                 return context.token.rootNode.typeValidateInsertionIntoHole(code, context.token as TypedEmptyExpr); //NOTE: The only expression that can be inserted outside of an empty hole is a variable reference and that will be changed in the future with the introduction of a separate code construct for that
+            } else if (context.lineStatement instanceof EmptyLineStmt && code.returns === DataType.Void) {
+                //functions that return void like print() need to be allowed on empty lines
+                return astInsertionType;
             } else {
                 return InsertionType.Invalid;
             }
