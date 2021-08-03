@@ -196,8 +196,11 @@ export class Util {
     typeConversionMap: Map<DataType, Array<DataType>>;
     module: Module;
 
-    private constructor(module: Module) {
-        this.module = module;
+    private constructor(module?: Module) {
+        if(module){
+            this.module = module;
+        }
+
         const context = this.module.focus.getContext();
 
         //these cannot exist on their own, need to wrap them in a class. Otherwise they does not see the imports for the construct classes.
@@ -884,7 +887,7 @@ export class Util {
         ]);
     }
 
-    static getInstance(module: Module) {
+    static getInstance(module?: Module) {
         if (!Util.instance) Util.instance = new Util(module);
 
         return Util.instance;

@@ -155,34 +155,6 @@ export class VariableController {
         }
     }
 
-    updateButtonsInsertionType() {
-        const c = this.module.focus.getContext();
-        const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
-        const refInsertionType = Validator.getValidVariableReferences(focusedNode, this);
-
-        for (const ref of refInsertionType) {
-            const button = document.getElementById(((ref[0] as Reference).statement as VarAssignmentStmt).buttonId);
-
-            if (ref[1] === InsertionType.Valid) {
-                button.classList.remove("varButtonDisabled");
-                button.classList.remove(Module.draftModeButtonClass);
-            } else if (ref[1] === InsertionType.Invalid) {
-                button.classList.add("varButtonDisabled");
-                button.classList.remove(Module.draftModeButtonClass);
-            } else if (ref[1] === InsertionType.DraftMode) {
-                button.classList.remove("varButtonDisabled");
-                button.classList.add(Module.draftModeButtonClass);
-            }
-        }
-
-        if (refInsertionType.length === 0) {
-            this.variableButtons.forEach((button) => {
-                button.classList.add("varButtonDisabled");
-                button.classList.remove(Module.draftModeButtonClass);
-            });
-        }
-    }
-
     getAllAssignmentsToVar(varId: string, module: Module) {
         const Q: CodeConstruct[] = [];
         const result: VarAssignmentStmt[] = [];

@@ -38,8 +38,10 @@ export class ActionFilter {
         return validOptionMap;
     }
 
-    validateEdits() {
-        throw new Error("Not Implemented");
+    validateEdits(): Map<string, InsertionRecord> {
+        console.warn("validateEdits() is not implemented.")
+
+        return new Map<string, InsertionRecord>();
     }
 
     validateVariableInsertions(): Map<string, InsertionRecord> {
@@ -67,6 +69,36 @@ export class ActionFilter {
         }
 
         return validOptionMap;
+    }
+
+    getAllValidInsertsList(): InsertionRecord[]{
+        const inserts = []
+        inserts.push(...this.getValidConstructInsertions())
+        inserts.push(...this.getValidEditInsertions())
+        inserts.push(...this.getValidVariableInsertions())
+
+        return inserts;
+    }
+
+    getValidVariableInsertions(): InsertionRecord[]{
+        return this.convertInsertionMapToList(this.validateInsertions())
+    }
+
+    getValidEditInsertions(): InsertionRecord[]{
+        return this.convertInsertionMapToList(this.validateEdits())
+    }
+
+    getValidConstructInsertions(): InsertionRecord[]{
+        return this.convertInsertionMapToList(this.validateVariableInsertions())
+    }
+
+    private convertInsertionMapToList(insertionMap: Map<string, InsertionRecord>): InsertionRecord[] {
+        const inserts = []
+        for(const [key, value] of insertionMap.entries()){
+            inserts.push(value)
+        }
+
+        return inserts;
     }
 }
 

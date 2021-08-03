@@ -32,14 +32,15 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { ActionFilter, InsertionRecord } from "../editor/action-filter";
-import { addClassToButton, removeClassFromButton } from "../editor/toolbox";
+import { ActionFilter, InsertionRecord, UserAction } from "../editor/action-filter";
+import { addClassToButton, removeClassFromButton, updateButtonsVisualMode } from "../editor/toolbox";
 
 /**
  * The main body of the code which includes an array of statements.
  */
 export class Module {
     static draftModeButtonClass = "draftModeButton";
+    static disabledButtonClass = "disabled";
 
     body = new Array<Statement>();
     focus: Focus;
@@ -98,30 +99,10 @@ export class Module {
         //use methods like above code
         this.focus.subscribeOnNavChangeCallback(
             ((c: Context) => {
-                const focusedNode = c.token && c.selected ? c.token : c.lineStatement;
-                const validInserts = this.getAllValidInsertsList(focusedNode);
+                const inserts = this.actionFilter.getAllValidInsertsList();
 
                 //mark draft mode buttons
-                this.updateDraftModeToolboxButtons(focusedNode, validInserts);
-                this.variableController.updateButtonsInsertionType();
-
-                //disable/enable toolbox construct buttons based on context
-                Object.keys(ConstructKeys).forEach((construct) => {
-                    if (constructToToolboxButton.has(ConstructKeys[construct])) {
-                        const button = document.getElementById(
-                            constructToToolboxButton.get(ConstructKeys[construct])
-                        ) as HTMLButtonElement;
-
-                        if (validInserts.indexOf(ConstructKeys[construct]) == -1) {
-                            button.disabled = true;
-                            button.classList.add("disabled");
-                            button.classList.remove(Module.draftModeButtonClass);
-                        } else {
-                            button.disabled = false;
-                            button.classList.remove("disabled");
-                        }
-                    }
-                });
+                updateButtonsVisualMode(inserts);
             }).bind(this)
         );
 
@@ -146,6 +127,8 @@ export class Module {
 
         this.menuController = MenuController.getInstance();
         this.menuController.setInstance(this, this.editor);
+
+        Util.getInstance(this);
     }
 
     recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
@@ -533,40 +516,6 @@ export class Module {
     }
 
     /**
-     * Visually mark toolbox buttons of constructs the insertion of which into insertInto will trigger draft mode.
-     *
-     * @param insertInto construct to validate insertion against
-     * @param constructs list of possible insertions
-     */
-    updateDraftModeToolboxButtons(insertInto: CodeConstruct, constructs: Array<ConstructKeys>) {
-        const constructInsertionsMap = this.actionFilter.validateInsertions();
-        const varRefInsertionsMap = this.actionFilter.validateVariableInsertions();
-
-        const constructInsertions = [];
-        for (const [key, value] of constructInsertionsMap.entries()) {
-            constructInsertions.push(value);
-        }
-
-        const varRefInsertions = [];
-        for (const [key, value] of varRefInsertionsMap.entries()) {
-            varRefInsertions.push(value);
-        }
-
-        this.updateButtonsVisualMode(constructInsertions);
-        this.updateButtonsVisualMode(varRefInsertions);
-    }
-
-    private updateButtonsVisualMode(insertionRecords: InsertionRecord[]) {
-        for (const insertionRecord of insertionRecords) {
-            if (insertionRecord.insertionType === InsertionType.DraftMode) {
-                addClassToButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-            } else {
-                removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-            }
-        }
-    }
-
-    /**
      * Produce a map of Util.ConstructKeys to boolean stating whether a given construct is available for insertion
      * or a draft mode insertion into focusedNode.
      *
@@ -590,36 +539,6 @@ export class Module {
             console.error("Unable to get valid inserts map for " + focusedNode + "\n\n" + e);
         } finally {
             return validInserts;
-        }
-    }
-
-    /**
-     * Produce a list of all code constructs that can be inserted into focusedNode or can be inserted by activating draft mode.
-     *
-     * @param focusedNode code construct to test insertions against.
-     * @returns           a list of ConstructKeys.
-     */
-    // NOTE: Replaced by ActionFilter
-    getAllValidInsertsList(focusedNode: CodeConstruct): Array<ConstructKeys> {
-        const validInsertsList = [];
-
-        try {
-            Object.keys(ConstructKeys).forEach((key) => {
-                if (
-                    this.tryInsert(
-                        focusedNode,
-                        Util.getInstance(this).dummyToolboxConstructs.get(ConstructKeys[key])
-                    ) !== InsertionType.Invalid
-                ) {
-                    validInsertsList.push(ConstructKeys[key]);
-                }
-            });
-        } catch (e) {
-            console.error("Unable to get valid inserts list for:");
-            console.error(focusedNode);
-            console.error(e);
-        } finally {
-            return validInsertsList;
         }
     }
 

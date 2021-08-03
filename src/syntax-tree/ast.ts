@@ -530,7 +530,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
             const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
 
             let canConvertToParentType = hasMatch(
-                Util.getInstance(null).typeConversionMap.get(replaceWith.returns),
+                Util.getInstance().typeConversionMap.get(replaceWith.returns),
                 typesOfParentHole
             );
 
@@ -2222,7 +2222,7 @@ export class TypedEmptyExpr extends Token {
 
     canReplaceWithConstruct(replaceWith: Expression): InsertionType {
         //check if the type of replaceWith can be converted into any of the hole's types
-        if (hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), this.type)) {
+        if (hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), this.type)) {
             return InsertionType.DraftMode;
         }
 
