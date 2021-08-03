@@ -2149,7 +2149,7 @@ export class ListLiteralExpression extends Expression {
     }
 }
 
-export class ListCommaDummy extends Expression {
+export class ListComma extends Expression {
     constructor() {
         super(DataType.Void);
     }
