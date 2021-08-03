@@ -545,7 +545,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 return InsertionType.Valid;
             } else if (
                 replaceWith.returns !== this.returns &&
-                hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), [this.returns])
+                hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns])
             ) {
                 return InsertionType.DraftMode;
             } else {
@@ -1724,9 +1724,13 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atEmptyExpressionHole(providedContext) ||
-            validator.atLeftOfExpression(providedContext) ||
-            validator.atRightOfExpression(providedContext)
+        return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
+            (validator.atLeftOfExpression(providedContext) &&
+                getAllowedBinaryOperators(providedContext?.expressionToRight?.returns).some(
+                    (x) => x === this.operator
+                )) ||
+            (validator.atRightOfExpression(providedContext) &&
+                getAllowedBinaryOperators(providedContext?.expressionToLeft?.returns).some((x) => x === this.operator))
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
@@ -2006,8 +2010,6 @@ export class EditableTextTkn extends Token implements TextEditable {
 
 export class LiteralValExpr extends Expression {
     addableType = AddableType.Expression;
-    allowedBinOps = new Array<BinaryOperator>();
-    allowedBoolOps = new Array<BinaryOperator>();
 
     constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
@@ -2025,8 +2027,6 @@ export class LiteralValExpr extends Expression {
                 );
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
 
-                this.allowedBinOps.push(BinaryOperator.Add);
-
                 break;
             }
 
@@ -2040,19 +2040,11 @@ export class LiteralValExpr extends Expression {
                     )
                 );
 
-                this.allowedBinOps.push(BinaryOperator.Add);
-                this.allowedBinOps.push(BinaryOperator.Subtract);
-                this.allowedBinOps.push(BinaryOperator.Multiply);
-                this.allowedBinOps.push(BinaryOperator.Divide);
-
                 break;
             }
 
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTkn(value, this, this.tokens.length));
-
-                this.allowedBoolOps.push(BinaryOperator.And);
-                this.allowedBoolOps.push(BinaryOperator.Or);
 
                 break;
             }
@@ -2268,4 +2260,44 @@ export class KeywordTkn extends Token {
     getSelection(): Selection {
         return this.rootNode.getSelection();
     }
+}
+
+function getAllowedBinaryOperators(type: DataType): Array<BinaryOperator> {
+    const allowedBinOps = [BinaryOperator.Equal, BinaryOperator.NotEqual];
+
+    switch (type) {
+        case DataType.String: {
+            allowedBinOps.push(BinaryOperator.Add);
+
+            allowedBinOps.push(BinaryOperator.GreaterThan);
+            allowedBinOps.push(BinaryOperator.GreaterThanEqual);
+            allowedBinOps.push(BinaryOperator.LessThan);
+            allowedBinOps.push(BinaryOperator.LessThanEqual);
+
+            break;
+        }
+
+        case DataType.Number: {
+            allowedBinOps.push(BinaryOperator.Add);
+            allowedBinOps.push(BinaryOperator.Subtract);
+            allowedBinOps.push(BinaryOperator.Multiply);
+            allowedBinOps.push(BinaryOperator.Divide);
+
+            allowedBinOps.push(BinaryOperator.GreaterThan);
+            allowedBinOps.push(BinaryOperator.GreaterThanEqual);
+            allowedBinOps.push(BinaryOperator.LessThan);
+            allowedBinOps.push(BinaryOperator.LessThanEqual);
+
+            break;
+        }
+
+        case DataType.Boolean: {
+            allowedBinOps.push(BinaryOperator.And);
+            allowedBinOps.push(BinaryOperator.Or);
+
+            break;
+        }
+    }
+
+    return allowedBinOps;
 }

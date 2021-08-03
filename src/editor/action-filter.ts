@@ -4,6 +4,7 @@ import { Module } from "../syntax-tree/module";
 import { ActionExecutor } from "./action-executor";
 import { DataType, InsertionType } from "../syntax-tree/consts";
 import {
+    BinaryOperatorExpr,
     EmptyLineStmt,
     Expression,
     FunctionCallStmt,
@@ -178,8 +179,7 @@ export class EditCodeAction extends UserAction {
         } else if (astInsertionType !== InsertionType.Invalid && code instanceof Expression) {
             if (context.selected) {
                 return context.token.rootNode.typeValidateInsertionIntoHole(code, context.token as TypedEmptyExpr); //NOTE: The only expression that can be inserted outside of an empty hole is a variable reference and that will be changed in the future with the introduction of a separate code construct for that
-            } else if (context.lineStatement instanceof EmptyLineStmt && code.returns === DataType.Void) {
-                //functions that return void like print() need to be allowed on empty lines
+            } else if (!context.selected) {
                 return astInsertionType;
             } else {
                 return InsertionType.Invalid;
