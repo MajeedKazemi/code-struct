@@ -32,6 +32,8 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
+import { ActionFilter, InsertionRecord } from "../editor/action-filter";
+import { addClassToButton, removeClassFromButton } from "../editor/toolbox";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -55,6 +57,7 @@ export class Module {
     draftExpressions: DraftRecord[];
 
     variableController: VariableController;
+    actionFilter: ActionFilter;
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
@@ -63,6 +66,7 @@ export class Module {
         this.executer = new ActionExecutor(this);
         this.typeSystem = new TypeChecker(this);
         this.variableController = new VariableController(this);
+        this.actionFilter = new ActionFilter(this);
 
         this.draftExpressions = [];
 
@@ -70,10 +74,10 @@ export class Module {
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
-            const statmentScope = statementAtLine.scope ?? (statementAtLine.rootNode as Statement | Module).scope;
+            const statementScope = statementAtLine.scope ?? (statementAtLine.rootNode as Statement | Module).scope;
 
             this.variableController.hideUnavailableVarsInToolbox(
-                statmentScope,
+                statementScope,
                 this.editor.monaco.getPosition().lineNumber
             );
 
@@ -535,14 +539,29 @@ export class Module {
      * @param constructs list of possible insertions
      */
     updateDraftModeToolboxButtons(insertInto: CodeConstruct, constructs: Array<ConstructKeys>) {
-        const dummyConstructs = Util.getInstance(this).dummyToolboxConstructs;
-        for (const construct of constructs) {
-            const constructButton = document.getElementById(constructToToolboxButton.get(construct));
+        const constructInsertionsMap = this.actionFilter.validateInsertions();
+        const varRefInsertionsMap = this.actionFilter.validateVariableInsertions();
 
-            if (this.tryInsert(insertInto, dummyConstructs.get(construct)) === InsertionType.DraftMode) {
-                constructButton.classList.add(Module.draftModeButtonClass);
+        const constructInsertions = [];
+        for (const [key, value] of constructInsertionsMap.entries()) {
+            constructInsertions.push(value);
+        }
+
+        const varRefInsertions = [];
+        for (const [key, value] of varRefInsertionsMap.entries()) {
+            varRefInsertions.push(value);
+        }
+
+        this.updateButtonsVisualMode(constructInsertions);
+        this.updateButtonsVisualMode(varRefInsertions);
+    }
+
+    private updateButtonsVisualMode(insertionRecords: InsertionRecord[]) {
+        for (const insertionRecord of insertionRecords) {
+            if (insertionRecord.insertionType === InsertionType.DraftMode) {
+                addClassToButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
             } else {
-                constructButton.classList.remove(Module.draftModeButtonClass);
+                removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
             }
         }
     }
@@ -554,6 +573,7 @@ export class Module {
      * @param focusedNode code construct that is used to test insertions against.
      * @returns           A mapping from code construct to whether it can be inserted at the given focusedNode.
      */
+    //NOTE: Replaced by ActionFilter
     getAllValidInsertsMap(focusedNode: CodeConstruct): Map<ConstructKeys, boolean> {
         const validInserts = new Map<ConstructKeys, boolean>();
 
@@ -579,6 +599,7 @@ export class Module {
      * @param focusedNode code construct to test insertions against.
      * @returns           a list of ConstructKeys.
      */
+    // NOTE: Replaced by ActionFilter
     getAllValidInsertsList(focusedNode: CodeConstruct): Array<ConstructKeys> {
         const validInsertsList = [];
 
@@ -609,6 +630,7 @@ export class Module {
      * @param insertSet   a list of ConstructKeys representing code constructs to filter.
      * @returns           a list of ConstructKeys.
      */
+    //TODO: Replaced by ActionFilter
     getValidInsertsFromSet(focusedNode: CodeConstruct, insertSet: Array<ConstructKeys>) {
         const validInserts = this.getAllValidInsertsMap(focusedNode);
 
