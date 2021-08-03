@@ -323,100 +323,99 @@ export class EventRouter {
         switch (e.insertActionType) {
             case InsertActionType.InsertNewVariableStmt: {
                 return new EditAction(EditActionType.InsertVarAssignStatement, {
-                    statement: new ast.VarAssignmentStmt(),
+                    statement: e.getCode(),
                 });
             }
 
-            case InsertActionType.InsertVariableReference: {
-                return new EditAction(EditActionType.InsertVariableRef, {
-                    buttonId: e.insertData.buttonId,
-                });
-            }
+            case InsertActionType.InsertElifStmt: {
+                const canInsertAtCurIndent = this.module.validator.canInsertElifStmtAtCurIndent(context);
+                const canInsertAtPrevIndent = this.module.validator.canInsertElifStmtAtPrevIndent(context);
 
-            case InsertActionType.InsertListIndexAssignment: {
-                if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.ListElementAssignment(),
+                // prioritize inserting at current indentation over prev one
+                if (canInsertAtCurIndent || canInsertAtPrevIndent) {
+                    return new EditAction(EditActionType.InsertElseStatement, {
+                        hasCondition: true,
+                        outside: canInsertAtCurIndent,
                     });
                 }
 
                 break;
             }
 
+            case InsertActionType.InsertElseStmt: {
+                const canInsertAtCurIndent = this.module.validator.canInsertElseStmtAtCurIndent(context);
+                const canInsertAtPrevIndent = this.module.validator.canInsertElseStmtAtPrevIndent(context);
+
+                // prioritize inserting at current indentation over prev one
+                if (canInsertAtCurIndent || canInsertAtPrevIndent) {
+                    return new EditAction(EditActionType.InsertElseStatement, {
+                        hasCondition: false,
+                        outside: canInsertAtCurIndent,
+                    });
+                }
+
+                break;
+            }
+
+            case InsertActionType.InsertWhileStmt:
+            case InsertActionType.InsertIfStmt:
+            case InsertActionType.InsertForStmt:
+            case InsertActionType.InsertListIndexAssignment:
             case InsertActionType.InsertPrintFunctionStmt: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.FunctionCallStmt(
-                            "print",
-                            [new ast.Argument([DataType.Any], "item", false)],
-                            DataType.Void
-                        ),
+                        statement: e.getCode(),
                     });
                 }
 
                 break;
             }
 
+            case InsertActionType.InsertRangeExpr:
             case InsertActionType.InsertRandintExpr: {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.FunctionCallStmt(
-                            "randint",
-                            [
-                                new ast.Argument([DataType.Number], "start", false),
-                                new ast.Argument([DataType.Number], "end", false),
-                            ],
-                            DataType.Number
-                        ),
+                        expression: e.getCode(),
                     });
                 }
 
                 break;
             }
 
-            case InsertActionType.InsertRangeExpr: {
-                if (!this.module.validator.isAboveElseStatement()) {
+            case InsertActionType.InsertListIndexAccessor: {
+                if (this.module.validator.atRightOfExpression(context)) {
+                    // TODO: should also check the type to be a list
+
                     return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.FunctionCallStmt(
-                            "range",
-                            [
-                                new ast.Argument([DataType.Number], "start", false),
-                                new ast.Argument([DataType.Number], "end", false),
-                            ],
-                            DataType.NumberList
-                        ),
+                        expression: new ast.MemberCallStmt(DataType.Any),
                     });
+                }
+
+                break;
+            }
+
+            case InsertActionType.InsertListAppendMethod:
+            case InsertActionType.InsertStringSplitMethod:
+            case InsertActionType.InsertStringJoinMethod:
+            case InsertActionType.InsertStringReplaceMethod:
+            case InsertActionType.InsertStringFindMethod: {
+                if (this.module.validator.atRightOfExpression(context)) {
+                    // TODO: should also check the type to be correct
+
+                    return new EditAction(EditActionType.InsertDotMethod, { method: e.getCode() });
                 }
 
                 break;
             }
 
             case InsertActionType.InsertLenExpr: {
-                const expression = new ast.FunctionCallStmt(
-                    "len",
-                    [
-                        new ast.Argument(
-                            [
-                                DataType.AnyList,
-                                DataType.StringList,
-                                DataType.BooleanList,
-                                DataType.NumberList,
-                                DataType.String,
-                            ],
-                            "list",
-                            false
-                        ),
-                    ],
-                    DataType.Number
-                );
-
                 if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertExpression, {
-                        expression,
+                        expression: e.getCode(),
                     });
                 } else if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.WrapExpressionWithItem, {
-                        expression,
+                        expression: e.getCode(),
                     });
                 }
 
@@ -467,66 +466,6 @@ export class EventRouter {
                 break;
             }
 
-            case InsertActionType.InsertWhileStmt: {
-                if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.WhileStatement(),
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertIfStmt: {
-                if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.IfStatement(),
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertElifStmt: {
-                const canInsertAtCurIndent = this.module.validator.canInsertElifStmtAtCurIndent(context);
-                const canInsertAtPrevIndent = this.module.validator.canInsertElifStmtAtPrevIndent(context);
-
-                // prioritize inserting at current indentation over prev one
-                if (canInsertAtCurIndent || canInsertAtPrevIndent) {
-                    return new EditAction(EditActionType.InsertElseStatement, {
-                        hasCondition: true,
-                        outside: canInsertAtCurIndent,
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertElseStmt: {
-                const canInsertAtCurIndent = this.module.validator.canInsertElseStmtAtCurIndent(context);
-                const canInsertAtPrevIndent = this.module.validator.canInsertElseStmtAtPrevIndent(context);
-
-                // prioritize inserting at current indentation over prev one
-                if (canInsertAtCurIndent || canInsertAtPrevIndent) {
-                    return new EditAction(EditActionType.InsertElseStatement, {
-                        hasCondition: false,
-                        outside: canInsertAtCurIndent,
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertForStmt: {
-                if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertStatement, {
-                        statement: new ast.ForStatement(),
-                    });
-                }
-
-                break;
-            }
-
             case InsertActionType.InsertListLiteral: {
                 if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.WrapExpressionWithItem, {
@@ -540,17 +479,11 @@ export class EventRouter {
             }
 
             case InsertActionType.InsertCastStrExpr: {
-                const expression = new ast.FunctionCallStmt(
-                    "str",
-                    [new ast.Argument([DataType.Any], "value", false)],
-                    DataType.String
-                );
-
                 if (this.module.validator.atLeftOfExpression(context)) {
-                    return new EditAction(EditActionType.WrapExpressionWithItem, { expression });
+                    return new EditAction(EditActionType.WrapExpressionWithItem, { expression: e.getCode() });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertExpression, {
-                        expression,
+                        expression: e.getCode(),
                     });
                 }
 
@@ -572,102 +505,6 @@ export class EventRouter {
 
                 break;
             }
-
-            case InsertActionType.InsertListIndexAccessor: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type to be a list
-
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MemberCallStmt(DataType.Any),
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertListAppendMethod: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type
-
-                    return new EditAction(EditActionType.InsertDotMethod, {
-                        functionName: "append",
-                        returns: DataType.Void,
-                        args: [new ast.Argument([DataType.Any], "object", false)],
-                        exprType: DataType.AnyList,
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertStringSplitMethod: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type
-
-                    return new EditAction(EditActionType.InsertDotMethod, {
-                        functionName: "split",
-                        returns: DataType.StringList,
-                        args: [new ast.Argument([DataType.String], "sep", false)],
-                        exprType: DataType.String,
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertStringJoinMethod: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type
-
-                    return new EditAction(EditActionType.InsertDotMethod, {
-                        functionName: "join",
-                        returns: DataType.String,
-                        args: [
-                            new ast.Argument(
-                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
-                                "items",
-                                false
-                            ),
-                        ],
-                        exprType: DataType.String,
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertStringReplaceMethod: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type
-
-                    return new EditAction(EditActionType.InsertDotMethod, {
-                        functionName: "replace",
-                        returns: DataType.String,
-                        args: [
-                            new ast.Argument([DataType.String], "old", false),
-                            new ast.Argument([DataType.String], "new", false),
-                        ],
-                        exprType: DataType.String,
-                    });
-                }
-
-                break;
-            }
-
-            case InsertActionType.InsertStringFindMethod: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type
-
-                    return new EditAction(EditActionType.InsertDotMethod, {
-                        functionName: "find",
-                        returns: DataType.Number,
-                        args: [new ast.Argument([DataType.String], "item", false)],
-                        exprType: DataType.String,
-                    });
-                }
-
-                break;
-            }
         }
 
         return new EditAction(EditActionType.None);
@@ -679,13 +516,7 @@ export class EventRouter {
         if ((document.getElementById(id) as HTMLButtonElement).disabled) return;
 
         if (this.module.variableController.isVariableReferenceButton(id)) {
-            this.module.executer.execute(
-                this.module.eventRouter.routeToolboxEvents(
-                    new EditCodeAction(id, "", null, InsertActionType.InsertVariableReference, { buttonId: id }),
-                    context
-                ),
-                context
-            );
+            this.module.executer.insertVariableReference(id, context);
         } else {
             const action = Actions.instance().actionsMap.get(id);
 

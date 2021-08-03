@@ -9,7 +9,7 @@ import {
     ForStatement,
     FunctionCallStmt,
     IfStatement,
-    ListCommaDummy,
+    ListComma,
     ListElementAssignment,
     ListLiteralExpression,
     LiteralValExpr,
@@ -151,7 +151,6 @@ export enum ConstructName {
 
 export enum InsertActionType {
     InsertNewVariableStmt,
-    InsertVariableReference,
 
     InsertWhileStmt,
     InsertIfStmt,
@@ -191,73 +190,82 @@ export class Actions {
             new EditCodeAction(
                 "var = ---",
                 "add-var-btn",
-                new VarAssignmentStmt(),
+                () => new VarAssignmentStmt(),
                 InsertActionType.InsertNewVariableStmt
             ),
 
             new EditCodeAction(
                 "---[---] = ---",
                 "add-list-elem-assign-btn",
-                new ListElementAssignment(),
+                () => new ListElementAssignment(),
                 InsertActionType.InsertListIndexAssignment
             ),
 
             new EditCodeAction(
                 "print()",
                 "add-print-btn",
-                new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void),
+                () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void),
                 InsertActionType.InsertPrintFunctionStmt
             ),
 
             new EditCodeAction(
                 "randint(---, ---)",
                 "add-randint-btn",
-                new FunctionCallStmt(
-                    "randint",
-                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
-                    DataType.Number
-                ),
+                () =>
+                    new FunctionCallStmt(
+                        "randint",
+                        [
+                            new Argument([DataType.Number], "start", false),
+                            new Argument([DataType.Number], "end", false),
+                        ],
+                        DataType.Number
+                    ),
                 InsertActionType.InsertRandintExpr
             ),
 
             new EditCodeAction(
                 "range(---)",
                 "add-range-btn",
-                new FunctionCallStmt(
-                    "range",
-                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
-                    DataType.NumberList
-                ),
+                () =>
+                    new FunctionCallStmt(
+                        "range",
+                        [
+                            new Argument([DataType.Number], "start", false),
+                            new Argument([DataType.Number], "end", false),
+                        ],
+                        DataType.NumberList
+                    ),
                 InsertActionType.InsertRangeExpr
             ),
 
             new EditCodeAction(
                 "len(---)",
                 "add-len-btn",
-                new FunctionCallStmt(
-                    "len",
-                    [
-                        new Argument(
-                            [
-                                DataType.AnyList,
-                                DataType.StringList,
-                                DataType.BooleanList,
-                                DataType.NumberList,
-                                DataType.String,
-                            ],
-                            "list",
-                            false
-                        ),
-                    ],
-                    DataType.Number
-                ),
+                () =>
+                    new FunctionCallStmt(
+                        "len",
+                        [
+                            new Argument(
+                                [
+                                    DataType.AnyList,
+                                    DataType.StringList,
+                                    DataType.BooleanList,
+                                    DataType.NumberList,
+                                    DataType.String,
+                                ],
+                                "list",
+                                false
+                            ),
+                        ],
+                        DataType.Number
+                    ),
                 InsertActionType.InsertLenExpr
             ),
 
             new EditCodeAction(
                 '""',
                 "add-str-btn",
-                new LiteralValExpr(DataType.String, ""),
+                () => new LiteralValExpr(DataType.String, ""),
                 InsertActionType.InsertLiteral,
                 {
                     literalType: DataType.String,
@@ -267,7 +275,7 @@ export class Actions {
             new EditCodeAction(
                 "0",
                 "add-num-btn",
-                new LiteralValExpr(DataType.Number, "0"),
+                () => new LiteralValExpr(DataType.Number, "0"),
                 InsertActionType.InsertLiteral,
                 {
                     literalType: DataType.Number,
@@ -278,7 +286,7 @@ export class Actions {
             new EditCodeAction(
                 "True",
                 "add-true-btn",
-                new LiteralValExpr(DataType.Boolean, "True"),
+                () => new LiteralValExpr(DataType.Boolean, "True"),
                 InsertActionType.InsertLiteral,
                 {
                     literalType: DataType.Boolean,
@@ -289,7 +297,7 @@ export class Actions {
             new EditCodeAction(
                 "False",
                 "add-false-btn",
-                new LiteralValExpr(DataType.Boolean, "False"),
+                () => new LiteralValExpr(DataType.Boolean, "False"),
                 InsertActionType.InsertLiteral,
                 {
                     literalType: DataType.Boolean,
@@ -300,7 +308,7 @@ export class Actions {
             new EditCodeAction(
                 "--- + ---",
                 "add-bin-add-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number), //NOTE: For + this will be reassigned in the constructor
+                () => new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number), //NOTE: For + this will be reassigned in the constructor
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.Add,
@@ -310,7 +318,7 @@ export class Actions {
             new EditCodeAction(
                 "--- - ---",
                 "add-bin-sub-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number),
+                () => new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.Subtract,
@@ -320,7 +328,7 @@ export class Actions {
             new EditCodeAction(
                 "--- * ---",
                 "add-bin-mul-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Number),
+                () => new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Number),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.Multiply,
@@ -330,7 +338,7 @@ export class Actions {
             new EditCodeAction(
                 "--- / ---",
                 "add-bin-div-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Number),
+                () => new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Number),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.Divide,
@@ -340,7 +348,7 @@ export class Actions {
             new EditCodeAction(
                 "--- and ---",
                 "add-bin-and-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.And,
@@ -350,7 +358,7 @@ export class Actions {
             new EditCodeAction(
                 "--- or ---",
                 "add-bin-or-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.Or,
@@ -360,7 +368,7 @@ export class Actions {
             new EditCodeAction(
                 "--- == ---",
                 "add-comp-eq-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.Equal,
@@ -370,7 +378,7 @@ export class Actions {
             new EditCodeAction(
                 "--- != ---",
                 "add-comp-neq-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.NotEqual,
@@ -380,7 +388,7 @@ export class Actions {
             new EditCodeAction(
                 "--- < ---",
                 "add-comp-lt-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.LessThan,
@@ -390,7 +398,7 @@ export class Actions {
             new EditCodeAction(
                 "--- <= ---",
                 "add-comp-lte-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.LessThanEqual,
@@ -400,7 +408,7 @@ export class Actions {
             new EditCodeAction(
                 "--- > ---",
                 "add-comp-gt-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.GreaterThan,
@@ -410,7 +418,7 @@ export class Actions {
             new EditCodeAction(
                 "--- >= ---",
                 "add-comp-gte-expr-btn",
-                new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
+                () => new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
                 InsertActionType.InsertBinaryExpr,
                 {
                     operator: BinaryOperator.GreaterThanEqual,
@@ -420,7 +428,7 @@ export class Actions {
             new EditCodeAction(
                 "not ---",
                 "add-unary-not-expr-btn",
-                new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean),
+                () => new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean),
                 InsertActionType.InsertUnaryExpr,
                 {
                     operator: UnaryOp.Not,
@@ -430,101 +438,105 @@ export class Actions {
             new EditCodeAction(
                 ".find(---)",
                 "add-find-method-call-btn",
-                new ExprDotMethodStmt(
-                    "find",
-                    [new Argument([DataType.String], "item", false)],
-                    DataType.String,
-                    DataType.String
-                ),
+                () =>
+                    new ExprDotMethodStmt(
+                        "find",
+                        [new Argument([DataType.String], "item", false)],
+                        DataType.String,
+                        DataType.String
+                    ),
                 InsertActionType.InsertStringFindMethod
             ),
 
             new EditCodeAction(
                 "while (---) :",
                 "add-while-expr-btn",
-                new WhileStatement(),
+                () => new WhileStatement(),
                 InsertActionType.InsertWhileStmt
             ),
 
-            new EditCodeAction("if (---) :", "add-if-expr-btn", new IfStatement(), InsertActionType.InsertIfStmt),
+            new EditCodeAction("if (---) :", "add-if-expr-btn", () => new IfStatement(), InsertActionType.InsertIfStmt),
 
             new EditCodeAction(
                 "elif (---) :",
                 "add-elif-expr-btn",
-                new ElseStatement(true),
+                () => new ElseStatement(true),
                 InsertActionType.InsertElifStmt
             ),
 
             new EditCodeAction(
                 "else (---) :",
                 "add-else-expr-btn",
-                new ElseStatement(false),
+                () => new ElseStatement(false),
                 InsertActionType.InsertElseStmt
             ),
 
             new EditCodeAction(
                 "for --- in --- :",
                 "add-for-expr-btn",
-                new ForStatement(),
+                () => new ForStatement(),
                 InsertActionType.InsertForStmt
             ),
 
             new EditCodeAction(
                 "[]",
                 "add-list-literal-btn",
-                new ListLiteralExpression(),
+                () => new ListLiteralExpression(),
                 InsertActionType.InsertListLiteral
             ),
 
-            new EditCodeAction(", ---", "add-list-item-btn", new ListCommaDummy(), InsertActionType.InsertListItem),
+            new EditCodeAction(", ---", "add-list-item-btn", () => new ListComma(), InsertActionType.InsertListItem),
 
             new EditCodeAction(
                 "---[---] = ---",
                 "add-list-index-btn",
-                new MemberCallStmt(DataType.Any),
+                () => new MemberCallStmt(DataType.Any),
                 InsertActionType.InsertListIndexAccessor
             ),
 
             new EditCodeAction(
                 ".append(---)",
                 "add-list-append-stmt-btn",
-                new ExprDotMethodStmt(
-                    "append",
-                    [new Argument([DataType.Any], "object", false)],
-                    DataType.Void,
-                    DataType.AnyList
-                ),
+                () =>
+                    new ExprDotMethodStmt(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
                 InsertActionType.InsertListAppendMethod
             ),
 
             new EditCodeAction(
                 ".replace(---, ---)",
                 "add-replace-method-call-btn",
-                new ExprDotMethodStmt(
-                    "replace",
-                    [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
-                    DataType.String,
-                    DataType.String
-                ),
+                () =>
+                    new ExprDotMethodStmt(
+                        "replace",
+                        [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
+                        DataType.String,
+                        DataType.String
+                    ),
                 InsertActionType.InsertStringReplaceMethod
             ),
 
             new EditCodeAction(
                 ".join(---)",
                 "add-join-method-call-btn",
-                new ExprDotMethodStmt(
-                    "join",
-                    [
-                        new Argument(
-                            [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
-                            "items",
-                            false
-                        ),
-                    ],
-                    DataType.String,
+                () =>
+                    new ExprDotMethodStmt(
+                        "join",
+                        [
+                            new Argument(
+                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                                "items",
+                                false
+                            ),
+                        ],
+                        DataType.String,
 
-                    DataType.String
-                ),
+                        DataType.String
+                    ),
                 InsertActionType.InsertStringJoinMethod,
                 {
                     functionName: "join",
@@ -543,19 +555,20 @@ export class Actions {
             new EditCodeAction(
                 ".split(---)",
                 "add-split-method-call-btn",
-                new ExprDotMethodStmt(
-                    "split",
-                    [new Argument([DataType.String], "sep", false)],
-                    DataType.StringList,
-                    DataType.String
-                ),
+                () =>
+                    new ExprDotMethodStmt(
+                        "split",
+                        [new Argument([DataType.String], "sep", false)],
+                        DataType.StringList,
+                        DataType.String
+                    ),
                 InsertActionType.InsertStringSplitMethod
             ),
 
             new EditCodeAction(
                 "str(---)",
                 "add-cast-str-btn",
-                new FunctionCallStmt("str", [new Argument([DataType.Any], "value", false)], DataType.String),
+                () => new FunctionCallStmt("str", [new Argument([DataType.Any], "value", false)], DataType.String),
                 InsertActionType.InsertCastStrExpr
             )
         );
