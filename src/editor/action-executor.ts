@@ -334,7 +334,7 @@ export class ActionExecutor {
                         cursorPos.lineNumber,
                         selectedText.endColumn
                     );
-                } else if (context.tokenToRight.isTextEditable && editableText == "   ") {
+                } else if (context.tokenToRight?.isTextEditable && editableText == "   ") {
                     editRange = new Range(
                         cursorPos.lineNumber,
                         context.tokenToRight.left,
