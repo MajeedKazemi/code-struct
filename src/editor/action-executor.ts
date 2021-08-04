@@ -306,13 +306,14 @@ export class ActionExecutor {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
                 const token = this.module.focus.getTextEditableItem(context);
+                const editableText = token.getEditableText();
                 let newText = "";
 
-                if (token.getEditableText() == "   ") {
+                if (editableText == "   ") {
                     const curText = "";
                     newText = curText + pressedKey;
                 } else {
-                    const curText = token.getEditableText().split("");
+                    const curText = editableText.split("");
                     curText.splice(
                         cursorPos.column - token.getLeft(),
                         Math.abs(selectedText.startColumn - selectedText.endColumn),
@@ -324,25 +325,32 @@ export class ActionExecutor {
 
                 this.validateIdentifier(context, newText);
 
-                if (token.setEditedText(newText)) {
-                    let editRange = new Range(
+                let editRange: Range;
+
+                if (selectedText.startColumn != selectedText.endColumn) {
+                    editRange = new Range(
+                        cursorPos.lineNumber,
+                        selectedText.startColumn,
+                        cursorPos.lineNumber,
+                        selectedText.endColumn
+                    );
+                } else if (context.tokenToRight.isTextEditable && editableText == "   ") {
+                    editRange = new Range(
+                        cursorPos.lineNumber,
+                        context.tokenToRight.left,
+                        cursorPos.lineNumber,
+                        context.tokenToRight.right
+                    );
+                } else {
+                    editRange = new Range(
                         cursorPos.lineNumber,
                         cursorPos.column,
                         cursorPos.lineNumber,
                         cursorPos.column
                     );
-
-                    if (selectedText.startColumn != selectedText.endColumn) {
-                        editRange = new Range(
-                            cursorPos.lineNumber,
-                            selectedText.startColumn,
-                            cursorPos.lineNumber,
-                            selectedText.endColumn
-                        );
-                    }
-
-                    this.module.editor.executeEdits(editRange, null, pressedKey);
                 }
+
+                if (token.setEditedText(newText)) this.module.editor.executeEdits(editRange, null, pressedKey);
 
                 break;
             }
