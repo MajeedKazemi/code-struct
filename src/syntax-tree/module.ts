@@ -1,6 +1,8 @@
+import { DataType } from "./consts";
 import { rebuildBody } from "./body";
 import { TAB_SPACES } from "./consts";
 import { Hole } from "../editor/hole";
+import { Util } from "../utilities/util";
 import { CallbackType } from "./callback";
 import { Editor } from "../editor/editor";
 import { Reference, Scope } from "./scope";
@@ -11,29 +13,23 @@ import { Validator } from "../editor/validator";
 import { Context, Focus } from "../editor/focus";
 import { EventStack } from "../editor/event-stack";
 import { EventRouter } from "../editor/event-router";
+import { ActionFilter } from "../editor/action-filter";
 import { VariableController } from "./variable-controller";
 import { ActionExecutor } from "../editor/action-executor";
+import { updateButtonsVisualMode } from "../editor/toolbox";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { AddableType, BinaryOperator, DataType, InsertionType } from "./consts";
-import { ConstructKeys, constructToToolboxButton, hasMatch, Util } from "../utilities/util";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import {
-    BinaryOperatorExpr,
     CodeConstruct,
-    ElseStatement,
     EmptyLineStmt,
-    ExprDotMethodStmt,
     Expression,
     ForStatement,
-    IfStatement,
     Statement,
     Token,
     TypedEmptyExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { ActionFilter, InsertionRecord, UserAction } from "../editor/action-filter";
-import { addClassToButton, removeClassFromButton, updateButtonsVisualMode } from "../editor/toolbox";
 
 /**
  * The main body of the code which includes an array of statements.
@@ -347,18 +343,6 @@ export class Module {
         this.notificationSystem.clearAllNotifications();
     }
 
-    addVariableButtonToToolbox(ref: VarAssignmentStmt) {
-        const button = document.createElement("div");
-        button.classList.add("button");
-        button.id = ref.buttonId;
-
-        document.getElementById("variables").appendChild(button);
-
-        button.addEventListener("click", this.getVarRefHandler(ref).bind(this));
-
-        this.variableButtons.push(button);
-    }
-
     getVarRefHandler(ref: VarAssignmentStmt) {
         return function () {
             this.insert(new VariableReferenceExpr(ref.getIdentifier(), ref.dataType, ref.buttonId));
@@ -489,14 +473,6 @@ export class Module {
             root.replace(expr, context.token.indexInRoot);
         }
     }
-
-    ///------------------VALIDATOR BEGIN
-
-    //TODO: How we insert also depends on where we are in relation to the construct: to the left, to the right or within.
-    // > 123 ==> --- > 123      and      123 > ==> 123 > ---      and    --- ==> --- > ---
-    //I don't know if we want this function to return this type of information.
-
-    //TODO: This method will not be part of module in the future, that is why it needs a context param
 
     //Accepts context because this will not be part of Module in the future
     isAbleToInsertComparator(context: Context, insertEquals: boolean = false): boolean {
