@@ -1,9 +1,10 @@
 import { Context } from "./focus";
-import * as monaco from "monaco-editor";
-import { EditActionType } from "./enums";
-import { EditAction } from "./event-router";
+import { EditActionType } from "./consts";
+import { EditAction } from "./data-types";
 import { Module } from "../syntax-tree/module";
+import { Position, Range } from "monaco-editor";
 import { Reference } from "../syntax-tree/scope";
+import { CallbackType } from "../syntax-tree/callback";
 import { ConstructKeys, Util } from "../utilities/util";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
@@ -20,11 +21,11 @@ import {
     Expression,
     Token,
     BinaryOperatorExpr,
+    VariableReferenceExpr,
     ElseStatement,
     EmptyLineStmt,
     ExprDotMethodStmt,
 } from "../syntax-tree/ast";
-import { CallbackType } from "../syntax-tree/callback";
 
 export class ActionExecutor {
     module: Module;
@@ -72,7 +73,7 @@ export class ActionExecutor {
                     toMoveStatements.splice(0, 1)[0];
 
                     if (toMoveStatements.length == 0) newStatement.body.push(new EmptyLineStmt(newStatement, 0));
-                    const providedLeftPos = new monaco.Position(
+                    const providedLeftPos = new Position(
                         context.lineStatement.lineNumber,
                         context.lineStatement.left - TAB_SPACES
                     );
@@ -118,13 +119,20 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertExpression: {
-                this.module.insert(action.data?.expression);
+                this.insertExpression(context, action.data?.expression);
 
                 break;
             }
 
             case EditActionType.InsertStatement: {
-                this.module.insert(action.data?.statement);
+                this.insertStatement(context, action.data?.statement as Statement);
+
+                break;
+            }
+
+            case EditActionType.InsertVarAssignStatement: {
+                //TODO: Might want to change back to use the case above if no new logic is added
+                this.insertStatement(context, action.data?.statement as Statement);
 
                 break;
             }
@@ -184,21 +192,21 @@ export class ActionExecutor {
 
             case EditActionType.DeleteCurLine: {
                 this.module.deleteLine(context.lineStatement);
-                let range: monaco.Range;
+                let range: Range;
 
                 if (action.data?.pressedBackspace) {
                     const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
                     this.module.focus.updateContext({
-                        positionToMove: new monaco.Position(lineAbove.lineNumber, lineAbove.right),
+                        positionToMove: new Position(lineAbove.lineNumber, lineAbove.right),
                     });
-                    range = new monaco.Range(
+                    range = new Range(
                         context.lineStatement.lineNumber,
                         context.lineStatement.left,
                         lineAbove.lineNumber,
                         lineAbove.right
                     );
                 } else {
-                    range = new monaco.Range(
+                    range = new Range(
                         context.lineStatement.lineNumber,
                         context.lineStatement.left,
                         context.lineStatement.lineNumber + 1,
@@ -213,7 +221,7 @@ export class ActionExecutor {
 
             case EditActionType.DeletePrevLine: {
                 const prevLine = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
-                const deleteRange = new monaco.Range(
+                const deleteRange = new Range(
                     prevLine.lineNumber,
                     prevLine.left,
                     prevLine.lineNumber + 1,
@@ -276,7 +284,8 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyLine: {
-                this.module.insertEmptyLine();
+                const newEmptyLine = this.module.insertEmptyLine();
+                this.module.focus.fireOnNavOffCallbacks(context.lineStatement, newEmptyLine);
 
                 break;
             }
@@ -316,7 +325,7 @@ export class ActionExecutor {
                 this.validateIdentifier(context, newText);
 
                 if (token.setEditedText(newText)) {
-                    let editRange = new monaco.Range(
+                    let editRange = new Range(
                         cursorPos.lineNumber,
                         cursorPos.column,
                         cursorPos.lineNumber,
@@ -324,7 +333,7 @@ export class ActionExecutor {
                     );
 
                     if (selectedText.startColumn != selectedText.endColumn) {
-                        editRange = new monaco.Range(
+                        editRange = new Range(
                             cursorPos.lineNumber,
                             selectedText.startColumn,
                             cursorPos.lineNumber,
@@ -397,12 +406,7 @@ export class ActionExecutor {
                         identifier.text = "   ";
                         identifier.isEmpty = true;
                         this.module.editor.executeEdits(
-                            new monaco.Range(
-                                cursorPos.lineNumber,
-                                identifier.left,
-                                cursorPos.lineNumber,
-                                identifier.right
-                            ),
+                            new Range(cursorPos.lineNumber, identifier.left, cursorPos.lineNumber, identifier.right),
                             null,
                             "   "
                         );
@@ -414,7 +418,7 @@ export class ActionExecutor {
                 }
 
                 if (token.setEditedText(newText)) {
-                    let editRange = new monaco.Range(
+                    let editRange = new Range(
                         cursorPos.lineNumber,
                         cursorPos.column,
                         cursorPos.lineNumber,
@@ -422,7 +426,7 @@ export class ActionExecutor {
                     );
 
                     if (selectedText.startColumn != selectedText.endColumn) {
-                        editRange = new monaco.Range(
+                        editRange = new Range(
                             cursorPos.lineNumber,
                             selectedText.startColumn,
                             cursorPos.lineNumber,
@@ -441,29 +445,23 @@ export class ActionExecutor {
                 const initialBoundary = this.getBoundaries(context.expressionToLeft);
                 const root = context.expressionToLeft.rootNode as Statement;
                 const index = context.expressionToLeft.indexInRoot;
+                const methodCall = action.data.method as ExprDotMethodStmt;
 
-                const newCode = new ExprDotMethodStmt(
-                    action.data.functionName,
-                    action.data.args,
-                    action.data.returns,
-                    action.data.exprType
-                );
-
-                const replacementType = context.expressionToLeft.canReplaceWithConstruct(newCode);
+                const replacementType = context.expressionToLeft.canReplaceWithConstruct(methodCall);
 
                 if (replacementType !== InsertionType.Invalid) {
                     this.module.closeConstructDraftRecord(root.tokens[index]);
 
-                    newCode.setExpression(context.expressionToLeft);
-                    newCode.indexInRoot = index;
-                    newCode.rootNode = root;
-                    root.tokens[index] = newCode;
+                    methodCall.setExpression(context.expressionToLeft);
+                    methodCall.indexInRoot = index;
+                    methodCall.rootNode = root;
+                    root.tokens[index] = methodCall;
                     root.rebuild(root.getLeftPosition(), 0);
 
-                    this.module.editor.executeEdits(initialBoundary, newCode);
-                    this.module.focus.updateContext(newCode.getInitialFocus());
+                    this.module.editor.executeEdits(initialBoundary, methodCall);
+                    this.module.focus.updateContext(methodCall.getInitialFocus());
 
-                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(newCode);
+                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(methodCall);
                 }
 
                 break;
@@ -475,7 +473,8 @@ export class ActionExecutor {
                 } else if (action.data.toLeft) {
                     this.replaceWithBinaryOp(action.data.operator, context.expressionToRight, { toRight: true });
                 } else if (action.data.replace) {
-                    this.module.insert(
+                    this.insertExpression(
+                        context,
                         new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
                     );
                 }
@@ -521,7 +520,7 @@ export class ActionExecutor {
                 root.rebuild(root.getLeftPosition(), 0);
                 this.module.editor.executeEdits(initialBoundary, newCode);
                 this.module.focus.updateContext({
-                    positionToMove: new monaco.Position(newCode.lineNumber, newCode.right),
+                    positionToMove: new Position(newCode.lineNumber, newCode.right),
                 });
 
                 if (!isValidRootInsertion) {
@@ -535,7 +534,7 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyList: {
-                this.module.insert(new ListLiteralExpression());
+                this.insertExpression(context, new ListLiteralExpression());
 
                 break;
             }
@@ -615,7 +614,7 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                this.module.insert(new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
+                this.insertExpression(context, new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
 
                 this.module.editor.monaco.focus();
 
@@ -652,7 +651,7 @@ export class ActionExecutor {
 
             case EditActionType.DisplayEqualsSuggestion:
                 suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
-                suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
+                // suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
 
                 this.module.menuController.buildSingleLevelMenu(
                     suggestions,
@@ -667,6 +666,8 @@ export class ActionExecutor {
 
             case EditActionType.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
+                    /*
+                    TODO: Make this work with ActionFilter
                     const validInserts = this.module.getAllValidInsertsList(focusedNode);
                     this.module.menuController.buildAvailableInsertsMenu(
                         validInserts,
@@ -675,7 +676,7 @@ export class ActionExecutor {
                             left: selection.startColumn * this.module.editor.computeCharWidth(),
                             top: selection.startLineNumber * this.module.editor.computeCharHeight(),
                         }
-                    );
+                    );*/
                 } else this.module.menuController.removeMenus();
 
                 break;
@@ -683,8 +684,9 @@ export class ActionExecutor {
             //TODO: Remove later
             case EditActionType.OpenValidInsertMenuSingleLevel:
                 if (!this.module.menuController.isMenuOpen()) {
-                    const suggestions = this.module.getAllValidInsertsList(focusedNode);
-                    this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
+                    //TODO: Make this work with ActionFilter
+                    //const suggestions = this.module.getAllValidInsertsList(focusedNode);
+                    //this.module.menuController.buildSingleLevelConstructCategoryMenu(suggestions);
                 } else this.module.menuController.removeMenus();
 
                 break;
@@ -734,6 +736,90 @@ export class ActionExecutor {
         return preventDefaultEvent;
     }
 
+    insertVariableReference(buttonId: string, providedContext?: Context) {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        // TODO: we can be consistent within the code and just pass the id as part of the data
+        const identifier = document.getElementById(buttonId).innerText;
+        const dataType = this.module.variableController.getVariableTypeNearLine(
+            this.module.focus.getFocusedStatement().scope ??
+                (
+                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+                        .rootNode as Statement | Module
+                ).scope,
+            this.module.editor.monaco.getPosition().lineNumber,
+            identifier
+        );
+
+        const ref = new VariableReferenceExpr(identifier, dataType, buttonId);
+
+        this.insertExpression(context, ref);
+    }
+
+    private insertExpression(context: Context, code: Expression) {
+        // type checks -- different handling based on type of code construct
+        // focusedNode.returns != code.returns would work, but we need more context to get the right error message
+        if (context.token instanceof TypedEmptyExpr) {
+            const insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+
+            if (insertionType != InsertionType.Invalid) {
+                code.performPreInsertionUpdates(context.token);
+
+                if (context.token.rootNode instanceof Statement) {
+                    context.token.rootNode.onInsertInto(code);
+                }
+
+                if (context.token.notification && context.selected) {
+                    this.module.notificationSystem.removeNotificationFromConstruct(context.token);
+                }
+
+                // replaces expression with the newly inserted expression
+                const expr = code as Expression;
+
+                this.module.replaceFocusedExpression(expr);
+
+                const range = new Range(
+                    context.position.lineNumber,
+                    context.token.left,
+                    context.position.lineNumber,
+                    context.token.right
+                );
+
+                this.module.editor.executeEdits(range, expr);
+
+                //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
+                if (!context.token.notification) {
+                    const newContext = code.getInitialFocus();
+                    this.module.focus.updateContext(newContext);
+                }
+            }
+
+            if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
+        }
+    }
+
+    private insertStatement(context: Context, statement: Statement) {
+        const root = context.lineStatement.rootNode as Statement | Module;
+
+        replaceInBody(root, context.lineStatement.indexInRoot, statement);
+
+        if (root instanceof Statement) root.notify(CallbackType.replace);
+
+        var range = new Range(
+            context.lineStatement.lineNumber,
+            statement.left,
+            context.lineStatement.lineNumber,
+            statement.right
+        );
+
+        if (context.lineStatement.notification && context.selected) {
+            this.module.notificationSystem.removeNotificationFromConstruct(context.lineStatement);
+        }
+
+        this.module.editor.executeEdits(range, statement);
+        this.module.focus.updateContext(statement.getInitialFocus());
+    }
+
     private replaceWithBinaryOp(op: BinaryOperator, expr: Expression, { toLeft = false, toRight = false }) {
         const initialBoundary = this.getBoundaries(expr);
         const root = expr.rootNode as Statement;
@@ -748,7 +834,7 @@ export class ActionExecutor {
 
         const curOperand = toLeft ? newCode.getLeftOperand() : newCode.getRightOperand();
         const otherOperand = toLeft ? newCode.getRightOperand() : newCode.getLeftOperand();
-        const insertionType = this.module.tryInsert(curOperand, expr);
+        const insertionType = newCode.typeValidateInsertionIntoHole(expr, curOperand as TypedEmptyExpr);
 
         /**
          * Special cases
@@ -785,15 +871,15 @@ export class ActionExecutor {
         }
     }
 
-    private getCascadedBoundary(codes: Array<CodeConstruct>): monaco.Range {
+    private getCascadedBoundary(codes: Array<CodeConstruct>): Range {
         if (codes.length > 1) {
             const lineNumber = codes[0].getLineNumber();
 
-            return new monaco.Range(lineNumber, codes[0].left, lineNumber, codes[codes.length - 1].right);
+            return new Range(lineNumber, codes[0].left, lineNumber, codes[codes.length - 1].right);
         } else return this.getBoundaries(codes[0]);
     }
 
-    private getBoundaries(code: CodeConstruct, { selectIndent = false } = {}): monaco.Range {
+    private getBoundaries(code: CodeConstruct, { selectIndent = false } = {}): Range {
         const lineNumber = code.getLineNumber();
 
         if (code instanceof Statement && code.hasBody()) {
@@ -813,11 +899,11 @@ export class ActionExecutor {
                 }
             }
 
-            return new monaco.Range(lineNumber, code.left, endLineNumber, endColumn);
+            return new Range(lineNumber, code.left, endLineNumber, endColumn);
         } else if (code instanceof Statement || code instanceof Token) {
             if (selectIndent) {
-                return new monaco.Range(lineNumber, code.left - TAB_SPACES, lineNumber, code.right);
-            } else return new monaco.Range(lineNumber, code.left, lineNumber, code.right);
+                return new Range(lineNumber, code.left - TAB_SPACES, lineNumber, code.right);
+            } else return new Range(lineNumber, code.left, lineNumber, code.right);
         }
     }
 

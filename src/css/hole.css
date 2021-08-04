@@ -13,6 +13,10 @@
     box-shadow: 0px 0px 0px 2px #398dfab6 inset;
 }
 
-.inScopeHole {
+.validVarIdentifierHole {
     background-color: rgba(58, 223, 58, 0.3);
+}
+
+.draftVarIdentifierHole {
+    background-color: rgb(255, 255, 230, 0.6);
 }

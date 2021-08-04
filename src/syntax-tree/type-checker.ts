@@ -52,34 +52,6 @@ export class TypeChecker {
     }
 
     /**
-     * Update the toolbox button associated with a variable to create a reference of a new type.
-     *
-     * @param code    variable assignment statement of the variable to be updated
-     * @param newType type to be used
-     */
-    updateDataTypeOfVarRefInToolbox(code: VarAssignmentStmt, newType: DataType) {
-        const button = document.getElementById(code.buttonId);
-        button.removeEventListener("click", this.module.getVarRefHandler(code), false);
-
-        code.dataType = newType;
-        TypeChecker.varTypeMap.set(code.getIdentifier(), newType);
-
-        button.addEventListener("click", this.module.getVarRefHandler(code).bind(this.module));
-    }
-
-    /**
-     * Updates a for loop's counter variable's type to code's type.
-     *
-     * @param forLoop for loop statement
-     * @param code    expression the type of which will be used
-     */
-    updateForLoopVarType(forLoop: ForStatement, code: Expression) {
-        const newType = TypeChecker.getElementTypeFromListType(code.returns);
-        TypeChecker.varTypeMap.set(forLoop.getIdentifier(), newType);
-        this.updateDataTypeOfVarRefInToolbox(forLoop.loopVar, newType);
-    }
-
-    /**
      * Return the corresponding type of list given the type of element.
      *
      * @param type element type

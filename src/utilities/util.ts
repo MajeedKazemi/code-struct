@@ -1,4 +1,6 @@
 import { Module } from "../syntax-tree/module";
+import { EditAction } from "../editor/data-types";
+import { EditActionType } from "../editor/consts";
 import { ConstructDoc } from "../suggestions/construct-doc";
 import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 import {
@@ -194,8 +196,12 @@ export class Util {
     typeConversionMap: Map<DataType, Array<DataType>>;
     module: Module;
 
-    private constructor(module: Module) {
-        this.module = module;
+    private constructor(module?: Module) {
+        if(module){
+            this.module = module;
+        }
+
+        const context = this.module.focus.getContext();
 
         //these cannot exist on their own, need to wrap them in a class. Otherwise they does not see the imports for the construct classes.
 
@@ -336,286 +342,539 @@ export class Util {
             [
                 ConstructKeys.VariableAssignment,
                 () => {
-                    this.module.insert(new VarAssignmentStmt());
+                    this.module.executer.execute(
+                        new EditAction(EditActionType.InsertVarAssignStatement, {
+                            statement: new VarAssignmentStmt(),
+                        }),
+                        context
+                    );
                 },
             ],
             [
                 ConstructKeys.PrintCall,
                 () => {
-                    this.module.insert(
-                        new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void)
+                    this.module.executer.execute(
+                        new EditAction(EditActionType.InsertStatement, {
+                            statement: new FunctionCallStmt(
+                                "print",
+                                [new Argument([DataType.Any], "item", false)],
+                                DataType.Void
+                            ),
+                        }),
+                        context
                     );
                 },
             ],
             [
                 ConstructKeys.RandintCall,
                 () => {
-                    this.module.insert(
-                        new FunctionCallStmt(
+                    new EditAction(EditActionType.InsertStatement, {
+                        statement: new FunctionCallStmt(
                             "randint",
                             [
                                 new Argument([DataType.Number], "start", false),
                                 new Argument([DataType.Number], "end", false),
                             ],
                             DataType.Number
-                        )
-                    );
+                        ),
+                    });
                 },
             ],
             [
                 ConstructKeys.RangeCall,
                 () => {
-                    this.module.insert(
-                        new FunctionCallStmt(
+                    new EditAction(EditActionType.InsertStatement, {
+                        statement: new FunctionCallStmt(
                             "range",
                             [
                                 new Argument([DataType.Number], "start", false),
                                 new Argument([DataType.Number], "end", false),
                             ],
                             DataType.NumberList
-                        )
-                    );
+                        ),
+                    });
                 },
             ],
             [
                 ConstructKeys.LenCall,
                 () => {
-                    this.module.insert(
-                        new FunctionCallStmt(
-                            "len",
-                            [
-                                new Argument(
-                                    [
-                                        DataType.AnyList,
-                                        DataType.StringList,
-                                        DataType.BooleanList,
-                                        DataType.NumberList,
-                                        DataType.String,
-                                    ],
-                                    "list",
-                                    false
-                                ),
-                            ],
-                            DataType.Number
-                        )
+                    const expression = new FunctionCallStmt(
+                        "len",
+                        [
+                            new Argument(
+                                [
+                                    DataType.AnyList,
+                                    DataType.StringList,
+                                    DataType.BooleanList,
+                                    DataType.NumberList,
+                                    DataType.String,
+                                ],
+                                "list",
+                                false
+                            ),
+                        ],
+                        DataType.Number
                     );
+
+                    if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertExpression, {
+                            expression,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.WrapExpressionWithItem, {
+                            expression,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.StringLiteral,
                 () => {
-                    this.module.insert(new LiteralValExpr(DataType.String));
+                    return new EditAction(EditActionType.InsertLiteral, {
+                        literalType: DataType.String,
+                        initialValue: "",
+                    });
                 },
             ],
             [
                 ConstructKeys.NumberLiteral,
                 () => {
-                    this.module.insert(new LiteralValExpr(DataType.Number));
+                    return new EditAction(EditActionType.InsertLiteral, {
+                        literalType: DataType.Number,
+                        initialValue: 0,
+                    });
                 },
             ],
             [
                 ConstructKeys.True,
                 () => {
-                    this.module.insert(new LiteralValExpr(DataType.Boolean, "True"));
+                    return new EditAction(EditActionType.InsertLiteral, {
+                        literalType: DataType.Boolean,
+                        initialValue: "True",
+                    });
                 },
             ],
             [
                 ConstructKeys.False,
                 () => {
-                    this.module.insert(new LiteralValExpr(DataType.Boolean, "False"));
+                    return new EditAction(EditActionType.InsertLiteral, {
+                        literalType: DataType.Boolean,
+                        initialValue: "False",
+                    });
                 },
             ],
             [
                 ConstructKeys.Addition,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Add, DataType.Any));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.Add,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.Add,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.Add,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.Subtraction,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Any));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.Subtract,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.Subtract,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.Subtract,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.Multiplication,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Any));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.Multiply,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.Multiply,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.Multiply,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.Division,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Any));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.Divide,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.Divide,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.Divide,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.And,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.And,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.And,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.And,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.Or,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.Or,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.Or,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.Or,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.Not,
                 () => {
-                    this.module.insert(new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean, DataType.Boolean));
+                    if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertUnaryOperator, {
+                            wrap: true,
+                            operator: UnaryOp.Not,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertUnaryOperator, {
+                            replace: true,
+                            operator: UnaryOp.Not,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.Equals,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.Equal,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.Equal,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.Equal,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.NotEquals,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.NotEqual,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.NotEqual,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.NotEqual,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.LessThan,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.LessThan,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.LessThan,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.LessThan,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.LessThanOrEqual,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.LessThanEqual,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.LessThanEqual,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.LessThanEqual,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.GreaterThan,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.GreaterThan,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.GreaterThan,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.GreaterThan,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.GreaterThanOrEqual,
                 () => {
-                    this.module.insert(new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean));
+                    if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toRight: true,
+                            operator: BinaryOperator.GreaterThanEqual,
+                        });
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            toLeft: true,
+                            operator: BinaryOperator.GreaterThanEqual,
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertBinaryOperator, {
+                            replace: true,
+                            operator: BinaryOperator.GreaterThanEqual,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.While,
                 () => {
-                    this.module.insert(new WhileStatement());
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new WhileStatement(),
+                    });
                 },
             ],
             [
                 ConstructKeys.If,
                 () => {
-                    this.module.insert(new IfStatement());
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new IfStatement(),
+                    });
                 },
             ],
             [
                 ConstructKeys.Elif,
                 () => {
-                    this.module.insert(new ElseStatement(true));
+                    const canInsertAtCurIndent = this.module.validator.canInsertElifStmtAtCurIndent(context);
+                    const canInsertAtPrevIndent = this.module.validator.canInsertElifStmtAtPrevIndent(context);
+
+                    // prioritize inserting at current indentation over prev one
+                    if (canInsertAtCurIndent || canInsertAtPrevIndent) {
+                        return new EditAction(EditActionType.InsertElseStatement, {
+                            hasCondition: true,
+                            outside: canInsertAtCurIndent,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.Else,
                 () => {
-                    this.module.insert(new ElseStatement(false));
+                    const canInsertAtCurIndent = this.module.validator.canInsertElseStmtAtCurIndent(context);
+                    const canInsertAtPrevIndent = this.module.validator.canInsertElseStmtAtPrevIndent(context);
+
+                    // prioritize inserting at current indentation over prev one
+                    if (canInsertAtCurIndent || canInsertAtPrevIndent) {
+                        return new EditAction(EditActionType.InsertElseStatement, {
+                            hasCondition: false,
+                            outside: canInsertAtCurIndent,
+                        });
+                    }
                 },
             ],
             [
                 ConstructKeys.For,
                 () => {
-                    this.module.insert(new ForStatement());
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ForStatement(),
+                    });
                 },
             ],
             [
                 ConstructKeys.ListLiteral,
                 () => {
-                    this.module.insert(new ListLiteralExpression());
+                    if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.WrapExpressionWithItem, {
+                            expression: new ListLiteralExpression(),
+                        });
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        return new EditAction(EditActionType.InsertEmptyList);
+                    }
                 },
             ],
-            // [
-            //     ConstructKeys.AppendCall,
-            //     () => {
-            //         this.module.insert(new MethodCallStmt("append", [new Argument([DataType.Any], "object", false)]));
-            //     },
-            // ],
+            [
+                ConstructKeys.AppendCall,
+                () => {
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "append",
+                        returns: DataType.Void,
+                        args: [new Argument([DataType.Any], "object", false)],
+                        exprType: DataType.AnyList,
+                    });
+                },
+            ],
             [
                 ConstructKeys.MemberCall,
                 () => {
-                    this.module.insert(new MemberCallStmt(DataType.AnyList));
+                    return new EditAction(EditActionType.InsertExpression, {
+                        expression: new MemberCallStmt(DataType.Any),
+                    });
                 },
             ],
-            // [
-            //     ConstructKeys.SplitCall,
-            //     () => {
-            //         this.module.insert(
-            //             new MethodCallExpr(
-            //                 "split",
-            //                 [new Argument([DataType.String], "sep", false)],
-            //                 DataType.StringList,
-            //                 DataType.String
-            //             )
-            //         );
-            //     },
-            // ],
-            // [
-            //     ConstructKeys.JoinCall,
-            //     () => {
-            //         this.module.insert(
-            //             new MethodCallExpr(
-            //                 "join",
-            //                 [
-            //                     new Argument(
-            //                         [DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList],
-            //                         "items",
-            //                         false
-            //                     ),
-            //                 ],
-            //                 DataType.String,
-            //                 DataType.String
-            //             )
-            //         );
-            //     },
-            // ],
-            // [
-            //     ConstructKeys.ReplaceCall,
-            //     () => {
-            //         this.module.insert(
-            //             new MethodCallExpr(
-            //                 "replace",
-            //                 [
-            //                     new Argument([DataType.String], "old", false),
-            //                     new Argument([DataType.String], "new", false),
-            //                 ],
-            //                 DataType.String,
-            //                 DataType.String
-            //             )
-            //         );
-            //     },
-            // ],
-            // [
-            //     ConstructKeys.FindCall,
-            //     () => {
-            //         this.module.insert(
-            //             new MethodCallExpr(
-            //                 "find",
-            //                 [new Argument([DataType.String], "item", false)],
-            //                 DataType.Number,
-            //                 DataType.String
-            //             )
-            //         );
-            //     },
-            // ],
+            [
+                ConstructKeys.SplitCall,
+                () => {
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "split",
+                        returns: DataType.StringList,
+                        args: [new Argument([DataType.String], "sep", false)],
+                        exprType: DataType.String,
+                    });
+                },
+            ],
+            [
+                ConstructKeys.JoinCall,
+                () => {
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "join",
+                        returns: DataType.String,
+                        args: [
+                            new Argument(
+                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                                "items",
+                                false
+                            ),
+                        ],
+                        exprType: DataType.String,
+                    });
+                },
+            ],
+            [
+                ConstructKeys.ReplaceCall,
+                () => {
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "replace",
+                        returns: DataType.String,
+                        args: [
+                            new Argument([DataType.String], "old", false),
+                            new Argument([DataType.String], "new", false),
+                        ],
+                        exprType: DataType.String,
+                    });
+                },
+            ],
+            [
+                ConstructKeys.FindCall,
+                () => {
+                    return new EditAction(EditActionType.InsertDotMethod, {
+                        functionName: "find",
+                        returns: DataType.Number,
+                        args: [new Argument([DataType.String], "item", false)],
+                        exprType: DataType.String,
+                    });
+                },
+            ],
             [
                 ConstructKeys.ListElementAssignment,
                 () => {
-                    this.module.insert(new ListElementAssignment());
+                    return new EditAction(EditActionType.InsertStatement, {
+                        statement: new ListElementAssignment(),
+                    });
                 },
             ],
         ]);
@@ -628,7 +887,7 @@ export class Util {
         ]);
     }
 
-    static getInstance(module: Module) {
+    static getInstance(module?: Module) {
         if (!Util.instance) Util.instance = new Util(module);
 
         return Util.instance;
@@ -661,4 +920,21 @@ export function emptySpaces(count: number): string {
     for (let i = 0; i < count; i++) spaces += " ";
 
     return spaces;
+}
+
+export function hasMatchWithIndex<T>(list1: T[], list2: T[]): [number, number] {
+    const matchingIndeces: [number, number] = [-1, -1];
+
+    if (list1.length === 0 || list2.length === 0) {
+        return matchingIndeces;
+    }
+
+    for (let i = 0; i < list2.length; i++) {
+        if (list1.indexOf(list2[i]) > -1) {
+            matchingIndeces[0] = list1.indexOf(list2[i]);
+            matchingIndeces[1] = i;
+        }
+    }
+
+    return matchingIndeces;
 }

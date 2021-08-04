@@ -1,16 +1,17 @@
 import { Scope } from "./scope";
 import { Module } from "./module";
 import { rebuildBody } from "./body";
-import * as monaco from "monaco-editor";
 import { TypeChecker } from "./type-checker";
 import { DraftRecord } from "../editor/draft";
+import { ConstructName } from "../editor/consts";
 import { Validator } from "../editor/validator";
+import { Position, Selection } from "monaco-editor";
 import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
-import { InsertionType, TAB_SPACES } from "./consts";
+import { InsertionType, ListTypes, TAB_SPACES } from "./consts";
+import { VariableController } from "./variable-controller";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Notification } from "../notification-system/notification";
-import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import {
     AddableType,
     BinaryOperator,
@@ -70,12 +71,14 @@ export interface CodeConstruct {
 
     draftRecord: DraftRecord;
 
+    codeConstructName: ConstructName;
+
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
      * @param pos the left position to start building the nodes from
      * @returns the final right position of the whole node (calculated after building all of the children nodes)
      */
-    build(pos: monaco.Position): monaco.Position;
+    build(pos: Position): Position;
 
     /**
      * Finds and returns the next empty hole (name or value) in this code construct
@@ -96,12 +99,12 @@ export interface CodeConstruct {
     /**
      * Returns the left-position `(lineNumber, column)` of this code-construct in the rendered text.
      */
-    getLeftPosition(): monaco.Position;
+    getLeftPosition(): Position;
 
     /**
      * Returns a `Selection` object for this particular code-construct when it is selected
      */
-    getSelection(): monaco.Selection;
+    getSelection(): Selection;
 
     /**
      * Returns the parent statement of this code-construct (an element of the Module.body array).
@@ -125,21 +128,18 @@ export interface CodeConstruct {
 
     /**
      * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
-     * Optionally creates a warning in the editor in case of a type mismatch between insertCode and insertInto if enableWarnings is set to true.
+     *
+     * NOTE: The reason why you have to call it on the future parent of insertCode instead of insertCode itself is because before insertCode is inserted into the AST
+     * we cannot access the parent's holes through insertCode.rootNode and get their types that way.
+     *
+     * NOTE: The reason why insertInto is a parameter is because some constructs have multiple holes and we need to know the one we are inserting into.
      *
      * @param insertCode     code being inserted
-     * @param enableWarnings determines whether a warning is created or not in case of a type mismatch
      * @param insertInto     hole being inserted into
-     * @param notifSystem    this module's notification system object
      *
      * @returns True if insertCode's type is accepted by insertInto according to what the parent of insertInto is. Returns False otherwise.
      */
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType;
 
     /**
      * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
@@ -148,6 +148,10 @@ export interface CodeConstruct {
      * @param insertCode code being inserted
      */
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
+
+    onFocusOff(arg: any): void;
+
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 }
 
 /**
@@ -173,6 +177,7 @@ export abstract class Statement implements CodeConstruct {
     typeOfHoles = new Map<number, Array<DataType>>();
     draftModeEnabled = false;
     draftRecord: DraftRecord = null;
+    codeConstructName = ConstructName.Default;
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -243,15 +248,15 @@ export abstract class Statement implements CodeConstruct {
         for (const callback of this.callbacks[type]) callback.callback();
     }
 
-    init(pos: monaco.Position) {
+    init(pos: Position) {
         this.build(pos);
 
         if (this.hasBody())
             for (let i = 0; i < this.body.length; i++)
-                this.body[i].build(new monaco.Position(pos.lineNumber + i + 1, pos.column + TAB_SPACES));
+                this.body[i].build(new Position(pos.lineNumber + i + 1, pos.column + TAB_SPACES));
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.lineNumber = pos.lineNumber;
         this.left = pos.column;
 
@@ -271,7 +276,7 @@ export abstract class Statement implements CodeConstruct {
      * @param pos the left position to start building the nodes from
      * @param fromIndex the index of the node that was edited.
      */
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         let curPos = pos;
 
         // rebuild siblings:
@@ -305,7 +310,7 @@ export abstract class Statement implements CodeConstruct {
             }
         }
 
-        return { positionToMove: new monaco.Position(this.getLineNumber(), this.right) };
+        return { positionToMove: new Position(this.getLineNumber(), this.right) };
     }
 
     /**
@@ -355,7 +360,7 @@ export abstract class Statement implements CodeConstruct {
         //The focus goes to the end of line
         this.tokens[index] = code;
 
-        if (rebuildColumn) this.rebuild(new monaco.Position(this.lineNumber, rebuildColumn), index);
+        if (rebuildColumn) this.rebuild(new Position(this.lineNumber, rebuildColumn), index);
 
         this.updateHasEmptyToken(code);
 
@@ -384,12 +389,12 @@ export abstract class Statement implements CodeConstruct {
         return this.lineNumber;
     }
 
-    getLeftPosition(): monaco.Position {
-        return new monaco.Position(this.getLineNumber(), this.left);
+    getLeftPosition(): Position {
+        return new Position(this.getLineNumber(), this.left);
     }
 
-    getSelection(): monaco.Selection {
-        return new monaco.Selection(this.lineNumber, this.right, this.lineNumber, this.left);
+    getSelection(): Selection {
+        return new Selection(this.lineNumber, this.right, this.lineNumber, this.left);
     }
 
     getParentStatement(): Statement {
@@ -424,13 +429,13 @@ export abstract class Statement implements CodeConstruct {
         return "";
     }
 
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType {
+        if (insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1) {
+            return InsertionType.Valid;
+        } //types match or one of them is Any
+
+        //need to check if the type being inserted can be converted into any of the types that the hole accepts
+        return insertInto.canReplaceWithConstruct(insertCode);
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
@@ -446,6 +451,11 @@ export abstract class Statement implements CodeConstruct {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return InsertionType.Invalid;
+    }
+
+    //actions that need to occur when the focus is switched off of this statement
+    onFocusOff(arg: any): void {
+        return;
     }
 }
 
@@ -474,25 +484,16 @@ export abstract class Expression extends Statement implements CodeConstruct {
         else if (this.rootNode instanceof Expression) return this.rootNode.getLineNumber();
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const line = this.lineNumber >= 0 ? this.lineNumber : this.getLineNumber();
 
-        return new monaco.Selection(line, this.right, line, this.left);
+        return new Selection(line, this.right, line, this.left);
     }
 
     getParentStatement(): Statement {
         if (this.isStatement()) return this as Statement;
         else if (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) return this.rootNode;
         else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
     }
 
     /**
@@ -529,7 +530,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
             const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
 
             let canConvertToParentType = hasMatch(
-                Util.getInstance(null).typeConversionMap.get(replaceWith.returns),
+                Util.getInstance().typeConversionMap.get(replaceWith.returns),
                 typesOfParentHole
             );
 
@@ -544,12 +545,21 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 return InsertionType.Valid;
             } else if (
                 replaceWith.returns !== this.returns &&
-                hasMatch(Util.getInstance(null).typeConversionMap.get(replaceWith.returns), [this.returns])
+                hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns])
             ) {
                 return InsertionType.DraftMode;
             } else {
                 return InsertionType.Invalid;
             }
+        }
+    }
+
+    updateVariableType(dataType: DataType) {
+        //TODO: This probably needs to be recursive since this won't catch nested expression type updates
+        if (this.rootNode instanceof VarAssignmentStmt) {
+            this.rootNode.dataType = dataType;
+        } else if (this.rootNode instanceof ForStatement) {
+            this.rootNode.loopVar.dataType = TypeChecker.getElementTypeFromListType(dataType);
         }
     }
 }
@@ -571,6 +581,7 @@ export abstract class Token implements CodeConstruct {
     notification = null;
     draftModeEnabled = false;
     draftRecord = null;
+    codeConstructName = ConstructName.Default;
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -606,7 +617,7 @@ export abstract class Token implements CodeConstruct {
      * @param pos the left position to start building this node's right position.
      * @returns the final right position of this node: for tokens it equals to `this.left + this.text.length - 1`
      */
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.left = pos.column;
 
         if (this.text.length == 0) {
@@ -618,8 +629,8 @@ export abstract class Token implements CodeConstruct {
 
         this.notify(CallbackType.change);
 
-        if (this.text.length == 0) return new monaco.Position(pos.lineNumber, this.right);
-        else return new monaco.Position(pos.lineNumber, this.right);
+        if (this.text.length == 0) return new Position(pos.lineNumber, this.right);
+        else return new Position(pos.lineNumber, this.right);
     }
 
     /**
@@ -629,7 +640,7 @@ export abstract class Token implements CodeConstruct {
     getInitialFocus(): UpdatableContext {
         if (this.isEmpty) return { tokenToSelect: this };
 
-        return { positionToMove: new monaco.Position(this.getLineNumber(), this.right) };
+        return { positionToMove: new Position(this.getLineNumber(), this.right) };
     }
 
     getRenderText(): string {
@@ -641,14 +652,14 @@ export abstract class Token implements CodeConstruct {
         else return (this.rootNode as Expression).getLineNumber();
     }
 
-    getLeftPosition(): monaco.Position {
-        return new monaco.Position(this.getLineNumber(), this.left);
+    getLeftPosition(): Position {
+        return new Position(this.getLineNumber(), this.left);
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const line = this.getLineNumber();
 
-        return new monaco.Selection(line, this.right, line, this.left);
+        return new Selection(line, this.right, line, this.left);
     }
 
     getParentStatement(): Statement {
@@ -660,16 +671,17 @@ export abstract class Token implements CodeConstruct {
         } else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
     }
 
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        return false;
+    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+
+    onFocusOff(arg: any): void {
+        return;
     }
 
-    performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+    performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
+
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr) {
+        return InsertionType.Invalid;
+    }
 }
 
 /**
@@ -808,26 +820,11 @@ export class IfStatement extends Statement {
         for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
 
         // rebuild else statement, and body
-        statement.init(new monaco.Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
+        statement.init(new Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
         statement.rootNode = this;
         statement.indexInRoot = index;
 
         rebuildBody(this, index + 1, prevPos.lineNumber + 1);
-    }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
     }
 }
 
@@ -869,7 +866,24 @@ export class ElseStatement extends Statement {
     }
 }
 
-export class ForStatement extends Statement {
+export interface VariableContainer {
+    assignId();
+
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]);
+
+    assignNewVariable(varController: VariableController);
+
+    assignExistingVariable(currentIdentifierAssignments: Statement[]);
+
+    reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    );
+}
+
+export class ForStatement extends Statement implements VariableContainer {
     addableType = AddableType.Statement;
 
     buttonId: string;
@@ -883,6 +897,8 @@ export class ForStatement extends Statement {
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
+
+        this.buttonId = "";
 
         this.tokens.push(new NonEditableTkn("for ", this, this.tokens.length));
         this.counterIndex = this.tokens.length;
@@ -910,15 +926,31 @@ export class ForStatement extends Statement {
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
+
+        this.loopVar = new VarAssignmentStmt();
+        this.loopVar.rootNode = this;
+
+        this.subscribe(
+            CallbackType.onFocusOff,
+            new Callback(() => {
+                this.onFocusOff();
+            })
+        );
+
+        this.subscribe(
+            CallbackType.delete,
+            new Callback(() => {
+                this.onDelete();
+            })
+        );
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
-        this.updateButton();
     }
 
     replaceCounter(expr: Expression) {
@@ -941,19 +973,132 @@ export class ForStatement extends Statement {
         return this.tokens[this.rangeIndex];
     }
 
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = insertInto.type.indexOf(insertCode.returns) > -1;
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addStatementHoleTypeMismatchWarning(insertInto, insertInto, insertCode);
+    onFocusOff(): void {
+        if (!this.loopVar.lineNumber) {
+            this.loopVar.lineNumber = this.lineNumber;
         }
 
-        return isValidType;
+        const currentIdentifier = this.getIdentifier();
+        const oldIdentifier = this.loopVar.getOldIdentifier();
+        const varController = this.getModule().variableController;
+
+        if (currentIdentifier !== oldIdentifier) {
+            const currentIdentifierAssignments = this.scope.getAllVarAssignmentsToNewVar(
+                currentIdentifier,
+                this.getModule(),
+                this.lineNumber,
+                this.loopVar
+            );
+
+            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllVarAssignmentsToNewVar(
+                oldIdentifier,
+                this.getModule(),
+                this.lineNumber,
+                this.loopVar
+            );
+
+            if (this.buttonId === "") {
+                //when we are changing a new var assignment statement
+                this.assignVariable(varController, currentIdentifierAssignments);
+            } else {
+                //when we are changing an existing var assignment statement
+                this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
+            }
+
+            varController.updateVarButtonWithType(
+                this.loopVar.buttonId,
+                this.scope,
+                this.lineNumber,
+                this.getIdentifier()
+            );
+        }
+    }
+
+    assignId() {
+        if (this.buttonId === "") {
+            this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
+            this.loopVar.buttonId = this.buttonId;
+            VarAssignmentStmt.uniqueId++;
+        }
+    }
+
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]) {
+        if (currentIdentifierAssignments.length === 0) {
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    assignNewVariable(varController: VariableController) {
+        this.assignId();
+        varController.addVariableRefButton(this.loopVar);
+        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
+        this.getModule().processNewVariable(
+            this,
+            this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
+        );
+
+        this.getModule().variableController.updateVarButtonWithType(
+            this.buttonId,
+            this.scope ?? (this.rootNode as Module | Statement).scope, //NOTE: You just need the closest parent scope, but I think in all cases it will be the scope of the root node since we are either inside of the Module's body or another statement's
+            this.lineNumber,
+            this.getIdentifier()
+        );
+    }
+
+    assignExistingVariable(currentIdentifierAssignments: Statement[]) {
+        const statement =
+            currentIdentifierAssignments[0] instanceof VarAssignmentStmt
+                ? currentIdentifierAssignments[0]
+                : (currentIdentifierAssignments[0] as ForStatement).loopVar;
+
+        this.buttonId = statement.buttonId;
+        this.loopVar.buttonId = statement.buttonId;
+
+        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
+    }
+
+    reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    ) {
+        //just removed last assignment to the old var
+        if (oldIdentifierAssignments.length === 0) {
+            varController.removeVariableRefButton(oldVarId);
+        }
+
+        if (currentIdentifierAssignments.length === 0) {
+            //variable being reassigned to is a new variable
+            this.buttonId = "";
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            //variable being reassigned to already exists
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    onInsertInto(insertCode: Expression) {
+        if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
+            this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+        } else {
+            this.loopVar.dataType = insertCode.returns;
+        }
+    }
+
+    private onDelete() {
+        const varController = this.getModule().variableController;
+        const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
+            this.getIdentifier(),
+            this
+        );
+
+        if (assignments.length === 0) {
+            varController.removeVariableRefButton(this.buttonId);
+            varController.addWarningToVarRefs(this.buttonId, this.getModule());
+        }
     }
 }
 
@@ -987,14 +1132,14 @@ export class EmptyLineStmt extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.canInsertEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.lineNumber = pos.lineNumber;
         this.left = this.right = pos.column;
 
-        return new monaco.Position(this.lineNumber, this.right);
+        return new Position(this.lineNumber, this.right);
     }
 
     getInitialFocus(): UpdatableContext {
@@ -1006,19 +1151,18 @@ export class EmptyLineStmt extends Statement {
     }
 }
 
-export class VarAssignmentStmt extends Statement {
+export class VarAssignmentStmt extends Statement implements VariableContainer {
     static uniqueId: number = 0;
-    buttonId: string;
+    buttonId: string = ""; //note: this is used as both the DOM id of the reference button in the toolbox AND the unique id of the variable itself
     addableType = AddableType.Statement;
     private identifierIndex: number;
     private valueIndex: number;
     dataType = DataType.Any;
+    codeConstructName = ConstructName.VarAssignment;
+    private oldIdentifier: string;
 
     constructor(id?: string, root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
-
-        this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
-        VarAssignmentStmt.uniqueId++;
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
@@ -1030,7 +1174,23 @@ export class VarAssignmentStmt extends Statement {
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
 
+        this.oldIdentifier = this.getIdentifier();
+
         this.hasEmptyToken = true;
+
+        this.subscribe(
+            CallbackType.onFocusOff,
+            new Callback(() => {
+                this.onFocusOff();
+            })
+        );
+
+        this.subscribe(
+            CallbackType.delete,
+            new Callback(() => {
+                this.onDelete();
+            })
+        );
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1038,6 +1198,8 @@ export class VarAssignmentStmt extends Statement {
     }
 
     replaceIdentifier(code: CodeConstruct) {
+        this.oldIdentifier = this.getIdentifier();
+
         this.replace(code, this.identifierIndex);
     }
 
@@ -1045,22 +1207,193 @@ export class VarAssignmentStmt extends Statement {
         this.replace(code, this.valueIndex);
     }
 
-    rebuild(pos: monaco.Position, fromIndex: number) {
+    rebuild(pos: Position, fromIndex: number) {
         super.rebuild(pos, fromIndex);
-
-        this.updateButton();
     }
 
     getIdentifier(): string {
         return this.tokens[this.identifierIndex].getRenderText();
     }
 
-    updateButton() {
+    getOldIdentifier(): string {
+        return this.oldIdentifier;
+    }
+
+    updateButton(): void {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
     }
 
-    setIdentifier(identifier: string) {
+    setIdentifier(identifier: string, oldIdentifier?: string) {
+        this.oldIdentifier = oldIdentifier ?? this.getIdentifier();
+
         (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
+        this.updateButton();
+    }
+
+    onFocusOff(): void {
+        const currentIdentifier = this.getIdentifier();
+        const varController = this.getModule().variableController;
+
+        if (currentIdentifier !== this.oldIdentifier) {
+            if (currentIdentifier === "   ") {
+                this.removeAssignment();
+
+                if (
+                    (this.rootNode as Module | Statement).scope.references.filter(
+                        (ref) => (ref.statement as VarAssignmentStmt).getIdentifier() === this.oldIdentifier
+                    ).length === 0 &&
+                    varController.getAllAssignmentsToVar(this.buttonId, this.getModule()).length === 0
+                ) {
+                    varController.removeVariableRefButton(this.buttonId);
+                    varController.addWarningToVarRefs(this.buttonId, this.getModule());
+                }
+
+                this.buttonId = "";
+                this.oldIdentifier = "   ";
+            } else {
+                const currentIdentifierAssignments = (
+                    this.rootNode as Statement | Module
+                ).scope.getAllVarAssignmentsToNewVar(currentIdentifier, this.getModule(), this.lineNumber, this);
+
+                const oldIdentifierAssignments = (
+                    this.rootNode as Statement | Module
+                ).scope.getAllVarAssignmentsToNewVar(this.oldIdentifier, this.getModule(), this.lineNumber, this);
+
+                if (this.buttonId === "") {
+                    //when we are changing a new var assignment statement
+                    this.assignVariable(varController, currentIdentifierAssignments);
+                } else {
+                    //when we are changing an existing var assignment statement
+                    this.reassignVar(
+                        this.buttonId,
+                        varController,
+                        currentIdentifierAssignments,
+                        oldIdentifierAssignments
+                    );
+                }
+
+                this.oldIdentifier = currentIdentifier;
+
+                varController.updateVarButtonWithType(
+                    this.buttonId,
+                    (this.rootNode as Module | Statement).scope,
+                    this.lineNumber,
+                    this.getIdentifier()
+                );
+            }
+        }
+    }
+
+    assignId() {
+        if (this.buttonId === "") {
+            this.buttonId = "add-var-ref-" + VarAssignmentStmt.uniqueId;
+            VarAssignmentStmt.uniqueId++;
+        }
+    }
+
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]) {
+        if (currentIdentifierAssignments.length === 0) {
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    assignNewVariable(varController: VariableController) {
+        this.assignId();
+        varController.addVariableRefButton(this);
+        this.getModule().processNewVariable(
+            this,
+            this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
+        );
+
+        this.getModule().variableController.updateVarButtonWithType(
+            this.buttonId,
+            this.scope ?? (this.rootNode as Module | Statement).scope, //NOTE: You just need the closest parent scope, but I think in all cases it will be the scope of the root node since we are either inside of the Module's body or another statement's
+            this.lineNumber,
+            this.getIdentifier()
+        );
+    }
+
+    assignExistingVariable(currentIdentifierAssignments: Statement[]) {
+        const statement =
+            currentIdentifierAssignments[0] instanceof VarAssignmentStmt
+                ? currentIdentifierAssignments[0]
+                : (currentIdentifierAssignments[0] as ForStatement).loopVar;
+
+        this.buttonId = statement.buttonId;
+
+        //if we reassign above current line number, then we might have changed scopes
+        if (this.lineNumber < statement.lineNumber && statement.rootNode !== this.rootNode) {
+            (statement.rootNode as Module | Statement).scope.references.splice(
+                (statement.rootNode as Module | Statement).scope.references
+                    .map((ref) => ref.statement)
+                    .indexOf(statement),
+                1
+            );
+        }
+
+        this.getModule().processNewVariable(
+            this,
+            this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
+        );
+    }
+
+    reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    ) {
+        //just removed last assignment to the old var
+        if (oldIdentifierAssignments.length === 0) {
+            varController.removeVariableRefButton(oldVarId);
+        }
+
+        if (currentIdentifierAssignments.length === 0) {
+            //variable being reassigned to is a new variable
+            this.buttonId = "";
+            this.assignNewVariable(varController);
+        } else if (currentIdentifierAssignments.length > 0) {
+            //variable being reassigned to already exists
+            this.assignExistingVariable(currentIdentifierAssignments);
+        }
+    }
+
+    onInsertInto(insertCode: Expression) {
+        if (insertCode instanceof ListLiteralExpression) {
+            this.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+        } else {
+            this.dataType = insertCode.returns;
+        }
+    }
+
+    removeAssignment() {
+        (this.rootNode as Module | Statement).scope.references.splice(
+            (this.rootNode as Module | Statement).scope.references.map((ref) => ref.statement).indexOf(this),
+            1
+        );
+    }
+
+    private onDelete() {
+        const varController = this.getModule().variableController;
+
+        if (this.buttonId !== "") {
+            (this.rootNode as Module | Statement).scope.references = (
+                this.rootNode as Module | Statement
+            ).scope.references.filter((ref) => ref.statement !== this);
+
+            //deleting a variable by deleting its identifier first and then immediately deleting the statement without focusing off it
+            const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
+                this.oldIdentifier,
+                this
+            );
+
+            if (assignments.length === 0) {
+                varController.removeVariableRefButton(this.buttonId);
+                varController.addWarningToVarRefs(this.buttonId, this.getModule());
+            }
+        }
     }
 }
 
@@ -1137,13 +1470,11 @@ export class FunctionCallStmt extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return (
-            this.isStatement()
-                ? validator.onEmptyLine(providedContext)
-                : validator.atEmptyExpressionHole(providedContext)
-        )
-            ? InsertionType.Valid
-            : InsertionType.Invalid;
+        if (this.isStatement()) {
+            return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        }
+
+        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1153,21 +1484,6 @@ export class FunctionCallStmt extends Expression {
     getFunctionName(): string {
         return this.functionName;
     }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        const isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto);
-
-        if (enableWarnings && !isValidType) {
-            notifSystem.addFunctionCallArgumentTypeMismatchWarning(insertInto, insertInto, insertCode);
-        }
-
-        return isValidType;
-    }
 }
 
 export class ExprDotMethodStmt extends Expression {
@@ -1175,6 +1491,7 @@ export class ExprDotMethodStmt extends Expression {
     exprType: DataType;
     addableType: AddableType;
     functionName: string = "";
+    args: Array<Argument>;
 
     constructor(
         functionName: string,
@@ -1190,6 +1507,7 @@ export class ExprDotMethodStmt extends Expression {
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
         this.exprType = exprType;
+        this.args = args;
 
         if (this.isStatement()) this.addableType = AddableType.Statement;
         else this.addableType = AddableType.Expression;
@@ -1406,9 +1724,13 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atEmptyExpressionHole(providedContext) ||
-            validator.atLeftOfExpression(providedContext) ||
-            validator.atRightOfExpression(providedContext)
+        return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
+            (validator.atLeftOfExpression(providedContext) &&
+                getAllowedBinaryOperators(providedContext?.expressionToRight?.returns).some(
+                    (x) => x === this.operator
+                )) ||
+            (validator.atRightOfExpression(providedContext) &&
+                getAllowedBinaryOperators(providedContext?.expressionToLeft?.returns).some((x) => x === this.operator))
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
@@ -1588,40 +1910,6 @@ export class BinaryOperatorExpr extends Expression {
 
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
-
-    typeValidateInsertionIntoHole(
-        insertCode: Expression,
-        enableWarnings: boolean,
-        insertInto?: TypedEmptyExpr,
-        notifSystem?: NotificationSystemController
-    ): boolean {
-        let isValidType = false;
-
-        if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
-            isValidType = insertCode.returns != DataType.Boolean;
-        } else {
-            isValidType = super.typeValidateInsertionIntoHole(insertCode, enableWarnings, insertInto, notifSystem);
-        }
-
-        if (enableWarnings && !isValidType) {
-            switch (this.operatorCategory) {
-                case BinaryOperatorCategory.Arithmetic:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                case BinaryOperatorCategory.Boolean:
-                    notifSystem.addBinBoolOpOperandInsertionTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                case BinaryOperatorCategory.Comparison:
-                    notifSystem.addCompOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-                default:
-                    notifSystem.addBinOpOperandTypeMismatchWarning(insertInto, insertInto, insertCode);
-                    break;
-            }
-        }
-
-        return isValidType;
-    }
 }
 
 export class UnaryOperatorExpr extends Expression {
@@ -1680,15 +1968,10 @@ export class EditableTextTkn extends Token implements TextEditable {
         this.validatorRegex = regex;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         const leftPos = this.getLeftPosition();
 
-        return new monaco.Selection(
-            leftPos.lineNumber,
-            leftPos.column + this.text.length,
-            leftPos.lineNumber,
-            leftPos.column
-        );
+        return new Selection(leftPos.lineNumber, leftPos.column + this.text.length, leftPos.lineNumber, leftPos.column);
     }
 
     getLeft(): number {
@@ -1711,7 +1994,7 @@ export class EditableTextTkn extends Token implements TextEditable {
         }
     }
 
-    build(pos: monaco.Position): monaco.Position {
+    build(pos: Position): Position {
         this.left = pos.column;
 
         if (this.text.length == 0) {
@@ -1721,14 +2004,12 @@ export class EditableTextTkn extends Token implements TextEditable {
 
         this.notify(CallbackType.change);
 
-        return new monaco.Position(pos.lineNumber, this.right);
+        return new Position(pos.lineNumber, this.right);
     }
 }
 
 export class LiteralValExpr extends Expression {
     addableType = AddableType.Expression;
-    allowedBinOps = new Array<BinaryOperator>();
-    allowedBoolOps = new Array<BinaryOperator>();
 
     constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
         super(returns);
@@ -1746,8 +2027,6 @@ export class LiteralValExpr extends Expression {
                 );
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
 
-                this.allowedBinOps.push(BinaryOperator.Add);
-
                 break;
             }
 
@@ -1761,19 +2040,11 @@ export class LiteralValExpr extends Expression {
                     )
                 );
 
-                this.allowedBinOps.push(BinaryOperator.Add);
-                this.allowedBinOps.push(BinaryOperator.Subtract);
-                this.allowedBinOps.push(BinaryOperator.Multiply);
-                this.allowedBinOps.push(BinaryOperator.Divide);
-
                 break;
             }
 
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTkn(value, this, this.tokens.length));
-
-                this.allowedBoolOps.push(BinaryOperator.And);
-                this.allowedBoolOps.push(BinaryOperator.Or);
 
                 break;
             }
@@ -1793,10 +2064,10 @@ export class LiteralValExpr extends Expression {
         switch (this.returns) {
             case DataType.String:
             case DataType.Number:
-                return { positionToMove: new monaco.Position(this.lineNumber, this.left + 1) };
+                return { positionToMove: new Position(this.lineNumber, this.left + 1) };
 
             case DataType.Boolean:
-                return { positionToMove: new monaco.Position(this.lineNumber, this.right) };
+                return { positionToMove: new Position(this.lineNumber, this.right) };
         }
     }
 }
@@ -1825,11 +2096,16 @@ export class ListLiteralExpression extends Expression {
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
+        let dataType = this.returns;
+
         if (this.areAllHolesEmpty()) {
-            this.returns = TypeChecker.getListTypeFromElementType(insertCode.returns);
-        } else if (TypeChecker.getElementTypeFromListType(this.returns) !== insertCode.returns) {
-            this.returns = DataType.AnyList;
+            dataType = TypeChecker.getListTypeFromElementType(insertCode.returns);
+        } else if (this.getFilledHolesType() !== insertCode.returns) {
+            dataType = DataType.AnyList;
         }
+
+        this.returns = dataType;
+        this.updateVariableType(dataType);
     }
 
     //return whether all elements of this list are of type TypedEmptyExpr
@@ -1839,6 +2115,40 @@ export class ListLiteralExpression extends Expression {
         const numberOfEmptyHoles = elements.filter((element) => element instanceof TypedEmptyExpr).length;
 
         return numberOfEmptyHoles === numberOfElements;
+    }
+
+    onInsertInto(insertCode: Expression) {
+        this.performTypeUpdatesOnInsertInto(insertCode);
+    }
+
+    private getFilledHolesType(): DataType {
+        const elements = this.tokens.filter(
+            (tkn) => !(tkn instanceof TypedEmptyExpr) && !(tkn instanceof NonEditableTkn)
+        );
+        const types: DataType[] = [];
+
+        for (const expr of elements) if (expr instanceof Expression) types.push(expr.returns);
+
+        if (types.length > 0) {
+            const initialType = types[0];
+
+            if (types.every((type) => type === initialType)) return initialType;
+        }
+
+        return DataType.Any;
+    }
+}
+
+export class ListComma extends Expression {
+    constructor() {
+        super(DataType.Void);
+    }
+
+    // this is the only reason why we have this ListCommaDummy expression :)
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.canAddListItemToLeft() || validator.canAddListItemToRight()
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -1899,6 +2209,15 @@ export class TypedEmptyExpr extends Token {
 
         this.receives.push(AddableType.Expression);
     }
+
+    canReplaceWithConstruct(replaceWith: Expression): InsertionType {
+        //check if the type of replaceWith can be converted into any of the hole's types
+        if (hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), this.type)) {
+            return InsertionType.DraftMode;
+        }
+
+        return InsertionType.Invalid;
+    }
 }
 
 export class OperatorTkn extends Token {
@@ -1912,7 +2231,7 @@ export class OperatorTkn extends Token {
         this.operator = text;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }
@@ -1925,7 +2244,7 @@ export class NonEditableTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
 }
@@ -1938,7 +2257,47 @@ export class KeywordTkn extends Token {
         this.indexInRoot = indexInRoot;
     }
 
-    getSelection(): monaco.Selection {
+    getSelection(): Selection {
         return this.rootNode.getSelection();
     }
+}
+
+function getAllowedBinaryOperators(type: DataType): Array<BinaryOperator> {
+    const allowedBinOps = [BinaryOperator.Equal, BinaryOperator.NotEqual];
+
+    switch (type) {
+        case DataType.String: {
+            allowedBinOps.push(BinaryOperator.Add);
+
+            allowedBinOps.push(BinaryOperator.GreaterThan);
+            allowedBinOps.push(BinaryOperator.GreaterThanEqual);
+            allowedBinOps.push(BinaryOperator.LessThan);
+            allowedBinOps.push(BinaryOperator.LessThanEqual);
+
+            break;
+        }
+
+        case DataType.Number: {
+            allowedBinOps.push(BinaryOperator.Add);
+            allowedBinOps.push(BinaryOperator.Subtract);
+            allowedBinOps.push(BinaryOperator.Multiply);
+            allowedBinOps.push(BinaryOperator.Divide);
+
+            allowedBinOps.push(BinaryOperator.GreaterThan);
+            allowedBinOps.push(BinaryOperator.GreaterThanEqual);
+            allowedBinOps.push(BinaryOperator.LessThan);
+            allowedBinOps.push(BinaryOperator.LessThanEqual);
+
+            break;
+        }
+
+        case DataType.Boolean: {
+            allowedBinOps.push(BinaryOperator.And);
+            allowedBinOps.push(BinaryOperator.Or);
+
+            break;
+        }
+    }
+
+    return allowedBinOps;
 }

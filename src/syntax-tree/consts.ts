@@ -27,6 +27,8 @@ export enum DataType {
     StringList = "ListStr",
 }
 
+export const ListTypes = [DataType.AnyList, DataType.NumberList, DataType.BooleanList, DataType.StringList];
+
 export enum BinaryOperator {
     Add = "+",
     Subtract = "-",
