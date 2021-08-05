@@ -147,8 +147,9 @@ export class Editor {
         const y = this.monaco.getTopForLineNumber(selection.startLineNumber);
 
         const width = this.monaco.getOffsetForColumn(selection.startLineNumber, selection.endColumn) - x;
-        const height = this.computeCharHeight();
-
+        // const height = this.computeCharHeight();
+        const height = 8;
+        //return { x, y, width, height };
         return { x, y, width, height };
     }
 
