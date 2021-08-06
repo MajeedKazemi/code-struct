@@ -463,7 +463,7 @@ export abstract class Statement implements CodeConstruct {
  * A statement that returns a value such as: binary operators, unary operators, function calls that return a value, literal values, and variables.
  */
 export abstract class Expression extends Statement implements CodeConstruct {
-    rootNode: Statement = null;
+    rootNode: Expression | Statement = null;
     isTextEditable = false;
     addableType: AddableType;
     // TODO: can change this to an Array to enable type checking when returning multiple items
