@@ -681,6 +681,35 @@ export interface TextEditable {
     setEditedText(text: string): boolean;
 }
 
+export interface VariableContainer {
+    assignId();
+
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]);
+
+    assignNewVariable(varController: VariableController);
+
+    assignExistingVariable(currentIdentifierAssignments: Statement[]);
+
+    reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    );
+}
+
+export class Argument {
+    type: DataType[];
+    name: string;
+    isOptional: boolean;
+
+    constructor(type: DataType[], name: string, isOptional: boolean) {
+        this.type = type;
+        this.name = name;
+        this.isOptional = isOptional;
+    }
+}
+
 export class WhileStatement extends Statement {
     scope: Scope;
     private conditionIndex: number;
@@ -698,10 +727,6 @@ export class WhileStatement extends Statement {
         this.scope = new Scope();
 
         this.hasEmptyToken = true;
-    }
-
-    replaceCondition(expr: Expression) {
-        this.replace(expr, this.conditionIndex);
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -729,71 +754,6 @@ export class IfStatement extends Statement {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
-
-    replaceCondition(expr: Expression) {
-        this.replace(expr, this.conditionIndex);
-    }
-
-    isValidReference(uniqueId: string, lineNumber: number, indexInRoot: number): boolean {
-        if (!(this.indexInRoot[indexInRoot] instanceof ElseStatement) && indexInRoot - 1 > 0) {
-            for (let i = indexInRoot - 1; i >= 0; i--) {
-                const stmt = this.body[i];
-
-                if (stmt instanceof ElseStatement) break;
-                if (stmt instanceof VarAssignmentStmt && uniqueId == stmt.buttonId) return true;
-                if (stmt instanceof ForStatement && stmt.buttonId == uniqueId) return true;
-            }
-        }
-
-        for (let stmt of this.scope.getValidReferences(this.getLineNumber()))
-            if (
-                (stmt.statement instanceof VarAssignmentStmt || stmt.statement instanceof ForStatement) &&
-                uniqueId == stmt.statement.buttonId
-            ) {
-                return true;
-            }
-
-        return false;
-    }
-
-    isValidElseInsertion(index: number, statement: ElseStatement): boolean {
-        if (statement.hasCondition) {
-            // if there is an else before this elif => invalid
-            for (let i = 0; i < index; i++) {
-                const stmt = this.body[i];
-
-                if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
-            }
-        } else {
-            // if there is another else => invalid
-            for (let stmt of this.body) if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
-
-            // if the else is before an elif => invalid
-            for (let i = index + 1; i < this.body.length; i++) {
-                const stmt = this.body[i];
-
-                if (stmt instanceof ElseStatement && stmt.hasCondition) return false;
-            }
-        }
-
-        return true;
-    }
-
-    insertElseStatement(index: number, statement: ElseStatement) {
-        const prevPos = this.body[index].getLeftPosition();
-
-        // insert and shift other statements down
-        // TODO: update-body-index ->
-        this.body.splice(index, 0, statement);
-        for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
-
-        // rebuild else statement, and body
-        statement.init(new Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
-        statement.rootNode = this;
-        statement.indexInRoot = index;
-
-        rebuildBody(this, index + 1, prevPos.lineNumber + 1);
     }
 }
 
@@ -828,27 +788,6 @@ export class ElseStatement extends Statement {
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
-
-    replaceCondition(expr: Expression) {
-        if (this.hasCondition) this.replace(expr, this.conditionIndex);
-    }
-}
-
-export interface VariableContainer {
-    assignId();
-
-    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]);
-
-    assignNewVariable(varController: VariableController);
-
-    assignExistingVariable(currentIdentifierAssignments: Statement[]);
-
-    reassignVar(
-        oldVarId: string,
-        varController: VariableController,
-        currentIdentifierAssignments: Statement[],
-        oldIdentifierAssignments: Statement[]
-    );
 }
 
 export class ForStatement extends Statement implements VariableContainer {
@@ -919,24 +858,8 @@ export class ForStatement extends Statement implements VariableContainer {
         super.rebuild(pos, fromIndex);
     }
 
-    replaceCounter(expr: Expression) {
-        this.replace(expr, this.counterIndex);
-    }
-
-    replaceRange(expr: Expression) {
-        this.replace(expr, this.rangeIndex);
-    }
-
     getIdentifier(): string {
         return this.tokens[this.counterIndex].getRenderText();
-    }
-
-    updateButton() {
-        document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
-    }
-
-    getIterableCodeObject(): CodeConstruct {
-        return this.tokens[this.rangeIndex];
     }
 
     onFocusOff(): void {
@@ -1068,23 +991,7 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 }
 
-export class Argument {
-    type: DataType[];
-    name: string;
-    isOptional: boolean;
-
-    constructor(type: DataType[], name: string, isOptional: boolean) {
-        this.type = type;
-        this.name = name;
-        this.isOptional = isOptional;
-    }
-}
-
 export class EmptyLineStmt extends Statement {
-    toString(): string {
-        return "EmptyLine";
-    }
-
     hasEmptyToken = false;
 
     constructor(root?: Statement | Module, indexInRoot?: number) {
@@ -1111,6 +1018,10 @@ export class EmptyLineStmt extends Statement {
 
     getRenderText(): string {
         return "";
+    }
+
+    toString(): string {
+        return "EmptyLine";
     }
 }
 
@@ -1157,16 +1068,6 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
-
-    replaceIdentifier(code: CodeConstruct) {
-        this.oldIdentifier = this.getIdentifier();
-
-        this.replace(code, this.identifierIndex);
-    }
-
-    replaceValue(code: CodeConstruct) {
-        this.replace(code, this.valueIndex);
     }
 
     rebuild(pos: Position, fromIndex: number) {
