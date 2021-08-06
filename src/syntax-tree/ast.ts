@@ -8,9 +8,9 @@ import { Validator } from "../editor/validator";
 import { Position, Selection } from "monaco-editor";
 import { Util, hasMatch } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
-import { InsertionType, ListTypes, TAB_SPACES } from "./consts";
 import { VariableController } from "./variable-controller";
 import { Context, UpdatableContext } from "../editor/focus";
+import { InsertionType, ListTypes, TAB_SPACES } from "./consts";
 import { Notification } from "../notification-system/notification";
 import {
     AddableType,
@@ -164,7 +164,7 @@ export abstract class Statement implements CodeConstruct {
     lineNumber: number;
     left: number;
     right: number;
-    rootNode: CodeConstruct | Module = null;
+    rootNode: Statement | Module = null;
     indexInRoot: number;
     body = new Array<Statement>();
     scope: Scope = null;
@@ -463,6 +463,7 @@ export abstract class Statement implements CodeConstruct {
  * A statement that returns a value such as: binary operators, unary operators, function calls that return a value, literal values, and variables.
  */
 export abstract class Expression extends Statement implements CodeConstruct {
+    rootNode: Statement = null;
     isTextEditable = false;
     addableType: AddableType;
     // TODO: can change this to an Array to enable type checking when returning multiple items
@@ -474,14 +475,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
         this.returns = returns;
     }
 
-    isStatement(): boolean {
-        return this.returns == DataType.Void;
-    }
-
     getLineNumber(): number {
-        if (this.isStatement()) return this.lineNumber;
-        else if (this.rootNode instanceof Statement) return this.rootNode.getLineNumber();
-        else if (this.rootNode instanceof Expression) return this.rootNode.getLineNumber();
+        return this.rootNode.getLineNumber();
     }
 
     getSelection(): Selection {
@@ -491,9 +486,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
     }
 
     getParentStatement(): Statement {
-        if (this.isStatement()) return this as Statement;
-        else if (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) return this.rootNode;
-        else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
+        return this.rootNode.getParentStatement();
     }
 
     /**
@@ -663,12 +656,7 @@ export abstract class Token implements CodeConstruct {
     }
 
     getParentStatement(): Statement {
-        if (
-            (this.rootNode instanceof Statement && !(this.rootNode instanceof Expression)) ||
-            (this.rootNode instanceof Expression && this.rootNode.isStatement())
-        ) {
-            return this.rootNode as Statement;
-        } else if (this.rootNode instanceof Expression) return this.rootNode.getParentStatement();
+        return this.rootNode.getParentStatement();
     }
 
     performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
@@ -1122,7 +1110,7 @@ export class EmptyLineStmt extends Statement {
     addableType = AddableType.Statement;
     hasEmptyToken = false;
 
-    constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
+    constructor(root?: Statement | Module, indexInRoot?: number) {
         super();
 
         this.receives.push(AddableType.Statement);
@@ -1161,7 +1149,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     codeConstructName = ConstructName.VarAssignment;
     private oldIdentifier: string;
 
-    constructor(id?: string, root?: CodeConstruct | Module, indexInRoot?: number) {
+    constructor(id?: string, root?: Statement | Module, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
@@ -1403,7 +1391,7 @@ export class VariableReferenceExpr extends Expression {
     identifier: string;
     uniqueId: string;
 
-    constructor(id: string, returns: DataType, uniqueId: string, root?: CodeConstruct, indexInRoot?: number) {
+    constructor(id: string, returns: DataType, uniqueId: string, root?: Statement, indexInRoot?: number) {
         super(returns);
 
         const idToken = new NonEditableTkn(id);
@@ -1424,19 +1412,19 @@ export class VariableReferenceExpr extends Expression {
     }
 }
 
-export class FunctionCallStmt extends Expression {
+export class FunctionCallExpr extends Expression {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
-    addableType: AddableType;
+    addableType = AddableType.Expression;
     functionName: string = "";
 
     constructor(
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
-        root?: CodeConstruct | Module,
+        root?: Statement,
         indexInRoot?: number
     ) {
         super(returns);
@@ -1444,9 +1432,6 @@ export class FunctionCallStmt extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
-
-        if (this.isStatement()) this.addableType = AddableType.Statement;
-        else this.addableType = AddableType.Expression;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1470,11 +1455,62 @@ export class FunctionCallStmt extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        if (this.isStatement()) {
-            return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-        }
-
         return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    replaceArgument(index: number, to: CodeConstruct) {
+        this.replace(to, this.argumentsIndices[index]);
+    }
+
+    getFunctionName(): string {
+        return this.functionName;
+    }
+}
+
+export class FunctionCallStmt extends Statement {
+    /**
+     * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
+     */
+    private argumentsIndices = new Array<number>();
+    addableType = AddableType.Statement;
+    functionName: string = "";
+
+    constructor(
+        functionName: string,
+        args: Array<Argument>,
+        returns: DataType,
+        root?: Statement | Module,
+        indexInRoot?: number
+    ) {
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+        this.functionName = functionName;
+
+        if (args.length > 0) {
+            this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
+
+            // TODO: handle parenthesis in a better way (to be able to highlight the other when selecting one)
+
+            for (let i = 0; i < args.length; i++) {
+                let arg = args[i];
+
+                this.argumentsIndices.push(this.tokens.length);
+                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
+
+                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
+            }
+
+            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
+
+            this.hasEmptyToken = true;
+        } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -1488,8 +1524,8 @@ export class FunctionCallStmt extends Expression {
 
 export class ExprDotMethodStmt extends Expression {
     private argumentsIndices = new Array<number>();
+    addableType = AddableType.Expression;
     exprType: DataType;
-    addableType: AddableType;
     functionName: string = "";
     args: Array<Argument>;
 
@@ -1498,7 +1534,7 @@ export class ExprDotMethodStmt extends Expression {
         args: Array<Argument>,
         returns: DataType,
         exprType: DataType,
-        root?: CodeConstruct | Module,
+        root?: Statement | Expression,
         indexInRoot?: number
     ) {
         super(returns);
@@ -1508,9 +1544,6 @@ export class ExprDotMethodStmt extends Expression {
         this.functionName = functionName;
         this.exprType = exprType;
         this.args = args;
-
-        if (this.isStatement()) this.addableType = AddableType.Statement;
-        else this.addableType = AddableType.Expression;
 
         // just inserting a dummy expression
         this.tokens.push(null);
@@ -1606,9 +1639,8 @@ export class ListElementAssignment extends Statement {
 export class MemberCallStmt extends Expression {
     addableType = AddableType.Expression;
     operator: BinaryOperator;
-    private rightOperandIndex: number;
 
-    constructor(returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+    constructor(returns: DataType, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
         this.rootNode = root;
@@ -1630,7 +1662,6 @@ export class MemberCallStmt extends Expression {
             DataType.BooleanList,
         ];
         this.tokens.push(new NonEditableTkn("[", this, this.tokens.length));
-        this.rightOperandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn("]", this, this.tokens.length));
@@ -1650,7 +1681,7 @@ export class BinaryOperatorExpr extends Expression {
     private leftOperandIndex: number;
     private rightOperandIndex: number;
 
-    constructor(operator: BinaryOperator, returns: DataType, root?: CodeConstruct, indexInRoot?: number) {
+    constructor(operator: BinaryOperator, returns: DataType, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
         this.rootNode = root;
@@ -1921,7 +1952,7 @@ export class UnaryOperatorExpr extends Expression {
         operator: UnaryOp,
         returns: DataType,
         operatesOn: DataType = DataType.Any,
-        root?: CodeConstruct,
+        root?: Statement | Expression,
         indexInRoot?: number
     ) {
         super(returns);
@@ -2011,7 +2042,7 @@ export class EditableTextTkn extends Token implements TextEditable {
 export class LiteralValExpr extends Expression {
     addableType = AddableType.Expression;
 
-    constructor(returns: DataType, value?: string, root?: CodeConstruct, indexInRoot?: number) {
+    constructor(returns: DataType, value?: string, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
         switch (returns) {
@@ -2075,7 +2106,7 @@ export class LiteralValExpr extends Expression {
 export class ListLiteralExpression extends Expression {
     addableType = AddableType.Expression;
 
-    constructor(root?: CodeConstruct, indexInRoot?: number) {
+    constructor(root?: Statement | Expression, indexInRoot?: number) {
         super(DataType.AnyList);
 
         this.rootNode = root;

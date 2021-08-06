@@ -1,21 +1,12 @@
 import { Context } from "./focus";
 import { Validator } from "./validator";
-import { Module } from "../syntax-tree/module";
-import { ActionExecutor } from "./action-executor";
-import { DataType, InsertionType } from "../syntax-tree/consts";
-import {
-    BinaryOperatorExpr,
-    EmptyLineStmt,
-    Expression,
-    FunctionCallStmt,
-    Statement,
-    TypedEmptyExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-} from "../syntax-tree/ast";
-import { Actions, InsertActionType } from "./consts";
-import { Reference } from "../syntax-tree/scope";
 import { EventRouter } from "./event-router";
+import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
+import { ActionExecutor } from "./action-executor";
+import { Actions, InsertActionType } from "./consts";
+import { InsertionType } from "../syntax-tree/consts";
+import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
 
 export class ActionFilter {
     module: Module;
