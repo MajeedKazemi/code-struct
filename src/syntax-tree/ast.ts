@@ -13,7 +13,6 @@ import { Context, UpdatableContext } from "../editor/focus";
 import { InsertionType, ListTypes, TAB_SPACES } from "./consts";
 import { Notification } from "../notification-system/notification";
 import {
-    AddableType,
     BinaryOperator,
     BinaryOperatorCategory,
     DataType,
@@ -40,11 +39,6 @@ export interface CodeConstruct {
     indexInRoot: number;
 
     /**
-     * Different types of edits when adding this statement/expression/token.
-     */
-    receives: Array<AddableType>;
-
-    /**
      * The left column position of this code-construct.
      */
     left: number;
@@ -53,11 +47,6 @@ export interface CodeConstruct {
      * The right column position of this code-construct.
      */
     right: number;
-
-    /**
-     * Determines if this code-construct could be added (either from the toolbox or the autocomplete or elsewhere) to the program, and the type it accepts.
-     */
-    addableType: AddableType;
 
     /**
      * A warning or error notification for this code construct. (null if there are no notifications)
@@ -159,8 +148,6 @@ export interface CodeConstruct {
  */
 export abstract class Statement implements CodeConstruct {
     isTextEditable = false;
-    addableType: AddableType;
-    receives = new Array<AddableType>();
     lineNumber: number;
     left: number;
     right: number;
@@ -449,9 +436,7 @@ export abstract class Statement implements CodeConstruct {
      */
     onInsertInto(insertCode: CodeConstruct) {}
 
-    validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return InsertionType.Invalid;
-    }
+    abstract validateContext(validator: Validator, providedContext: Context): InsertionType;
 
     //actions that need to occur when the focus is switched off of this statement
     onFocusOff(arg: any): void {
@@ -465,7 +450,7 @@ export abstract class Statement implements CodeConstruct {
 export abstract class Expression extends Statement implements CodeConstruct {
     rootNode: Expression | Statement = null;
     isTextEditable = false;
-    addableType: AddableType;
+
     // TODO: can change this to an Array to enable type checking when returning multiple items
     returns: DataType;
 
@@ -562,10 +547,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
  */
 export abstract class Token implements CodeConstruct {
     isTextEditable = false;
-    addableType: AddableType;
     rootNode: CodeConstruct = null;
     indexInRoot: number;
-    receives = new Array<AddableType>();
     left: number;
     right: number;
     text: string;
@@ -699,7 +682,6 @@ export interface TextEditable {
 }
 
 export class WhileStatement extends Statement {
-    addableType = AddableType.Statement;
     scope: Scope;
     private conditionIndex: number;
 
@@ -728,7 +710,6 @@ export class WhileStatement extends Statement {
 }
 
 export class IfStatement extends Statement {
-    addableType = AddableType.Statement;
     private conditionIndex: number;
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
@@ -817,7 +798,6 @@ export class IfStatement extends Statement {
 }
 
 export class ElseStatement extends Statement {
-    addableType = AddableType.Statement;
     private conditionIndex: number;
     hasCondition: boolean = false;
 
@@ -872,8 +852,6 @@ export interface VariableContainer {
 }
 
 export class ForStatement extends Statement implements VariableContainer {
-    addableType = AddableType.Statement;
-
     buttonId: string;
     private counterIndex: number;
     private rangeIndex: number;
@@ -1107,13 +1085,10 @@ export class EmptyLineStmt extends Statement {
         return "EmptyLine";
     }
 
-    addableType = AddableType.Statement;
     hasEmptyToken = false;
 
     constructor(root?: Statement | Module, indexInRoot?: number) {
         super();
-
-        this.receives.push(AddableType.Statement);
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
@@ -1142,7 +1117,6 @@ export class EmptyLineStmt extends Statement {
 export class VarAssignmentStmt extends Statement implements VariableContainer {
     static uniqueId: number = 0;
     buttonId: string = ""; //note: this is used as both the DOM id of the reference button in the toolbox AND the unique id of the variable itself
-    addableType = AddableType.Statement;
     private identifierIndex: number;
     private valueIndex: number;
     dataType = DataType.Any;
@@ -1387,7 +1361,6 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
 export class VariableReferenceExpr extends Expression {
     isEmpty = false;
-    addableType = AddableType.Expression;
     identifier: string;
     uniqueId: string;
 
@@ -1417,7 +1390,6 @@ export class FunctionCallExpr extends Expression {
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
-    addableType = AddableType.Expression;
     functionName: string = "";
     args: Array<Argument>;
 
@@ -1499,7 +1471,6 @@ export class FunctionCallStmt extends Statement {
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
-    addableType = AddableType.Statement;
     functionName: string = "";
 
     constructor(
@@ -1551,7 +1522,6 @@ export class FunctionCallStmt extends Statement {
 
 export class ExprDotMethodStmt extends Expression {
     private argumentsIndices = new Array<number>();
-    addableType = AddableType.Expression;
     exprType: DataType;
     functionName: string = "";
     args: Array<Argument>;
@@ -1634,8 +1604,6 @@ export class ListElementAssignment extends Statement {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
-        this.addableType = AddableType.Statement;
-
         this.tokens.push(
             new TypedEmptyExpr(
                 [DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList],
@@ -1664,7 +1632,6 @@ export class ListElementAssignment extends Statement {
 }
 
 export class MemberCallStmt extends Expression {
-    addableType = AddableType.Expression;
     operator: BinaryOperator;
 
     constructor(returns: DataType, root?: Statement | Expression, indexInRoot?: number) {
@@ -1672,8 +1639,6 @@ export class MemberCallStmt extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-
-        this.addableType = AddableType.Expression;
 
         this.tokens.push(
             new TypedEmptyExpr(
@@ -1702,7 +1667,6 @@ export class MemberCallStmt extends Expression {
 }
 
 export class BinaryOperatorExpr extends Expression {
-    addableType = AddableType.Expression;
     operator: BinaryOperator;
     operatorCategory: BinaryOperatorCategory;
     private leftOperandIndex: number;
@@ -1724,8 +1688,6 @@ export class BinaryOperatorExpr extends Expression {
         } else {
             this.operatorCategory = BinaryOperatorCategory.Unspecified;
         }
-
-        this.addableType = AddableType.Expression;
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
 
@@ -1971,7 +1933,6 @@ export class BinaryOperatorExpr extends Expression {
 }
 
 export class UnaryOperatorExpr extends Expression {
-    addableType = AddableType.Expression;
     operator: UnaryOp;
     private operandIndex: number;
 
@@ -1987,8 +1948,6 @@ export class UnaryOperatorExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.operator = operator;
-
-        this.addableType = AddableType.Expression;
 
         this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
@@ -2067,8 +2026,6 @@ export class EditableTextTkn extends Token implements TextEditable {
 }
 
 export class LiteralValExpr extends Expression {
-    addableType = AddableType.Expression;
-
     constructor(returns: DataType, value?: string, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
@@ -2131,8 +2088,6 @@ export class LiteralValExpr extends Expression {
 }
 
 export class ListLiteralExpression extends Expression {
-    addableType = AddableType.Expression;
-
     constructor(root?: Statement | Expression, indexInRoot?: number) {
         super(DataType.AnyList);
 
@@ -2212,7 +2167,6 @@ export class ListComma extends Expression {
 
 export class IdentifierTkn extends Token implements TextEditable {
     isTextEditable = true;
-    addableType = AddableType.Identifier;
     validatorRegex: RegExp;
 
     constructor(identifier?: string, root?: CodeConstruct, indexInRoot?: number) {
@@ -2264,8 +2218,6 @@ export class TypedEmptyExpr extends Token {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.type = type;
-
-        this.receives.push(AddableType.Expression);
     }
 
     canReplaceWithConstruct(replaceWith: Expression): InsertionType {

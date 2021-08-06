@@ -100,17 +100,6 @@ export enum UnaryOp {
     USub = "-",
 }
 
-export enum AddableType {
-    NotAddable,
-
-    Statement = "Statement",
-    Expression = "Expression",
-    ExpressionModifier = "Expression Modifier",
-    Identifier = "Identifier",
-    NumberLiteral = "Number Literal",
-    StringLiteral = "String Literal",
-}
-
 export enum PythonKeywords {
     and = "and",
     as = "as",
