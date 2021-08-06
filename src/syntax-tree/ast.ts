@@ -514,25 +514,9 @@ export abstract class Expression extends Statement implements CodeConstruct {
         //we need to check types against the type of hole that used to be there and not the expression
         //that is currently there
 
-        //Need exception for FunctionCallStmt because it inherits from Expression and not just Statement
         //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
-        if (
-            (!(this.rootNode instanceof Expression) || this.rootNode instanceof FunctionCallStmt) &&
-            !(this.rootNode instanceof Module)
-        ) {
-            const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
 
-            let canConvertToParentType = hasMatch(
-                Util.getInstance().typeConversionMap.get(replaceWith.returns),
-                typesOfParentHole
-            );
-
-            if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
-                return InsertionType.DraftMode;
-            } else if (hasMatch(typesOfParentHole, [replaceWith.returns])) {
-                return InsertionType.Valid;
-            }
-        } else {
+        if (this.rootNode instanceof Expression) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
             if (replaceWith.returns === this.returns) {
                 return InsertionType.Valid;
@@ -543,6 +527,22 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 return InsertionType.DraftMode;
             } else {
                 return InsertionType.Invalid;
+            }
+        } else if (!(this.rootNode instanceof Module)) {
+            const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
+
+            let canConvertToParentType = hasMatch(
+                Util.getInstance().typeConversionMap.get(replaceWith.returns),
+                typesOfParentHole
+            );
+
+            if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
+                return InsertionType.DraftMode;
+            } else if (
+                typesOfParentHole.some((t) => t == DataType.Any) ||
+                hasMatch(typesOfParentHole, [replaceWith.returns])
+            ) {
+                return InsertionType.Valid;
             }
         }
     }
@@ -1419,6 +1419,7 @@ export class FunctionCallExpr extends Expression {
     private argumentsIndices = new Array<number>();
     addableType = AddableType.Expression;
     functionName: string = "";
+    args: Array<Argument>;
 
     constructor(
         functionName: string,
@@ -1432,6 +1433,7 @@ export class FunctionCallExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
+        this.args = args;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1455,6 +1457,31 @@ export class FunctionCallExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
+        if (validator.atLeftOfExpression(providedContext) && this.args.length == 1) {
+            // check if we can add to next
+            // has only one arg
+
+            const argType = this.args[0].type;
+            const canInsertExprIntoThisFunction =
+                argType.some((x) => x == DataType.Any) ||
+                hasMatch(argType, [providedContext.expressionToRight.returns]);
+
+            const map = Util.getInstance().typeConversionMap.get(providedContext.expressionToRight.returns);
+
+            const willItBeDraftMode = hasMatch(map, argType);
+            const canFunctionBeInsertedAtCurrentHole = providedContext.expressionToRight.canReplaceWithConstruct(this);
+
+            if (canInsertExprIntoThisFunction && canFunctionBeInsertedAtCurrentHole == InsertionType.Valid) {
+                return InsertionType.Valid;
+            } else {
+                const states = [willItBeDraftMode, canFunctionBeInsertedAtCurrentHole];
+
+                if (states.some((s) => s == InsertionType.Invalid)) return InsertionType.Invalid;
+                else if (states.every((s) => s == InsertionType.Valid)) return InsertionType.Valid;
+                else if (states.some((s) => s == InsertionType.DraftMode)) return InsertionType.DraftMode;
+            }
+        }
+
         return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
