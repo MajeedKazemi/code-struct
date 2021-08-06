@@ -26,6 +26,8 @@ export class Focus {
 
     constructor(module: Module) {
         this.module = module;
+
+        this.module.editor.monaco.onDidChangeCursorPosition((e) => this.fireOnNavChangeCallbacks());
     }
 
     subscribeOnNavChangeCallback(callback: (c: Context) => void) {
