@@ -1,21 +1,23 @@
 import * as React from 'react';
+import { Module } from '../../syntax-tree/module';
 
 type Props = {}
 type State = {}
 
-class Editor extends React.Component<Props, State>{
-    
+
+
+class EditorComponent extends React.Component<Props, State>{
+    static EditorParentId = "mainEditorDiv"
   
     render(){
       return (
-        <div id = "mainEditorDiv">
+        <div id = {EditorComponent.EditorParentId}>
         </div>
     );
   }
 }
 
-
-export default Editor;
+export default EditorComponent;
 
 
 

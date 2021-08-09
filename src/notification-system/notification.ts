@@ -2,6 +2,7 @@ import { Selection } from "monaco-editor";
 import { Editor } from "../editor/editor";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
+import EditorComponent from "../components/Editor";
 
 /**
  * Class name of the DOM element to which notifications are appended to.
@@ -333,12 +334,12 @@ export class HoverNotification extends Notification {
         const editorDims = {
             width: (
                 document
-                    .getElementById("editor")
+                    .getElementById(EditorComponent.EditorParentId)
                     .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
             ).offsetWidth,
             height: (
                 document
-                    .getElementById("editor")
+                    .getElementById(EditorComponent.EditorParentId)
                     .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
             ).offsetHeight,
         };
@@ -359,10 +360,10 @@ export class HoverNotification extends Notification {
      */
     private updateMouseOffsets() {
         this.mouseLeftOffset =
-            document.getElementById("editor").offsetLeft +
+            document.getElementById(EditorComponent.EditorParentId).offsetLeft +
             (
                 document
-                    .getElementById("editor")
+                    .getElementById(EditorComponent.EditorParentId)
                     .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
                     .getElementsByClassName("overflow-guard")[0]
                     .getElementsByClassName("margin")[0] as HTMLElement
@@ -370,7 +371,9 @@ export class HoverNotification extends Notification {
 
         //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
         //wrong from time to time...
-        this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
+        this.mouseTopOffset = parseFloat(
+            window.getComputedStyle(document.getElementById(EditorComponent.EditorParentId)).paddingTop
+        );
     }
 
     private scheduleCollisionCheck() {
