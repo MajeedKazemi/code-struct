@@ -15,7 +15,7 @@ import {
     Token,
     TypedEmptyExpr,
     ValueOperationExpr,
-    VariableReferenceExpr
+    VariableReferenceExpr,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";
@@ -447,27 +447,56 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertModifier: {
-                const initialBoundary = this.getBoundaries(context.expressionToLeft);
-                const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
-                const valOprExpr = new ValueOperationExpr(
-                    context.expressionToLeft,
-                    [action.data.modifier as Modifier],
-                    context.expressionToLeft.rootNode,
-                    context.expressionToLeft.indexInRoot
-                );
+                if (
+                    context.expressionToLeft instanceof Modifier &&
+                    context.expressionToLeft.rootNode instanceof ValueOperationExpr
+                ) {
+                    const initialBoundary = this.getBoundaries(context.expressionToLeft.rootNode);
+                    const exprToLeftRoot = context.expressionToLeft.rootNode.rootNode as Statement;
+                    const valOprExpr = new ValueOperationExpr(
+                        context.expressionToLeft.rootNode.getValueExpr(),
+                        [...context.expressionToLeft.rootNode.getModifiers(), action.data.modifier as Modifier],
+                        context.expressionToLeft.rootNode.rootNode,
+                        context.expressionToLeft.rootNode.indexInRoot
+                    );
 
-                const replacementType = context.expressionToLeft.canReplaceWithConstruct(valOprExpr);
+                    const replacementType = context.expressionToLeft.rootNode.canReplaceWithConstruct(valOprExpr);
 
-                if (replacementType !== InsertionType.Invalid) {
-                    this.module.closeConstructDraftRecord(context.expressionToLeft);
+                    if (replacementType !== InsertionType.Invalid) {
+                        this.module.closeConstructDraftRecord(context.expressionToLeft.rootNode);
 
-                    exprToLeftRoot.tokens[context.expressionToLeft.indexInRoot] = valOprExpr;
-                    exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
+                        exprToLeftRoot.tokens[context.expressionToLeft.rootNode.indexInRoot] = valOprExpr;
+                        exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
 
-                    this.module.editor.executeEdits(initialBoundary, valOprExpr);
-                    this.module.focus.updateContext(valOprExpr.getInitialFocus());
+                        this.module.editor.executeEdits(initialBoundary, valOprExpr);
+                        this.module.focus.updateContext(action.data.modifier.getInitialFocus());
 
-                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                        if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                    }
+                } else {
+                    let initialBoundary = this.getBoundaries(context.expressionToLeft);
+                    let exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
+
+                    const valOprExpr = new ValueOperationExpr(
+                        context.expressionToLeft,
+                        [action.data.modifier as Modifier],
+                        context.expressionToLeft.rootNode,
+                        context.expressionToLeft.indexInRoot
+                    );
+
+                    const replacementType = context.expressionToLeft.canReplaceWithConstruct(valOprExpr);
+
+                    if (replacementType !== InsertionType.Invalid) {
+                        this.module.closeConstructDraftRecord(context.expressionToLeft);
+
+                        exprToLeftRoot.tokens[context.expressionToLeft.indexInRoot] = valOprExpr;
+                        exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
+
+                        this.module.editor.executeEdits(initialBoundary, valOprExpr);
+                        this.module.focus.updateContext(valOprExpr.getInitialFocus());
+
+                        if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                    }
                 }
 
                 break;

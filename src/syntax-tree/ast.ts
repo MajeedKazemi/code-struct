@@ -539,6 +539,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
 }
 
 export abstract class Modifier extends Expression {
+    rootNode: ValueOperationExpr | VarOperationStmt;
+
     constructor() {
         super(null);
     }
@@ -1298,14 +1300,32 @@ export class ValueOperationExpr extends Expression {
         this.tokens.push(value);
 
         for (const mod of modifiers) {
-            mod.indexInRoot = this.tokens.length;
-            mod.rootNode = this;
-
-            this.tokens.push(mod);
-
-            // always take the last modifier's return value for the whole expression:
-            this.returns = mod.returns;
+            this.appendModifier(mod);
         }
+    }
+
+    getModifiers(): Array<Modifier> {
+        const modifiers = [];
+
+        for (const code of this.tokens) {
+            if (code instanceof Modifier) modifiers.push(code);
+        }
+
+        return modifiers;
+    }
+
+    getValueExpr(): Expression {
+        return this.tokens[0] as Expression;
+    }
+
+    appendModifier(mod: Modifier) {
+        mod.indexInRoot = this.tokens.length;
+        mod.rootNode = this;
+
+        this.tokens.push(mod);
+
+        // always take the last modifier's return value for the whole expression:
+        this.returns = mod.returns;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
