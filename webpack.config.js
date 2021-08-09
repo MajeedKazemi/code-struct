@@ -12,6 +12,7 @@ module.exports = {
     'css.worker': 'monaco-editor/esm/vs/language/css/css.worker',
     'html.worker': 'monaco-editor/esm/vs/language/html/html.worker',
     'ts.worker': 'monaco-editor/esm/vs/language/typescript/ts.worker',
+    "shared": ["lodash", "react", 'react-dom', 'styled-components'],
   },
   mode: "development",
   devtool: "inline-source-map",
@@ -19,11 +20,14 @@ module.exports = {
     filename: '[name].bundle.js',
     path: path.resolve(__dirname, 'dist'),
     clean: true,
-    publicPath: '/',
     globalObject: 'self'
   },
   resolve: {
-      extensions: ['*', '.tsx', '.ts', '.js', '.jsx']
+      extensions: ['*', '.tsx', '.ts', '.js', '.jsx'],
+      alias: {
+        react: path.resolve('node_modules/react'),
+        ReactDOM:  path.resolve('node_modules/react-dom')
+      },
   },
   module: {
     rules: [
@@ -54,10 +58,14 @@ module.exports = {
     },
     ],
   },
+  optimization: {
+    runtimeChunk: 'single',
+  },
   plugins: [
     new HtmlWebpackPlugin({
         title: "Nova Editor",
         template: path.join(__dirname, 'dist', 'index.html'),
+        inject: false
     }, new webpack.optimize.SplitChunksPlugin({
              name: "vendor",
              minChunks: Infinity,

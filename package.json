@@ -11,7 +11,9 @@
   "keywords": [],
   "author": "Majeed Kazemitaabar, Viktar Chyhir",
   "license": "GPL-3.0",
-  "resolutions": { "styled-components": "4.2.1" },
+  "resolutions": {
+    "styled-components": "4.2.1"
+  },
   "devDependencies": {
     "@babel/core": "^7.13.0",
     "@babel/preset-env": "^7.11.5",
