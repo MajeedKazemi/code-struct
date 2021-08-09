@@ -4,7 +4,6 @@ import {
     Argument,
     BinaryOperatorExpr,
     ElseStatement,
-    ExprDotMethodStmt,
     ForStatement,
     FunctionCallExpr,
     FunctionCallStmt,
@@ -14,6 +13,7 @@ import {
     ListLiteralExpression,
     LiteralValExpr,
     MemberCallStmt,
+    MethodCallModifier,
     UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
@@ -140,8 +140,9 @@ export enum EditActionType {
 
     InsertVarAssignStatement,
     InsertVariableRef,
-    InsertDotMethod,
     InsertElseStatement,
+
+    InsertModifier,
 }
 
 export enum ConstructName {
@@ -439,7 +440,7 @@ export class Actions {
                 ".find(---)",
                 "add-find-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "find",
                         [new Argument([DataType.String], "item", false)],
                         DataType.String,
@@ -498,7 +499,7 @@ export class Actions {
                 ".append(---)",
                 "add-list-append-stmt-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "append",
                         [new Argument([DataType.Any], "object", false)],
                         DataType.Void,
@@ -511,7 +512,7 @@ export class Actions {
                 ".replace(---, ---)",
                 "add-replace-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "replace",
                         [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
                         DataType.String,
@@ -524,7 +525,7 @@ export class Actions {
                 ".join(---)",
                 "add-join-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "join",
                         [
                             new Argument(
@@ -556,7 +557,7 @@ export class Actions {
                 ".split(---)",
                 "add-split-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "split",
                         [new Argument([DataType.String], "sep", false)],
                         DataType.StringList,

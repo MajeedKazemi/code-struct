@@ -383,15 +383,9 @@ export class EventRouter {
             }
 
             case InsertActionType.InsertListIndexAccessor: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type to be a list
-
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MemberCallStmt(DataType.Any),
-                    });
-                }
-
-                break;
+                return new EditAction(EditActionType.InsertExpression, {
+                    expression: new ast.MemberCallStmt(DataType.Any),
+                });
             }
 
             case InsertActionType.InsertListAppendMethod:
@@ -399,13 +393,7 @@ export class EventRouter {
             case InsertActionType.InsertStringJoinMethod:
             case InsertActionType.InsertStringReplaceMethod:
             case InsertActionType.InsertStringFindMethod: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type to be correct
-
-                    return new EditAction(EditActionType.InsertDotMethod, { method: e.getCode() });
-                }
-
-                break;
+                return new EditAction(EditActionType.InsertModifier, { modifier: e.getCode() });
             }
 
             case InsertActionType.InsertLenExpr: {

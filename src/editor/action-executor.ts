@@ -24,7 +24,8 @@ import {
     VariableReferenceExpr,
     ElseStatement,
     EmptyLineStmt,
-    ExprDotMethodStmt,
+    ValueOperationExpr,
+    Modifier,
 } from "../syntax-tree/ast";
 
 export class ActionExecutor {
@@ -149,7 +150,7 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteNextToken: {
-                if (context.expressionToRight.rootNode instanceof ExprDotMethodStmt) {
+                if (context.expressionToRight.rootNode instanceof ValueOperationExpr) {
                     this.deleteCode(context.expressionToRight.rootNode);
                 } else this.deleteCode(context.expressionToRight);
 
@@ -157,28 +158,25 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeletePrevToken: {
-                if (context.expressionToLeft instanceof ExprDotMethodStmt) {
-                    // replace
-                    const initialBoundary = this.getBoundaries(context.expressionToLeft);
-                    const expr = context.expressionToLeft.getExpression();
-                    const insertionType = expr.canReplaceWithConstruct(expr);
-                    this.module.closeConstructDraftRecord(context.expressionToLeft);
-
-                    const root = context.expressionToLeft.getParentStatement();
-                    const dotMethodExpRoot = context.expressionToLeft.rootNode as Statement;
-                    context.expressionToLeft.onDelete();
-
-                    dotMethodExpRoot.tokens[context.expressionToLeft.indexInRoot] = expr;
-                    expr.rootNode = dotMethodExpRoot;
-                    expr.indexInRoot = context.expressionToLeft.indexInRoot;
-
-                    root.rebuild(root.getLeftPosition(), 0);
-
-                    this.module.editor.executeEdits(initialBoundary, expr);
-
-                    if (insertionType === InsertionType.DraftMode) {
-                        this.module.openDraftMode(expr);
-                    }
+                if (context.expressionToLeft instanceof ValueOperationExpr) {
+                    // TODO: should only remove the last modifier from the ValueOperationExpr and keep the rest
+                    //
+                    // TODO: remove this:
+                    // const initialBoundary = this.getBoundaries(context.expressionToLeft);
+                    // const expr = context.expressionToLeft.getExpression();
+                    // const insertionType = expr.canReplaceWithConstruct(expr);
+                    // this.module.closeConstructDraftRecord(context.expressionToLeft);
+                    // const root = context.expressionToLeft.getParentStatement();
+                    // const dotMethodExpRoot = context.expressionToLeft.rootNode as Statement;
+                    // context.expressionToLeft.onDelete();
+                    // dotMethodExpRoot.tokens[context.expressionToLeft.indexInRoot] = expr;
+                    // expr.rootNode = dotMethodExpRoot;
+                    // expr.indexInRoot = context.expressionToLeft.indexInRoot;
+                    // root.rebuild(root.getLeftPosition(), 0);
+                    // this.module.editor.executeEdits(initialBoundary, expr);
+                    // if (insertionType === InsertionType.DraftMode) {
+                    //     this.module.openDraftMode(expr);
+                    // }
                 } else this.deleteCode(context.expressionToLeft);
 
                 break;
@@ -449,27 +447,28 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.InsertDotMethod: {
+            case EditActionType.InsertModifier: {
                 const initialBoundary = this.getBoundaries(context.expressionToLeft);
-                const root = context.expressionToLeft.rootNode as Statement;
-                const index = context.expressionToLeft.indexInRoot;
-                const methodCall = action.data.method as ExprDotMethodStmt;
+                const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
+                const valOprExpr = new ValueOperationExpr(
+                    context.expressionToLeft,
+                    [action.data.modifier as Modifier],
+                    context.expressionToLeft.rootNode,
+                    context.expressionToLeft.indexInRoot
+                );
 
-                const replacementType = context.expressionToLeft.canReplaceWithConstruct(methodCall);
+                const replacementType = context.expressionToLeft.canReplaceWithConstruct(valOprExpr);
 
                 if (replacementType !== InsertionType.Invalid) {
-                    this.module.closeConstructDraftRecord(root.tokens[index]);
+                    this.module.closeConstructDraftRecord(context.expressionToLeft);
 
-                    methodCall.setExpression(context.expressionToLeft);
-                    methodCall.indexInRoot = index;
-                    methodCall.rootNode = root;
-                    root.tokens[index] = methodCall;
-                    root.rebuild(root.getLeftPosition(), 0);
+                    exprToLeftRoot.tokens[context.expressionToLeft.indexInRoot] = valOprExpr;
+                    exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
 
-                    this.module.editor.executeEdits(initialBoundary, methodCall);
-                    this.module.focus.updateContext(methodCall.getInitialFocus());
+                    this.module.editor.executeEdits(initialBoundary, valOprExpr);
+                    this.module.focus.updateContext(valOprExpr.getInitialFocus());
 
-                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(methodCall);
+                    if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                 }
 
                 break;

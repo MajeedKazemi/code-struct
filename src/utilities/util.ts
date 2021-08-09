@@ -5,18 +5,13 @@ import { ConstructDoc } from "../suggestions/construct-doc";
 import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 import {
     Argument,
-    BinaryOperatorExpr,
     CodeConstruct,
-    ElseStatement,
     ForStatement,
     FunctionCallStmt,
     IfStatement,
     ListElementAssignment,
     ListLiteralExpression,
-    LiteralValExpr,
     MemberCallStmt,
-    ExprDotMethodStmt,
-    UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
@@ -115,78 +110,6 @@ export enum ConstructKeys {
     ListElementAssignment = "List Element Assignment",
 }
 
-export const constructToToolboxButton = new Map<ConstructKeys, string>([
-    [ConstructKeys.VariableAssignment, "add-var-btn"],
-
-    [ConstructKeys.PrintCall, "add-print-btn"],
-
-    [ConstructKeys.RandintCall, "add-randint-btn"],
-
-    [ConstructKeys.RangeCall, "add-range-btn"],
-
-    [ConstructKeys.LenCall, "add-len-btn"],
-
-    [ConstructKeys.StringLiteral, "add-str-btn"],
-
-    [ConstructKeys.NumberLiteral, "add-num-btn"],
-
-    [ConstructKeys.True, "add-true-btn"],
-
-    [ConstructKeys.False, "add-false-btn"],
-
-    [ConstructKeys.Addition, "add-bin-add-expr-btn"],
-
-    [ConstructKeys.Subtraction, "add-bin-sub-expr-btn"],
-
-    [ConstructKeys.Multiplication, "add-bin-mul-expr-btn"],
-
-    [ConstructKeys.Division, "add-bin-div-expr-btn"],
-
-    [ConstructKeys.And, "add-bin-and-expr-btn"],
-
-    [ConstructKeys.Or, "add-bin-or-expr-btn"],
-
-    [ConstructKeys.Not, "add-unary-not-expr-btn"],
-
-    [ConstructKeys.Equals, "add-comp-eq-expr-btn"],
-
-    [ConstructKeys.NotEquals, "add-comp-neq-expr-btn"],
-
-    [ConstructKeys.LessThan, "add-comp-lt-expr-btn"],
-
-    [ConstructKeys.LessThanOrEqual, "add-comp-lte-expr-btn"],
-
-    [ConstructKeys.GreaterThan, "add-comp-gt-expr-btn"],
-
-    [ConstructKeys.GreaterThanOrEqual, "add-comp-gte-expr-btn"],
-
-    [ConstructKeys.While, "add-while-expr-btn"],
-
-    [ConstructKeys.If, "add-if-expr-btn"],
-
-    [ConstructKeys.Elif, "add-elif-expr-btn"],
-
-    [ConstructKeys.Else, "add-else-expr-btn"],
-
-    [ConstructKeys.For, "add-for-expr-btn"],
-
-    [ConstructKeys.ListLiteral, "add-list-literal-btn"],
-
-    [ConstructKeys.SplitCall, "add-split-method-call-btn"],
-
-    [ConstructKeys.JoinCall, "add-join-method-call-btn"],
-
-    [ConstructKeys.ReplaceCall, "add-replace-method-call-btn"],
-
-    [ConstructKeys.FindCall, "add-find-method-call-btn"],
-
-    [ConstructKeys.ListElementAssignment, "add-list-elem-assign-btn"],
-
-    [ConstructKeys.AppendCall, "add-list-append-stmt-btn"],
-
-    [ConstructKeys.MemberCall, "add-list-index-btn"],
-]);
-
 export class Util {
     private static instance: Util;
 
@@ -197,7 +120,7 @@ export class Util {
     module: Module;
 
     private constructor(module?: Module) {
-        if(module){
+        if (module) {
             this.module = module;
         }
 
@@ -218,125 +141,6 @@ export class Util {
             [DataType.StringList, [DataType.Boolean]],
             [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]],
         ]);
-
-        this.dummyToolboxConstructs = new Map<string, CodeConstruct>([
-            [ConstructKeys.VariableAssignment, new VarAssignmentStmt()],
-            [
-                ConstructKeys.PrintCall,
-                new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void),
-            ],
-            [
-                ConstructKeys.RandintCall,
-                new FunctionCallStmt(
-                    "randint",
-                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
-                    DataType.Number
-                ),
-            ],
-            [
-                ConstructKeys.RangeCall,
-                new FunctionCallStmt(
-                    "range",
-                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
-                    DataType.NumberList
-                ),
-            ],
-            [
-                ConstructKeys.LenCall,
-                new FunctionCallStmt(
-                    "len",
-                    [
-                        new Argument(
-                            [DataType.AnyList, DataType.StringList, DataType.BooleanList, DataType.NumberList],
-                            "list",
-                            false
-                        ),
-                    ],
-                    DataType.Number
-                ),
-            ],
-            [ConstructKeys.StringLiteral, new LiteralValExpr(DataType.String)],
-            [ConstructKeys.NumberLiteral, new LiteralValExpr(DataType.Number)],
-            [ConstructKeys.True, new LiteralValExpr(DataType.Boolean, "True")],
-            [ConstructKeys.False, new LiteralValExpr(DataType.Boolean, "False")],
-            [ConstructKeys.Addition, new BinaryOperatorExpr(BinaryOperator.Add, DataType.Any)],
-            [ConstructKeys.Subtraction, new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Any)],
-            [ConstructKeys.Multiplication, new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Any)],
-            [ConstructKeys.Division, new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Any)],
-            [ConstructKeys.And, new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean)],
-            [ConstructKeys.Or, new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean)],
-            [ConstructKeys.Not, new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean, DataType.Boolean)],
-            [ConstructKeys.Equals, new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean)],
-            [ConstructKeys.NotEquals, new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean)],
-            [ConstructKeys.LessThan, new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean)],
-            [ConstructKeys.LessThanOrEqual, new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean)],
-            [ConstructKeys.GreaterThan, new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean)],
-            [
-                ConstructKeys.GreaterThanOrEqual,
-                new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
-            ],
-            [ConstructKeys.While, new WhileStatement()],
-            [ConstructKeys.If, new IfStatement()],
-            [ConstructKeys.Elif, new ElseStatement(true)],
-            [ConstructKeys.Else, new ElseStatement(false)],
-            [ConstructKeys.For, new ForStatement()],
-            [ConstructKeys.ListLiteral, new ListLiteralExpression()],
-            [ConstructKeys.MemberCall, new MemberCallStmt(DataType.AnyList)],
-            [
-                ConstructKeys.AppendCall,
-                new ExprDotMethodStmt(
-                    "append",
-                    [new Argument([DataType.Any], "object", false)],
-                    DataType.Void,
-                    DataType.AnyList
-                ),
-            ],
-            [
-                ConstructKeys.SplitCall,
-                new ExprDotMethodStmt(
-                    "split",
-                    [new Argument([DataType.String], "sep", false)],
-                    DataType.StringList,
-                    DataType.String
-                ),
-            ],
-            [
-                ConstructKeys.JoinCall,
-                new ExprDotMethodStmt(
-                    "join",
-                    [
-                        new Argument(
-                            [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
-                            "items",
-                            false
-                        ),
-                    ],
-                    DataType.String,
-                    DataType.String
-                ),
-            ],
-            [
-                ConstructKeys.ReplaceCall,
-                new ExprDotMethodStmt(
-                    "replace",
-                    [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
-                    DataType.String,
-                    DataType.String
-                ),
-            ],
-            [
-                ConstructKeys.FindCall,
-                new ExprDotMethodStmt(
-                    "find",
-                    [new Argument([DataType.String], "item", false)],
-                    DataType.Number,
-                    DataType.String
-                ),
-            ],
-            [ConstructKeys.ListElementAssignment, new ListElementAssignment()],
-        ]);
-
-        ///
 
         this.constructActions = new Map<ConstructKeys, Function>([
             [
@@ -800,7 +604,7 @@ export class Util {
             [
                 ConstructKeys.AppendCall,
                 () => {
-                    return new EditAction(EditActionType.InsertDotMethod, {
+                    return new EditAction(EditActionType.InsertModifier, {
                         functionName: "append",
                         returns: DataType.Void,
                         args: [new Argument([DataType.Any], "object", false)],
@@ -819,7 +623,7 @@ export class Util {
             [
                 ConstructKeys.SplitCall,
                 () => {
-                    return new EditAction(EditActionType.InsertDotMethod, {
+                    return new EditAction(EditActionType.InsertModifier, {
                         functionName: "split",
                         returns: DataType.StringList,
                         args: [new Argument([DataType.String], "sep", false)],
@@ -830,7 +634,7 @@ export class Util {
             [
                 ConstructKeys.JoinCall,
                 () => {
-                    return new EditAction(EditActionType.InsertDotMethod, {
+                    return new EditAction(EditActionType.InsertModifier, {
                         functionName: "join",
                         returns: DataType.String,
                         args: [
@@ -847,7 +651,7 @@ export class Util {
             [
                 ConstructKeys.ReplaceCall,
                 () => {
-                    return new EditAction(EditActionType.InsertDotMethod, {
+                    return new EditAction(EditActionType.InsertModifier, {
                         functionName: "replace",
                         returns: DataType.String,
                         args: [
@@ -861,7 +665,7 @@ export class Util {
             [
                 ConstructKeys.FindCall,
                 () => {
-                    return new EditAction(EditActionType.InsertDotMethod, {
+                    return new EditAction(EditActionType.InsertModifier, {
                         functionName: "find",
                         returns: DataType.Number,
                         args: [new Argument([DataType.String], "item", false)],
@@ -909,17 +713,6 @@ export function hasMatch(list1: any[], list2: any[]): boolean {
     }
 
     return false;
-}
-
-/**
- * Creates empty spaces based on the given count.
- */
-export function emptySpaces(count: number): string {
-    let spaces = "";
-
-    for (let i = 0; i < count; i++) spaces += " ";
-
-    return spaces;
 }
 
 export function hasMatchWithIndex<T>(list1: T[], list2: T[]): [number, number] {
