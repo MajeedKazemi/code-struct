@@ -1,5 +1,8 @@
 import * as React from 'react';
 
+import './style.css'
+
+
 type Props = {className: string}
 type State = {}
 

@@ -5,6 +5,9 @@ import styled from "styled-components";
 import Toolbox from "../Toolbox"
 import Editor from "../Editor"
 
+import './style.css'
+
+
 
 class MainView extends React.Component<{}, {}>{
 
@@ -14,6 +17,12 @@ class MainView extends React.Component<{}, {}>{
         background-color: red;
     `
 
+  StyledEditor = styled(Editor)`
+    width: 80%;
+    height: 100%;
+
+  `
+
   render(){
 
     
@@ -21,7 +30,7 @@ class MainView extends React.Component<{}, {}>{
     return (
       <div id = "mainView">
           <this.StyledToolbox/>
-          <Editor/>
+          <this.StyledEditor/>
       </div>
     );
   }

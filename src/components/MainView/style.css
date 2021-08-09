@@ -1,4 +1,15 @@
-#mainView{
-
+#root {
+    width: 100%;
+    min-height: 100vh;
+    max-height: fit-content;
+    display: block;
 }
 
+#mainView {
+    width: 100%;
+    min-height: 100vh;
+    max-height: fit-content;
+    display: grid;
+    grid-template-columns: 20% 80%;
+    grid-template-rows: 100%;
+}

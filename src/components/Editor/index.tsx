@@ -1,7 +1,10 @@
 import * as React from 'react';
 import { Module } from '../../syntax-tree/module';
 
-type Props = {}
+import './style.css'
+
+
+type Props = {className}
 type State = {}
 
 
@@ -11,7 +14,7 @@ class EditorComponent extends React.Component<Props, State>{
   
     render(){
       return (
-        <div id = {EditorComponent.EditorParentId}>
+        <div id = {EditorComponent.EditorParentId} className = {this.props.className}>
         </div>
     );
   }
