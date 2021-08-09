@@ -1,4 +1,7 @@
 {
     "cSpell.words": ["elif", "randint", "consts"],
-    "editor.formatOnSave": true
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    }
 }

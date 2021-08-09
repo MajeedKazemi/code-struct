@@ -1,8 +1,6 @@
-import { Module } from "../syntax-tree/module";
-import { EditAction } from "../editor/data-types";
 import { EditActionType } from "../editor/consts";
+import { EditAction } from "../editor/data-types";
 import { ConstructDoc } from "../suggestions/construct-doc";
-import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 import {
     Argument,
     CodeConstruct,
@@ -13,8 +11,10 @@ import {
     ListLiteralExpression,
     MemberCallStmt,
     VarAssignmentStmt,
-    WhileStatement,
+    WhileStatement
 } from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
+import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
 
 /**
  * IMPORTANT!!!

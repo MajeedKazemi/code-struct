@@ -1,32 +1,32 @@
-import { Context } from "./focus";
-import { EditActionType } from "./consts";
-import { EditAction } from "./data-types";
-import { Module } from "../syntax-tree/module";
 import { Position, Range } from "monaco-editor";
-import { Reference } from "../syntax-tree/scope";
-import { CallbackType } from "../syntax-tree/callback";
-import { ConstructKeys, Util } from "../utilities/util";
-import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
-import { BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
 import {
-    IdentifierTkn,
-    LiteralValExpr,
-    NonEditableTkn,
-    TypedEmptyExpr,
-    ListLiteralExpression,
-    CodeConstruct,
-    Statement,
-    Expression,
-    Token,
     BinaryOperatorExpr,
-    VariableReferenceExpr,
+    CodeConstruct,
     ElseStatement,
     EmptyLineStmt,
-    ValueOperationExpr,
+    Expression,
+    IdentifierTkn,
+    ListLiteralExpression,
+    LiteralValExpr,
     Modifier,
+    NonEditableTkn,
+    Statement,
+    Token,
+    TypedEmptyExpr,
+    ValueOperationExpr,
+    VariableReferenceExpr
 } from "../syntax-tree/ast";
+import { rebuildBody, replaceInBody } from "../syntax-tree/body";
+import { CallbackType } from "../syntax-tree/callback";
+import { BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
+import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
+import { ConstructKeys, Util } from "../utilities/util";
+import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
+import { EditActionType } from "./consts";
+import { EditAction } from "./data-types";
+import { Context } from "./focus";
 
 export class ActionExecutor {
     module: Module;
@@ -39,7 +39,6 @@ export class ActionExecutor {
         const context = providedContext ? providedContext : this.module.focus.getContext();
         const selection = this.module.editor.monaco.getSelection();
 
-        let focusedNode = context.token && context.selected ? context.token : context.lineStatement;
         let suggestions = [];
         let preventDefaultEvent = true;
 

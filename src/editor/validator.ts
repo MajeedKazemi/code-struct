@@ -1,8 +1,3 @@
-import { Context } from "./focus";
-import { Module } from "../syntax-tree/module";
-import { Reference } from "../syntax-tree/scope";
-import { VariableController } from "../syntax-tree/variable-controller";
-import { DataType, InsertionType, TAB_SPACES } from "./../syntax-tree/consts";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -14,8 +9,13 @@ import {
     NonEditableTkn,
     Statement,
     TypedEmptyExpr,
-    VarAssignmentStmt,
+    VarAssignmentStmt
 } from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
+import { VariableController } from "../syntax-tree/variable-controller";
+import { DataType, InsertionType, TAB_SPACES } from "./../syntax-tree/consts";
+import { Context } from "./focus";
 
 export class Validator {
     module: Module;

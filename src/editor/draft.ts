@@ -1,6 +1,6 @@
-import { Module } from "../syntax-tree/module";
-import { Expression } from "../syntax-tree/ast";
 import { HoverNotification } from "../notification-system/notification";
+import { Expression } from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
 
 export class DraftRecord {
     code: Expression;

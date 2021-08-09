@@ -1,25 +1,29 @@
-import { Scope } from "./scope";
-import { Module } from "./module";
-import { TypeChecker } from "./type-checker";
-import { DraftRecord } from "../editor/draft";
-import { ConstructName } from "../editor/consts";
-import { Validator } from "../editor/validator";
 import { Position, Selection } from "monaco-editor";
-import { Util, hasMatch } from "../utilities/util";
-import { Callback, CallbackType } from "./callback";
-import { VariableController } from "./variable-controller";
+import { ConstructName } from "../editor/consts";
+import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
-import { AugmentedAssignmentOperator, IndexableTypes, InsertionType, ListTypes, TAB_SPACES } from "./consts";
+import { Validator } from "../editor/validator";
 import { Notification } from "../notification-system/notification";
+import { hasMatch, Util } from "../utilities/util";
+import { Callback, CallbackType } from "./callback";
 import {
+    arithmeticOps,
+    AugmentedAssignmentOperator,
     BinaryOperator,
     BinaryOperatorCategory,
-    DataType,
-    UnaryOp,
-    arithmeticOps,
     boolOps,
     comparisonOps,
+    DataType,
+    IndexableTypes,
+    InsertionType,
+    ListTypes,
+    TAB_SPACES,
+    UnaryOp,
 } from "./consts";
+import { Module } from "./module";
+import { Scope } from "./scope";
+import { TypeChecker } from "./type-checker";
+import { VariableController } from "./variable-controller";
 
 export interface CodeConstruct {
     /**

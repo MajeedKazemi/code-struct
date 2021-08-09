@@ -1,5 +1,3 @@
-import { BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
-import { EditCodeAction } from "./action-filter";
 import {
     Argument,
     BinaryOperatorExpr,
@@ -18,6 +16,8 @@ import {
     VarAssignmentStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
+import { BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
+import { EditCodeAction } from "./action-filter";
 
 export enum KeyPress {
     // navigation:

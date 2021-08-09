@@ -1,5 +1,5 @@
 import { IdentifierTkn, TypedEmptyExpr } from "../syntax-tree/ast";
-import { TextEnhance, CSSClasses } from "../utilities/text-enhance";
+import { CSSClasses, TextEnhance } from "../utilities/text-enhance";
 
 export enum ErrorMessage {
     default,

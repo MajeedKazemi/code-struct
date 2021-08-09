@@ -1,24 +1,17 @@
-import { DataType } from "./consts";
-import { rebuildBody } from "./body";
-import { TAB_SPACES } from "./consts";
-import { Hole } from "../editor/hole";
-import { Util } from "../utilities/util";
-import { CallbackType } from "./callback";
-import { Editor } from "../editor/editor";
-import { Reference, Scope } from "./scope";
-import { TypeChecker } from "./type-checker";
-import { DraftRecord } from "../editor/draft";
 import { Position, Range } from "monaco-editor";
-import { Validator } from "../editor/validator";
-import { Context, Focus } from "../editor/focus";
-import { EventStack } from "../editor/event-stack";
-import { EventRouter } from "../editor/event-router";
-import { ActionFilter } from "../editor/action-filter";
-import { VariableController } from "./variable-controller";
 import { ActionExecutor } from "../editor/action-executor";
+import { ActionFilter } from "../editor/action-filter";
+import { DraftRecord } from "../editor/draft";
+import { Editor } from "../editor/editor";
+import { EventRouter } from "../editor/event-router";
+import { EventStack } from "../editor/event-stack";
+import { Context, Focus } from "../editor/focus";
+import { Hole } from "../editor/hole";
 import { updateButtonsVisualMode } from "../editor/toolbox";
-import { MenuController } from "../suggestions/suggestions-controller";
+import { Validator } from "../editor/validator";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
+import { MenuController } from "../suggestions/suggestions-controller";
+import { Util } from "../utilities/util";
 import {
     CodeConstruct,
     EmptyLineStmt,
@@ -30,6 +23,12 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
+import { rebuildBody } from "./body";
+import { CallbackType } from "./callback";
+import { DataType, TAB_SPACES } from "./consts";
+import { Reference, Scope } from "./scope";
+import { TypeChecker } from "./type-checker";
+import { VariableController } from "./variable-controller";
 
 /**
  * The main body of the code which includes an array of statements.

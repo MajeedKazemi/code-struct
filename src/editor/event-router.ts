@@ -1,10 +1,10 @@
-import { Context } from "./focus";
-import { EditAction } from "./data-types";
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { BinaryOperator, DataType } from "./../syntax-tree/consts";
-import { InsertActionType, EditActionType, KeyPress, Actions } from "./consts";
 import { EditCodeAction } from "./action-filter";
+import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
+import { EditAction } from "./data-types";
+import { Context } from "./focus";
 
 export class EventRouter {
     module: Module;

@@ -1,10 +1,8 @@
 import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
-import { Expression, ForStatement, IdentifierTkn, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
+import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
+import { DataType } from "./consts";
 import { Module } from "./module";
-import { CodeConstruct } from "./ast";
-import { Reference, Scope } from "./scope";
-import { DataType, InsertionType } from "./consts";
-import { Validator } from "../editor/validator";
+import { Scope } from "./scope";
 
 export class VariableController {
     private variableButtons: HTMLDivElement[];
