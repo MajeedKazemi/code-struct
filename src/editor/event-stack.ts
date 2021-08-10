@@ -58,7 +58,7 @@ export class EventStack {
     }
 
     attachOnButtonPress() {
-        const buttons: Array<HTMLElement> = Array(...(document.querySelectorAll("#editor-toolbox .button") as any));
+        const buttons: Array<HTMLElement> = Array(...(document.querySelectorAll("#mainToolboxDiv .button") as any));
 
         for (const button of buttons) {
             button.addEventListener("click", () => {
