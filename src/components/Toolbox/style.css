@@ -118,3 +118,42 @@
 #mainToolboxDiv .group:not(:last-child) {
     margin-bottom: 10px;
 }
+
+.button {
+    color: #0d0c22;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: 0.1s ease;
+    height: -webkit-fit-content;
+    height: -moz-fit-content;
+    height: fit-content;
+    margin-right: 10px;
+    box-shadow: 0px 0px 0px 1px #e7e7e9 inset;
+    font-size: 14px;
+    padding: 10px 14px;
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    width: fit-content;
+}
+
+.button:hover {
+    box-shadow: 0px 0px 0px 1px #b2b2b6 inset;
+}
+
+.button:active {
+    box-shadow: none;
+    background-color: #f3f5fa !important;
+}
+
+.button.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.button.draftModeButton {
+    background-color: rgb(255, 255, 230);
+}
