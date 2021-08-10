@@ -6,6 +6,7 @@ import {
     ElseStatement,
     ExprDotMethodStmt,
     ForStatement,
+    FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
     ListComma,
@@ -211,7 +212,7 @@ export class Actions {
                 "randint(---, ---)",
                 "add-randint-btn",
                 () =>
-                    new FunctionCallStmt(
+                    new FunctionCallExpr(
                         "randint",
                         [
                             new Argument([DataType.Number], "start", false),
@@ -226,7 +227,7 @@ export class Actions {
                 "range(---)",
                 "add-range-btn",
                 () =>
-                    new FunctionCallStmt(
+                    new FunctionCallExpr(
                         "range",
                         [
                             new Argument([DataType.Number], "start", false),
@@ -241,7 +242,7 @@ export class Actions {
                 "len(---)",
                 "add-len-btn",
                 () =>
-                    new FunctionCallStmt(
+                    new FunctionCallExpr(
                         "len",
                         [
                             new Argument(
@@ -567,7 +568,7 @@ export class Actions {
             new EditCodeAction(
                 "str(---)",
                 "add-cast-str-btn",
-                () => new FunctionCallStmt("str", [new Argument([DataType.Any], "value", false)], DataType.String),
+                () => new FunctionCallExpr("str", [new Argument([DataType.Any], "value", false)], DataType.String),
                 InsertActionType.InsertCastStrExpr
             )
         );

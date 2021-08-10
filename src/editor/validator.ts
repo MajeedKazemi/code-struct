@@ -1,6 +1,7 @@
 import { Context } from "./focus";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { VariableController } from "../syntax-tree/variable-controller";
 import { DataType, InsertionType, TAB_SPACES } from "./../syntax-tree/consts";
 import {
     CodeConstruct,
@@ -15,7 +16,6 @@ import {
     TypedEmptyExpr,
     VarAssignmentStmt,
 } from "../syntax-tree/ast";
-import { VariableController } from "../syntax-tree/variable-controller";
 
 export class Validator {
     module: Module;
@@ -275,10 +275,7 @@ export class Validator {
             this.module.focus.onEndOfLine() &&
             !this.module.focus.isTextEditable(providedContext)
         ) {
-            if (context.expressionToLeft != null) {
-                if (context.expressionToLeft?.isStatement()) return true;
-                else return false;
-            }
+            if (context.expressionToLeft != null) return false;
 
             return true;
         }

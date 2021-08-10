@@ -589,15 +589,11 @@ export class ActionExecutor {
 
             case EditActionType.MoveCursorLeft:
                 preventDefaultEvent = false;
-                // Hole.disableEditableHoleHighlights();
-                // this.module.focus.highlightTextEditableHole();
 
                 break;
 
             case EditActionType.MoveCursorRight:
                 preventDefaultEvent = false;
-                // Hole.disableEditableHoleHighlights();
-                // this.module.focus.highlightTextEditableHole();
 
                 break;
 
