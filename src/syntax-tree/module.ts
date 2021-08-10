@@ -98,7 +98,7 @@ export class Module {
                 const inserts = this.actionFilter.getAllValidInsertsList();
 
                 //mark draft mode buttons
-                //updateButtonsVisualMode(inserts);
+                updateButtonsVisualMode(inserts);
             }).bind(this)
         );
 
