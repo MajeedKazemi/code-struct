@@ -510,21 +510,27 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 return InsertionType.Invalid;
             }
         } else if (!(this.rootNode instanceof Module)) {
-            const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
+            const rootTypeOfHoles = (this.rootNode as Statement).typeOfHoles;
 
-            let canConvertToParentType = hasMatch(
-                Util.getInstance().typeConversionMap.get(replaceWith.returns),
-                typesOfParentHole
-            );
+            if (rootTypeOfHoles.size > 0) {
+                const typesOfParentHole = rootTypeOfHoles[this.indexInRoot];
 
-            if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
-                return InsertionType.DraftMode;
-            } else if (
-                typesOfParentHole.some((t) => t == DataType.Any) ||
-                hasMatch(typesOfParentHole, [replaceWith.returns])
-            ) {
-                return InsertionType.Valid;
+                let canConvertToParentType = hasMatch(
+                    Util.getInstance().typeConversionMap.get(replaceWith.returns),
+                    typesOfParentHole
+                );
+
+                if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
+                    return InsertionType.DraftMode;
+                } else if (
+                    typesOfParentHole.some((t) => t == DataType.Any) ||
+                    hasMatch(typesOfParentHole, [replaceWith.returns])
+                ) {
+                    return InsertionType.Valid;
+                }
             }
+
+            return InsertionType.Invalid;
         }
     }
 
@@ -1308,24 +1314,8 @@ export class ValueOperationExpr extends Expression {
 
         this.tokens.push(value);
 
-        for (const mod of modifiers) {
-            this.appendModifier(mod);
-        }
+        if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
     }
-
-    // getModifiers(): Array<Modifier> {
-    //     const modifiers = [];
-
-    //     for (const code of this.tokens) {
-    //         if (code instanceof Modifier) modifiers.push(code);
-    //     }
-
-    //     return modifiers;
-    // }
-
-    // getValueExpr(): Expression {
-    //     return this.tokens[0] as Expression;
-    // }
 
     appendModifier(mod: Modifier) {
         mod.indexInRoot = this.tokens.length;
@@ -1346,14 +1336,22 @@ export class VarOperationStmt extends Statement {
     constructor(ref: VariableReferenceExpr, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
         super();
 
+        ref.indexInRoot = this.tokens.length;
+        ref.rootNode = this;
+
         this.tokens.push(ref);
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
-        for (const mod of modifiers) {
-            this.tokens.push(mod);
-        }
+        if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
+    }
+
+    appendModifier(mod: Modifier) {
+        mod.indexInRoot = this.tokens.length;
+        mod.rootNode = this;
+
+        this.tokens.push(mod);
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1362,7 +1360,7 @@ export class VarOperationStmt extends Statement {
 }
 
 export class ListAccessModifier extends Modifier {
-    constructor(root?: Statement, indexInRoot?: number) {
+    constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
@@ -1381,7 +1379,7 @@ export class ListAccessModifier extends Modifier {
 }
 
 export class PropertyAccessorModifier extends Modifier {
-    constructor(propertyName: string, root?: Statement, indexInRoot?: number) {
+    constructor(propertyName: string, root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
@@ -1406,7 +1404,7 @@ export class MethodCallModifier extends Modifier {
         args: Array<Argument>,
         returns: DataType,
         exprType: DataType,
-        root?: Statement,
+        root?: ValueOperationExpr | VarOperationStmt,
         indexInRoot?: number
     ) {
         super();
@@ -1447,7 +1445,7 @@ export class MethodCallModifier extends Modifier {
 }
 
 export class AssignmentModifier extends Modifier {
-    constructor(root?: Statement, indexInRoot?: number) {
+    constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
@@ -1465,7 +1463,11 @@ export class AssignmentModifier extends Modifier {
 }
 
 export class AugmentedAssignmentModifier extends Modifier {
-    constructor(operation: AugmentedAssignmentOperator, root?: Statement, indexInRoot?: number) {
+    constructor(
+        operation: AugmentedAssignmentOperator,
+        root?: ValueOperationExpr | VarOperationStmt,
+        indexInRoot?: number
+    ) {
         super();
 
         this.rootNode = root;

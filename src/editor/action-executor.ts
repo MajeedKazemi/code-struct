@@ -744,10 +744,7 @@ export class ActionExecutor {
         return preventDefaultEvent;
     }
 
-    insertVariableReference(buttonId: string, providedContext?: Context) {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        // TODO: we can be consistent within the code and just pass the id as part of the data
+    createVarReference(buttonId: string): VariableReferenceExpr {
         const identifier = document.getElementById(buttonId).innerText;
         const dataType = this.module.variableController.getVariableTypeNearLine(
             this.module.focus.getFocusedStatement().scope ??
@@ -759,9 +756,19 @@ export class ActionExecutor {
             identifier
         );
 
-        const ref = new VariableReferenceExpr(identifier, dataType, buttonId);
+        return new VariableReferenceExpr(identifier, dataType, buttonId);
+    }
 
-        this.insertExpression(context, ref);
+    insertVariableReference(buttonId: string, providedContext?: Context) {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (this.module.validator.onBeginningOfLine(context)) {
+            this.insertStatement(context, new VarOperationStmt(this.createVarReference(buttonId)));
+        } else if (this.module.validator.atEmptyExpressionHole(context)) {
+            this.insertExpression(context, this.createVarReference(buttonId));
+        } else {
+            console.error("Can only insert a variable at the beginning of a line or at a hole.");
+        }
     }
 
     private insertExpression(context: Context, code: Expression) {
