@@ -35,13 +35,13 @@
     white-space: pre;
 }
 
-#mainToolboxDiv hole {
+#mainToolboxDiv .hole {
     min-width: 18px;
     height: 18px;
     background: rgb(0 0 0 / 5%);
     border-radius: 2px;
     box-shadow: 0px 0px 0px 1px #0000005e inset;
-    margin: 0px 8px;
+    margin: 0px 4px;
 }
 
 ::-webkit-scrollbar {
@@ -117,27 +117,4 @@
 
 #mainToolboxDiv .group:not(:last-child) {
     margin-bottom: 10px;
-}
-
-#mainToolboxDiv .hole {
-    position: absolute;
-    pointer-events: none;
-
-    box-shadow: 0px 0px 0px 2px #00000029 inset;
-    transition-property: background;
-    transition-duration: 0.2s;
-
-    border-radius: 5px;
-}
-
-.editableHole {
-    box-shadow: 0px 0px 0px 2px #398dfab6 inset;
-}
-
-.validVarIdentifierHole {
-    background-color: rgba(58, 223, 58, 0.3);
-}
-
-.draftVarIdentifierHole {
-    background-color: rgb(255, 255, 230, 0.6);
 }
