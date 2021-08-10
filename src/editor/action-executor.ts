@@ -16,6 +16,7 @@ import {
     TypedEmptyExpr,
     ValueOperationExpr,
     VariableReferenceExpr,
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";
@@ -149,34 +150,18 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteNextToken: {
-                if (context.expressionToRight.rootNode instanceof ValueOperationExpr) {
+                if (this.module.validator.atBeginningOfValOperation(context)) {
                     this.deleteCode(context.expressionToRight.rootNode);
+                } else if (context.expressionToRight instanceof Modifier) {
+                    this.deleteModifier(context.expressionToRight, { deleting: true });
                 } else this.deleteCode(context.expressionToRight);
 
                 break;
             }
 
             case EditActionType.DeletePrevToken: {
-                if (context.expressionToLeft instanceof ValueOperationExpr) {
-                    // TODO: should only remove the last modifier from the ValueOperationExpr and keep the rest
-                    //
-                    // TODO: remove this:
-                    // const initialBoundary = this.getBoundaries(context.expressionToLeft);
-                    // const expr = context.expressionToLeft.getExpression();
-                    // const insertionType = expr.canReplaceWithConstruct(expr);
-                    // this.module.closeConstructDraftRecord(context.expressionToLeft);
-                    // const root = context.expressionToLeft.getParentStatement();
-                    // const dotMethodExpRoot = context.expressionToLeft.rootNode as Statement;
-                    // context.expressionToLeft.onDelete();
-                    // dotMethodExpRoot.tokens[context.expressionToLeft.indexInRoot] = expr;
-                    // expr.rootNode = dotMethodExpRoot;
-                    // expr.indexInRoot = context.expressionToLeft.indexInRoot;
-                    // root.rebuild(root.getLeftPosition(), 0);
-                    // this.module.editor.executeEdits(initialBoundary, expr);
-                    // if (insertionType === InsertionType.DraftMode) {
-                    //     this.module.openDraftMode(expr);
-                    // }
-                } else this.deleteCode(context.expressionToLeft);
+                if (context.expressionToLeft instanceof Modifier) this.deleteModifier(context.expressionToLeft);
+                else this.deleteCode(context.expressionToLeft);
 
                 break;
             }
@@ -451,32 +436,26 @@ export class ActionExecutor {
                     context.expressionToLeft instanceof Modifier &&
                     context.expressionToLeft.rootNode instanceof ValueOperationExpr
                 ) {
-                    const initialBoundary = this.getBoundaries(context.expressionToLeft.rootNode);
                     const exprToLeftRoot = context.expressionToLeft.rootNode.rootNode as Statement;
-                    const valOprExpr = new ValueOperationExpr(
-                        context.expressionToLeft.rootNode.getValueExpr(),
-                        [...context.expressionToLeft.rootNode.getModifiers(), action.data.modifier as Modifier],
-                        context.expressionToLeft.rootNode.rootNode,
-                        context.expressionToLeft.rootNode.indexInRoot
-                    );
+
+                    const valOprExpr = context.expressionToLeft.rootNode;
+                    valOprExpr.appendModifier(action.data.modifier);
 
                     const replacementType = context.expressionToLeft.rootNode.canReplaceWithConstruct(valOprExpr);
 
                     if (replacementType !== InsertionType.Invalid) {
                         this.module.closeConstructDraftRecord(context.expressionToLeft.rootNode);
 
-                        exprToLeftRoot.tokens[context.expressionToLeft.rootNode.indexInRoot] = valOprExpr;
                         exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
 
-                        this.module.editor.executeEdits(initialBoundary, valOprExpr);
+                        this.module.editor.insertAtCurPos([action.data.modifier]);
                         this.module.focus.updateContext(action.data.modifier.getInitialFocus());
 
                         if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                     }
                 } else {
-                    let initialBoundary = this.getBoundaries(context.expressionToLeft);
-                    let exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
-
+                    const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
+                    const exprToLeftIndexInRoot = context.expressionToLeft.indexInRoot;
                     const valOprExpr = new ValueOperationExpr(
                         context.expressionToLeft,
                         [action.data.modifier as Modifier],
@@ -489,11 +468,11 @@ export class ActionExecutor {
                     if (replacementType !== InsertionType.Invalid) {
                         this.module.closeConstructDraftRecord(context.expressionToLeft);
 
-                        exprToLeftRoot.tokens[context.expressionToLeft.indexInRoot] = valOprExpr;
+                        exprToLeftRoot.tokens[exprToLeftIndexInRoot] = valOprExpr;
                         exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
 
-                        this.module.editor.executeEdits(initialBoundary, valOprExpr);
-                        this.module.focus.updateContext(valOprExpr.getInitialFocus());
+                        this.module.editor.insertAtCurPos([action.data.modifier]);
+                        this.module.focus.updateContext(action.data.modifier.getInitialFocus());
 
                         if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                     }
@@ -562,8 +541,6 @@ export class ActionExecutor {
                     this.module.closeConstructDraftRecord(expr);
                     this.module.openDraftMode(newCode);
                 }
-
-                this.module.editor.monaco.focus();
 
                 break;
             }
@@ -646,8 +623,6 @@ export class ActionExecutor {
 
             case EditActionType.InsertLiteral: {
                 this.insertExpression(context, new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
-
-                this.module.editor.monaco.focus();
 
                 break;
             }
@@ -763,6 +738,8 @@ export class ActionExecutor {
                 break;
             }
         }
+
+        this.module.editor.monaco.focus();
 
         return preventDefaultEvent;
     }
@@ -935,6 +912,45 @@ export class ActionExecutor {
             if (selectIndent) {
                 return new Range(lineNumber, code.left - TAB_SPACES, lineNumber, code.right);
             } else return new Range(lineNumber, code.left, lineNumber, code.right);
+        }
+    }
+
+    private deleteModifier(mod: Modifier, { deleting = false } = {}) {
+        // TODO: this will be a prototype version of the code. needs to be cleaned and iterated on ->
+        // e.g. merge the operations for VarOperationStmt and ValueOperationExpr
+
+        // TODO: if deleting, should not move cursor
+        const removeRange = this.getBoundaries(mod);
+        const rootOfExprToLeft = mod.rootNode;
+        mod.remove();
+        let built = false;
+        let positionToMove: Position;
+
+        if (rootOfExprToLeft.tokens.length == 1) {
+            // only a val or var-ref is remaining:
+            if (rootOfExprToLeft instanceof ValueOperationExpr) {
+                const value = rootOfExprToLeft.tokens[0];
+                rootOfExprToLeft.rootNode.tokens[rootOfExprToLeft.indexInRoot] = value;
+                value.rootNode = rootOfExprToLeft.rootNode;
+                value.indexInRoot = rootOfExprToLeft.indexInRoot;
+
+                rootOfExprToLeft.rootNode.rebuild(rootOfExprToLeft.rootNode.getLeftPosition(), 0);
+                positionToMove = new Position(value.getLineNumber(), value.right);
+                built = true;
+            } else if (rootOfExprToLeft.rootNode instanceof VarOperationStmt) {
+            }
+        }
+
+        if (!built) {
+            rootOfExprToLeft.rebuild(rootOfExprToLeft.getLeftPosition(), 0);
+            positionToMove = new Position(rootOfExprToLeft.getLineNumber(), rootOfExprToLeft.right);
+        }
+
+        this.module.editor.executeEdits(removeRange, null, "");
+        if (!deleting) {
+            this.module.focus.updateContext({
+                positionToMove,
+            });
         }
     }
 

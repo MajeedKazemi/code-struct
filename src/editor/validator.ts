@@ -6,10 +6,14 @@ import {
     IdentifierTkn,
     IfStatement,
     ListLiteralExpression,
+    LiteralValExpr,
+    Modifier,
     NonEditableTkn,
     Statement,
     TypedEmptyExpr,
-    VarAssignmentStmt
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
 } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -22,6 +26,21 @@ export class Validator {
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    atBeginningOfValOperation(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        const isCorrectExprType =
+            context.expressionToRight instanceof VariableReferenceExpr ||
+            context.expressionToRight instanceof LiteralValExpr;
+
+        const hasCorrectRootType =
+            context.expressionToRight.rootNode instanceof Modifier ||
+            context.expressionToRight.rootNode instanceof VarAssignmentStmt ||
+            context.expressionToRight.rootNode instanceof ValueOperationExpr;
+
+        return isCorrectExprType && hasCorrectRootType;
     }
 
     isAboveElseStatement(providedContext?: Context): boolean {

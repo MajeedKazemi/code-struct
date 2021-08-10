@@ -544,6 +544,12 @@ export abstract class Modifier extends Expression {
     constructor() {
         super(null);
     }
+
+    remove() {
+        this.rootNode.tokens.splice(this.indexInRoot, 1);
+
+        this.getModule().recursiveNotify(this, CallbackType.delete);
+    }
 }
 
 /**
@@ -1297,6 +1303,9 @@ export class ValueOperationExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
+        value.indexInRoot = this.tokens.length;
+        value.rootNode = this;
+
         this.tokens.push(value);
 
         for (const mod of modifiers) {
@@ -1304,19 +1313,19 @@ export class ValueOperationExpr extends Expression {
         }
     }
 
-    getModifiers(): Array<Modifier> {
-        const modifiers = [];
+    // getModifiers(): Array<Modifier> {
+    //     const modifiers = [];
 
-        for (const code of this.tokens) {
-            if (code instanceof Modifier) modifiers.push(code);
-        }
+    //     for (const code of this.tokens) {
+    //         if (code instanceof Modifier) modifiers.push(code);
+    //     }
 
-        return modifiers;
-    }
+    //     return modifiers;
+    // }
 
-    getValueExpr(): Expression {
-        return this.tokens[0] as Expression;
-    }
+    // getValueExpr(): Expression {
+    //     return this.tokens[0] as Expression;
+    // }
 
     appendModifier(mod: Modifier) {
         mod.indexInRoot = this.tokens.length;
