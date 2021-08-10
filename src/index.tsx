@@ -7,16 +7,6 @@ import Main from './components/Main'
 
 import { Module } from "./syntax-tree/module";
 
-
-declare global {
-    namespace JSX {
-        interface IntrinsicElements {
-            'hole': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
-			'grid': React.DetailedHTMLProps<React.HTMLAttributes<HTMLElement>, HTMLElement>;
-        }
-    }
-}
-
 // @ts-ignore
 self.MonacoEnvironment = {
     getWorkerUrl: function (moduleId, label) {

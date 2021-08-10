@@ -43,8 +43,8 @@ class Toolbox extends React.Component<Props, State>{
 
                 <div id="user-variables">
                     <h2 id="user-defined-vars-heading">User-Defined Variables</h2>
-                    <grid id="vars-button-grid">
-                    </grid>
+                    <div id="vars-button-grid">
+                    </div>
                 </div>
 
                 <div className="group">
