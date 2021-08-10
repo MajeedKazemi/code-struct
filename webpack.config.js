@@ -64,7 +64,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
         title: "Nova Editor",
-        template: path.join(__dirname, 'dist', 'index.html'),
+        template: path.join(__dirname, 'src', 'index.html'),
         inject: false
     }, new webpack.optimize.SplitChunksPlugin({
              name: "vendor",
