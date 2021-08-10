@@ -1,4 +1,3 @@
-import { EditAction, InsertActionData } from "./data-types";
 import { BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import {

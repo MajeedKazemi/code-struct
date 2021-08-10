@@ -1,4 +1,4 @@
-import EditorComponent from "../components/Editor";
+import EditorComponent from "../components/editor/editor";
 import { constructKeys, Util } from "../utilities/util";
 
 /**

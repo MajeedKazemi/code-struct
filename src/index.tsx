@@ -1,10 +1,8 @@
 
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import EditorComponent from './components/Editor';
-
-import Main from './components/Main'
-
+import EditorComponent from './components/editor/editor';
+import Router from './components/router/router'
 import { Module } from "./syntax-tree/module";
 
 // @ts-ignore
@@ -27,10 +25,10 @@ self.MonacoEnvironment = {
 };
 
 ReactDOM.render(
-	<React.StrictMode>
-        <Main/>
-	</React.StrictMode>,
-	document.getElementById('root')
+    <React.StrictMode>
+        <Router />
+    </React.StrictMode>,
+    document.getElementById('root')
 );
 
 export const nova = new Module(EditorComponent.EditorParentId);

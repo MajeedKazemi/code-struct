@@ -2,7 +2,7 @@ import { Selection } from "monaco-editor";
 import { Editor } from "../editor/editor";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
-import EditorComponent from "../components/Editor";
+import EditorComponent from "../components/editor/editor";
 
 /**
  * Class name of the DOM element to which notifications are appended to.
