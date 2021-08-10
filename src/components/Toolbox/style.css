@@ -1,11 +1,12 @@
 #mainToolboxDiv {
     width: 100%;
     min-height: 100vh;
-    max-height: fit-content;
+    height: 0vh;
     grid-column-start: 1;
     grid-column-end: 1;
 
-    padding: 2rem;
+    padding-left: 2rem;
+    padding-right: 2rem;
     display: flex;
     flex-direction: column;
 
