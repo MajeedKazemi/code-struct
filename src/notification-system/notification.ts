@@ -234,18 +234,18 @@ export class Notification extends ConstructVisualElement {
         super(editor, code);
 
         this.warningTxt = warningTxt;
+        this.domElement.classList.add("textBox");
+
+        this.textElement = document.createElement("div");
+        this.domElement.appendChild(this.textElement);
+        document.querySelector(editorDomElementClass).appendChild(this.domElement);
         this.textElement.innerHTML = this.warningTxt;
+
         this.systemIndex = index;
     }
 
     protected createDomElement() {
         super.createDomElement();
-        this.domElement.classList.add("textBox");
-
-        this.textElement = document.createElement("div");
-        this.domElement.appendChild(this.textElement);
-
-        document.querySelector(editorDomElementClass).appendChild(this.domElement);
     }
 }
 
