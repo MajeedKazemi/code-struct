@@ -447,9 +447,9 @@ export class Validator {
 
         // [asd|] [asd, fgh|] [asd|, fgh] => , ---
         return (
-            context.tokenToRight instanceof NonEditableTkn &&
-            context.tokenToRight.rootNode instanceof ListLiteralExpression &&
-            (context.tokenToRight.text == "]" || context.tokenToRight.text == ", ")
+            context?.tokenToRight instanceof NonEditableTkn &&
+            context?.tokenToRight?.rootNode instanceof ListLiteralExpression &&
+            (context?.tokenToRight?.text == "]" || context?.tokenToRight?.text == ", ")
         );
     }
 
@@ -459,36 +459,36 @@ export class Validator {
         // [|asd] [|asd, fgh] [asd, |fgh] => ---,
 
         return (
-            context.tokenToLeft instanceof NonEditableTkn &&
-            context.tokenToLeft.rootNode instanceof ListLiteralExpression &&
-            (context.tokenToLeft.text == "[" || context.tokenToLeft.text == ", ")
+            context?.tokenToLeft instanceof NonEditableTkn &&
+            context?.tokenToLeft?.rootNode instanceof ListLiteralExpression &&
+            (context?.tokenToLeft?.text == "[" || context?.tokenToLeft?.text == ", ")
         );
     }
 
     atRightOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context.expressionToLeft != null && context.expressionToLeft.returns != DataType.Void;
+        return context?.expressionToLeft != null && context?.expressionToLeft?.returns != DataType.Void;
     }
 
     atLeftOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context.expressionToRight != null && context.expressionToRight.returns != DataType.Void;
+        return context?.expressionToRight != null && context?.expressionToRight?.returns != DataType.Void;
     }
 
     atEmptyExpressionHole(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context.selected && context.token.isEmpty && context.token instanceof TypedEmptyExpr;
+        return context.selected && context?.token?.isEmpty && context.token instanceof TypedEmptyExpr;
     }
 
     private getPrevSibling(providedContext?: Context): Statement {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return this.getStatementInBody(
-            context.lineStatement.rootNode as Statement | Module,
-            context.lineStatement.indexInRoot - 1
+            context?.lineStatement?.rootNode as Statement | Module,
+            context?.lineStatement?.indexInRoot - 1
         );
     }
 
@@ -496,14 +496,14 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return this.getStatementInBody(
-            context.lineStatement.rootNode as Statement | Module,
-            context.lineStatement.indexInRoot + 1
+            context?.lineStatement?.rootNode as Statement | Module,
+            context?.lineStatement?.indexInRoot + 1
         );
     }
 
     private getNextSiblingOfRoot(providedContext?: Context): Statement {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-        const curRoot = context.lineStatement.rootNode;
+        const curRoot = context?.lineStatement?.rootNode;
 
         if (curRoot instanceof Statement) {
             return this.getStatementInBody(curRoot.rootNode as Statement | Module, curRoot.indexInRoot + 1);
@@ -514,7 +514,7 @@ export class Validator {
 
     private getPrevSiblingOfRoot(providedContext?: Context): Statement {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-        const curRoot = context.lineStatement.rootNode;
+        const curRoot = context?.lineStatement?.rootNode;
 
         if (curRoot instanceof Statement) {
             return this.getStatementInBody(curRoot.rootNode as Statement | Module, curRoot.indexInRoot - 1);
@@ -534,13 +534,13 @@ export class Validator {
     private getLineBelow(providedContext?: Context): Statement {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber + 1);
+        return this.module.focus.getStatementAtLineNumber(context?.lineStatement?.lineNumber + 1);
     }
 
     private getLineAbove(providedContext?: Context): Statement {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        const curLineNumber = context.lineStatement.lineNumber;
+        const curLineNumber = context?.lineStatement?.lineNumber;
 
         if (curLineNumber > 1) return this.module.focus.getStatementAtLineNumber(curLineNumber - 1);
 

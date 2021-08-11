@@ -388,6 +388,7 @@ export class EventRouter {
                 });
             }
 
+            case InsertActionType.InsertAssignmentModifier:
             case InsertActionType.InsertAugmentedAssignmentModifier: {
                 return new EditAction(EditActionType.InsertAssignmentModifier, {
                     modifier: e.getCode(),

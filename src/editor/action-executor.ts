@@ -801,8 +801,6 @@ export class ActionExecutor {
             this.insertStatement(context, new VarOperationStmt(this.createVarReference(buttonId)));
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
             this.insertExpression(context, this.createVarReference(buttonId));
-        } else {
-            console.error("Can only insert a variable at the beginning of a line or at a hole.");
         }
     }
 
