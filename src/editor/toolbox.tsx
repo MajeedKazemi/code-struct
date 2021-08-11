@@ -1,7 +1,11 @@
+import React from "react";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { InsertionRecord } from "./action-filter";
 import { EventAction, EventStack, EventType } from "./event-stack";
+import ToolboxCascadedMenu from "../components/toolbox-cascaded-menu";
+import * as ReactDOM from 'react-dom';
+
 
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
     const container = document.createElement("grid");
@@ -26,6 +30,23 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
         events.stack.push(action);
         events.apply(action);
     });
+
+    button.addEventListener("mouseover", () => {
+        const menuElement = React.createElement(ToolboxCascadedMenu, {children: [<span>wowowow</span>], id: `${identifier}-cascadedMenu`});
+        const portal = ReactDOM.createPortal(menuElement, document.getElementById("mainToolboxDiv"));
+        ReactDOM.render(portal, document.createElement("div"));
+
+        const domMenuElement = document.getElementById(`${identifier}-cascadedMenu`);
+        const leftPos = button.offsetLeft;
+        const topPos =  button.offsetTop -  document.getElementById("mainToolboxDiv").scrollTop + domMenuElement.offsetHeight;
+        
+        domMenuElement.style.left = `${leftPos}px`;
+        domMenuElement.style.top = `${topPos}px`;
+    })
+
+    button.addEventListener("mouseleave", () => {
+        document.getElementById(`${identifier}-cascadedMenu`).remove();
+    })
 
     return button;
 }

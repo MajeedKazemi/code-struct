@@ -1,0 +1,12 @@
+.cascadedMenuMainDiv {
+    display: block; /*Cannot be a grid as that completely ignores the postion: absolute*/
+    grid-template-columns: 50% 50%;
+    grid-template-rows: auto;
+    grid-auto-flow: row;
+
+    width: fit-content;
+    height: fit-content;
+    min-height: 5vh;
+
+    position: absolute;
+}
