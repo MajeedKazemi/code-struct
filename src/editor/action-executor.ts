@@ -15,8 +15,9 @@ import {
     Token,
     TypedEmptyExpr,
     ValueOperationExpr,
+    VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt,
+    VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";
@@ -440,11 +441,26 @@ export class ActionExecutor {
                 if (context.expressionToLeft.rootNode instanceof VarOperationStmt) {
                     const varOpStmt = context.expressionToLeft.rootNode;
 
-                    varOpStmt.appendModifier(action.data.modifier);
-                    varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
+                    if (context.expressionToLeft instanceof VariableReferenceExpr) {
+                        const initialBoundary = this.getBoundaries(context.expressionToLeft);
 
-                    this.module.editor.insertAtCurPos([action.data.modifier]);
-                    this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                        const varAssignStmt = new VarAssignmentStmt(
+                            context.expressionToLeft.identifier,
+                            varOpStmt.rootNode,
+                            varOpStmt.indexInRoot
+                        );
+
+                        replaceInBody(varOpStmt.rootNode, varOpStmt.indexInRoot, varAssignStmt);
+
+                        this.module.editor.executeEdits(initialBoundary, varAssignStmt);
+                        this.module.focus.updateContext(varAssignStmt.getInitialFocus());
+                    } else {
+                        varOpStmt.appendModifier(action.data.modifier);
+                        varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
+
+                        this.module.editor.insertAtCurPos([action.data.modifier]);
+                        this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                    }
                 }
 
                 break;
