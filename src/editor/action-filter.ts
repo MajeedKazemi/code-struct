@@ -39,7 +39,7 @@ export class ActionFilter {
     }
 
     validateEdits(): Map<string, InsertionRecord> {
-        console.warn("validateEdits() is not implemented.");
+        // console.warn("validateEdits() is not implemented.");
 
         return new Map<string, InsertionRecord>();
     }

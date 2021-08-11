@@ -4,7 +4,7 @@ import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
 import { Validator } from "../editor/validator";
 import { Notification } from "../notification-system/notification";
-import { hasMatch, Util } from "../utilities/util";
+import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
     arithmeticOps,
@@ -562,6 +562,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 export abstract class Modifier extends Expression {
     rootNode: ValueOperationExpr | VarOperationStmt;
+    exprType: DataType;
 
     constructor() {
         super(null);
@@ -1374,6 +1375,8 @@ export class VarOperationStmt extends Statement {
 }
 
 export class ListAccessModifier extends Modifier {
+    exprType = DataType.AnyList;
+
     constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
 
@@ -1393,9 +1396,15 @@ export class ListAccessModifier extends Modifier {
 }
 
 export class PropertyAccessorModifier extends Modifier {
-    constructor(propertyName: string, root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
+    constructor(
+        propertyName: string,
+        exprType: DataType,
+        root?: ValueOperationExpr | VarOperationStmt,
+        indexInRoot?: number
+    ) {
         super();
 
+        this.exprType = exprType;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
@@ -1450,7 +1459,7 @@ export class MethodCallModifier extends Modifier {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        const doTypesMatch = providedContext?.expressionToLeft?.returns == this.exprType;
+        const doTypesMatch = areEqualTypes(providedContext?.expressionToLeft?.returns, this.exprType);
 
         return validator.atRightOfExpression(providedContext) && doTypesMatch
             ? InsertionType.Valid

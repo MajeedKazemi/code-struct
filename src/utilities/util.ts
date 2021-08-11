@@ -11,10 +11,10 @@ import {
     ListLiteralExpression,
     MemberCallStmt,
     VarAssignmentStmt,
-    WhileStatement
+    WhileStatement,
 } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { BinaryOperator, DataType, UnaryOp } from "./../syntax-tree/consts";
+import { BinaryOperator, DataType, ListTypes, UnaryOp } from "./../syntax-tree/consts";
 
 /**
  * IMPORTANT!!!
@@ -700,6 +700,14 @@ export class Util {
     static getPopulatedInstance() {
         return Util.instance;
     }
+}
+
+export function areEqualTypes(incoming: DataType, receiving: DataType): boolean {
+    if (receiving == DataType.Any) return true;
+    else if (receiving == DataType.AnyList && ListTypes.indexOf(incoming) > -1) return true;
+    else if (receiving == incoming) return true;
+
+    return false;
 }
 
 /**

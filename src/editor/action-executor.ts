@@ -160,7 +160,12 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeletePrevToken: {
-                if (context.expressionToLeft instanceof Modifier) this.deleteModifier(context.expressionToLeft);
+                if (
+                    context.expressionToLeft instanceof VariableReferenceExpr &&
+                    context.expressionToLeft.rootNode instanceof VarOperationStmt
+                ) {
+                    this.deleteCode(context.expressionToLeft.rootNode, { statement: true });
+                } else if (context.expressionToLeft instanceof Modifier) this.deleteModifier(context.expressionToLeft);
                 else this.deleteCode(context.expressionToLeft);
 
                 break;
@@ -432,27 +437,37 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertModifier: {
-                if (
-                    context.expressionToLeft instanceof Modifier &&
-                    context.expressionToLeft.rootNode instanceof ValueOperationExpr
-                ) {
-                    const valOprExpr = context.expressionToLeft.rootNode;
-                    const valOprExprRoot = valOprExpr.rootNode as Statement;
+                if (context.expressionToLeft instanceof Modifier) {
+                    if (context.expressionToLeft.rootNode instanceof ValueOperationExpr) {
+                        const valOprExpr = context.expressionToLeft.rootNode;
+                        const valOprExprRoot = valOprExpr.rootNode as Statement;
 
-                    let replacementType = valOprExpr.rootNode.checkInsertionAtHole(
-                        valOprExpr.indexInRoot,
-                        action.data.modifier.returns
-                    );
+                        let replacementType = valOprExpr.rootNode.checkInsertionAtHole(
+                            valOprExpr.indexInRoot,
+                            action.data.modifier.returns
+                        );
 
-                    if (replacementType !== InsertionType.Invalid) {
-                        valOprExpr.appendModifier(action.data.modifier);
-                        valOprExprRoot.rebuild(valOprExprRoot.getLeftPosition(), 0);
+                        if (replacementType !== InsertionType.Invalid) {
+                            valOprExpr.appendModifier(action.data.modifier);
+                            valOprExprRoot.rebuild(valOprExprRoot.getLeftPosition(), 0);
 
-                        this.module.editor.insertAtCurPos([action.data.modifier]);
-                        this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                            this.module.editor.insertAtCurPos([action.data.modifier]);
+                            this.module.focus.updateContext(action.data.modifier.getInitialFocus());
 
-                        if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                            if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                        }
                     }
+                } else if (
+                    context.expressionToLeft instanceof VariableReferenceExpr &&
+                    context.expressionToLeft.rootNode instanceof VarOperationStmt
+                ) {
+                    const varOpStmt = context.expressionToLeft.rootNode;
+
+                    varOpStmt.appendModifier(action.data.modifier);
+                    varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
+
+                    this.module.editor.insertAtCurPos([action.data.modifier]);
+                    this.module.focus.updateContext(action.data.modifier.getInitialFocus());
                 } else {
                     const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
                     const exprToLeftIndexInRoot = context.expressionToLeft.indexInRoot;
@@ -461,11 +476,9 @@ export class ActionExecutor {
                         action.data.modifier.returns
                     );
 
-                    console.log(replacementType);
-
                     const valOprExpr = new ValueOperationExpr(
                         context.expressionToLeft,
-                        [action.data.modifier as Modifier],
+                        [action.data.modifier],
                         context.expressionToLeft.rootNode,
                         context.expressionToLeft.indexInRoot
                     );
