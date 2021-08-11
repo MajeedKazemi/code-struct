@@ -55,6 +55,8 @@ export class Module {
     variableController: VariableController;
     actionFilter: ActionFilter;
 
+    globals: { hoveringOverCascadedMenu: boolean; hoveringOverVarRefButton: boolean };
+
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
         this.focus = new Focus(this);
@@ -63,6 +65,11 @@ export class Module {
         this.typeSystem = new TypeChecker(this);
         this.variableController = new VariableController(this);
         this.actionFilter = new ActionFilter(this);
+
+        this.globals = {
+            hoveringOverCascadedMenu: false,
+            hoveringOverVarRefButton: false,
+        };
 
         this.draftExpressions = [];
 
