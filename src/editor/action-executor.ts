@@ -456,6 +456,13 @@ export class ActionExecutor {
                 } else {
                     const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
                     const exprToLeftIndexInRoot = context.expressionToLeft.indexInRoot;
+                    const replacementType = exprToLeftRoot.checkInsertionAtHole(
+                        context.expressionToLeft.indexInRoot,
+                        action.data.modifier.returns
+                    );
+
+                    console.log(replacementType);
+
                     const valOprExpr = new ValueOperationExpr(
                         context.expressionToLeft,
                         [action.data.modifier as Modifier],
@@ -463,7 +470,8 @@ export class ActionExecutor {
                         context.expressionToLeft.indexInRoot
                     );
 
-                    const replacementType = context.expressionToLeft.canReplaceWithConstruct(valOprExpr);
+                    context.expressionToLeft.indexInRoot = 0;
+                    context.expressionToLeft.rootNode = valOprExpr;
 
                     if (replacementType !== InsertionType.Invalid) {
                         this.module.closeConstructDraftRecord(context.expressionToLeft);
@@ -929,13 +937,27 @@ export class ActionExecutor {
         // TODO: if deleting, should not move cursor
         const removeRange = this.getBoundaries(mod);
         const rootOfExprToLeft = mod.rootNode;
-        mod.remove();
+
+        rootOfExprToLeft.tokens.splice(mod.indexInRoot, 1);
+        this.module.recursiveNotify(mod, CallbackType.delete);
+
+        this.module.closeConstructDraftRecord(rootOfExprToLeft);
+
         let built = false;
         let positionToMove: Position;
 
         if (rootOfExprToLeft.tokens.length == 1) {
             // only a val or var-ref is remaining:
             if (rootOfExprToLeft instanceof ValueOperationExpr) {
+                rootOfExprToLeft.updateReturnType();
+
+                let replacementType = rootOfExprToLeft.rootNode.checkInsertionAtHole(
+                    rootOfExprToLeft.indexInRoot,
+                    rootOfExprToLeft.returns
+                );
+
+                if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(rootOfExprToLeft);
+
                 const value = rootOfExprToLeft.tokens[0];
                 rootOfExprToLeft.rootNode.tokens[rootOfExprToLeft.indexInRoot] = value;
                 value.rootNode = rootOfExprToLeft.rootNode;

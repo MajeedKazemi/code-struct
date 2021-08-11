@@ -515,7 +515,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
         if (this.rootNode instanceof Expression) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
-            if (replaceWith.returns === this.returns) {
+            if (replaceWith.returns === this.returns || this.returns === DataType.Any) {
                 return InsertionType.Valid;
             } else if (
                 replaceWith.returns !== this.returns &&
@@ -565,12 +565,6 @@ export abstract class Modifier extends Expression {
 
     constructor() {
         super(null);
-    }
-
-    remove() {
-        this.rootNode.tokens.splice(this.indexInRoot, 1);
-
-        this.getModule().recursiveNotify(this, CallbackType.delete);
     }
 }
 
@@ -1331,6 +1325,10 @@ export class ValueOperationExpr extends Expression {
         this.tokens.push(value);
 
         if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
+    }
+
+    updateReturnType() {
+        for (const mod of this.tokens) if (mod instanceof Expression) this.returns = mod.returns;
     }
 
     appendModifier(mod: Modifier) {
