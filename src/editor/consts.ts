@@ -14,6 +14,7 @@ import {
     ListLiteralExpression,
     LiteralValExpr,
     MethodCallModifier,
+    Modifier,
     UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
@@ -186,11 +187,15 @@ export enum InsertActionType {
 
     InsertAssignmentModifier,
     InsertAugmentedAssignmentModifier,
+
+    InsertVarOperationStmt,
 }
+
 export class Actions {
     private static inst: Actions;
     actionsList: Array<EditCodeAction>;
     actionsMap: Map<string, EditCodeAction>;
+    varModifiersMap: Map<DataType, Modifier[]>;
 
     private constructor() {
         this.actionsList = new Array<EditCodeAction>(
@@ -616,6 +621,19 @@ export class Actions {
         );
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
+
+        this.varModifiersMap = new Map<DataType, Modifier[]>([
+            [
+                DataType.Number,
+                [
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Mod),
+                ],
+            ],
+        ]);
     }
 
     static instance(): Actions {

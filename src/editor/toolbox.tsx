@@ -1,12 +1,7 @@
-import React from "react";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { InsertionRecord } from "./action-filter";
 import { EventAction, EventStack, EventType } from "./event-stack";
-import ToolboxCascadedMenu from "../components/toolbox-cascaded-menu";
-import * as ReactDOM from 'react-dom';
-import { nova } from "..";
-
 
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
     const container = document.createElement("grid");
@@ -31,32 +26,6 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
         events.stack.push(action);
         events.apply(action);
     });
-
-    const menuElement = React.createElement(ToolboxCascadedMenu, {children: [<div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>], id: `${buttonId}-cascadedMenu`, buttonId: buttonId});
-    button.addEventListener("mouseover", () => {
-        if(!document.getElementById(`${buttonId}-cascadedMenu`)){
-            const portal = ReactDOM.createPortal(menuElement, document.getElementById("mainToolboxDiv"));
-            const content = document.createElement("div");
-            content.classList.add("cascadedMenuContent");
-            ReactDOM.render(portal, content);
-    
-            const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
-            const leftPos = button.offsetLeft;
-            const topPos =  button.offsetTop -  document.getElementById("mainToolboxDiv").scrollTop + button.offsetHeight;
-            
-            domMenuElement.style.left = `${leftPos}px`;
-            domMenuElement.style.top = `${topPos + 5}px`;
-        }
-    })
-
-    button.addEventListener("mouseleave", () => {
-        setTimeout(() => {
-            const element = document.getElementById(`${buttonId}-cascadedMenu`);
-            if(element && !element.matches(":hover") && !button.matches(":hover")){
-                element.remove();
-            }
-        }, 50)
-    })
 
     return button;
 }
