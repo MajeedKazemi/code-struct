@@ -1519,7 +1519,8 @@ export class AugmentedAssignmentModifier extends Modifier {
         return (providedContext.expressionToLeft instanceof VariableReferenceExpr ||
             providedContext.expressionToLeft instanceof ListAccessModifier ||
             providedContext.expressionToLeft instanceof PropertyAccessorModifier) &&
-            providedContext.expressionToLeft.rootNode instanceof VarOperationStmt
+            providedContext.expressionToLeft.rootNode instanceof VarOperationStmt &&
+            this.leftExprTypes.some((type) => type == providedContext.expressionToLeft.returns)
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
