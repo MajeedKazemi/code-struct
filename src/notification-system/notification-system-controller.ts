@@ -1,8 +1,8 @@
 import { Editor } from "../editor/editor";
-import { Module } from "../syntax-tree/module";
-import { ErrorMessageGenerator, ErrorMessage } from "./error-msg-generator";
-import { Notification, HoverNotification, PopUpNotification } from "./notification";
 import { BinaryOperatorExpr, CodeConstruct, Expression, FunctionCallStmt, TypedEmptyExpr } from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
+import { ErrorMessage, ErrorMessageGenerator } from "./error-msg-generator";
+import { HoverNotification, Notification, PopUpNotification } from "./notification";
 
 const popUpNotificationTime = 3000; //ms
 

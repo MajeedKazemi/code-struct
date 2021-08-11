@@ -1,6 +1,6 @@
-import { Module } from "./module";
+import { BinaryOperatorExpr, Expression, TypedEmptyExpr } from "./ast";
 import { DataType } from "./consts";
-import { BinaryOperatorExpr, Expression, ForStatement, TypedEmptyExpr, VarAssignmentStmt } from "./ast";
+import { Module } from "./module";
 
 export class TypeChecker {
     static varTypeMap: Map<string, DataType> = new Map<string, DataType>();

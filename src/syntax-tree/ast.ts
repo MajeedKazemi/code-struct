@@ -1,34 +1,31 @@
-import { Scope } from "./scope";
-import { Module } from "./module";
-import { rebuildBody } from "./body";
-import { TypeChecker } from "./type-checker";
-import { DraftRecord } from "../editor/draft";
-import { ConstructName } from "../editor/consts";
-import { Validator } from "../editor/validator";
 import { Position, Selection } from "monaco-editor";
-import { Util, hasMatch } from "../utilities/util";
-import { Callback, CallbackType } from "./callback";
-import { VariableController } from "./variable-controller";
+import { ConstructName } from "../editor/consts";
+import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
-import { InsertionType, ListTypes, TAB_SPACES } from "./consts";
+import { Validator } from "../editor/validator";
 import { Notification } from "../notification-system/notification";
+import { areEqualTypes, hasMatch, Util } from "../utilities/util";
+import { Callback, CallbackType } from "./callback";
 import {
-    AddableType,
+    arithmeticOps,
+    AugmentedAssignmentOperator,
     BinaryOperator,
     BinaryOperatorCategory,
-    DataType,
-    UnaryOp,
-    arithmeticOps,
     boolOps,
     comparisonOps,
+    DataType,
+    IndexableTypes,
+    InsertionType,
+    ListTypes,
+    TAB_SPACES,
+    UnaryOp,
 } from "./consts";
+import { Module } from "./module";
+import { Scope } from "./scope";
+import { TypeChecker } from "./type-checker";
+import { VariableController } from "./variable-controller";
 
 export interface CodeConstruct {
-    /**
-     * Indicates whether this code-construct implements the TextEditable interface or not.
-     */
-    isTextEditable: boolean;
-
     /**
      * The parent/root node for this code-construct. Statements are the only code construct that could have the Module as their root node.
      */
@@ -40,11 +37,6 @@ export interface CodeConstruct {
     indexInRoot: number;
 
     /**
-     * Different types of edits when adding this statement/expression/token.
-     */
-    receives: Array<AddableType>;
-
-    /**
      * The left column position of this code-construct.
      */
     left: number;
@@ -53,11 +45,6 @@ export interface CodeConstruct {
      * The right column position of this code-construct.
      */
     right: number;
-
-    /**
-     * Determines if this code-construct could be added (either from the toolbox or the autocomplete or elsewhere) to the program, and the type it accepts.
-     */
-    addableType: AddableType;
 
     /**
      * A warning or error notification for this code construct. (null if there are no notifications)
@@ -158,9 +145,6 @@ export interface CodeConstruct {
  * A complete code statement such as: variable assignment, function call, conditional, loop, function definition, and other statements.
  */
 export abstract class Statement implements CodeConstruct {
-    isTextEditable = false;
-    addableType: AddableType;
-    receives = new Array<AddableType>();
     lineNumber: number;
     left: number;
     right: number;
@@ -181,6 +165,22 @@ export abstract class Statement implements CodeConstruct {
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
+    }
+
+    checkInsertionAtHole(index: number, givenType: DataType): InsertionType {
+        if (Object.keys(this.typeOfHoles).length) {
+            const holeType = this.typeOfHoles[index];
+
+            let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
+
+            if (canConvertToParentType && !hasMatch(holeType, [givenType])) {
+                return InsertionType.DraftMode;
+            } else if (holeType.some((t) => t == DataType.Any) || hasMatch(holeType, [givenType])) {
+                return InsertionType.Valid;
+            }
+        }
+
+        return InsertionType.Invalid;
     }
 
     /**
@@ -449,9 +449,7 @@ export abstract class Statement implements CodeConstruct {
      */
     onInsertInto(insertCode: CodeConstruct) {}
 
-    validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return InsertionType.Invalid;
-    }
+    abstract validateContext(validator: Validator, providedContext: Context): InsertionType;
 
     //actions that need to occur when the focus is switched off of this statement
     onFocusOff(arg: any): void {
@@ -464,8 +462,7 @@ export abstract class Statement implements CodeConstruct {
  */
 export abstract class Expression extends Statement implements CodeConstruct {
     rootNode: Expression | Statement = null;
-    isTextEditable = false;
-    addableType: AddableType;
+
     // TODO: can change this to an Array to enable type checking when returning multiple items
     returns: DataType;
 
@@ -518,7 +515,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
         if (this.rootNode instanceof Expression) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
-            if (replaceWith.returns === this.returns) {
+            if (replaceWith.returns === this.returns || this.returns === DataType.Any) {
                 return InsertionType.Valid;
             } else if (
                 replaceWith.returns !== this.returns &&
@@ -529,21 +526,27 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 return InsertionType.Invalid;
             }
         } else if (!(this.rootNode instanceof Module)) {
-            const typesOfParentHole = (this.rootNode as Statement).typeOfHoles[this.indexInRoot];
+            const rootTypeOfHoles = (this.rootNode as Statement).typeOfHoles;
 
-            let canConvertToParentType = hasMatch(
-                Util.getInstance().typeConversionMap.get(replaceWith.returns),
-                typesOfParentHole
-            );
+            if (Object.keys(rootTypeOfHoles).length > 0) {
+                const typesOfParentHole = rootTypeOfHoles[this.indexInRoot];
 
-            if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
-                return InsertionType.DraftMode;
-            } else if (
-                typesOfParentHole.some((t) => t == DataType.Any) ||
-                hasMatch(typesOfParentHole, [replaceWith.returns])
-            ) {
-                return InsertionType.Valid;
+                let canConvertToParentType = hasMatch(
+                    Util.getInstance().typeConversionMap.get(replaceWith.returns),
+                    typesOfParentHole
+                );
+
+                if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
+                    return InsertionType.DraftMode;
+                } else if (
+                    typesOfParentHole.some((t) => t == DataType.Any) ||
+                    hasMatch(typesOfParentHole, [replaceWith.returns])
+                ) {
+                    return InsertionType.Valid;
+                }
             }
+
+            return InsertionType.Invalid;
         }
     }
 
@@ -557,15 +560,22 @@ export abstract class Expression extends Statement implements CodeConstruct {
     }
 }
 
+export abstract class Modifier extends Expression {
+    rootNode: ValueOperationExpr | VarOperationStmt;
+    leftExprTypes: Array<DataType>;
+
+    constructor() {
+        super(null);
+    }
+}
+
 /**
  * The smallest code construct: identifiers, holes (for either identifiers or expressions), operators and characters, and etc.
  */
 export abstract class Token implements CodeConstruct {
     isTextEditable = false;
-    addableType: AddableType;
     rootNode: CodeConstruct = null;
     indexInRoot: number;
-    receives = new Array<AddableType>();
     left: number;
     right: number;
     text: string;
@@ -698,8 +708,36 @@ export interface TextEditable {
     setEditedText(text: string): boolean;
 }
 
+export interface VariableContainer {
+    assignId();
+
+    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]);
+
+    assignNewVariable(varController: VariableController);
+
+    assignExistingVariable(currentIdentifierAssignments: Statement[]);
+
+    reassignVar(
+        oldVarId: string,
+        varController: VariableController,
+        currentIdentifierAssignments: Statement[],
+        oldIdentifierAssignments: Statement[]
+    );
+}
+
+export class Argument {
+    type: DataType[];
+    name: string;
+    isOptional: boolean;
+
+    constructor(type: DataType[], name: string, isOptional: boolean) {
+        this.type = type;
+        this.name = name;
+        this.isOptional = isOptional;
+    }
+}
+
 export class WhileStatement extends Statement {
-    addableType = AddableType.Statement;
     scope: Scope;
     private conditionIndex: number;
 
@@ -718,17 +756,12 @@ export class WhileStatement extends Statement {
         this.hasEmptyToken = true;
     }
 
-    replaceCondition(expr: Expression) {
-        this.replace(expr, this.conditionIndex);
-    }
-
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
 export class IfStatement extends Statement {
-    addableType = AddableType.Statement;
     private conditionIndex: number;
 
     constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
@@ -749,75 +782,9 @@ export class IfStatement extends Statement {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
-
-    replaceCondition(expr: Expression) {
-        this.replace(expr, this.conditionIndex);
-    }
-
-    isValidReference(uniqueId: string, lineNumber: number, indexInRoot: number): boolean {
-        if (!(this.indexInRoot[indexInRoot] instanceof ElseStatement) && indexInRoot - 1 > 0) {
-            for (let i = indexInRoot - 1; i >= 0; i--) {
-                const stmt = this.body[i];
-
-                if (stmt instanceof ElseStatement) break;
-                if (stmt instanceof VarAssignmentStmt && uniqueId == stmt.buttonId) return true;
-                if (stmt instanceof ForStatement && stmt.buttonId == uniqueId) return true;
-            }
-        }
-
-        for (let stmt of this.scope.getValidReferences(this.getLineNumber()))
-            if (
-                (stmt.statement instanceof VarAssignmentStmt || stmt.statement instanceof ForStatement) &&
-                uniqueId == stmt.statement.buttonId
-            ) {
-                return true;
-            }
-
-        return false;
-    }
-
-    isValidElseInsertion(index: number, statement: ElseStatement): boolean {
-        if (statement.hasCondition) {
-            // if there is an else before this elif => invalid
-            for (let i = 0; i < index; i++) {
-                const stmt = this.body[i];
-
-                if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
-            }
-        } else {
-            // if there is another else => invalid
-            for (let stmt of this.body) if (stmt instanceof ElseStatement && !stmt.hasCondition) return false;
-
-            // if the else is before an elif => invalid
-            for (let i = index + 1; i < this.body.length; i++) {
-                const stmt = this.body[i];
-
-                if (stmt instanceof ElseStatement && stmt.hasCondition) return false;
-            }
-        }
-
-        return true;
-    }
-
-    insertElseStatement(index: number, statement: ElseStatement) {
-        const prevPos = this.body[index].getLeftPosition();
-
-        // insert and shift other statements down
-        // TODO: update-body-index ->
-        this.body.splice(index, 0, statement);
-        for (let i = index + 1; i < this.body.length; i++) this.body[i].indexInRoot++;
-
-        // rebuild else statement, and body
-        statement.init(new Position(prevPos.lineNumber, prevPos.column - TAB_SPACES));
-        statement.rootNode = this;
-        statement.indexInRoot = index;
-
-        rebuildBody(this, index + 1, prevPos.lineNumber + 1);
-    }
 }
 
 export class ElseStatement extends Statement {
-    addableType = AddableType.Statement;
     private conditionIndex: number;
     hasCondition: boolean = false;
 
@@ -848,32 +815,9 @@ export class ElseStatement extends Statement {
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
-
-    replaceCondition(expr: Expression) {
-        if (this.hasCondition) this.replace(expr, this.conditionIndex);
-    }
-}
-
-export interface VariableContainer {
-    assignId();
-
-    assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[]);
-
-    assignNewVariable(varController: VariableController);
-
-    assignExistingVariable(currentIdentifierAssignments: Statement[]);
-
-    reassignVar(
-        oldVarId: string,
-        varController: VariableController,
-        currentIdentifierAssignments: Statement[],
-        oldIdentifierAssignments: Statement[]
-    );
 }
 
 export class ForStatement extends Statement implements VariableContainer {
-    addableType = AddableType.Statement;
-
     buttonId: string;
     private counterIndex: number;
     private rangeIndex: number;
@@ -941,24 +885,8 @@ export class ForStatement extends Statement implements VariableContainer {
         super.rebuild(pos, fromIndex);
     }
 
-    replaceCounter(expr: Expression) {
-        this.replace(expr, this.counterIndex);
-    }
-
-    replaceRange(expr: Expression) {
-        this.replace(expr, this.rangeIndex);
-    }
-
     getIdentifier(): string {
         return this.tokens[this.counterIndex].getRenderText();
-    }
-
-    updateButton() {
-        document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
-    }
-
-    getIterableCodeObject(): CodeConstruct {
-        return this.tokens[this.rangeIndex];
     }
 
     onFocusOff(): void {
@@ -1090,30 +1018,11 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 }
 
-export class Argument {
-    type: DataType[];
-    name: string;
-    isOptional: boolean;
-
-    constructor(type: DataType[], name: string, isOptional: boolean) {
-        this.type = type;
-        this.name = name;
-        this.isOptional = isOptional;
-    }
-}
-
 export class EmptyLineStmt extends Statement {
-    toString(): string {
-        return "EmptyLine";
-    }
-
-    addableType = AddableType.Statement;
     hasEmptyToken = false;
 
     constructor(root?: Statement | Module, indexInRoot?: number) {
         super();
-
-        this.receives.push(AddableType.Statement);
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
@@ -1137,12 +1046,15 @@ export class EmptyLineStmt extends Statement {
     getRenderText(): string {
         return "";
     }
+
+    toString(): string {
+        return "EmptyLine";
+    }
 }
 
 export class VarAssignmentStmt extends Statement implements VariableContainer {
     static uniqueId: number = 0;
     buttonId: string = ""; //note: this is used as both the DOM id of the reference button in the toolbox AND the unique id of the variable itself
-    addableType = AddableType.Statement;
     private identifierIndex: number;
     private valueIndex: number;
     dataType = DataType.Any;
@@ -1183,16 +1095,6 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
-    }
-
-    replaceIdentifier(code: CodeConstruct) {
-        this.oldIdentifier = this.getIdentifier();
-
-        this.replace(code, this.identifierIndex);
-    }
-
-    replaceValue(code: CodeConstruct) {
-        this.replace(code, this.valueIndex);
     }
 
     rebuild(pos: Position, fromIndex: number) {
@@ -1387,7 +1289,6 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
 export class VariableReferenceExpr extends Expression {
     isEmpty = false;
-    addableType = AddableType.Expression;
     identifier: string;
     uniqueId: string;
 
@@ -1412,12 +1313,223 @@ export class VariableReferenceExpr extends Expression {
     }
 }
 
+export class ValueOperationExpr extends Expression {
+    constructor(value: Expression, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
+        super(value.returns);
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        value.indexInRoot = this.tokens.length;
+        value.rootNode = this;
+
+        this.tokens.push(value);
+
+        if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
+    }
+
+    updateReturnType() {
+        for (const mod of this.tokens) if (mod instanceof Expression) this.returns = mod.returns;
+    }
+
+    appendModifier(mod: Modifier) {
+        mod.indexInRoot = this.tokens.length;
+        mod.rootNode = this;
+
+        this.tokens.push(mod);
+
+        // always take the last modifier's return value for the whole expression:
+        this.returns = mod.returns;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atRightOfExpression(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+}
+
+export class VarOperationStmt extends Statement {
+    constructor(ref: VariableReferenceExpr, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
+        super();
+
+        ref.indexInRoot = this.tokens.length;
+        ref.rootNode = this;
+
+        this.tokens.push(ref);
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
+    }
+
+    appendModifier(mod: Modifier) {
+        mod.indexInRoot = this.tokens.length;
+        mod.rootNode = this;
+
+        this.tokens.push(mod);
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+}
+
+export class ListAccessModifier extends Modifier {
+    leftExprTypes = [DataType.AnyList];
+
+    constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        this.tokens.push(new NonEditableTkn(`[`, this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        // TODO: should check the output for list and str expressions
+        return IndexableTypes.indexOf(providedContext?.expressionToLeft?.returns) > -1
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
+    }
+}
+
+export class PropertyAccessorModifier extends Modifier {
+    constructor(
+        propertyName: string,
+        exprType: DataType,
+        root?: ValueOperationExpr | VarOperationStmt,
+        indexInRoot?: number
+    ) {
+        super();
+
+        this.leftExprTypes = [exprType];
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        this.tokens.push(new NonEditableTkn(`.${propertyName}`, this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return InsertionType.Valid;
+    }
+}
+
+export class MethodCallModifier extends Modifier {
+    functionName: string = "";
+    args: Array<Argument>;
+    returns: DataType;
+
+    constructor(
+        functionName: string,
+        args: Array<Argument>,
+        returns: DataType,
+        exprType: DataType,
+        root?: ValueOperationExpr | VarOperationStmt,
+        indexInRoot?: number
+    ) {
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        this.functionName = functionName;
+        this.args = args;
+        this.returns = returns;
+        this.leftExprTypes = [exprType];
+
+        if (args.length > 0) {
+            this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
+
+            for (let i = 0; i < args.length; i++) {
+                let arg = args[i];
+
+                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
+
+                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
+            }
+
+            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
+
+            this.hasEmptyToken = true;
+        } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        const doTypesMatch = this.leftExprTypes.some((type) =>
+            areEqualTypes(providedContext?.expressionToLeft?.returns, type)
+        );
+
+        return validator.atRightOfExpression(providedContext) && doTypesMatch
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
+    }
+}
+
+export class AssignmentModifier extends Modifier {
+    constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        // must be after a variable reference that is not been assigned
+        // in a statement (not an expression)
+        return (providedContext.expressionToLeft instanceof VariableReferenceExpr ||
+            providedContext.expressionToLeft instanceof ListAccessModifier ||
+            providedContext.expressionToLeft instanceof PropertyAccessorModifier) &&
+            providedContext.expressionToLeft.rootNode instanceof VarOperationStmt
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
+    }
+}
+
+export class AugmentedAssignmentModifier extends Modifier {
+    constructor(
+        operation: AugmentedAssignmentOperator,
+        root?: ValueOperationExpr | VarOperationStmt,
+        indexInRoot?: number
+    ) {
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+
+        this.tokens.push(new NonEditableTkn(` ${operation} `, this, this.tokens.length));
+        const dataTypes = [DataType.Number];
+
+        if (operation == AugmentedAssignmentOperator.Add) dataTypes.push(DataType.String);
+
+        this.tokens.push(new TypedEmptyExpr(dataTypes, this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [...dataTypes];
+
+        this.leftExprTypes = dataTypes;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return (providedContext.expressionToLeft instanceof VariableReferenceExpr ||
+            providedContext.expressionToLeft instanceof ListAccessModifier ||
+            providedContext.expressionToLeft instanceof PropertyAccessorModifier) &&
+            providedContext.expressionToLeft.rootNode instanceof VarOperationStmt
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
+    }
+}
+
 export class FunctionCallExpr extends Expression {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
-    addableType = AddableType.Expression;
     functionName: string = "";
     args: Array<Argument>;
 
@@ -1499,7 +1611,6 @@ export class FunctionCallStmt extends Statement {
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
-    addableType = AddableType.Statement;
     functionName: string = "";
 
     constructor(
@@ -1549,92 +1660,12 @@ export class FunctionCallStmt extends Statement {
     }
 }
 
-export class ExprDotMethodStmt extends Expression {
-    private argumentsIndices = new Array<number>();
-    addableType = AddableType.Expression;
-    exprType: DataType;
-    functionName: string = "";
-    args: Array<Argument>;
-
-    constructor(
-        functionName: string,
-        args: Array<Argument>,
-        returns: DataType,
-        exprType: DataType,
-        root?: Statement | Expression,
-        indexInRoot?: number
-    ) {
-        super(returns);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.functionName = functionName;
-        this.exprType = exprType;
-        this.args = args;
-
-        // just inserting a dummy expression
-        this.tokens.push(null);
-
-        if (args.length > 0) {
-            this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
-
-            for (let i = 0; i < args.length; i++) {
-                let arg = args[i];
-
-                this.argumentsIndices.push(this.tokens.length);
-                this.tokens.push(new TypedEmptyExpr([...arg.type], this, this.tokens.length));
-                this.typeOfHoles[this.tokens.length - 1] = [...arg.type];
-
-                if (i + 1 < args.length) this.tokens.push(new NonEditableTkn(", ", this, this.tokens.length));
-            }
-
-            this.tokens.push(new NonEditableTkn(")", this, this.tokens.length));
-
-            this.hasEmptyToken = true;
-        } else this.tokens.push(new NonEditableTkn(functionName + "()", this, this.tokens.length));
-    }
-
-    // implement an onDelete method that will be called when a code is being deleted. it removes the particular holes and etc.
-    onDelete() {
-        for (let i = 2; i < this.tokens.length; i++) this.tokens[i].notify(CallbackType.delete);
-    }
-
-    setExpression(expr: Expression) {
-        expr.rootNode = this;
-        expr.indexInRoot = 0;
-
-        this.tokens[0] = expr;
-    }
-
-    getExpression(): Expression {
-        return this.tokens[0] as Expression;
-    }
-
-    validateContext(validator: Validator, providedContext: Context): InsertionType {
-        const doTypesMatch = providedContext?.expressionToLeft?.returns == this.exprType;
-
-        return validator.atRightOfExpression(providedContext) && doTypesMatch
-            ? InsertionType.Valid
-            : InsertionType.Invalid;
-    }
-
-    replaceArgument(index: number, to: CodeConstruct) {
-        this.replace(to, this.argumentsIndices[index]);
-    }
-
-    getFunctionName(): string {
-        return this.functionName;
-    }
-}
-
 export class ListElementAssignment extends Statement {
     constructor(root?: Expression, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-
-        this.addableType = AddableType.Statement;
 
         this.tokens.push(
             new TypedEmptyExpr(
@@ -1664,7 +1695,6 @@ export class ListElementAssignment extends Statement {
 }
 
 export class MemberCallStmt extends Expression {
-    addableType = AddableType.Expression;
     operator: BinaryOperator;
 
     constructor(returns: DataType, root?: Statement | Expression, indexInRoot?: number) {
@@ -1672,8 +1702,6 @@ export class MemberCallStmt extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
-
-        this.addableType = AddableType.Expression;
 
         this.tokens.push(
             new TypedEmptyExpr(
@@ -1702,7 +1730,6 @@ export class MemberCallStmt extends Expression {
 }
 
 export class BinaryOperatorExpr extends Expression {
-    addableType = AddableType.Expression;
     operator: BinaryOperator;
     operatorCategory: BinaryOperatorCategory;
     private leftOperandIndex: number;
@@ -1724,8 +1751,6 @@ export class BinaryOperatorExpr extends Expression {
         } else {
             this.operatorCategory = BinaryOperatorCategory.Unspecified;
         }
-
-        this.addableType = AddableType.Expression;
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
 
@@ -1971,7 +1996,6 @@ export class BinaryOperatorExpr extends Expression {
 }
 
 export class UnaryOperatorExpr extends Expression {
-    addableType = AddableType.Expression;
     operator: UnaryOp;
     private operandIndex: number;
 
@@ -1987,8 +2011,6 @@ export class UnaryOperatorExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.operator = operator;
-
-        this.addableType = AddableType.Expression;
 
         this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
@@ -2067,8 +2089,6 @@ export class EditableTextTkn extends Token implements TextEditable {
 }
 
 export class LiteralValExpr extends Expression {
-    addableType = AddableType.Expression;
-
     constructor(returns: DataType, value?: string, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
@@ -2131,8 +2151,6 @@ export class LiteralValExpr extends Expression {
 }
 
 export class ListLiteralExpression extends Expression {
-    addableType = AddableType.Expression;
-
     constructor(root?: Statement | Expression, indexInRoot?: number) {
         super(DataType.AnyList);
 
@@ -2212,7 +2230,6 @@ export class ListComma extends Expression {
 
 export class IdentifierTkn extends Token implements TextEditable {
     isTextEditable = true;
-    addableType = AddableType.Identifier;
     validatorRegex: RegExp;
 
     constructor(identifier?: string, root?: CodeConstruct, indexInRoot?: number) {
@@ -2264,8 +2281,6 @@ export class TypedEmptyExpr extends Token {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.type = type;
-
-        this.receives.push(AddableType.Expression);
     }
 
     canReplaceWithConstruct(replaceWith: Expression): InsertionType {

@@ -28,6 +28,7 @@ export enum DataType {
 }
 
 export const ListTypes = [DataType.AnyList, DataType.NumberList, DataType.BooleanList, DataType.StringList];
+export const IndexableTypes = [...ListTypes, DataType.String];
 
 export enum BinaryOperator {
     Add = "+",
@@ -56,6 +57,21 @@ export enum BinaryOperator {
     IsNot = "is not",
     In = "in",
     NotIn = "not in",
+}
+
+export enum AugmentedAssignmentOperator {
+    Add = "+=",
+    Subtract = "-=",
+    Multiply = "*=",
+    Divide = "/=",
+    Mod = "%=",
+    Pow = "**=",
+    LeftShift = "<<=",
+    RightShift = ">>=",
+    BitOr = "|=",
+    BitXor = "^=",
+    BitAnd = "&=",
+    FloorDiv = "//=",
 }
 
 export const arithmeticOps = [
@@ -98,17 +114,6 @@ export enum UnaryOp {
     Not = "not",
     UAdd = "+",
     USub = "-",
-}
-
-export enum AddableType {
-    NotAddable,
-
-    Statement = "Statement",
-    Expression = "Expression",
-    ExpressionModifier = "Expression Modifier",
-    Identifier = "Identifier",
-    NumberLiteral = "Number Literal",
-    StringLiteral = "String Literal",
 }
 
 export enum PythonKeywords {

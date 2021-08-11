@@ -1,23 +1,25 @@
-import { BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
-import { EditCodeAction } from "./action-filter";
 import {
     Argument,
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
     BinaryOperatorExpr,
     ElseStatement,
-    ExprDotMethodStmt,
     ForStatement,
     FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
+    ListAccessModifier,
     ListComma,
     ListElementAssignment,
     ListLiteralExpression,
     LiteralValExpr,
-    MemberCallStmt,
+    MethodCallModifier,
     UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
+import { AugmentedAssignmentOperator, BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
+import { EditCodeAction } from "./action-filter";
 
 export enum KeyPress {
     // navigation:
@@ -140,8 +142,10 @@ export enum EditActionType {
 
     InsertVarAssignStatement,
     InsertVariableRef,
-    InsertDotMethod,
     InsertElseStatement,
+
+    InsertModifier,
+    InsertAssignmentModifier,
 }
 
 export enum ConstructName {
@@ -179,6 +183,9 @@ export enum InsertActionType {
     InsertStringJoinMethod,
     InsertStringReplaceMethod,
     InsertStringFindMethod,
+
+    InsertAssignmentModifier,
+    InsertAugmentedAssignmentModifier,
 }
 export class Actions {
     private static inst: Actions;
@@ -439,10 +446,10 @@ export class Actions {
                 ".find(---)",
                 "add-find-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "find",
                         [new Argument([DataType.String], "item", false)],
-                        DataType.String,
+                        DataType.Number,
                         DataType.String
                     ),
                 InsertActionType.InsertStringFindMethod
@@ -488,17 +495,52 @@ export class Actions {
             new EditCodeAction(", ---", "add-list-item-btn", () => new ListComma(), InsertActionType.InsertListItem),
 
             new EditCodeAction(
-                "---[---] = ---",
+                "[---]",
                 "add-list-index-btn",
-                () => new MemberCallStmt(DataType.Any),
+                () => new ListAccessModifier(),
                 InsertActionType.InsertListIndexAccessor
+            ),
+
+            new EditCodeAction(
+                "= ---",
+                "add-assign-mod-btn",
+                () => new AssignmentModifier(),
+                InsertActionType.InsertAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "+= ---",
+                "add-aug-assign-add-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                InsertActionType.InsertAugmentedAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "-= ---",
+                "add-aug-assign-sub-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+                InsertActionType.InsertAugmentedAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "*= ---",
+                "add-aug-assign-mul-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+                InsertActionType.InsertAugmentedAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "/= ---",
+                "add-aug-assign-div-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+                InsertActionType.InsertAugmentedAssignmentModifier
             ),
 
             new EditCodeAction(
                 ".append(---)",
                 "add-list-append-stmt-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "append",
                         [new Argument([DataType.Any], "object", false)],
                         DataType.Void,
@@ -511,7 +553,7 @@ export class Actions {
                 ".replace(---, ---)",
                 "add-replace-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "replace",
                         [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
                         DataType.String,
@@ -524,7 +566,7 @@ export class Actions {
                 ".join(---)",
                 "add-join-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "join",
                         [
                             new Argument(
@@ -556,7 +598,7 @@ export class Actions {
                 ".split(---)",
                 "add-split-method-call-btn",
                 () =>
-                    new ExprDotMethodStmt(
+                    new MethodCallModifier(
                         "split",
                         [new Argument([DataType.String], "sep", false)],
                         DataType.StringList,

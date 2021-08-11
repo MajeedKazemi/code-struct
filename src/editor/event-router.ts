@@ -1,10 +1,10 @@
-import { Context } from "./focus";
-import { EditAction } from "./data-types";
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { BinaryOperator, DataType } from "./../syntax-tree/consts";
-import { InsertActionType, EditActionType, KeyPress, Actions } from "./consts";
 import { EditCodeAction } from "./action-filter";
+import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
+import { EditAction } from "./data-types";
+import { Context } from "./focus";
 
 export class EventRouter {
     module: Module;
@@ -383,15 +383,16 @@ export class EventRouter {
             }
 
             case InsertActionType.InsertListIndexAccessor: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type to be a list
+                return new EditAction(EditActionType.InsertModifier, {
+                    modifier: e.getCode(),
+                });
+            }
 
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: new ast.MemberCallStmt(DataType.Any),
-                    });
-                }
-
-                break;
+            case InsertActionType.InsertAssignmentModifier:
+            case InsertActionType.InsertAugmentedAssignmentModifier: {
+                return new EditAction(EditActionType.InsertAssignmentModifier, {
+                    modifier: e.getCode(),
+                });
             }
 
             case InsertActionType.InsertListAppendMethod:
@@ -399,13 +400,7 @@ export class EventRouter {
             case InsertActionType.InsertStringJoinMethod:
             case InsertActionType.InsertStringReplaceMethod:
             case InsertActionType.InsertStringFindMethod: {
-                if (this.module.validator.atRightOfExpression(context)) {
-                    // TODO: should also check the type to be correct
-
-                    return new EditAction(EditActionType.InsertDotMethod, { method: e.getCode() });
-                }
-
-                break;
+                return new EditAction(EditActionType.InsertModifier, { modifier: e.getCode() });
             }
 
             case InsertActionType.InsertLenExpr: {

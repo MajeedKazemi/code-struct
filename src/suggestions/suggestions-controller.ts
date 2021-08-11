@@ -1,11 +1,11 @@
-import { Editor } from "../editor/editor";
-import { ConstructDoc } from "./construct-doc";
-import { Module } from "../syntax-tree/module";
-import { Validator } from "../editor/validator";
-import { Reference } from "../syntax-tree/scope";
-import { VarAssignmentStmt } from "../syntax-tree/ast";
-import { ConstructKeys, Util } from "../utilities/util";
 import EditorComponent from "../components/editor/editor";
+import { Editor } from "../editor/editor";
+import { Validator } from "../editor/validator";
+import { VarAssignmentStmt } from "../syntax-tree/ast";
+import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
+import { ConstructKeys, Util } from "../utilities/util";
+import { ConstructDoc } from "./construct-doc";
 
 /*
  *A tree menu that can hold options for the user and link through those options to other menus.

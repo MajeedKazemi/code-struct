@@ -1,18 +1,18 @@
-import { Editor } from "./editor";
-import { Context } from "./focus";
-import { Validator } from "./validator";
-import { Reference } from "../syntax-tree/scope";
-import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
     CodeConstruct,
     EditableTextTkn,
+    ForStatement,
     IdentifierTkn,
     TypedEmptyExpr,
     VarAssignmentStmt,
-    ForStatement,
 } from "../syntax-tree/ast";
-import { Module } from "../syntax-tree/module";
+import { Callback, CallbackType } from "../syntax-tree/callback";
 import { InsertionType } from "../syntax-tree/consts";
+import { Module } from "../syntax-tree/module";
+import { Reference } from "../syntax-tree/scope";
+import { Editor } from "./editor";
+import { Context } from "./focus";
+import { Validator } from "./validator";
 
 export class Hole {
     static editableHoleClass = "editableHole";

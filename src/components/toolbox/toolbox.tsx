@@ -79,6 +79,27 @@ class Toolbox extends React.Component<Props, State>{
         </div>
     }
 
+    addAssignmentOperations() {
+        return <div className="group">
+            <p>Assignment Operations</p>
+            <div id="add-assign-mod-btn" className="button">
+                = <div className="hole"></div>
+            </div>
+            <div id="add-aug-assign-add-mod-btn" className="button">
+                += <div className="hole"></div>
+            </div>
+            <div id="add-aug-assign-sub-mod-btn" className="button">
+                -= <div className="hole"></div>
+            </div>
+            <div id="add-aug-assign-mul-mod-btn" className="button">
+                *= <div className="hole"></div>
+            </div>
+            <div id="add-aug-assign-div-mod-btn" className="button">
+                /= <div className="hole"></div>
+            </div>
+        </div>
+    }
+
     addOperations() {
         return <div className="group">
             <p>Operations</p>
@@ -156,6 +177,7 @@ class Toolbox extends React.Component<Props, State>{
             {options.methods ? this.addMethods() : null}
             {options.variables ? this.addVariables() : null}
             {options.userDefinedVariables ? this.addUserDefinedVariables() : null}
+            {options.assignmentOperations ? this.addAssignmentOperations() : null}
             {options.list ? this.addList() : null}
             {options.literals ? this.addLiterals() : null}
             {options.casting ? this.addCasting() : null}

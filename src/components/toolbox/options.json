@@ -3,6 +3,7 @@
     "controlFlow": 1,
     "methods": 1,
     "variables": 1,
+    "assignmentOperations": 1,
     "list": 1,
     "literals": 1,
     "casting": 1,

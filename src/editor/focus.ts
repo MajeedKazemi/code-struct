@@ -1,8 +1,4 @@
-import { ConstructName } from "./consts";
-import { Module } from "../syntax-tree/module";
-import { DataType } from "./../syntax-tree/consts";
 import { Position, Selection } from "monaco-editor";
-import { CallbackType } from "../syntax-tree/callback";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -13,8 +9,12 @@ import {
     NonEditableTkn,
     Statement,
     TextEditable,
-    Token,
+    Token
 } from "../syntax-tree/ast";
+import { CallbackType } from "../syntax-tree/callback";
+import { Module } from "../syntax-tree/module";
+import { DataType } from "./../syntax-tree/consts";
+import { ConstructName } from "./consts";
 
 export class Focus {
     module: Module;

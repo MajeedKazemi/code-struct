@@ -1,12 +1,12 @@
-import { Context } from "./focus";
-import { Validator } from "./validator";
-import { EventRouter } from "./event-router";
+import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { ActionExecutor } from "./action-executor";
 import { Actions, InsertActionType } from "./consts";
-import { InsertionType } from "../syntax-tree/consts";
-import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import { EventRouter } from "./event-router";
+import { Context } from "./focus";
+import { Validator } from "./validator";
 
 export class ActionFilter {
     module: Module;
@@ -39,7 +39,7 @@ export class ActionFilter {
     }
 
     validateEdits(): Map<string, InsertionRecord> {
-        console.warn("validateEdits() is not implemented.");
+        // console.warn("validateEdits() is not implemented.");
 
         return new Map<string, InsertionRecord>();
     }
