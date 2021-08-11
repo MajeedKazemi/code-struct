@@ -1,5 +1,7 @@
 import {
     Argument,
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
     BinaryOperatorExpr,
     ElseStatement,
     ForStatement,
@@ -16,7 +18,7 @@ import {
     VarAssignmentStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
-import { BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
+import { AugmentedAssignmentOperator, BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 
 export enum KeyPress {
@@ -143,6 +145,7 @@ export enum EditActionType {
     InsertElseStatement,
 
     InsertModifier,
+    InsertAssignmentModifier,
 }
 
 export enum ConstructName {
@@ -180,6 +183,9 @@ export enum InsertActionType {
     InsertStringJoinMethod,
     InsertStringReplaceMethod,
     InsertStringFindMethod,
+
+    InsertAssignmentModifier,
+    InsertAugmentedAssignmentModifier,
 }
 export class Actions {
     private static inst: Actions;
@@ -493,6 +499,41 @@ export class Actions {
                 "add-list-index-btn",
                 () => new ListAccessModifier(),
                 InsertActionType.InsertListIndexAccessor
+            ),
+
+            new EditCodeAction(
+                "= ---",
+                "add-assign-mod-btn",
+                () => new AssignmentModifier(),
+                InsertActionType.InsertAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "+= ---",
+                "add-aug-assign-add-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                InsertActionType.InsertAugmentedAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "-= ---",
+                "add-aug-assign-sub-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+                InsertActionType.InsertAugmentedAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "*= ---",
+                "add-aug-assign-mul-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+                InsertActionType.InsertAugmentedAssignmentModifier
+            ),
+
+            new EditCodeAction(
+                "/= ---",
+                "add-aug-assign-div-mod-btn",
+                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+                InsertActionType.InsertAugmentedAssignmentModifier
             ),
 
             new EditCodeAction(

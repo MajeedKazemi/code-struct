@@ -436,6 +436,20 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.InsertAssignmentModifier: {
+                if (context.expressionToLeft.rootNode instanceof VarOperationStmt) {
+                    const varOpStmt = context.expressionToLeft.rootNode;
+
+                    varOpStmt.appendModifier(action.data.modifier);
+                    varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
+
+                    this.module.editor.insertAtCurPos([action.data.modifier]);
+                    this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                }
+
+                break;
+            }
+
             case EditActionType.InsertModifier: {
                 if (context.expressionToLeft instanceof Modifier) {
                     if (context.expressionToLeft.rootNode instanceof ValueOperationExpr) {

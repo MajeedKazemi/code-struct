@@ -562,7 +562,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
 export abstract class Modifier extends Expression {
     rootNode: ValueOperationExpr | VarOperationStmt;
-    exprType: DataType;
+    leftExprTypes: Array<DataType>;
 
     constructor() {
         super(null);
@@ -1375,7 +1375,7 @@ export class VarOperationStmt extends Statement {
 }
 
 export class ListAccessModifier extends Modifier {
-    exprType = DataType.AnyList;
+    leftExprTypes = [DataType.AnyList];
 
     constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
@@ -1405,7 +1405,7 @@ export class PropertyAccessorModifier extends Modifier {
     ) {
         super();
 
-        this.exprType = exprType;
+        this.leftExprTypes = [exprType];
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
@@ -1418,7 +1418,6 @@ export class PropertyAccessorModifier extends Modifier {
 }
 
 export class MethodCallModifier extends Modifier {
-    exprType: DataType;
     functionName: string = "";
     args: Array<Argument>;
     returns: DataType;
@@ -1439,7 +1438,7 @@ export class MethodCallModifier extends Modifier {
         this.functionName = functionName;
         this.args = args;
         this.returns = returns;
-        this.exprType = exprType;
+        this.leftExprTypes = [exprType];
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn("." + functionName + "(", this, this.tokens.length));
@@ -1460,7 +1459,9 @@ export class MethodCallModifier extends Modifier {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        const doTypesMatch = areEqualTypes(providedContext?.expressionToLeft?.returns, this.exprType);
+        const doTypesMatch = this.leftExprTypes.some((type) =>
+            areEqualTypes(providedContext?.expressionToLeft?.returns, type)
+        );
 
         return validator.atRightOfExpression(providedContext) && doTypesMatch
             ? InsertionType.Valid
@@ -1476,13 +1477,19 @@ export class AssignmentModifier extends Modifier {
         this.indexInRoot = indexInRoot;
 
         this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         // must be after a variable reference that is not been assigned
         // in a statement (not an expression)
-
-        return InsertionType.Valid;
+        return (providedContext.expressionToLeft instanceof VariableReferenceExpr ||
+            providedContext.expressionToLeft instanceof ListAccessModifier ||
+            providedContext.expressionToLeft instanceof PropertyAccessorModifier) &&
+            providedContext.expressionToLeft.rootNode instanceof VarOperationStmt
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -1498,10 +1505,23 @@ export class AugmentedAssignmentModifier extends Modifier {
         this.indexInRoot = indexInRoot;
 
         this.tokens.push(new NonEditableTkn(` ${operation} `, this, this.tokens.length));
+        const dataTypes = [DataType.Number];
+
+        if (operation == AugmentedAssignmentOperator.Add) dataTypes.push(DataType.String);
+
+        this.tokens.push(new TypedEmptyExpr(dataTypes, this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [...dataTypes];
+
+        this.leftExprTypes = dataTypes;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return InsertionType.Valid;
+        return (providedContext.expressionToLeft instanceof VariableReferenceExpr ||
+            providedContext.expressionToLeft instanceof ListAccessModifier ||
+            providedContext.expressionToLeft instanceof PropertyAccessorModifier) &&
+            providedContext.expressionToLeft.rootNode instanceof VarOperationStmt
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
