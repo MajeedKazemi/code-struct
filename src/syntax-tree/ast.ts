@@ -1363,6 +1363,12 @@ export class VarOperationStmt extends Statement {
     }
 
     appendModifier(mod: Modifier) {
+        if (mod instanceof AugmentedAssignmentModifier) {
+            const rightMostReturnsType = (this.tokens[this.tokens.length - 1] as Expression).returns;
+            (mod.tokens[1] as TypedEmptyExpr).type = [rightMostReturnsType];
+            mod.typeOfHoles[1] = [rightMostReturnsType];
+        }
+
         mod.indexInRoot = this.tokens.length;
         mod.rootNode = this;
 
@@ -1470,7 +1476,9 @@ export class MethodCallModifier extends Modifier {
 }
 
 export class AssignmentModifier extends Modifier {
-    constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
+    rootNode: VarOperationStmt;
+
+    constructor(root?: VarOperationStmt, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
@@ -1494,25 +1502,21 @@ export class AssignmentModifier extends Modifier {
 }
 
 export class AugmentedAssignmentModifier extends Modifier {
-    constructor(
-        operation: AugmentedAssignmentOperator,
-        root?: ValueOperationExpr | VarOperationStmt,
-        indexInRoot?: number
-    ) {
+    rootNode: VarOperationStmt;
+
+    constructor(operation: AugmentedAssignmentOperator, root?: VarOperationStmt, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
         this.tokens.push(new NonEditableTkn(` ${operation} `, this, this.tokens.length));
-        const dataTypes = [DataType.Number];
+        this.leftExprTypes = [DataType.Number];
 
-        if (operation == AugmentedAssignmentOperator.Add) dataTypes.push(DataType.String);
+        if (operation == AugmentedAssignmentOperator.Add) this.leftExprTypes.push(DataType.String);
 
-        this.tokens.push(new TypedEmptyExpr(dataTypes, this, this.tokens.length));
-        this.typeOfHoles[this.tokens.length - 1] = [...dataTypes];
-
-        this.leftExprTypes = dataTypes;
+        this.tokens.push(new TypedEmptyExpr(this.leftExprTypes, this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [...this.leftExprTypes];
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
