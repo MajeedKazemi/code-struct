@@ -1,6 +1,9 @@
+import * as React from 'react';
+import * as ReactDOM from 'react-dom';
+import ToolboxCascadedMenu from "../components/toolbox-cascaded-menu";
 import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
-import { DataType } from "./consts";
+import { DataType, InsertionType } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
 
@@ -20,6 +23,74 @@ export class VariableController {
             this.module.eventStack
         );
         this.variableButtons.push(button);
+
+        this.addCascadedMenuActions(assignmentStmt.buttonId, button);
+    }
+
+    private createCascadedMenu(identifier: string, buttonId: string){
+        const dataType = this.getVariableTypeNearLine(
+            this.module.focus.getFocusedStatement().scope ??
+                (
+                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+                        .rootNode as Statement | Module
+                ).scope,
+            this.module.editor.monaco.getPosition().lineNumber,
+            identifier,
+            false
+        );
+        const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
+        const validActions = this.module.actionFilter.validateVariableOperations(varRef);
+        const divArr = [];
+        const context = this.module.focus.getContext();
+
+        for(const [key, value] of validActions){
+            if(value[0].insertionType !== InsertionType.Invalid){
+                divArr.push(
+                    <div className="cascadedMenuItem" onClick = {(() => {
+                        this.module.executer.execute(this.module.eventRouter.routeToolboxEvents(value[1], context));
+                    }).bind(this)}>{key}</div>
+                )
+            }
+        }
+
+        if(divArr.length === 0){
+            return null
+        }
+        
+        return React.createElement(ToolboxCascadedMenu, {children: divArr, id: `${buttonId}-cascadedMenu`, buttonId: buttonId});
+    }
+
+    private addCascadedMenuActions(buttonId: string, button: HTMLDivElement){
+        const identifier = document.getElementById(buttonId).innerText;
+       
+        button.addEventListener("mouseover", () => {
+            if(!document.getElementById(`${buttonId}-cascadedMenu`)){
+                const menuElement = this.createCascadedMenu(identifier, buttonId);
+
+                if(menuElement){
+                    const portal = ReactDOM.createPortal(menuElement, document.getElementById("mainToolboxDiv"));
+                    const content = document.createElement("div");
+                    content.classList.add("cascadedMenuContent");
+                    ReactDOM.render(portal, content);
+            
+                    const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
+                    const leftPos = button.offsetLeft;
+                    const topPos =  button.offsetTop -  document.getElementById("mainToolboxDiv").scrollTop + button.offsetHeight;
+                    
+                    domMenuElement.style.left = `${leftPos}px`;
+                    domMenuElement.style.top = `${topPos + 2}px`;
+                }
+            }
+        })
+    
+        button.addEventListener("mouseleave", () => {
+            setTimeout(() => {
+                const element = document.getElementById(`${buttonId}-cascadedMenu`);
+                if(element && !element.matches(":hover") && !button.matches(":hover")){
+                    element.remove();
+                }
+            }, 50)
+        })
     }
 
     isVariableReferenceButton(buttonId: string) {

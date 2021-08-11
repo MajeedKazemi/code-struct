@@ -567,6 +567,10 @@ export abstract class Modifier extends Expression {
     constructor() {
         super(null);
     }
+
+    getModifierText(): string {
+        return "";
+    }
 }
 
 /**
@@ -1394,9 +1398,15 @@ export class ListAccessModifier extends Modifier {
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
+
+    getModifierText(): string {
+        return "[---]";
+    }
 }
 
 export class PropertyAccessorModifier extends Modifier {
+    private propertyName: string;
+
     constructor(
         propertyName: string,
         exprType: DataType,
@@ -1410,10 +1420,16 @@ export class PropertyAccessorModifier extends Modifier {
         this.indexInRoot = indexInRoot;
 
         this.tokens.push(new NonEditableTkn(`.${propertyName}`, this, this.tokens.length));
+
+        this.propertyName = propertyName;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return InsertionType.Valid;
+    }
+
+    getModifierText(): string {
+        return `.${this.propertyName}`;
     }
 }
 
@@ -1467,6 +1483,22 @@ export class MethodCallModifier extends Modifier {
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
+
+    getModifierText(): string {
+        let str = `.${this.functionName}(`;
+
+        for (let i = 0; i < this.args.length; i++) {
+            str += "---";
+
+            if (i === this.args.length - 1) {
+                str += ", ";
+            }
+        }
+
+        str += ")";
+
+        return str;
+    }
 }
 
 export class AssignmentModifier extends Modifier {
@@ -1491,9 +1523,15 @@ export class AssignmentModifier extends Modifier {
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
+
+    getModifierText(): string {
+        return " = ---";
+    }
 }
 
 export class AugmentedAssignmentModifier extends Modifier {
+    private operation: AugmentedAssignmentOperator;
+
     constructor(
         operation: AugmentedAssignmentOperator,
         root?: ValueOperationExpr | VarOperationStmt,
@@ -1513,6 +1551,8 @@ export class AugmentedAssignmentModifier extends Modifier {
         this.typeOfHoles[this.tokens.length - 1] = [...dataTypes];
 
         this.leftExprTypes = dataTypes;
+
+        this.operation = operation;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1523,6 +1563,10 @@ export class AugmentedAssignmentModifier extends Modifier {
             this.leftExprTypes.some((type) => type == providedContext.expressionToLeft.returns)
             ? InsertionType.Valid
             : InsertionType.Invalid;
+    }
+
+    getModifierText(): string {
+        return ` ${this.operation} ---`;
     }
 }
 

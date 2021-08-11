@@ -1,4 +1,11 @@
-import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import {
+    Expression,
+    Statement,
+    TypedEmptyExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+    VarOperationStmt,
+} from "../syntax-tree/ast";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -68,6 +75,34 @@ export class ActionFilter {
             );
         }
 
+        return validOptionMap;
+    }
+
+    validateVariableOperations(ref: VariableReferenceExpr): Map<string, [InsertionRecord, EditCodeAction]> {
+        const context = this.module.focus.getContext();
+        const dataType = ref.returns;
+        const availableModifiers = Actions.instance().varModifiersMap.get(dataType);
+        const validOptionMap: Map<string, [InsertionRecord, EditCodeAction]> = new Map<
+            string,
+            [InsertionRecord, EditCodeAction]
+        >();
+
+        for (const modifier of availableModifiers) {
+            const code = new VarOperationStmt(ref, [modifier]);
+            const codeAction = new EditCodeAction(
+                `${ref.identifier}${modifier.getModifierText()}`,
+                "",
+                () => {
+                    return code;
+                },
+                InsertActionType.InsertVarOperationStmt
+            );
+
+            validOptionMap.set(codeAction.optionName, [
+                new InsertionRecord(codeAction.validateAction(this.module.validator, context), codeAction.getCode, ""),
+                codeAction,
+            ]);
+        }
         return validOptionMap;
     }
 
