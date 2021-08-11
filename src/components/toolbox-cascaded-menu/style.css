@@ -5,8 +5,28 @@
     grid-auto-flow: row;
 
     width: fit-content;
-    height: fit-content;
-    min-height: 5vh;
+    height: 0vh;
+    min-height: 20%;
 
     position: absolute;
+
+    background-color: white;
+
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.3);
+
+    overflow-y: scroll;
+
+    cursor: pointer;
+}
+
+.cascadedMenuMainDiv div:hover .cascadedMenuItem {
+    background-color: rgba(116, 116, 116, 0.3);
+}
+
+.cascadedMenuMainDiv div:not(:hover) .cascadedMenuItem {
+    background-color: white;
 }

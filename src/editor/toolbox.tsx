@@ -5,6 +5,7 @@ import { InsertionRecord } from "./action-filter";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import ToolboxCascadedMenu from "../components/toolbox-cascaded-menu";
 import * as ReactDOM from 'react-dom';
+import { nova } from "..";
 
 
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
@@ -31,21 +32,30 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
         events.apply(action);
     });
 
+    const menuElement = React.createElement(ToolboxCascadedMenu, {children: [<div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>, <div className="cascadedMenuItem">wowowow</div>], id: `${buttonId}-cascadedMenu`, buttonId: buttonId});
     button.addEventListener("mouseover", () => {
-        const menuElement = React.createElement(ToolboxCascadedMenu, {children: [<span>wowowow</span>], id: `${identifier}-cascadedMenu`});
-        const portal = ReactDOM.createPortal(menuElement, document.getElementById("mainToolboxDiv"));
-        ReactDOM.render(portal, document.createElement("div"));
-
-        const domMenuElement = document.getElementById(`${identifier}-cascadedMenu`);
-        const leftPos = button.offsetLeft;
-        const topPos =  button.offsetTop -  document.getElementById("mainToolboxDiv").scrollTop + domMenuElement.offsetHeight;
-        
-        domMenuElement.style.left = `${leftPos}px`;
-        domMenuElement.style.top = `${topPos}px`;
+        if(!document.getElementById(`${buttonId}-cascadedMenu`)){
+            const portal = ReactDOM.createPortal(menuElement, document.getElementById("mainToolboxDiv"));
+            const content = document.createElement("div");
+            content.classList.add("cascadedMenuContent");
+            ReactDOM.render(portal, content);
+    
+            const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
+            const leftPos = button.offsetLeft;
+            const topPos =  button.offsetTop -  document.getElementById("mainToolboxDiv").scrollTop + button.offsetHeight;
+            
+            domMenuElement.style.left = `${leftPos}px`;
+            domMenuElement.style.top = `${topPos + 5}px`;
+        }
     })
 
     button.addEventListener("mouseleave", () => {
-        document.getElementById(`${identifier}-cascadedMenu`).remove();
+        setTimeout(() => {
+            const element = document.getElementById(`${buttonId}-cascadedMenu`);
+            if(element && !element.matches(":hover") && !button.matches(":hover")){
+                element.remove();
+            }
+        }, 50)
     })
 
     return button;
