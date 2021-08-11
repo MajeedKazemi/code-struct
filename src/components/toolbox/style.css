@@ -1,5 +1,11 @@
-#editor-toolbox {
-    padding: 2rem;
+#mainToolboxDiv {
+    width: 100%;
+    min-height: 100vh;
+    height: 0vh;
+    grid-column-start: 1;
+    grid-column-end: 1;
+
+    padding-left: 2rem;
     display: flex;
     flex-direction: column;
 
@@ -12,7 +18,7 @@
     min-width: fit-content;
 }
 
-#editor-toolbox .button {
+#mainToolboxDiv .button {
     font-family: Consolas, "Courier New", monospace;
     font-size: 16px;
     margin: 10px 0px;
@@ -21,21 +27,21 @@
     white-space: nowrap;
 }
 
-#editor-toolbox .group:not(:last-child) {
+#mainToolboxDiv .group:not(:last-child) {
     margin-bottom: 3rem;
 }
 
-#editor-toolbox .group > p {
+#mainToolboxDiv .group > p {
     white-space: pre;
 }
 
-#editor-toolbox hole {
+#mainToolboxDiv .hole {
     min-width: 18px;
     height: 18px;
     background: rgb(0 0 0 / 5%);
     border-radius: 2px;
     box-shadow: 0px 0px 0px 1px #0000005e inset;
-    margin: 0px 8px;
+    margin: 0px 4px;
 }
 
 ::-webkit-scrollbar {
@@ -93,4 +99,61 @@
     grid-column-end: 3;
 
     align-self: center;
+}
+
+#mainToolboxDiv .group {
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 20px;
+    justify-items: start;
+}
+
+#mainToolboxDiv .group > p {
+    grid-column: 1 / span 2;
+    grid-row: 1 / span 1;
+    font-weight: bold;
+    font-size: 16pt;
+}
+
+#mainToolboxDiv .group:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+.button {
+    color: #0d0c22;
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+    transition: 0.1s ease;
+    height: -webkit-fit-content;
+    height: -moz-fit-content;
+    height: fit-content;
+    margin-right: 10px;
+    box-shadow: 0px 0px 0px 1px #e7e7e9 inset;
+    font-size: 14px;
+    padding: 10px 14px;
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    width: fit-content;
+}
+
+.button:hover {
+    box-shadow: 0px 0px 0px 1px #b2b2b6 inset;
+}
+
+.button:active {
+    box-shadow: none;
+    background-color: #f3f5fa !important;
+}
+
+.button.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.button.draftModeButton {
+    background-color: rgb(255, 255, 230);
 }

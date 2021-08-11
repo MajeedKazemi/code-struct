@@ -1,3 +1,4 @@
+import EditorComponent from "../components/editor/editor";
 import { Editor } from "../editor/editor";
 import { Validator } from "../editor/validator";
 import { VarAssignmentStmt } from "../syntax-tree/ast";
@@ -32,7 +33,7 @@ class Menu {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.menuElementClass);
         this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
-        document.getElementById("editor").appendChild(this.htmlElement);
+        document.getElementById(EditorComponent.EditorParentId).appendChild(this.htmlElement);
 
         Menu.menuCount++;
 
@@ -862,16 +863,19 @@ export class MenuController {
             const menu = new Menu(menuOptions, options);
 
             //TODO: These are the same values as the ones used for mouse offset by the Notifications so maybe make them shared in some util file
-            menu.htmlElement.style.left = `${pos.left + document.getElementById("editor").offsetLeft}px`;
+            menu.htmlElement.style.left = `${
+                pos.left + document.getElementById(EditorComponent.EditorParentId).offsetLeft
+            }px`;
             menu.htmlElement.style.top = `${
-                pos.top + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop)
+                pos.top +
+                parseFloat(window.getComputedStyle(document.getElementById(EditorComponent.EditorParentId)).paddingTop)
             }px`;
 
             //TODO: No good way of separating responsibility completely because ready doc objects are stored in util instead of being created here.
             //I guess, it is always possible to have a list of active docs and loop through it here and update their positions instead of
             //using the static method to update them all. Do that in case this ever slows down anything.
             ConstructDoc.updateDocsLeftOffset(
-                document.getElementById("editor").offsetLeft +
+                document.getElementById(EditorComponent.EditorParentId).offsetLeft +
                     document.getElementById(`${Menu.idPrefix}${Menu.menuCount - 1}`).offsetWidth
             );
 
