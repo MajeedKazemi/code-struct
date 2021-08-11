@@ -167,6 +167,22 @@ export abstract class Statement implements CodeConstruct {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
     }
 
+    checkInsertionAtHole(index: number, givenType: DataType): InsertionType {
+        if (Object.keys(this.typeOfHoles).length) {
+            const holeType = this.typeOfHoles[index];
+
+            let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
+
+            if (canConvertToParentType && !hasMatch(holeType, [givenType])) {
+                return InsertionType.DraftMode;
+            } else if (holeType.some((t) => t == DataType.Any) || hasMatch(holeType, [givenType])) {
+                return InsertionType.Valid;
+            }
+        }
+
+        return InsertionType.Invalid;
+    }
+
     /**
      * The lineNumbers from the beginning to the end of this statement.
      */
@@ -512,7 +528,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
         } else if (!(this.rootNode instanceof Module)) {
             const rootTypeOfHoles = (this.rootNode as Statement).typeOfHoles;
 
-            if (rootTypeOfHoles.size > 0) {
+            if (Object.keys(rootTypeOfHoles).length > 0) {
                 const typesOfParentHole = rootTypeOfHoles[this.indexInRoot];
 
                 let canConvertToParentType = hasMatch(

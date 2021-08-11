@@ -443,7 +443,7 @@ export class Actions {
                     new MethodCallModifier(
                         "find",
                         [new Argument([DataType.String], "item", false)],
-                        DataType.String,
+                        DataType.Number,
                         DataType.String
                     ),
                 InsertActionType.InsertStringFindMethod

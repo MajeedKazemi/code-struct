@@ -436,17 +436,17 @@ export class ActionExecutor {
                     context.expressionToLeft instanceof Modifier &&
                     context.expressionToLeft.rootNode instanceof ValueOperationExpr
                 ) {
-                    const exprToLeftRoot = context.expressionToLeft.rootNode.rootNode as Statement;
-
                     const valOprExpr = context.expressionToLeft.rootNode;
-                    valOprExpr.appendModifier(action.data.modifier);
+                    const valOprExprRoot = valOprExpr.rootNode as Statement;
 
-                    const replacementType = context.expressionToLeft.rootNode.canReplaceWithConstruct(valOprExpr);
+                    let replacementType = valOprExpr.rootNode.checkInsertionAtHole(
+                        valOprExpr.indexInRoot,
+                        action.data.modifier.returns
+                    );
 
                     if (replacementType !== InsertionType.Invalid) {
-                        this.module.closeConstructDraftRecord(context.expressionToLeft.rootNode);
-
-                        exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
+                        valOprExpr.appendModifier(action.data.modifier);
+                        valOprExprRoot.rebuild(valOprExprRoot.getLeftPosition(), 0);
 
                         this.module.editor.insertAtCurPos([action.data.modifier]);
                         this.module.focus.updateContext(action.data.modifier.getInitialFocus());
