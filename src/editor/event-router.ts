@@ -383,8 +383,8 @@ export class EventRouter {
             }
 
             case InsertActionType.InsertListIndexAccessor: {
-                return new EditAction(EditActionType.InsertExpression, {
-                    expression: new ast.MemberCallStmt(DataType.Any),
+                return new EditAction(EditActionType.InsertModifier, {
+                    modifier: e.getCode(),
                 });
             }
 

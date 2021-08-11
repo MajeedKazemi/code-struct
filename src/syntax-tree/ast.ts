@@ -1389,7 +1389,8 @@ export class ListAccessModifier extends Modifier {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return IndexableTypes.indexOf(providedContext.expressionToLeft.returns) > -1
+        // TODO: should check the output for list and str expressions
+        return IndexableTypes.indexOf(providedContext?.expressionToLeft?.returns) > -1
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }

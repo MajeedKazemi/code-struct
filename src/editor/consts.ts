@@ -6,11 +6,11 @@ import {
     FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
+    ListAccessModifier,
     ListComma,
     ListElementAssignment,
     ListLiteralExpression,
     LiteralValExpr,
-    MemberCallStmt,
     MethodCallModifier,
     UnaryOperatorExpr,
     VarAssignmentStmt,
@@ -489,9 +489,9 @@ export class Actions {
             new EditCodeAction(", ---", "add-list-item-btn", () => new ListComma(), InsertActionType.InsertListItem),
 
             new EditCodeAction(
-                "---[---] = ---",
+                "[---]",
                 "add-list-index-btn",
-                () => new MemberCallStmt(DataType.Any),
+                () => new ListAccessModifier(),
                 InsertActionType.InsertListIndexAccessor
             ),
 
