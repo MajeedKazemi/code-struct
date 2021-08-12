@@ -26,6 +26,7 @@ import { CallbackType } from "../syntax-tree/callback";
 import { BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { TypeChecker } from "../syntax-tree/type-checker";
 import { ConstructKeys, Util } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditActionType } from "./consts";
@@ -513,8 +514,7 @@ export class ActionExecutor {
                     const exprToLeftIndexInRoot = context.expressionToLeft.indexInRoot;
 
                     if (modifier instanceof ListAccessModifier) {
-                        const map = Util.getInstance(this.module).listIndexingConversionMap;
-                        modifier.returns = map.get(context.expressionToLeft.returns);
+                        modifier.returns = TypeChecker.getElementTypeFromListType(context.expressionToLeft.returns);
 
                         if (!modifier.returns) modifier.returns = DataType.Any;
                     }

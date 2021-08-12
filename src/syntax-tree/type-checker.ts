@@ -61,10 +61,13 @@ export class TypeChecker {
         switch (type) {
             case DataType.String:
                 return DataType.StringList;
+
             case DataType.Number:
                 return DataType.NumberList;
+
             case DataType.Boolean:
                 return DataType.BooleanList;
+
             default:
                 return DataType.AnyList;
         }
@@ -78,14 +81,21 @@ export class TypeChecker {
      */
     static getElementTypeFromListType(listType: DataType) {
         switch (listType) {
+            case DataType.String:
+                return DataType.String;
+
             case DataType.AnyList:
                 return DataType.Any;
+
             case DataType.StringList:
                 return DataType.String;
+
             case DataType.BooleanList:
                 return DataType.Boolean;
+
             case DataType.NumberList:
                 return DataType.Number;
+
             default:
                 return DataType.Any;
         }
