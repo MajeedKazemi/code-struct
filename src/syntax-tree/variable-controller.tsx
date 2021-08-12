@@ -27,13 +27,13 @@ export class VariableController {
         this.addCascadedMenuActions(assignmentStmt.buttonId, button);
     }
 
-    private createCascadedMenu(identifier: string, buttonId: string){
+    private createCascadedMenu(identifier: string, buttonId: string) {
         const dataType = this.getVariableTypeNearLine(
             this.module.focus.getFocusedStatement().scope ??
-                (
-                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-                        .rootNode as Statement | Module
-                ).scope,
+            (
+                this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+                    .rootNode as Statement | Module
+            ).scope,
             this.module.editor.monaco.getPosition().lineNumber,
             identifier,
             false
@@ -43,50 +43,50 @@ export class VariableController {
         const divArr = [];
         const context = this.module.focus.getContext();
 
-        for(const [key, value] of validActions){
-            if(value[0].insertionType !== InsertionType.Invalid){
+        for (const [key, value] of validActions) {
+            if (value[0].insertionType !== InsertionType.Invalid) {
                 divArr.push(
-                    <div className="cascadedMenuItem" onClick = {(() => {
+                    <div className="cascadedMenuItem" onClick={(() => {
                         this.module.executer.execute(this.module.eventRouter.routeToolboxEvents(value[1], context));
                     }).bind(this)}>{key}</div>
                 )
             }
         }
 
-        if(divArr.length === 0){
+        if (divArr.length === 0) {
             return null
         }
-        
-        return React.createElement(ToolboxCascadedMenu, {children: divArr, id: `${buttonId}-cascadedMenu`, buttonId: buttonId});
+
+        return React.createElement(ToolboxCascadedMenu, { children: divArr, id: `${buttonId}-cascadedMenu`, buttonId: buttonId });
     }
 
-    private addCascadedMenuActions(buttonId: string, button: HTMLDivElement){
+    private addCascadedMenuActions(buttonId: string, button: HTMLDivElement) {
         const identifier = document.getElementById(buttonId).innerText;
-       
+
         button.addEventListener("mouseover", () => {
-            if(!document.getElementById(`${buttonId}-cascadedMenu`)){
+            if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
                 const menuElement = this.createCascadedMenu(identifier, buttonId);
 
-                if(menuElement){
+                if (menuElement) {
                     const portal = ReactDOM.createPortal(menuElement, document.getElementById("mainToolboxDiv"));
                     const content = document.createElement("div");
                     content.classList.add("cascadedMenuContent");
                     ReactDOM.render(portal, content);
-            
+
                     const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
                     const leftPos = button.offsetLeft;
-                    const topPos =  button.offsetTop -  document.getElementById("mainToolboxDiv").scrollTop + button.offsetHeight;
-                    
+                    const topPos = button.offsetTop - document.getElementById("mainToolboxDiv").scrollTop + button.offsetHeight;
+
                     domMenuElement.style.left = `${leftPos}px`;
                     domMenuElement.style.top = `${topPos + 2}px`;
                 }
             }
         })
-    
+
         button.addEventListener("mouseleave", () => {
             setTimeout(() => {
                 const element = document.getElementById(`${buttonId}-cascadedMenu`);
-                if(element && !element.matches(":hover") && !button.matches(":hover")){
+                if (element && !element.matches(":hover") && !button.matches(":hover")) {
                     element.remove();
                 }
             }, 50)
@@ -282,13 +282,13 @@ export class VariableAssignmentMap {
         this.map = new Map<string, [number, DataType][]>();
     }
 
-    
+
      * Add a new type assignment record to the variable with the given varID.
      *
      * If an entry for this variable does not exist, one will be created.
      * If there is already an assignment record with the exact same lineNumber, then the old one will be updated to reflect
      * the type provided.
-     
+
     addRecord(varID: string, lineNumber: number, type: DataType) {
         const recordsList = this.map.get(varID);
 
@@ -304,11 +304,11 @@ export class VariableAssignmentMap {
         }
     }
 
-    
+
      * Update an exisiting record with a new type. If the record with the provided lineNumber
      * does not exist or there is no entry in the map for the variable with the provided identifier
      * then the method does nothing.
-     
+
     updateRecord(identifier: string, lineNumber: number, type: DataType) {
         if (this.map.get(identifier)) {
             const record = this.getRecordByLineNumber(this.map.get(identifier), lineNumber);
@@ -319,29 +319,29 @@ export class VariableAssignmentMap {
         }
     }
 
-    
+
      * Remove a single assignment record from the list of records for the given variable from the entry for this variable.
-     
+
     removeRecord(varID: string, lineNumber: number) {
         if (this.map.get(varID)) {
             this.map.get(varID).splice(this.getRecordIndex(this.map.get(varID), lineNumber), 1);
         }
     }
 
-    
+
      * Remove all assignment records for a given variable from the map.
-     
+
     removeRecordsList(varID: string) {
         if (this.map.get(varID)) {
             this.map.delete(varID);
         }
     }
 
-    
+
      * Return a list of assignment records for a given variable.
      *
      * @returns a list of tuples [lineNumber, type] if the list exists. [] otherwise.
-     
+
     getRecords(identifier: string): [number, DataType][] {
         if (this.map.get(identifier)) {
             return this.map.get(identifier);
@@ -350,11 +350,11 @@ export class VariableAssignmentMap {
         return [];
     }
 
-    
+
      * Return the type a variable is assigned on a given line.
      *
      * @returns the type of expression assigned to the variable on the given line. null if there is no assignment on that line.
-     
+
     getAssignedTypeOnLine(varID: string, lineNumber: number): DataType {
         if (this.map.get(varID)) {
             const record = this.getRecordByLineNumber(this.map.get(varID), lineNumber);
@@ -362,11 +362,11 @@ export class VariableAssignmentMap {
         }
     }
 
-    
+
      * Return the inferred data type of a variable on a given line.
      *
      * @returns inferred data type of the variable on lineNumber. null otherwise.
-     
+
     getAssignedTypeNearLine(varID: string, lineNumber: number, focus: Focus): DataType {
         if (this.map.get(varID)) {
             const record = this.getRecordByLineNumber(this.map.get(varID), lineNumber);

@@ -117,7 +117,6 @@ export class Util {
     constructActions: Map<string, Function>;
     constructDocs: Map<string, ConstructDoc>;
     typeConversionMap: Map<DataType, Array<DataType>>;
-    listIndexingConversionMap: Map<DataType, DataType>;
 
     module: Module;
 
@@ -690,14 +689,6 @@ export class Util {
                 ConstructKeys.PrintCall,
                 new ConstructDoc("Function: " + ConstructKeys.PrintCall, "Outputs argument to stdout.", []),
             ], //['./src/res/img/cat1.jpg','./src/res/img/cat2.jpg', './src/res/img/cat3.jpg', './src/res/img/cat4.jpg', './src/res/img/cat5.jpg']
-        ]);
-
-        this.listIndexingConversionMap = new Map<DataType, DataType>([
-            [DataType.String, DataType.String],
-            [DataType.AnyList, DataType.Any],
-            [DataType.NumberList, DataType.Number],
-            [DataType.StringList, DataType.String],
-            [DataType.BooleanList, DataType.Boolean],
         ]);
     }
 
