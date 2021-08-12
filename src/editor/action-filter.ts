@@ -88,12 +88,11 @@ export class ActionFilter {
         >();
 
         for (const modifier of availableModifiers) {
-            const code = new VarOperationStmt(ref, [modifier]);
             const codeAction = new EditCodeAction(
                 `${ref.identifier}${modifier.getModifierText()}`,
                 "",
                 () => {
-                    return code;
+                    return new VarOperationStmt(ref, [modifier]);
                 },
                 InsertActionType.InsertVarOperationStmt
             );
