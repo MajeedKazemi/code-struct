@@ -571,6 +571,8 @@ export abstract class Modifier extends Expression {
     getModifierText(): string {
         return "";
     }
+
+    abstract constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression;
 }
 
 /**
@@ -1347,7 +1349,7 @@ export class ValueOperationExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atRightOfExpression(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
@@ -1408,6 +1410,10 @@ export class ListAccessModifier extends Modifier {
     getModifierText(): string {
         return "[---]";
     }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement {
+        return new VarOperationStmt(varRef, [this]);
+    }
 }
 
 export class PropertyAccessorModifier extends Modifier {
@@ -1436,6 +1442,10 @@ export class PropertyAccessorModifier extends Modifier {
 
     getModifierText(): string {
         return `.${this.propertyName}`;
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Expression {
+        return new ValueOperationExpr(varRef, [this]);
     }
 }
 
@@ -1496,7 +1506,7 @@ export class MethodCallModifier extends Modifier {
         for (let i = 0; i < this.args.length; i++) {
             str += "---";
 
-            if (i === this.args.length - 1) {
+            if (i !== this.args.length - 1) {
                 str += ", ";
             }
         }
@@ -1504,6 +1514,14 @@ export class MethodCallModifier extends Modifier {
         str += ")";
 
         return str;
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression {
+        if (this.returns === DataType.Void) {
+            return new VarOperationStmt(varRef, [this]);
+        } else {
+            return new ValueOperationExpr(varRef, [this]);
+        }
     }
 }
 
@@ -1534,6 +1552,10 @@ export class AssignmentModifier extends Modifier {
 
     getModifierText(): string {
         return " = ---";
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement {
+        return; //return new VarAssignmentStmt(varRef.uniqueId);
     }
 }
 
@@ -1570,6 +1592,10 @@ export class AugmentedAssignmentModifier extends Modifier {
 
     getModifierText(): string {
         return ` ${this.operation} ---`;
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement {
+        return new VarOperationStmt(varRef, [this]);
     }
 }
 

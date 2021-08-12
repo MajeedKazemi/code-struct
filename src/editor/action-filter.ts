@@ -88,13 +88,16 @@ export class ActionFilter {
         >();
 
         for (const modifier of availableModifiers) {
+            const code = modifier.constructFullOperation(ref);
             const codeAction = new EditCodeAction(
                 `${ref.identifier}${modifier.getModifierText()}`,
                 "",
                 () => {
                     return new VarOperationStmt(ref, [modifier]);
                 },
-                InsertActionType.InsertVarOperationStmt
+                code instanceof Expression
+                    ? InsertActionType.InsertValOperationExpr
+                    : InsertActionType.InsertVarOperationStmt
             );
 
             validOptionMap.set(codeAction.optionName, [

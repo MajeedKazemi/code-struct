@@ -189,6 +189,7 @@ export enum InsertActionType {
     InsertAugmentedAssignmentModifier,
 
     InsertVarOperationStmt,
+    InsertValOperationExpr,
 }
 
 export class Actions {
@@ -631,6 +632,42 @@ export class Actions {
                     new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
                     new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
                     new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Mod),
+                ],
+            ],
+            [
+                DataType.String,
+                [
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                    new MethodCallModifier(
+                        "split",
+                        [new Argument([DataType.String], "sep", false)],
+                        DataType.StringList,
+                        DataType.String
+                    ),
+                    new MethodCallModifier(
+                        "join",
+                        [
+                            new Argument(
+                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                                "items",
+                                false
+                            ),
+                        ],
+                        DataType.String,
+                        DataType.String
+                    ),
+                    new MethodCallModifier(
+                        "replace",
+                        [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
+                        DataType.String,
+                        DataType.String
+                    ),
+                    new MethodCallModifier(
+                        "find",
+                        [new Argument([DataType.String], "item", false)],
+                        DataType.Number,
+                        DataType.String
+                    ),
                 ],
             ],
         ]);
