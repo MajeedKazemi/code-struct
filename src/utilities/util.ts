@@ -693,6 +693,7 @@ export class Util {
         ]);
 
         this.listIndexingConversionMap = new Map<DataType, DataType>([
+            [DataType.String, DataType.String],
             [DataType.AnyList, DataType.Any],
             [DataType.NumberList, DataType.Number],
             [DataType.StringList, DataType.String],
