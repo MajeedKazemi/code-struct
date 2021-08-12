@@ -168,7 +168,7 @@ export abstract class Statement implements CodeConstruct {
     }
 
     checkInsertionAtHole(index: number, givenType: DataType): InsertionType {
-        if (Object.keys(this.typeOfHoles).length) {
+        if (Object.keys(this.typeOfHoles).length > 0) {
             const holeType = this.typeOfHoles[index];
 
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
@@ -1401,7 +1401,6 @@ export class ListAccessModifier extends Modifier {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        // TODO: should check the output for list and str expressions
         return IndexableTypes.indexOf(providedContext?.expressionToLeft?.returns) > -1
             ? InsertionType.Valid
             : InsertionType.Invalid;

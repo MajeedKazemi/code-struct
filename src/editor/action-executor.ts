@@ -8,6 +8,7 @@ import {
     EmptyLineStmt,
     Expression,
     IdentifierTkn,
+    ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
     Modifier,
@@ -471,6 +472,8 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertModifier: {
+                const modifier = action.data.modifier as Modifier;
+
                 if (context.expressionToLeft instanceof Modifier) {
                     if (context.expressionToLeft.rootNode instanceof ValueOperationExpr) {
                         const valOprExpr = context.expressionToLeft.rootNode;
@@ -478,15 +481,15 @@ export class ActionExecutor {
 
                         let replacementType = valOprExpr.rootNode.checkInsertionAtHole(
                             valOprExpr.indexInRoot,
-                            action.data.modifier.returns
+                            modifier.returns
                         );
 
                         if (replacementType !== InsertionType.Invalid) {
-                            valOprExpr.appendModifier(action.data.modifier);
+                            valOprExpr.appendModifier(modifier);
                             valOprExprRoot.rebuild(valOprExprRoot.getLeftPosition(), 0);
 
-                            this.module.editor.insertAtCurPos([action.data.modifier]);
-                            this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                            this.module.editor.insertAtCurPos([modifier]);
+                            this.module.focus.updateContext(modifier.getInitialFocus());
 
                             if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                         }
@@ -497,22 +500,30 @@ export class ActionExecutor {
                 ) {
                     const varOpStmt = context.expressionToLeft.rootNode;
 
-                    varOpStmt.appendModifier(action.data.modifier);
+                    varOpStmt.appendModifier(modifier);
                     varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
 
-                    this.module.editor.insertAtCurPos([action.data.modifier]);
-                    this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                    this.module.editor.insertAtCurPos([modifier]);
+                    this.module.focus.updateContext(modifier.getInitialFocus());
                 } else {
                     const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
                     const exprToLeftIndexInRoot = context.expressionToLeft.indexInRoot;
+
+                    if (modifier instanceof ListAccessModifier) {
+                        const map = Util.getInstance(this.module).listIndexingConversionMap;
+                        modifier.returns = map.get(context.expressionToLeft.returns);
+
+                        if (!modifier.returns) modifier.returns = DataType.Any;
+                    }
+
                     const replacementType = exprToLeftRoot.checkInsertionAtHole(
                         context.expressionToLeft.indexInRoot,
-                        action.data.modifier.returns
+                        modifier.returns
                     );
 
                     const valOprExpr = new ValueOperationExpr(
                         context.expressionToLeft,
-                        [action.data.modifier],
+                        [modifier],
                         context.expressionToLeft.rootNode,
                         context.expressionToLeft.indexInRoot
                     );
@@ -526,8 +537,8 @@ export class ActionExecutor {
                         exprToLeftRoot.tokens[exprToLeftIndexInRoot] = valOprExpr;
                         exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
 
-                        this.module.editor.insertAtCurPos([action.data.modifier]);
-                        this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                        this.module.editor.insertAtCurPos([modifier]);
+                        this.module.focus.updateContext(modifier.getInitialFocus());
 
                         if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                     }
