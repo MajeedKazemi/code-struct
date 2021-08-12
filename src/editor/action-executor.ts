@@ -1,6 +1,7 @@
 import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import {
+    AssignmentModifier,
     BinaryOperatorExpr,
     CodeConstruct,
     ElseStatement,
@@ -17,7 +18,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";
@@ -384,7 +385,7 @@ export class ActionExecutor {
                     }
 
                     if (literalExpr != null) {
-                        this.deleteCode(literalExpr, { replaceType: DataType.Any });
+                        this.deleteCode(literalExpr);
 
                         break;
                     }
@@ -441,7 +442,10 @@ export class ActionExecutor {
                 if (context.expressionToLeft.rootNode instanceof VarOperationStmt) {
                     const varOpStmt = context.expressionToLeft.rootNode;
 
-                    if (context.expressionToLeft instanceof VariableReferenceExpr) {
+                    if (
+                        action.data.modifier instanceof AssignmentModifier &&
+                        context.expressionToLeft instanceof VariableReferenceExpr
+                    ) {
                         const initialBoundary = this.getBoundaries(context.expressionToLeft);
 
                         const varAssignStmt = new VarAssignmentStmt(
