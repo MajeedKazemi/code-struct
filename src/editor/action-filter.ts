@@ -1,11 +1,4 @@
-import {
-    Expression,
-    Statement,
-    TypedEmptyExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-    VarOperationStmt,
-} from "../syntax-tree/ast";
+import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt, VariableReferenceExpr } from "../syntax-tree/ast";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -88,14 +81,16 @@ export class ActionFilter {
         >();
 
         for (const modifier of availableModifiers) {
-            const code = new VarOperationStmt(ref, [modifier]);
+            const code = modifier.constructFullOperation(ref);
             const codeAction = new EditCodeAction(
                 `${ref.identifier}${modifier.getModifierText()}`,
                 "",
                 () => {
                     return code;
                 },
-                InsertActionType.InsertVarOperationStmt
+                code instanceof Expression
+                    ? InsertActionType.InsertValOperationExpr
+                    : InsertActionType.InsertVarOperationStmt
             );
 
             validOptionMap.set(codeAction.optionName, [
