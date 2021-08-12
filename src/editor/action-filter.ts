@@ -89,9 +89,9 @@ export class ActionFilter {
                     () => {
                         return code;
                     },
-                    code instanceof Expression
-                        ? InsertActionType.InsertValOperationExpr
-                        : InsertActionType.InsertVarOperationStmt
+                    code instanceof Statement && !(code instanceof Expression)
+                        ? InsertActionType.InsertVarOperationStmt
+                        : InsertActionType.InsertValOperationExpr
                 );
 
                 validOptionMap.set(codeAction.optionName, [
