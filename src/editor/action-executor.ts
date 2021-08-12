@@ -494,6 +494,8 @@ export class ActionExecutor {
 
                             if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                         }
+
+                        if (valOprExpr.rootNode instanceof Statement) valOprExpr.rootNode.onInsertInto(valOprExpr);
                     }
                 } else if (
                     context.expressionToLeft instanceof VariableReferenceExpr &&
@@ -528,6 +530,8 @@ export class ActionExecutor {
                         context.expressionToLeft.rootNode,
                         context.expressionToLeft.indexInRoot
                     );
+
+                    if (valOprExpr.rootNode instanceof Statement) valOprExpr.rootNode.onInsertInto(valOprExpr);
 
                     context.expressionToLeft.indexInRoot = 0;
                     context.expressionToLeft.rootNode = valOprExpr;
