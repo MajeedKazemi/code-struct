@@ -670,6 +670,54 @@ export class Actions {
                     ),
                 ],
             ],
+            [
+                DataType.AnyList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
+            [
+                DataType.BooleanList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
+            [
+                DataType.StringList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
+            [
+                DataType.NumberList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
         ]);
     }
 
