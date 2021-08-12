@@ -500,6 +500,18 @@ export class EventRouter {
 
                 break;
             }
+
+            case InsertActionType.InsertVarOperationStmt: {
+                return new EditAction(EditActionType.InsertStatement, {
+                    statement: e.getCode(),
+                });
+            }
+
+            case InsertActionType.InsertValOperationExpr: {
+                return new EditAction(EditActionType.InsertExpression, {
+                    expression: e.getCode(),
+                });
+            }
         }
 
         return new EditAction(EditActionType.None);

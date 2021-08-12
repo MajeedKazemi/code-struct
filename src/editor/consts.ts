@@ -14,6 +14,7 @@ import {
     ListLiteralExpression,
     LiteralValExpr,
     MethodCallModifier,
+    Modifier,
     UnaryOperatorExpr,
     VarAssignmentStmt,
     WhileStatement,
@@ -186,11 +187,16 @@ export enum InsertActionType {
 
     InsertAssignmentModifier,
     InsertAugmentedAssignmentModifier,
+
+    InsertVarOperationStmt,
+    InsertValOperationExpr,
 }
+
 export class Actions {
     private static inst: Actions;
     actionsList: Array<EditCodeAction>;
     actionsMap: Map<string, EditCodeAction>;
+    varModifiersMap: Map<DataType, Modifier[]>;
 
     private constructor() {
         this.actionsList = new Array<EditCodeAction>(
@@ -616,6 +622,105 @@ export class Actions {
         );
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
+
+        this.varModifiersMap = new Map<DataType, Modifier[]>([
+            [DataType.Boolean, [new AssignmentModifier()]],
+            [
+                DataType.Number,
+                [
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Mod),
+                    new AssignmentModifier(),
+                ],
+            ],
+            [
+                DataType.String,
+                [
+                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                    new MethodCallModifier(
+                        "split",
+                        [new Argument([DataType.String], "sep", false)],
+                        DataType.StringList,
+                        DataType.String
+                    ),
+                    new MethodCallModifier(
+                        "join",
+                        [
+                            new Argument(
+                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                                "items",
+                                false
+                            ),
+                        ],
+                        DataType.String,
+                        DataType.String
+                    ),
+                    new MethodCallModifier(
+                        "replace",
+                        [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
+                        DataType.String,
+                        DataType.String
+                    ),
+                    new MethodCallModifier(
+                        "find",
+                        [new Argument([DataType.String], "item", false)],
+                        DataType.Number,
+                        DataType.String
+                    ),
+                ],
+            ],
+            [
+                DataType.AnyList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
+            [
+                DataType.BooleanList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
+            [
+                DataType.StringList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
+            [
+                DataType.NumberList,
+                [
+                    new MethodCallModifier(
+                        "append",
+                        [new Argument([DataType.Any], "object", false)],
+                        DataType.Void,
+                        DataType.AnyList
+                    ),
+                    new ListAccessModifier(),
+                ],
+            ],
+        ]);
     }
 
     static instance(): Actions {

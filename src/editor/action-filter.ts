@@ -1,4 +1,4 @@
-import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt, VariableReferenceExpr } from "../syntax-tree/ast";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -66,6 +66,43 @@ export class ActionFilter {
                     varStmt.buttonId
                 )
             );
+        }
+
+        return validOptionMap;
+    }
+
+    validateVariableOperations(ref: VariableReferenceExpr): Map<string, [InsertionRecord, EditCodeAction]> {
+        const context = this.module.focus.getContext();
+        const dataType = ref.returns;
+        const availableModifiers = Actions.instance().varModifiersMap.get(dataType);
+        const validOptionMap: Map<string, [InsertionRecord, EditCodeAction]> = new Map<
+            string,
+            [InsertionRecord, EditCodeAction]
+        >();
+
+        if (availableModifiers) {
+            for (const modifier of availableModifiers) {
+                const code = modifier.constructFullOperation(ref);
+                const codeAction = new EditCodeAction(
+                    `${ref.identifier}${modifier.getModifierText()}`,
+                    "",
+                    () => {
+                        return code;
+                    },
+                    code instanceof Statement && !(code instanceof Expression)
+                        ? InsertActionType.InsertVarOperationStmt
+                        : InsertActionType.InsertValOperationExpr
+                );
+
+                validOptionMap.set(codeAction.optionName, [
+                    new InsertionRecord(
+                        codeAction.validateAction(this.module.validator, context),
+                        codeAction.getCode,
+                        ""
+                    ),
+                    codeAction,
+                ]);
+            }
         }
 
         return validOptionMap;

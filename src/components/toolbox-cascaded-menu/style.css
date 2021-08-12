@@ -1,0 +1,33 @@
+.cascadedMenuMainDiv {
+    display: block; /*Cannot be a grid as that completely ignores the postion: absolute*/
+    grid-template-columns: 50% 50%;
+    grid-template-rows: auto;
+    grid-auto-flow: row;
+
+    width: fit-content;
+    min-width: 15%;
+    height: 0vh;
+    min-height: 20%;
+
+    position: absolute;
+
+    background-color: white;
+
+    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+
+    border-width: 1px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.3);
+
+    overflow-y: scroll;
+
+    cursor: pointer;
+}
+
+.cascadedMenuMainDiv div:hover .cascadedMenuItem {
+    background-color: rgba(116, 116, 116, 0.3);
+}
+
+.cascadedMenuMainDiv div:not(:hover) .cascadedMenuItem {
+    background-color: white;
+}

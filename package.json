@@ -46,6 +46,7 @@
     "lodash": "^4.17.21",
     "monaco-editor": "^0.26.1",
     "react-router-dom": "^5.2.0",
-    "styled-components": "^5.3.0"
+    "styled-components": "^5.3.0",
+    "uuid": "^8.3.2"
   }
 }

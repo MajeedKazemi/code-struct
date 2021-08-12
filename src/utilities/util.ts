@@ -117,6 +117,7 @@ export class Util {
     constructActions: Map<string, Function>;
     constructDocs: Map<string, ConstructDoc>;
     typeConversionMap: Map<DataType, Array<DataType>>;
+
     module: Module;
 
     private constructor(module?: Module) {
@@ -135,10 +136,10 @@ export class Util {
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
             [DataType.String, [DataType.StringList, DataType.Boolean]],
             [DataType.Boolean, [DataType.BooleanList]],
-            [DataType.AnyList, [DataType.Boolean]],
-            [DataType.NumberList, [DataType.Boolean]],
+            [DataType.AnyList, [DataType.Any, DataType.Boolean]],
+            [DataType.NumberList, [DataType.Number, DataType.Boolean]],
             [DataType.BooleanList, [DataType.Boolean]],
-            [DataType.StringList, [DataType.Boolean]],
+            [DataType.StringList, [DataType.String, DataType.Boolean]],
             [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]],
         ]);
 

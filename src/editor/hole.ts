@@ -25,7 +25,6 @@ export class Hole {
     editor: Editor;
     code: CodeConstruct;
     container: HTMLElement;
-    removed: boolean = false;
 
     constructor(editor: Editor, code: CodeConstruct) {
         this.editor = editor;
@@ -135,8 +134,6 @@ export class Hole {
         );
 
         function loop() {
-            if (hole.removed) return;
-
             const boundingBox = editor.computeBoundingBox(code.getSelection());
 
             if (boundingBox.width == 0) {
@@ -163,7 +160,7 @@ export class Hole {
 
     remove() {
         this.element.remove();
-        this.removed = true;
+        Hole.holes.splice(Hole.holes.indexOf(this), 1);
     }
 
     static setModule(module: Module) {

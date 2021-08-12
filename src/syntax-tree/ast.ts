@@ -168,7 +168,7 @@ export abstract class Statement implements CodeConstruct {
     }
 
     checkInsertionAtHole(index: number, givenType: DataType): InsertionType {
-        if (Object.keys(this.typeOfHoles).length) {
+        if (Object.keys(this.typeOfHoles).length > 0) {
             const holeType = this.typeOfHoles[index];
 
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
@@ -567,6 +567,12 @@ export abstract class Modifier extends Expression {
     constructor() {
         super(null);
     }
+
+    getModifierText(): string {
+        return "";
+    }
+
+    abstract constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression;
 }
 
 /**
@@ -1061,7 +1067,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     codeConstructName = ConstructName.VarAssignment;
     private oldIdentifier: string;
 
-    constructor(id?: string, root?: Statement | Module, indexInRoot?: number) {
+    constructor(buttonId?: string, id?: string, root?: Statement | Module, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
@@ -1069,12 +1075,18 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
         this.identifierIndex = this.tokens.length;
         this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
+
+        if (id) {
+            this.buttonId = buttonId;
+            this.setIdentifier(id, id); //TODO: This is a crude hack. Should get the name from the scope or something else that is connected to the AST.
+        } else {
+            this.oldIdentifier = this.getIdentifier();
+        }
+
         this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
         this.valueIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-
-        this.oldIdentifier = this.getIdentifier();
 
         this.hasEmptyToken = true;
 
@@ -1343,7 +1355,7 @@ export class ValueOperationExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atRightOfExpression(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
@@ -1395,14 +1407,23 @@ export class ListAccessModifier extends Modifier {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        // TODO: should check the output for list and str expressions
         return IndexableTypes.indexOf(providedContext?.expressionToLeft?.returns) > -1
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
+
+    getModifierText(): string {
+        return "[---]";
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement {
+        return new VarOperationStmt(varRef, [this]);
+    }
 }
 
 export class PropertyAccessorModifier extends Modifier {
+    private propertyName: string;
+
     constructor(
         propertyName: string,
         exprType: DataType,
@@ -1416,10 +1437,20 @@ export class PropertyAccessorModifier extends Modifier {
         this.indexInRoot = indexInRoot;
 
         this.tokens.push(new NonEditableTkn(`.${propertyName}`, this, this.tokens.length));
+
+        this.propertyName = propertyName;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return InsertionType.Valid;
+    }
+
+    getModifierText(): string {
+        return `.${this.propertyName}`;
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Expression {
+        return new ValueOperationExpr(varRef, [this]);
     }
 }
 
@@ -1473,6 +1504,30 @@ export class MethodCallModifier extends Modifier {
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
+
+    getModifierText(): string {
+        let str = `.${this.functionName}(`;
+
+        for (let i = 0; i < this.args.length; i++) {
+            str += "---";
+
+            if (i !== this.args.length - 1) {
+                str += ", ";
+            }
+        }
+
+        str += ")";
+
+        return str;
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression {
+        if (this.returns === DataType.Void) {
+            return new VarOperationStmt(varRef, [this]);
+        } else {
+            return new ValueOperationExpr(varRef, [this]);
+        }
+    }
 }
 
 export class AssignmentModifier extends Modifier {
@@ -1499,13 +1554,24 @@ export class AssignmentModifier extends Modifier {
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
+
+    getModifierText(): string {
+        return " = ---";
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement {
+        return new VarAssignmentStmt(varRef.uniqueId, varRef.identifier);
+    }
 }
 
 export class AugmentedAssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
+    private operation: AugmentedAssignmentOperator;
 
     constructor(operation: AugmentedAssignmentOperator, root?: VarOperationStmt, indexInRoot?: number) {
         super();
+
+        this.operation = operation;
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
@@ -1517,6 +1583,8 @@ export class AugmentedAssignmentModifier extends Modifier {
 
         this.tokens.push(new TypedEmptyExpr(this.leftExprTypes, this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [...this.leftExprTypes];
+
+        this.operation = operation;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1527,6 +1595,14 @@ export class AugmentedAssignmentModifier extends Modifier {
             this.leftExprTypes.some((type) => type == providedContext.expressionToLeft.returns)
             ? InsertionType.Valid
             : InsertionType.Invalid;
+    }
+
+    getModifierText(): string {
+        return ` ${this.operation} ---`;
+    }
+
+    constructFullOperation(varRef: VariableReferenceExpr): Statement {
+        return new VarOperationStmt(varRef, [this]);
     }
 }
 
@@ -1583,20 +1659,23 @@ export class FunctionCallExpr extends Expression {
                 argType.some((x) => x == DataType.Any) ||
                 hasMatch(argType, [providedContext.expressionToRight.returns]);
 
-            const map = Util.getInstance().typeConversionMap.get(providedContext.expressionToRight.returns);
+            if (providedContext.expressionToRight.returns) {
+                const map = Util.getInstance().typeConversionMap.get(providedContext.expressionToRight.returns);
 
-            const willItBeDraftMode = hasMatch(map, argType);
-            const canFunctionBeInsertedAtCurrentHole = providedContext.expressionToRight.canReplaceWithConstruct(this);
+                const willItBeDraftMode = hasMatch(map, argType);
+                const canFunctionBeInsertedAtCurrentHole =
+                    providedContext.expressionToRight.canReplaceWithConstruct(this);
 
-            if (canInsertExprIntoThisFunction && canFunctionBeInsertedAtCurrentHole == InsertionType.Valid) {
-                return InsertionType.Valid;
-            } else {
-                const states = [willItBeDraftMode, canFunctionBeInsertedAtCurrentHole];
+                if (canInsertExprIntoThisFunction && canFunctionBeInsertedAtCurrentHole == InsertionType.Valid) {
+                    return InsertionType.Valid;
+                } else {
+                    const states = [willItBeDraftMode, canFunctionBeInsertedAtCurrentHole];
 
-                if (states.some((s) => s == InsertionType.Invalid)) return InsertionType.Invalid;
-                else if (states.every((s) => s == InsertionType.Valid)) return InsertionType.Valid;
-                else if (states.some((s) => s == InsertionType.DraftMode)) return InsertionType.DraftMode;
-            }
+                    if (states.some((s) => s == InsertionType.Invalid)) return InsertionType.Invalid;
+                    else if (states.every((s) => s == InsertionType.Valid)) return InsertionType.Valid;
+                    else if (states.some((s) => s == InsertionType.DraftMode)) return InsertionType.DraftMode;
+                }
+            } else return InsertionType.Invalid;
         }
 
         return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
