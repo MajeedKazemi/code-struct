@@ -1,12 +1,14 @@
 import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import {
+    AssignmentModifier,
     BinaryOperatorExpr,
     CodeConstruct,
     ElseStatement,
     EmptyLineStmt,
     Expression,
     IdentifierTkn,
+    ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
     Modifier,
@@ -17,7 +19,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";
@@ -384,7 +386,7 @@ export class ActionExecutor {
                     }
 
                     if (literalExpr != null) {
-                        this.deleteCode(literalExpr, { replaceType: DataType.Any });
+                        this.deleteCode(literalExpr);
 
                         break;
                     }
@@ -441,7 +443,10 @@ export class ActionExecutor {
                 if (context.expressionToLeft.rootNode instanceof VarOperationStmt) {
                     const varOpStmt = context.expressionToLeft.rootNode;
 
-                    if (context.expressionToLeft instanceof VariableReferenceExpr) {
+                    if (
+                        action.data.modifier instanceof AssignmentModifier &&
+                        context.expressionToLeft instanceof VariableReferenceExpr
+                    ) {
                         const initialBoundary = this.getBoundaries(context.expressionToLeft);
 
                         const varAssignStmt = new VarAssignmentStmt(
@@ -467,6 +472,8 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertModifier: {
+                const modifier = action.data.modifier as Modifier;
+
                 if (context.expressionToLeft instanceof Modifier) {
                     if (context.expressionToLeft.rootNode instanceof ValueOperationExpr) {
                         const valOprExpr = context.expressionToLeft.rootNode;
@@ -474,15 +481,15 @@ export class ActionExecutor {
 
                         let replacementType = valOprExpr.rootNode.checkInsertionAtHole(
                             valOprExpr.indexInRoot,
-                            action.data.modifier.returns
+                            modifier.returns
                         );
 
                         if (replacementType !== InsertionType.Invalid) {
-                            valOprExpr.appendModifier(action.data.modifier);
+                            valOprExpr.appendModifier(modifier);
                             valOprExprRoot.rebuild(valOprExprRoot.getLeftPosition(), 0);
 
-                            this.module.editor.insertAtCurPos([action.data.modifier]);
-                            this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                            this.module.editor.insertAtCurPos([modifier]);
+                            this.module.focus.updateContext(modifier.getInitialFocus());
 
                             if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                         }
@@ -493,22 +500,30 @@ export class ActionExecutor {
                 ) {
                     const varOpStmt = context.expressionToLeft.rootNode;
 
-                    varOpStmt.appendModifier(action.data.modifier);
+                    varOpStmt.appendModifier(modifier);
                     varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
 
-                    this.module.editor.insertAtCurPos([action.data.modifier]);
-                    this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                    this.module.editor.insertAtCurPos([modifier]);
+                    this.module.focus.updateContext(modifier.getInitialFocus());
                 } else {
                     const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
                     const exprToLeftIndexInRoot = context.expressionToLeft.indexInRoot;
+
+                    if (modifier instanceof ListAccessModifier) {
+                        const map = Util.getInstance(this.module).listIndexingConversionMap;
+                        modifier.returns = map.get(context.expressionToLeft.returns);
+
+                        if (!modifier.returns) modifier.returns = DataType.Any;
+                    }
+
                     const replacementType = exprToLeftRoot.checkInsertionAtHole(
                         context.expressionToLeft.indexInRoot,
-                        action.data.modifier.returns
+                        modifier.returns
                     );
 
                     const valOprExpr = new ValueOperationExpr(
                         context.expressionToLeft,
-                        [action.data.modifier],
+                        [modifier],
                         context.expressionToLeft.rootNode,
                         context.expressionToLeft.indexInRoot
                     );
@@ -522,8 +537,8 @@ export class ActionExecutor {
                         exprToLeftRoot.tokens[exprToLeftIndexInRoot] = valOprExpr;
                         exprToLeftRoot.rebuild(exprToLeftRoot.getLeftPosition(), 0);
 
-                        this.module.editor.insertAtCurPos([action.data.modifier]);
-                        this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+                        this.module.editor.insertAtCurPos([modifier]);
+                        this.module.focus.updateContext(modifier.getInitialFocus());
 
                         if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
                     }
@@ -1007,7 +1022,6 @@ export class ActionExecutor {
                 rootOfExprToLeft.rootNode.rebuild(rootOfExprToLeft.rootNode.getLeftPosition(), 0);
                 positionToMove = new Position(value.getLineNumber(), value.right);
                 built = true;
-            } else if (rootOfExprToLeft.rootNode instanceof VarOperationStmt) {
             }
         }
 
