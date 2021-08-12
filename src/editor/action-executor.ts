@@ -18,7 +18,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt,
+    VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";

@@ -1627,20 +1627,23 @@ export class FunctionCallExpr extends Expression {
                 argType.some((x) => x == DataType.Any) ||
                 hasMatch(argType, [providedContext.expressionToRight.returns]);
 
-            const map = Util.getInstance().typeConversionMap.get(providedContext.expressionToRight.returns);
+            if (providedContext.expressionToRight.returns) {
+                const map = Util.getInstance().typeConversionMap.get(providedContext.expressionToRight.returns);
 
-            const willItBeDraftMode = hasMatch(map, argType);
-            const canFunctionBeInsertedAtCurrentHole = providedContext.expressionToRight.canReplaceWithConstruct(this);
+                const willItBeDraftMode = hasMatch(map, argType);
+                const canFunctionBeInsertedAtCurrentHole =
+                    providedContext.expressionToRight.canReplaceWithConstruct(this);
 
-            if (canInsertExprIntoThisFunction && canFunctionBeInsertedAtCurrentHole == InsertionType.Valid) {
-                return InsertionType.Valid;
-            } else {
-                const states = [willItBeDraftMode, canFunctionBeInsertedAtCurrentHole];
+                if (canInsertExprIntoThisFunction && canFunctionBeInsertedAtCurrentHole == InsertionType.Valid) {
+                    return InsertionType.Valid;
+                } else {
+                    const states = [willItBeDraftMode, canFunctionBeInsertedAtCurrentHole];
 
-                if (states.some((s) => s == InsertionType.Invalid)) return InsertionType.Invalid;
-                else if (states.every((s) => s == InsertionType.Valid)) return InsertionType.Valid;
-                else if (states.some((s) => s == InsertionType.DraftMode)) return InsertionType.DraftMode;
-            }
+                    if (states.some((s) => s == InsertionType.Invalid)) return InsertionType.Invalid;
+                    else if (states.every((s) => s == InsertionType.Valid)) return InsertionType.Valid;
+                    else if (states.some((s) => s == InsertionType.DraftMode)) return InsertionType.DraftMode;
+                }
+            } else return InsertionType.Invalid;
         }
 
         return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
