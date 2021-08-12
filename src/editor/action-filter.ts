@@ -80,24 +80,31 @@ export class ActionFilter {
             [InsertionRecord, EditCodeAction]
         >();
 
-        for (const modifier of availableModifiers) {
-            const code = modifier.constructFullOperation(ref);
-            const codeAction = new EditCodeAction(
-                `${ref.identifier}${modifier.getModifierText()}`,
-                "",
-                () => {
-                    return code;
-                },
-                code instanceof Expression
-                    ? InsertActionType.InsertValOperationExpr
-                    : InsertActionType.InsertVarOperationStmt
-            );
+        if (availableModifiers) {
+            for (const modifier of availableModifiers) {
+                const code = modifier.constructFullOperation(ref);
+                const codeAction = new EditCodeAction(
+                    `${ref.identifier}${modifier.getModifierText()}`,
+                    "",
+                    () => {
+                        return code;
+                    },
+                    code instanceof Expression
+                        ? InsertActionType.InsertValOperationExpr
+                        : InsertActionType.InsertVarOperationStmt
+                );
 
-            validOptionMap.set(codeAction.optionName, [
-                new InsertionRecord(codeAction.validateAction(this.module.validator, context), codeAction.getCode, ""),
-                codeAction,
-            ]);
+                validOptionMap.set(codeAction.optionName, [
+                    new InsertionRecord(
+                        codeAction.validateAction(this.module.validator, context),
+                        codeAction.getCode,
+                        ""
+                    ),
+                    codeAction,
+                ]);
+            }
         }
+
         return validOptionMap;
     }
 

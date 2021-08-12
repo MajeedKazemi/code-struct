@@ -624,6 +624,7 @@ export class Actions {
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
 
         this.varModifiersMap = new Map<DataType, Modifier[]>([
+            [DataType.Boolean, [new AssignmentModifier()]],
             [
                 DataType.Number,
                 [
