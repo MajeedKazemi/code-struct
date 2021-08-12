@@ -2,6 +2,7 @@ import {
     Expression,
     Statement,
     TypedEmptyExpr,
+    ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
     VarOperationStmt,
@@ -93,7 +94,11 @@ export class ActionFilter {
                 `${ref.identifier}${modifier.getModifierText()}`,
                 "",
                 () => {
-                    return new VarOperationStmt(ref, [modifier]);
+                    if (code instanceof Expression) {
+                        return new ValueOperationExpr(ref, [modifier]);
+                    } else {
+                        return new VarOperationStmt(ref, [modifier]);
+                    }
                 },
                 code instanceof Expression
                     ? InsertActionType.InsertValOperationExpr

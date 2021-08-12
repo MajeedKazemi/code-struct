@@ -1560,6 +1560,7 @@ export class AssignmentModifier extends Modifier {
 
 export class AugmentedAssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
+    private operation: AugmentedAssignmentOperator;
 
     private operation: AugmentedAssignmentOperator;
 
@@ -1578,6 +1579,8 @@ export class AugmentedAssignmentModifier extends Modifier {
 
         this.tokens.push(new TypedEmptyExpr(this.leftExprTypes, this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [...this.leftExprTypes];
+
+        this.operation = operation;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
