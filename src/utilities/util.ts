@@ -137,10 +137,10 @@ export class Util {
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
             [DataType.String, [DataType.StringList, DataType.Boolean]],
             [DataType.Boolean, [DataType.BooleanList]],
-            [DataType.AnyList, [DataType.Boolean]],
-            [DataType.NumberList, [DataType.Boolean]],
+            [DataType.AnyList, [DataType.Any, DataType.Boolean]],
+            [DataType.NumberList, [DataType.Number, DataType.Boolean]],
             [DataType.BooleanList, [DataType.Boolean]],
-            [DataType.StringList, [DataType.Boolean]],
+            [DataType.StringList, [DataType.String, DataType.Boolean]],
             [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]],
         ]);
 

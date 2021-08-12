@@ -1568,8 +1568,12 @@ export class AugmentedAssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
     private operation: AugmentedAssignmentOperator;
 
+    private operation: AugmentedAssignmentOperator;
+
     constructor(operation: AugmentedAssignmentOperator, root?: VarOperationStmt, indexInRoot?: number) {
         super();
+
+        this.operation = operation;
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
