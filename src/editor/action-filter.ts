@@ -1,12 +1,4 @@
-import {
-    Expression,
-    Statement,
-    TypedEmptyExpr,
-    ValueOperationExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-    VarOperationStmt,
-} from "../syntax-tree/ast";
+import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt, VariableReferenceExpr } from "../syntax-tree/ast";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -94,11 +86,7 @@ export class ActionFilter {
                 `${ref.identifier}${modifier.getModifierText()}`,
                 "",
                 () => {
-                    if (code instanceof Expression) {
-                        return new ValueOperationExpr(ref, [modifier]);
-                    } else {
-                        return new VarOperationStmt(ref, [modifier]);
-                    }
+                    return code;
                 },
                 code instanceof Expression
                     ? InsertActionType.InsertValOperationExpr

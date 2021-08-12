@@ -1067,7 +1067,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     codeConstructName = ConstructName.VarAssignment;
     private oldIdentifier: string;
 
-    constructor(id?: string, root?: Statement | Module, indexInRoot?: number) {
+    constructor(buttonId?: string, id?: string, root?: Statement | Module, indexInRoot?: number) {
         super();
 
         this.rootNode = root;
@@ -1075,12 +1075,18 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
         this.identifierIndex = this.tokens.length;
         this.tokens.push(new IdentifierTkn(id, this, this.tokens.length));
+
+        if (id) {
+            this.buttonId = buttonId;
+            this.setIdentifier(id, id); //TODO: This is a crude hack. Should get the name from the scope or something else that is connected to the AST.
+        } else {
+            this.oldIdentifier = this.getIdentifier();
+        }
+
         this.tokens.push(new NonEditableTkn(" = ", this, this.tokens.length));
         this.valueIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-
-        this.oldIdentifier = this.getIdentifier();
 
         this.hasEmptyToken = true;
 
@@ -1554,7 +1560,7 @@ export class AssignmentModifier extends Modifier {
     }
 
     constructFullOperation(varRef: VariableReferenceExpr): Statement {
-        return; //return new VarAssignmentStmt(varRef.uniqueId);
+        return new VarAssignmentStmt(varRef.uniqueId, varRef.identifier);
     }
 }
 

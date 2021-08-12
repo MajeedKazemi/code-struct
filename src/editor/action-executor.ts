@@ -450,6 +450,7 @@ export class ActionExecutor {
                         const initialBoundary = this.getBoundaries(context.expressionToLeft);
 
                         const varAssignStmt = new VarAssignmentStmt(
+                            "",
                             context.expressionToLeft.identifier,
                             varOpStmt.rootNode,
                             varOpStmt.indexInRoot

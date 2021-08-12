@@ -632,6 +632,7 @@ export class Actions {
                     new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
                     new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
                     new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Mod),
+                    new AssignmentModifier(),
                 ],
             ],
             [
