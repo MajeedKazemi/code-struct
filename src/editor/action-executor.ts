@@ -18,7 +18,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";
@@ -1011,7 +1011,6 @@ export class ActionExecutor {
                 rootOfExprToLeft.rootNode.rebuild(rootOfExprToLeft.rootNode.getLeftPosition(), 0);
                 positionToMove = new Position(value.getLineNumber(), value.right);
                 built = true;
-            } else if (rootOfExprToLeft.rootNode instanceof VarOperationStmt) {
             }
         }
 
