@@ -38,6 +38,14 @@
                 "addVar": 1
             }
         },
+        "userDefinedVariables": {
+            "includeCategory": 1,
+            "categoryDisplayName": "User Defined Variables",
+            "categoryChildren": ["<div id=\"vars-button-grid\"></div>"],
+            "includeCategoryItems": {
+                
+            }
+        },
         "assignmentOperations": {
             "includeCategory": 1,
             "categoryDisplayName": "Assignment Operations",
@@ -107,8 +115,7 @@
                 "compGt": 1,
                 "comptGte": 1
             }
-        },
-        "userDefinedVariables": 1
+        }
     },
     "toolboxDefaultButtonTemplates": {
         "print": {
