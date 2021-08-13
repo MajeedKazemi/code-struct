@@ -1,8 +1,4 @@
-
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import EditorComponent from './components/editor/editor';
-import Router from './components/router/router'
+import "./css/index.css";
 import { Module } from "./syntax-tree/module";
 
 // @ts-ignore
@@ -24,11 +20,4 @@ self.MonacoEnvironment = {
     },
 };
 
-ReactDOM.render(
-    <React.StrictMode>
-        <Router />
-    </React.StrictMode>,
-    document.getElementById('root')
-);
-
-export const nova = new Module(EditorComponent.EditorParentId);
+export const nova = new Module("editor");

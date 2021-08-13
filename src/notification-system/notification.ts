@@ -1,5 +1,4 @@
 import { Selection } from "monaco-editor";
-import EditorComponent from "../components/editor/editor";
 import { Editor } from "../editor/editor";
 import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Callback, CallbackType } from "../syntax-tree/callback";
@@ -234,18 +233,18 @@ export class Notification extends ConstructVisualElement {
         super(editor, code);
 
         this.warningTxt = warningTxt;
-        this.domElement.classList.add("textBox");
-
-        this.textElement = document.createElement("div");
-        this.domElement.appendChild(this.textElement);
-        document.querySelector(editorDomElementClass).appendChild(this.domElement);
         this.textElement.innerHTML = this.warningTxt;
-
         this.systemIndex = index;
     }
 
     protected createDomElement() {
         super.createDomElement();
+        this.domElement.classList.add("textBox");
+
+        this.textElement = document.createElement("div");
+        this.domElement.appendChild(this.textElement);
+
+        document.querySelector(editorDomElementClass).appendChild(this.domElement);
     }
 }
 
@@ -334,12 +333,12 @@ export class HoverNotification extends Notification {
         const editorDims = {
             width: (
                 document
-                    .getElementById(EditorComponent.EditorParentId)
+                    .getElementById("editor")
                     .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
             ).offsetWidth,
             height: (
                 document
-                    .getElementById(EditorComponent.EditorParentId)
+                    .getElementById("editor")
                     .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
             ).offsetHeight,
         };
@@ -360,10 +359,10 @@ export class HoverNotification extends Notification {
      */
     private updateMouseOffsets() {
         this.mouseLeftOffset =
-            document.getElementById(EditorComponent.EditorParentId).offsetLeft +
+            document.getElementById("editor").offsetLeft +
             (
                 document
-                    .getElementById(EditorComponent.EditorParentId)
+                    .getElementById("editor")
                     .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
                     .getElementsByClassName("overflow-guard")[0]
                     .getElementsByClassName("margin")[0] as HTMLElement
@@ -371,9 +370,7 @@ export class HoverNotification extends Notification {
 
         //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
         //wrong from time to time...
-        this.mouseTopOffset = parseFloat(
-            window.getComputedStyle(document.getElementById(EditorComponent.EditorParentId)).paddingTop
-        );
+        this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
     }
 
     private scheduleCollisionCheck() {

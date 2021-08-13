@@ -1,6 +1,3 @@
-import * as React from 'react';
-import * as ReactDOM from 'react-dom';
-import ToolboxCascadedMenu from "../components/toolbox-cascaded-menu";
 import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { DataType, InsertionType } from "./consts";
@@ -27,37 +24,51 @@ export class VariableController {
         this.addCascadedMenuActions(assignmentStmt.buttonId, button);
     }
 
-    private createCascadedMenu(identifier: string, buttonId: string) {
+    private createCascadedMenu(identifier: string, buttonId: string): HTMLDivElement {
         const dataType = this.getVariableTypeNearLine(
             this.module.focus.getFocusedStatement().scope ??
-            (
-                this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-                    .rootNode as Statement | Module
-            ).scope,
+                (
+                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
+                        .rootNode as Statement | Module
+                ).scope,
             this.module.editor.monaco.getPosition().lineNumber,
             identifier,
             false
         );
         const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
         const validActions = this.module.actionFilter.validateVariableOperations(varRef);
-        const divArr = [];
         const context = this.module.focus.getContext();
+
+        const menu = document.createElement("div");
+        menu.id = `${buttonId}-cascadedMenu`;
+        menu.className = "cascadedMenuMainDiv";
+
+        menu.addEventListener("mouseover", () => {
+            setTimeout(() => {
+                const element = document.getElementById(`${buttonId}-cascadedMenu`);
+                const button = document.getElementById(buttonId);
+
+                if (element && !element.matches(":hover") && !button.matches(":hover")) {
+                    element.remove();
+                }
+            }, 50);
+        });
 
         for (const [key, value] of validActions) {
             if (value[0].insertionType !== InsertionType.Invalid) {
-                divArr.push(
-                    <div className="cascadedMenuItem" onClick={(() => {
-                        this.module.executer.execute(this.module.eventRouter.routeToolboxEvents(value[1], context));
-                    }).bind(this)}>{key}</div>
-                )
+                const menuItem = document.createElement("div");
+                menuItem.className = "cascadedMenuItem";
+                menuItem.innerHTML = key;
+
+                menuItem.addEventListener("click", () => {
+                    this.module.executer.execute(this.module.eventRouter.routeToolboxEvents(value[1], context));
+                });
+
+                menu.appendChild(menuItem);
             }
         }
 
-        if (divArr.length === 0) {
-            return null
-        }
-
-        return React.createElement(ToolboxCascadedMenu, { children: divArr, id: `${buttonId}-cascadedMenu`, buttonId: buttonId });
+        return menu;
     }
 
     private addCascadedMenuActions(buttonId: string, button: HTMLDivElement) {
@@ -68,20 +79,20 @@ export class VariableController {
                 const menuElement = this.createCascadedMenu(identifier, buttonId);
 
                 if (menuElement) {
-                    const portal = ReactDOM.createPortal(menuElement, document.getElementById("mainToolboxDiv"));
                     const content = document.createElement("div");
                     content.classList.add("cascadedMenuContent");
-                    ReactDOM.render(portal, content);
+                    document.getElementById("editor-toolbox").appendChild(menuElement);
 
                     const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
                     const leftPos = button.offsetLeft;
-                    const topPos = button.offsetTop - document.getElementById("mainToolboxDiv").scrollTop + button.offsetHeight;
+                    const topPos =
+                        button.offsetTop - document.getElementById("editor-toolbox").scrollTop + button.offsetHeight;
 
                     domMenuElement.style.left = `${leftPos}px`;
                     domMenuElement.style.top = `${topPos + 2}px`;
                 }
             }
-        })
+        });
 
         button.addEventListener("mouseleave", () => {
             setTimeout(() => {
@@ -89,8 +100,8 @@ export class VariableController {
                 if (element && !element.matches(":hover") && !button.matches(":hover")) {
                     element.remove();
                 }
-            }, 50)
-        })
+            }, 50);
+        });
     }
 
     isVariableReferenceButton(buttonId: string) {

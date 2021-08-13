@@ -56,18 +56,20 @@ export function updateButtonsVisualMode(insertionRecords: InsertionRecord[]) {
     for (const insertionRecord of insertionRecords) {
         const button = document.getElementById(insertionRecord.domButtonId) as HTMLButtonElement;
 
-        if (insertionRecord.insertionType === InsertionType.DraftMode) {
-            addClassToButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-            removeClassFromButton(insertionRecord.domButtonId, Module.disabledButtonClass);
-            button.disabled = false;
-        } else if (insertionRecord.insertionType === InsertionType.Valid) {
-            removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-            removeClassFromButton(insertionRecord.domButtonId, Module.disabledButtonClass);
-            button.disabled = false;
-        } else {
-            removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-            addClassToButton(insertionRecord.domButtonId, Module.disabledButtonClass);
-            button.disabled = true;
+        if (button) {
+            if (insertionRecord.insertionType === InsertionType.DraftMode) {
+                addClassToButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
+                removeClassFromButton(insertionRecord.domButtonId, Module.disabledButtonClass);
+                button.disabled = false;
+            } else if (insertionRecord.insertionType === InsertionType.Valid) {
+                removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
+                removeClassFromButton(insertionRecord.domButtonId, Module.disabledButtonClass);
+                button.disabled = false;
+            } else {
+                removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
+                addClassToButton(insertionRecord.domButtonId, Module.disabledButtonClass);
+                button.disabled = true;
+            }
         }
     }
 }
