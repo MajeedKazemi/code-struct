@@ -18,7 +18,7 @@ import {
     InsertionType,
     ListTypes,
     TAB_SPACES,
-    UnaryOp
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -1394,7 +1394,13 @@ export class VarOperationStmt extends Statement {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
-        if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
+        if (modifiers)
+            for (const mod of modifiers) {
+                mod.indexInRoot = this.tokens.length;
+                mod.rootNode = this;
+
+                this.tokens.push(mod);
+            }
     }
 
     setVariable(ref: VariableReferenceExpr) {
@@ -1404,12 +1410,24 @@ export class VarOperationStmt extends Statement {
         this.isVarSet = true;
     }
 
+    updateModifierTypes() {
+        for (let i = 1; i < this.tokens.length; i++) {
+            const mod = this.tokens[i];
+
+            if (mod instanceof AugmentedAssignmentModifier) {
+                const rightMostReturnsType = (this.tokens[i - 1] as Expression).returns;
+                (mod.tokens[1] as TypedEmptyExpr).type = [rightMostReturnsType];
+                mod.typeOfHoles[1] = [rightMostReturnsType];
+            }
+        }
+    }
+
     appendModifier(mod: Modifier) {
-        // if (mod instanceof AugmentedAssignmentModifier) {
-        //     const rightMostReturnsType = (this.tokens[this.tokens.length - 1] as Expression).returns;
-        //     (mod.tokens[1] as TypedEmptyExpr).type = [rightMostReturnsType];
-        //     mod.typeOfHoles[1] = [rightMostReturnsType];
-        // }
+        if (mod instanceof AugmentedAssignmentModifier) {
+            const rightMostReturnsType = (this.tokens[this.tokens.length - 1] as Expression).returns;
+            (mod.tokens[1] as TypedEmptyExpr).type = [rightMostReturnsType];
+            mod.typeOfHoles[1] = [rightMostReturnsType];
+        }
 
         mod.indexInRoot = this.tokens.length;
         mod.rootNode = this;

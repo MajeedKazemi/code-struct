@@ -94,7 +94,10 @@ export class ActionFilter {
 
                 if (code instanceof VarAssignmentStmt) code.setVariable(ref);
                 else if (code instanceof ValueOperationExpr) code.setVariable(ref);
-                else if (code instanceof VarOperationStmt) code.setVariable(ref);
+                else if (code instanceof VarOperationStmt) {
+                    code.setVariable(ref);
+                    code.updateModifierTypes();
+                }
 
                 const codeAction = new EditCodeAction(
                     code.getRenderText().replace(/   /g, "---"),
@@ -104,7 +107,10 @@ export class ActionFilter {
 
                         if (code instanceof VarAssignmentStmt) code.setVariable(ref);
                         else if (code instanceof ValueOperationExpr) code.setVariable(ref);
-                        else if (code instanceof VarOperationStmt) code.setVariable(ref);
+                        else if (code instanceof VarOperationStmt) {
+                            code.setVariable(ref);
+                            code.updateModifierTypes();
+                        }
 
                         return code;
                     },
