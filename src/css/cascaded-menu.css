@@ -24,10 +24,10 @@
     cursor: pointer;
 }
 
-.cascadedMenuMainDiv div:hover .cascadedMenuItem {
+.cascadedMenuMainDiv .cascadedMenuItem:hover {
     background-color: rgba(116, 116, 116, 0.3);
 }
 
-.cascadedMenuMainDiv div:not(:hover) .cascadedMenuItem {
+.cascadedMenuMainDiv .cascadedMenuItem :not(:hover) {
     background-color: white;
 }
