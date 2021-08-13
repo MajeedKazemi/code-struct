@@ -97,7 +97,7 @@ export class ActionFilter {
                 else if (code instanceof VarOperationStmt) code.setVariable(ref);
 
                 const codeAction = new EditCodeAction(
-                    `${ref.identifier}${code.getRenderText()}`,
+                    code.getRenderText().replace(/   /g, "---"),
                     "",
                     () => {
                         const code = varOperation() as Expression;
