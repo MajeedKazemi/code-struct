@@ -14,9 +14,11 @@ import {
     ListLiteralExpression,
     LiteralValExpr,
     MethodCallModifier,
-    Modifier,
+    Statement,
     UnaryOperatorExpr,
+    ValueOperationExpr,
     VarAssignmentStmt,
+    VarOperationStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
 import { AugmentedAssignmentOperator, BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
@@ -196,7 +198,7 @@ export class Actions {
     private static inst: Actions;
     actionsList: Array<EditCodeAction>;
     actionsMap: Map<string, EditCodeAction>;
-    varModifiersMap: Map<DataType, Modifier[]>;
+    varModifiersMap: Map<DataType, Array<() => Statement>>;
 
     private constructor() {
         this.actionsList = new Array<EditCodeAction>(
@@ -623,101 +625,154 @@ export class Actions {
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
 
-        this.varModifiersMap = new Map<DataType, Modifier[]>([
-            [DataType.Boolean, [new AssignmentModifier()]],
+        this.varModifiersMap = new Map<DataType, Array<() => Statement>>([
+            [DataType.Boolean, [() => new VarAssignmentStmt()]],
             [
                 DataType.Number,
                 [
-                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
-                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
-                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
-                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
-                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Mod),
-                    new AssignmentModifier(),
+                    () => new VarAssignmentStmt(),
+                    () =>
+                        new VarOperationStmt(null, [new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add)]),
+                    () =>
+                        new VarOperationStmt(null, [
+                            new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+                        ]),
+                    () =>
+                        new VarOperationStmt(null, [
+                            new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+                        ]),
+                    () =>
+                        new VarOperationStmt(null, [
+                            new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+                        ]),
                 ],
             ],
             [
                 DataType.String,
                 [
-                    new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
-                    new MethodCallModifier(
-                        "split",
-                        [new Argument([DataType.String], "sep", false)],
-                        DataType.StringList,
-                        DataType.String
-                    ),
-                    new MethodCallModifier(
-                        "join",
-                        [
-                            new Argument(
-                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
-                                "items",
-                                false
+                    () => new VarAssignmentStmt(),
+                    () =>
+                        new VarOperationStmt(null, [new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add)]),
+
+                    () =>
+                        new ValueOperationExpr(null, [
+                            new MethodCallModifier(
+                                "split",
+                                [new Argument([DataType.String], "sep", false)],
+                                DataType.StringList,
+                                DataType.String
                             ),
-                        ],
-                        DataType.String,
-                        DataType.String
-                    ),
-                    new MethodCallModifier(
-                        "replace",
-                        [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
-                        DataType.String,
-                        DataType.String
-                    ),
-                    new MethodCallModifier(
-                        "find",
-                        [new Argument([DataType.String], "item", false)],
-                        DataType.Number,
-                        DataType.String
-                    ),
+                        ]),
+                    () =>
+                        new ValueOperationExpr(null, [
+                            new MethodCallModifier(
+                                "join",
+                                [
+                                    new Argument(
+                                        [
+                                            DataType.AnyList,
+                                            DataType.StringList,
+                                            DataType.NumberList,
+                                            DataType.BooleanList,
+                                        ],
+                                        "items",
+                                        false
+                                    ),
+                                ],
+                                DataType.String,
+                                DataType.String
+                            ),
+                        ]),
+                    () =>
+                        new ValueOperationExpr(null, [
+                            new MethodCallModifier(
+                                "replace",
+                                [
+                                    new Argument([DataType.String], "old", false),
+                                    new Argument([DataType.String], "new", false),
+                                ],
+                                DataType.String,
+                                DataType.String
+                            ),
+                        ]),
+                    () =>
+                        new ValueOperationExpr(null, [
+                            new MethodCallModifier(
+                                "find",
+                                [new Argument([DataType.String], "item", false)],
+                                DataType.Number,
+                                DataType.String
+                            ),
+                        ]),
                 ],
             ],
             [
                 DataType.AnyList,
                 [
-                    new MethodCallModifier(
-                        "append",
-                        [new Argument([DataType.Any], "object", false)],
-                        DataType.Void,
-                        DataType.AnyList
-                    ),
-                    new ListAccessModifier(),
+                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                    () =>
+                        new ValueOperationExpr(null, [
+                            new MethodCallModifier(
+                                "append",
+                                [new Argument([DataType.Any], "object", false)],
+                                DataType.Void,
+                                DataType.AnyList
+                            ),
+                        ]),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new VarAssignmentStmt(),
                 ],
             ],
             [
                 DataType.BooleanList,
                 [
-                    new MethodCallModifier(
-                        "append",
-                        [new Argument([DataType.Any], "object", false)],
-                        DataType.Void,
-                        DataType.AnyList
-                    ),
-                    new ListAccessModifier(),
-                ],
-            ],
-            [
-                DataType.StringList,
-                [
-                    new MethodCallModifier(
-                        "append",
-                        [new Argument([DataType.Any], "object", false)],
-                        DataType.Void,
-                        DataType.AnyList
-                    ),
-                    new ListAccessModifier(),
+                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                    () =>
+                        new ValueOperationExpr(null, [
+                            new MethodCallModifier(
+                                "append",
+                                [new Argument([DataType.Any], "object", false)],
+                                DataType.Void,
+                                DataType.AnyList
+                            ),
+                        ]),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new VarAssignmentStmt(),
                 ],
             ],
             [
                 DataType.NumberList,
                 [
-                    new MethodCallModifier(
-                        "append",
-                        [new Argument([DataType.Any], "object", false)],
-                        DataType.Void,
-                        DataType.AnyList
-                    ),
-                    new ListAccessModifier(),
+                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+
+                    () =>
+                        new VarOperationStmt(null, [
+                            new MethodCallModifier(
+                                "append",
+                                [new Argument([DataType.Any], "object", false)],
+                                DataType.Void,
+                                DataType.AnyList
+                            ),
+                        ]),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new VarAssignmentStmt(),
+                ],
+            ],
+            [
+                DataType.StringList,
+                [
+                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                    () =>
+                        new ValueOperationExpr(null, [
+                            new MethodCallModifier(
+                                "append",
+                                [new Argument([DataType.Any], "object", false)],
+                                DataType.Void,
+                                DataType.AnyList
+                            ),
+                        ]),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new VarAssignmentStmt(),
                 ],
             ],
         ]);

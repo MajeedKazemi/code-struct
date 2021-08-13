@@ -1,4 +1,12 @@
-import { Expression, Statement, TypedEmptyExpr, VarAssignmentStmt, VariableReferenceExpr } from "../syntax-tree/ast";
+import {
+    Expression,
+    Statement,
+    TypedEmptyExpr,
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+    VarOperationStmt,
+} from "../syntax-tree/ast";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -81,12 +89,23 @@ export class ActionFilter {
         >();
 
         if (availableModifiers) {
-            for (const modifier of availableModifiers) {
-                const code = modifier.constructFullOperation(ref);
+            for (const varOperation of availableModifiers) {
+                const code = varOperation() as Expression;
+
+                if (code instanceof VarAssignmentStmt) code.setVariable(ref);
+                else if (code instanceof ValueOperationExpr) code.setVariable(ref);
+                else if (code instanceof VarOperationStmt) code.setVariable(ref);
+
                 const codeAction = new EditCodeAction(
-                    `${ref.identifier}${modifier.getModifierText()}`,
+                    `${ref.identifier}${code.getRenderText()}`,
                     "",
                     () => {
+                        const code = varOperation() as Expression;
+
+                        if (code instanceof VarAssignmentStmt) code.setVariable(ref);
+                        else if (code instanceof ValueOperationExpr) code.setVariable(ref);
+                        else if (code instanceof VarOperationStmt) code.setVariable(ref);
+
                         return code;
                     },
                     code instanceof Statement && !(code instanceof Expression)

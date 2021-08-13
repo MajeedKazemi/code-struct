@@ -18,7 +18,7 @@ import {
     InsertionType,
     ListTypes,
     TAB_SPACES,
-    UnaryOp,
+    UnaryOp
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -1132,6 +1132,11 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         this.updateButton();
     }
 
+    setVariable(ref: VariableReferenceExpr) {
+        // this is only for user-defined variables (coming from the action-filter)
+        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(ref.identifier);
+    }
+
     onFocusOff(): void {
         const currentIdentifier = this.getIdentifier();
         const varController = this.getModule().variableController;
@@ -1326,18 +1331,31 @@ export class VariableReferenceExpr extends Expression {
 }
 
 export class ValueOperationExpr extends Expression {
+    isVarSet = false;
+
     constructor(value: Expression, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
-        super(value.returns);
+        super(value != null ? value.returns : DataType.Void);
+
+        if (value != null) {
+            value.indexInRoot = this.tokens.length;
+            value.rootNode = this;
+
+            this.isVarSet = true;
+        }
+
+        this.tokens.push(value);
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
-        value.indexInRoot = this.tokens.length;
-        value.rootNode = this;
-
-        this.tokens.push(value);
-
         if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
+    }
+
+    setVariable(ref: VariableReferenceExpr) {
+        ref.indexInRoot = this.tokens.length;
+        ref.rootNode = this;
+        this.tokens[0] = ref;
+        this.isVarSet = true;
     }
 
     updateReturnType() {
@@ -1360,11 +1378,16 @@ export class ValueOperationExpr extends Expression {
 }
 
 export class VarOperationStmt extends Statement {
+    isVarSet = false;
+
     constructor(ref: VariableReferenceExpr, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
         super();
 
-        ref.indexInRoot = this.tokens.length;
-        ref.rootNode = this;
+        if (ref != null) {
+            ref.indexInRoot = this.tokens.length;
+            ref.rootNode = this;
+            this.isVarSet = true;
+        }
 
         this.tokens.push(ref);
 
@@ -1374,12 +1397,19 @@ export class VarOperationStmt extends Statement {
         if (modifiers) for (const mod of modifiers) this.appendModifier(mod);
     }
 
+    setVariable(ref: VariableReferenceExpr) {
+        ref.indexInRoot = this.tokens.length;
+        ref.rootNode = this;
+        this.tokens[0] = ref;
+        this.isVarSet = true;
+    }
+
     appendModifier(mod: Modifier) {
-        if (mod instanceof AugmentedAssignmentModifier) {
-            const rightMostReturnsType = (this.tokens[this.tokens.length - 1] as Expression).returns;
-            (mod.tokens[1] as TypedEmptyExpr).type = [rightMostReturnsType];
-            mod.typeOfHoles[1] = [rightMostReturnsType];
-        }
+        // if (mod instanceof AugmentedAssignmentModifier) {
+        //     const rightMostReturnsType = (this.tokens[this.tokens.length - 1] as Expression).returns;
+        //     (mod.tokens[1] as TypedEmptyExpr).type = [rightMostReturnsType];
+        //     mod.typeOfHoles[1] = [rightMostReturnsType];
+        // }
 
         mod.indexInRoot = this.tokens.length;
         mod.rootNode = this;
