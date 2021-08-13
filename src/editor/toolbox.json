@@ -41,7 +41,7 @@
         "userDefinedVariables": {
             "includeCategory": 1,
             "categoryDisplayName": "User Defined Variables",
-            "categoryChildren": ["<div id=\"vars-button-grid\"></div>"],
+            "categoryHtml": "<div id=\"user-variables\"><h2 id=\"user-defined-vars-heading\">User-Defined Variables</h2><div id=\"vars-button-grid\"></div>",
             "includeCategoryItems": {
                 
             }

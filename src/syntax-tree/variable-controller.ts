@@ -1,4 +1,4 @@
-import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
+import { addVariableReferenceButton, removeVariableReferenceButton, ToolboxButton } from "../editor/toolbox";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { DataType, InsertionType } from "./consts";
 import { Module } from "./module";
@@ -57,12 +57,22 @@ export class VariableController {
         for (const [key, value] of validActions) {
             if (value[0].insertionType !== InsertionType.Invalid) {
                 const menuItem = document.createElement("div");
-                menuItem.className = "cascadedMenuItem";
-                menuItem.innerHTML = key;
+                menuItem.classList.add("cascadedMenuContent");
 
-                menuItem.addEventListener("click", () => {
+                const menuText = document.createElement("span");
+                menuText.classList.add("cascadedMenuOptionTooltip");
+
+                const menuButton = ToolboxButton.createToolboxButtonFromJsonObj({
+                    text: value[1].optionName,
+                }).domElement;
+                menuButton.classList.add("cascadedMenuItem");
+
+                menuButton.addEventListener("click", () => {
                     this.module.executer.execute(this.module.eventRouter.routeToolboxEvents(value[1], context));
                 });
+
+                menuItem.appendChild(menuButton);
+                menuItem.appendChild(menuText);
 
                 menu.appendChild(menuItem);
             }
@@ -78,7 +88,7 @@ export class VariableController {
             if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
                 const menuElement = this.createCascadedMenu(identifier, buttonId);
 
-                if (menuElement) {
+                if (menuElement.children.length > 0) {
                     const content = document.createElement("div");
                     content.classList.add("cascadedMenuContent");
                     document.getElementById("editor-toolbox").appendChild(menuElement);

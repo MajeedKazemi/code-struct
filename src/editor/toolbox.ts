@@ -82,26 +82,27 @@ export function loadToolboxFromJson() {
 
     for (const constructGroup in toolboxGroupOptions) {
         if (toolboxGroupOptions.hasOwnProperty(constructGroup) && toolboxGroupOptions[constructGroup].includeCategory) {
-            const categoryDiv = document.createElement("div");
-            categoryDiv.classList.add("group");
+            let categoryDiv;
+            if (toolboxGroupOptions[constructGroup].hasOwnProperty("categoryHtml")) {
+                const template = document.createElement("template");
+                template.innerHTML = toolboxGroupOptions[constructGroup].categoryHtml;
+                categoryDiv = template.content.firstChild;
+            } else {
+                categoryDiv = document.createElement("div");
+                categoryDiv.classList.add("group");
 
-            const p = document.createElement("p");
-            p.textContent = toolboxGroupOptions[constructGroup].categoryDisplayName;
-            categoryDiv.appendChild(p);
+                const p = document.createElement("p");
+                p.textContent = toolboxGroupOptions[constructGroup].categoryDisplayName;
+                categoryDiv.appendChild(p);
 
-            const itemOpts = toolboxGroupOptions[constructGroup].includeCategoryItems;
-            for (const item in itemOpts) {
-                if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
-                    const button = ToolboxButton.createToolboxButtonFromJsonObj(
-                        options.toolboxDefaultButtonTemplates[item]
-                    );
-                    categoryDiv.appendChild(button.domElement);
-                }
-            }
-
-            if (toolboxGroupOptions[constructGroup].hasOwnProperty("categoryChildren")) {
-                for (const childIndex in toolboxGroupOptions[constructGroup].categoryChildren) {
-                    categoryDiv.innerHTML += toolboxGroupOptions[constructGroup].categoryChildren[childIndex];
+                const itemOpts = toolboxGroupOptions[constructGroup].includeCategoryItems;
+                for (const item in itemOpts) {
+                    if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
+                        const button = ToolboxButton.createToolboxButtonFromJsonObj(
+                            options.toolboxDefaultButtonTemplates[item]
+                        );
+                        categoryDiv.appendChild(button.domElement);
+                    }
                 }
             }
 
@@ -113,7 +114,7 @@ export function loadToolboxFromJson() {
 export class ToolboxButton {
     domElement: HTMLDivElement;
 
-    constructor(domId: string, text: string, onClickAction?: Function) {
+    constructor(text: string, domId?: string, onClickAction?: Function) {
         if (onClickAction) {
             this.domElement.addEventListener("click", () => {
                 onClickAction();
@@ -122,7 +123,10 @@ export class ToolboxButton {
 
         this.domElement = document.createElement("div");
         this.domElement.classList.add("button");
-        this.domElement.id = domId;
+
+        if (domId) {
+            this.domElement.id = domId;
+        }
 
         this.domElement.innerHTML = text.replace(/---/g, "<hole></hole>");
     }
@@ -131,7 +135,7 @@ export class ToolboxButton {
         this.domElement.remove();
     }
 
-    static createToolboxButtonFromJsonObj(obj: { id: string; text: string; holePlacement: number[] }) {
-        return new ToolboxButton(obj.id, obj.text);
+    static createToolboxButtonFromJsonObj(obj: { id?: string; text: string }) {
+        return new ToolboxButton(obj.text, obj?.id);
     }
 }

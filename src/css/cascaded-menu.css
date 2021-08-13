@@ -31,3 +31,18 @@
 .cascadedMenuMainDiv .cascadedMenuItem :not(:hover) {
     background-color: white;
 }
+
+.cascadedMenuContent {
+    display: grid;
+    grid-template-columns: 50% 50%;
+    grid-template-rows: 100%;
+    column-gap: 5px;
+    padding-left: 10px;
+}
+
+.cascadedMenuOptionTooltip {
+    display: inline;
+    align-self: center;
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.7);
+}
