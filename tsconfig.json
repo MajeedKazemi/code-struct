@@ -11,8 +11,7 @@
 		"baseUrl": "./node_modules",
 		"jsx": "preserve",
 		"typeRoots": ["node_modules/@types"],
-		"resolveJsonModule": true,
-		"esModuleInterop": true
+		"resolveJsonModule": true
 	},
 	"include": ["./src/**/*"],
 	"exclude": ["node_modules"]

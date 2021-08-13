@@ -7,7 +7,7 @@ import { EventRouter } from "../editor/event-router";
 import { EventStack } from "../editor/event-stack";
 import { Context, Focus } from "../editor/focus";
 import { Hole } from "../editor/hole";
-import { updateButtonsVisualMode } from "../editor/toolbox";
+import { loadToolboxFromJson, updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { MenuController } from "../suggestions/suggestions-controller";
@@ -70,6 +70,8 @@ export class Module {
             hoveringOverCascadedMenu: false,
             hoveringOverVarRefButton: false,
         };
+
+        loadToolboxFromJson();
 
         this.draftExpressions = [];
 
