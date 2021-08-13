@@ -2,6 +2,7 @@ import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { InsertionRecord } from "./action-filter";
 import { EventAction, EventStack, EventType } from "./event-stack";
+import * as options from "./toolbox.json";
 
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
     const container = document.createElement("grid");
@@ -71,5 +72,60 @@ export function updateButtonsVisualMode(insertionRecords: InsertionRecord[]) {
                 button.disabled = true;
             }
         }
+    }
+}
+
+export function loadToolboxFromJson() {
+    const toolboxDiv = document.getElementById("editor-toolbox");
+
+    const toolboxGroupOptions = options.toolboxConstructGroupOptions;
+
+    for (const key in toolboxGroupOptions) {
+        if (toolboxGroupOptions.hasOwnProperty(key) && toolboxGroupOptions[key].includeCategory) {
+            const categoryDiv = document.createElement("div");
+            categoryDiv.classList.add("group");
+
+            const p = document.createElement("p");
+            p.textContent = toolboxGroupOptions[key].categoryDisplayName;
+            categoryDiv.appendChild(p);
+
+            const itemOpts = toolboxGroupOptions[key].includeCategoryItems;
+            for (const item in itemOpts) {
+                if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
+                    const button = ToolboxButton.createToolboxButtonFromJsonObj(
+                        options.toolboxDefaultButtonTemplates[item]
+                    );
+                    categoryDiv.appendChild(button.domElement);
+                }
+            }
+
+            toolboxDiv.appendChild(categoryDiv);
+        }
+    }
+}
+
+export class ToolboxButton {
+    domElement: HTMLDivElement;
+
+    constructor(domId: string, text: string, onClickAction?: Function) {
+        if (onClickAction) {
+            this.domElement.addEventListener("click", () => {
+                onClickAction();
+            });
+        }
+
+        this.domElement = document.createElement("div");
+        this.domElement.classList.add("button");
+        this.domElement.id = domId;
+
+        this.domElement.innerHTML = text.replace(/---/g, "<hole></hole>");
+    }
+
+    removeFromDOM() {
+        this.domElement.remove();
+    }
+
+    static createToolboxButtonFromJsonObj(obj: { id: string; text: string; holePlacement: number[] }) {
+        return new ToolboxButton(obj.id, obj.text);
     }
 }

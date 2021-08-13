@@ -1,0 +1,283 @@
+{
+    "toolboxConstructGroupOptions": {
+        "functionCalls": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Function Calls",
+            "includeCategoryItems": {
+                "print": 1,
+                "randint": 1,
+                "range": 1,
+                "len": 1
+            }
+        },
+        "controlFlow": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Control Flow",
+            "includeCategoryItems": {
+                "while": 1,
+                "if": 1,
+                "elif": 1,
+                "else": 1,
+                "for": 1
+            }
+        },
+        "methods": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Methods",
+            "includeCategoryItems": {
+                "split": 1,
+                "join": 1,
+                "find": 1,
+                "replace": 1
+            }
+        },
+        "variables": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Variables",
+            "includeCategoryItems": {
+                "addVar": 1
+            }
+        },
+        "assignmentOperations": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Assignment Operations",
+            "includeCategoryItems": {
+                "assign": 1,
+                "assignAdd": 1,
+                "assignSub": 1,
+                "assignMult": 1,
+                "assignDiv": 1
+            }
+        },
+        "list": {
+            "includeCategory": 1,
+            "categoryDisplayName": "List",
+            "includeCategoryItems": {
+                "listLiteral": 1,
+                "listItem": 1,
+                "listAppend": 1,
+                "listIndex": 1,
+                "listElementAssign": 1
+            }
+        },
+        "literals": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Literals",
+            "includeCategoryItems": {
+                "str": 1,
+                "num": 1,
+                "boolT": 1,
+                "boolF": 1
+            }
+        },
+        "casting": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Casting",
+            "includeCategoryItems": {
+                "toStr": 1
+            }
+        },
+        "operations": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Operations",
+            "includeCategoryItems": {
+                "binAdd": 1,
+                "binSub": 1,
+                "binMult": 1,
+                "binDiv": 1
+            }
+        },
+        "booleans": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Booleans",
+            "includeCategoryItems": {
+                "and": 1,
+                "or": 1,
+                "unaryNot": 1
+            }
+        },
+        "comparisons": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Comparisons",
+            "includeCategoryItems": {
+                "compEq": 1,
+                "compNeq": 1,
+                "compLt": 1,
+                "compLte": 1,
+                "compGt": 1,
+                "comptGte": 1
+            }
+        },
+        "userDefinedVariables": 1
+    },
+    "toolboxDefaultButtonTemplates": {
+        "print": {
+            "id": "add-print-btn",
+            "text": "print(---)"
+        },
+        "randint": {
+            "id": "add-randint-btn",
+            "text": "randint(---, ---)"
+        },
+        "range": {
+            "id": "add-range-btn",
+            "text": "range(---, ---)"
+        },
+        "len": {
+            "id": "add-len-btn",
+            "text": "len(---)"
+        },
+        "while": {
+            "id": "add-while-expr-btn",
+            "text": "while ---:"
+        },
+        "if": {
+            "id": "add-while-expr-btn",
+            "text": "if ---:"
+        },
+        "elif": {
+            "id": "add-while-expr-btn",
+            "text": "elif ---:"
+        },
+        "else": {
+            "id": "add-while-expr-btn",
+            "text": "else:"
+        },
+        "for": {
+            "id": "add-while-expr-btn",
+            "text": "for --- in ---:"
+        },
+        "split": {
+            "id": "add-split-method-call-btn",
+            "text": ".split(---)"
+        },
+        "join": {
+            "id": "add-join-method-call-btn",
+            "text": ".join(---)"
+        },
+        "find": {
+            "id": "add-find-method-call-btn",
+            "text": ".find(---)"
+        },
+        "replace": {
+            "id": "add-replace-method-call-btn",
+            "text": ".replace(---)"
+        },
+        "addVar": {
+            "id": "add-var-btn",
+            "text": "--- = ---"
+        },
+        "assign": {
+            "id": "add-assign-mod-btn",
+            "text": "--- = ---"
+        },
+        "assignAdd": {
+            "id": "add-aug-assign-add-mod-btn",
+            "text": "+= ---"
+        },
+        "assignSub": {
+            "id": "add-aug-assign-sub-mod-btn",
+            "text": "-= ---"
+        },
+        "assignMult": {
+            "id": "add-aug-assign-mul-mod-btn",
+            "text": "*= ---"
+        },
+        "assignDiv": {
+            "id": "add-aug-assign-div-mod-btn",
+            "text": "/= ---"
+        },
+        "listLiteral": {
+            "id": "add-list-literal-btn",
+            "text": "[]"
+        },
+        "listItem": {
+            "id": "add-list-item-btn",
+            "text": ", ---"
+        },
+        "listAppend": {
+            "id": "add-list-append-stmt-btn",
+            "text": "---.append(---)"
+        },
+        "listIndex": {
+            "id": "add-list-index-btn",
+            "text": "---[---]"
+        },
+        "listElementAssign": {
+            "id": "add-list-elem-assign-btn",
+            "text": "---[---] = ---"
+        },
+        "str": {
+            "id": "add-str-btn",
+            "text": "\"txt\""
+        },
+        "num": {
+            "id": "add-num-btn",
+            "text": "123"
+        },
+        "boolT": {
+            "id": "add-true-btn",
+            "text": "True"
+        },
+        "boolF": {
+            "id": "add-false-btn",
+            "text": "False"
+        },
+        "toStr": {
+            "id": "add-cast-str-btn",
+            "text": "str(---)"
+        },
+        "binAdd": {
+            "id": "add-bin-add-expr-btn",
+            "text": "--- + ---"
+        },
+        "binSub": {
+            "id": "add-bin-sub-expr-btn",
+            "text": "--- - ---"
+        },
+        "binMult": {
+            "id": "add-bin-mul-expr-btn",
+            "text": "--- * ---"
+        },
+        "binDiv": {
+            "id": "add-bin-div-expr-btn",
+            "text": "--- / ---"
+        },
+        "and": {
+            "id": "add-bin-and-expr-btn",
+            "text": "--- and ---"
+        },
+        "or": {
+            "id": "add-bin-or-expr-btn",
+            "text": "--- or ---"
+        },
+        "unaryNot": {
+            "id": "add-unary-not-expr-btn",
+            "text": "not ---"
+        },
+        "compEq": {
+            "id": "add-comp-eq-expr-btn",
+            "text": "--- == ---"
+        },
+        "compNeq": {
+            "id": "add-comp-neq-expr-btn",
+            "text": "--- != ---"
+        },
+        "compLt": {
+            "id": "add-comp-lt-expr-btn",
+            "text": "--- < ---"
+        },
+        "compLte": {
+            "id": "add-comp-lte-expr-btn",
+            "text": "--- <= ---"
+        },
+        "compGt": {
+            "id": "add-comp-gt-expr-btn",
+            "text": "--- > ---"
+        },
+        "comptGte": {
+            "id": "add-comp-gte-expr-btn",
+            "text": "--- >= ---"
+        }
+    }
+}
