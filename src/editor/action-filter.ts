@@ -133,6 +133,7 @@ export class ActionFilter {
         inserts.push(...this.getValidConstructInsertions());
         inserts.push(...this.getValidEditInsertions());
         inserts.push(...this.getValidVariableInsertions());
+        inserts.push(...this.getValidVariableOperations());
 
         return inserts;
     }
@@ -147,6 +148,38 @@ export class ActionFilter {
 
     getValidConstructInsertions(): EditCodeAction[] {
         return this.convertInsertionMapToList(this.validateVariableInsertions());
+    }
+
+    getValidVariableOperations(): EditCodeAction[] {
+        const context = this.module.focus.getContext();
+        const availableRefs: [Reference, InsertionType][] = Validator.getValidVariableReferences(
+            context.selected ? context.token : context.lineStatement,
+            this.module.variableController
+        );
+
+        const validActionsForVar: Map<string, EditCodeAction>[] = [];
+        for (const refRecord of availableRefs) {
+            const varAssignmentStmt = refRecord[0].statement as VarAssignmentStmt;
+            const dataType = this.module.variableController.getVariableTypeNearLine(
+                context.lineStatement.hasScope() ? context.lineStatement.scope : context.lineStatement.rootNode.scope,
+                context.lineStatement.lineNumber,
+                varAssignmentStmt.getIdentifier()
+            );
+            const varRef = new VariableReferenceExpr(
+                varAssignmentStmt.getIdentifier(),
+                dataType,
+                varAssignmentStmt.buttonId
+            );
+
+            validActionsForVar.push(this.validateVariableOperations(varRef));
+        }
+
+        const actionsList: EditCodeAction[] = [];
+        for (const map of validActionsForVar) {
+            actionsList.push(...this.convertInsertionMapToList(map));
+        }
+
+        return actionsList;
     }
 
     getValidInsertsFromSet(optionNames: string[]): EditCodeAction[] {
@@ -199,7 +232,6 @@ export class EditCodeAction extends UserAction {
     insertActionType: InsertActionType;
     insertData: any = {};
     getCodeFunction: () => Statement | Expression;
-    optionText: string;
     terminatingChar: string[];
     insertionType: InsertionType;
 
