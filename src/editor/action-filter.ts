@@ -39,7 +39,10 @@ export class ActionFilter {
                     action.getCodeFunction,
                     action.insertActionType,
                     action.insertData,
-                    action.validateAction(this.module.validator, context)
+                    action.validateAction(this.module.validator, context),
+                    action.terminatingChars,
+                    action.matchString,
+                    action.matchRegex
                 )
             );
         }
@@ -72,7 +75,10 @@ export class ActionFilter {
                 },
                 null,
                 {},
-                varRecord[1]
+                varRecord[1],
+                [""], //TODO: The terminating char needs to be updated,
+                "", //TODO: The match string needs to be updated
+                new RegExp("") //TODO: The match regex needs to be updated,
             );
             editAction.performAction = (() => {
                 this.module.executer.insertVariableReference(varStmt.buttonId, context);
@@ -117,7 +123,11 @@ export class ActionFilter {
                     },
                     code instanceof Statement && !(code instanceof Expression)
                         ? InsertActionType.InsertVarOperationStmt
-                        : InsertActionType.InsertValOperationExpr
+                        : InsertActionType.InsertValOperationExpr,
+                    {},
+                    [""], //TODO: The terminating char needs to be updated
+                    "", //TODO: The match string needs to be updated
+                    new RegExp("") //TODO: The match regex needs to be updated,
                 );
                 codeAction.insertionType = codeAction.validateAction(this.module.validator, context);
 
@@ -232,21 +242,29 @@ export class EditCodeAction extends UserAction {
     insertActionType: InsertActionType;
     insertData: any = {};
     getCodeFunction: () => Statement | Expression;
-    terminatingChar: string[];
+    terminatingChars: string[];
     insertionType: InsertionType;
+    matchString: string;
+    matchRegex: RegExp;
 
     constructor(
         optionName: string,
         cssId: string,
         getCodeFunction: () => Statement | Expression,
         insertActionType: InsertActionType,
-        insertData: any = {}
+        insertData: any = {},
+        terminatingChars: string[],
+        matchString: string,
+        matchRegex: RegExp
     ) {
         super(optionName, cssId);
 
         this.getCodeFunction = getCodeFunction;
         this.insertActionType = insertActionType;
         this.insertData = insertData;
+        this.terminatingChars = terminatingChars;
+        this.matchString = matchString;
+        this.matchRegex = matchRegex;
     }
 
     static createDynamicEditCodeAction(
@@ -255,9 +273,21 @@ export class EditCodeAction extends UserAction {
         getCodeFunction: () => Statement | Expression,
         insertActionType: InsertActionType,
         insertData: any = {},
-        insertionType: InsertionType
+        insertionType: InsertionType,
+        terminatingChars: string[],
+        matchString: string,
+        matchRegex: RegExp
     ) {
-        const action = new EditCodeAction(optionName, cssId, getCodeFunction, insertActionType, insertData);
+        const action = new EditCodeAction(
+            optionName,
+            cssId,
+            getCodeFunction,
+            insertActionType,
+            insertData,
+            terminatingChars,
+            matchString,
+            matchRegex
+        );
         action.insertionType = insertionType;
 
         return action;
