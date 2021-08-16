@@ -255,7 +255,7 @@ export class EditCodeAction extends UserAction {
         insertData: any = {},
         terminatingChars: string[],
         matchString: string,
-        matchRegex: RegExp
+        matchRegex?: RegExp
     ) {
         super(optionName, cssId);
 
@@ -276,7 +276,7 @@ export class EditCodeAction extends UserAction {
         insertionType: InsertionType,
         terminatingChars: string[],
         matchString: string,
-        matchRegex: RegExp
+        matchRegex?: RegExp
     ) {
         const action = new EditCodeAction(
             optionName,
