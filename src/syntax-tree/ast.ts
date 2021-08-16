@@ -9,6 +9,7 @@ import { Callback, CallbackType } from "./callback";
 import {
     arithmeticOps,
     AugmentedAssignmentOperator,
+    AutoCompleteType,
     BinaryOperator,
     BinaryOperatorCategory,
     boolOps,
@@ -2400,6 +2401,49 @@ export class IdentifierTkn extends Token implements TextEditable {
 
     setIdentifierText(text: string) {
         this.text = text;
+    }
+}
+
+export class TemporaryStmt extends Statement {
+    constructor(token: CodeConstruct) {
+        super();
+
+        token.indexInRoot = this.tokens.length;
+        token.rootNode = this;
+        this.tokens.push(token);
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+}
+
+export class AutocompleteTkn extends Token implements TextEditable {
+    isTextEditable = true;
+    validatorRegex: RegExp = null;
+    autocompleteCategory: AutoCompleteType;
+
+    constructor(firstChar: string, autocompleteCategory: AutoCompleteType, root?: CodeConstruct, indexInRoot?: number) {
+        super(firstChar);
+
+        this.autocompleteCategory = autocompleteCategory;
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+    }
+
+    getEditableText(): string {
+        return this.text;
+    }
+
+    getLeft(): number {
+        return this.left;
+    }
+
+    setEditedText(text: string): boolean {
+        this.text = text;
+        (this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
+
+        return true;
     }
 }
 

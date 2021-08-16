@@ -1,6 +1,6 @@
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { BinaryOperator, DataType } from "./../syntax-tree/consts";
+import { AutoCompleteType, BinaryOperator, DataType, StartOfLineAutocompleteRegex } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
 import { EditAction } from "./data-types";
@@ -163,52 +163,52 @@ export class EventRouter {
                 break;
             }
 
-            case KeyPress.OpenBracket: {
-                if (this.module.validator.canInsertEmptyList(context)) {
-                    return new EditAction(EditActionType.InsertEmptyList);
-                } else if (this.module.validator.atLeftOfExpression(context)) {
-                    return new EditAction(EditActionType.WrapExpressionWithItem, {
-                        expression: new ast.ListLiteralExpression(),
-                    });
-                }
+            // case KeyPress.OpenBracket: {
+            //     if (this.module.validator.canInsertEmptyList(context)) {
+            //         return new EditAction(EditActionType.InsertEmptyList);
+            //     } else if (this.module.validator.atLeftOfExpression(context)) {
+            //         return new EditAction(EditActionType.WrapExpressionWithItem, {
+            //             expression: new ast.ListLiteralExpression(),
+            //         });
+            //     }
 
-                break;
-            }
+            //     break;
+            // }
 
-            case KeyPress.Comma: {
-                const toRight = this.module.validator.canAddListItemToRight(context);
-                const toLeft = this.module.validator.canAddListItemToLeft(context);
+            // case KeyPress.Comma: {
+            //     const toRight = this.module.validator.canAddListItemToRight(context);
+            //     const toLeft = this.module.validator.canAddListItemToLeft(context);
 
-                if (toLeft || toRight) {
-                    return new EditAction(EditActionType.InsertEmptyListItem, {
-                        toRight,
-                        toLeft,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+            //     if (toLeft || toRight) {
+            //         return new EditAction(EditActionType.InsertEmptyListItem, {
+            //             toRight,
+            //             toLeft,
+            //         });
+            //     } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
 
-                break;
-            }
+            //     break;
+            // }
 
-            case KeyPress.GreaterThan:
-            case KeyPress.LessThan:
-            case KeyPress.Equals:
-            case KeyPress.ForwardSlash:
-            case KeyPress.Plus:
-            case KeyPress.Minus:
-            case KeyPress.Star: {
-                const toRight = this.module.validator.atRightOfExpression(context);
-                const toLeft = this.module.validator.atLeftOfExpression(context);
-                const replace = this.module.validator.atEmptyExpressionHole(context);
+            // case KeyPress.GreaterThan:
+            // case KeyPress.LessThan:
+            // case KeyPress.Equals:
+            // case KeyPress.ForwardSlash:
+            // case KeyPress.Plus:
+            // case KeyPress.Minus:
+            // case KeyPress.Star: {
+            //     const toRight = this.module.validator.atRightOfExpression(context);
+            //     const toLeft = this.module.validator.atLeftOfExpression(context);
+            //     const replace = this.module.validator.atEmptyExpressionHole(context);
 
-                if (toRight || toLeft || replace) {
-                    return new EditAction(EditActionType.InsertBinaryOperator, {
-                        operator: this.getBinaryOperatorFromKey(e.key),
-                        toRight,
-                        toLeft,
-                        replace,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-            }
+            //     if (toRight || toLeft || replace) {
+            //         return new EditAction(EditActionType.InsertBinaryOperator, {
+            //             operator: this.getBinaryOperatorFromKey(e.key),
+            //             toRight,
+            //             toLeft,
+            //             replace,
+            //         });
+            //     } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+            // }
 
             case KeyPress.Escape: {
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
@@ -227,24 +227,14 @@ export class EventRouter {
                 break;
             }
 
-            case KeyPress.Space: {
-                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
-                    return new EditAction(EditActionType.OpenValidInsertMenu);
-                }
+            // case KeyPress.Space: {
+            //     if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+            //     if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
+            //         return new EditAction(EditActionType.OpenValidInsertMenu);
+            //     }
 
-                break;
-            }
-
-            //TODO: Remove later
-            case KeyPress.P: {
-                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
-                    return new EditAction(EditActionType.OpenValidInsertMenuSingleLevel);
-                }
-
-                break;
-            }
+            //     break;
+            // }
 
             default: {
                 if (inTextEditMode) {
@@ -273,22 +263,34 @@ export class EventRouter {
 
                         return new EditAction(EditActionType.InsertChar);
                     }
-                } else {
+                } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
                         return new EditAction(EditActionType.InsertLiteral, {
                             literalType: DataType.Number,
                             initialValue: e.key,
                         });
-                    } else if (["t", "f"].indexOf(e.key) > -1) {
-                        return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: DataType.Boolean,
-                            initialValue: e.key === "t" ? "True" : "False",
-                        });
-                    } else if (['"'].indexOf(e.key) > -1) {
+                    }
+                    // else if (["t", "f"].indexOf(e.key) > -1) {
+                    //     return new EditAction(EditActionType.InsertLiteral, {
+                    //         literalType: DataType.Boolean,
+                    //         initialValue: e.key === "t" ? "True" : "False",
+                    //     });
+                    // }
+                    else if (['"'].indexOf(e.key) > -1) {
                         return new EditAction(EditActionType.InsertLiteral, {
                             literalType: DataType.String,
                         });
                     }
+                } else if (
+                    this.module.validator.onBeginningOfLine(context) &&
+                    StartOfLineAutocompleteRegex.test(e.key)
+                ) {
+                    return new EditAction(EditActionType.OpenAutocomplete, {
+                        autocompleteType: AutoCompleteType.StartOfLine,
+                        firstChar: e.key,
+                        validatorRegex: StartOfLineAutocompleteRegex,
+                        validMatches: [],
+                    });
                 }
             }
         }

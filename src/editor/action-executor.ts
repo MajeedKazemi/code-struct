@@ -2,6 +2,7 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import {
     AssignmentModifier,
+    AutocompleteTkn,
     BinaryOperatorExpr,
     CodeConstruct,
     ElseStatement,
@@ -14,6 +15,7 @@ import {
     Modifier,
     NonEditableTkn,
     Statement,
+    TemporaryStmt,
     Token,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -23,7 +25,7 @@ import {
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { CallbackType } from "../syntax-tree/callback";
-import { BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
+import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
@@ -48,6 +50,17 @@ export class ActionExecutor {
         let preventDefaultEvent = true;
 
         switch (action.type) {
+            case EditActionType.OpenAutocomplete: {
+                if (action.data.autocompleteType == AutoCompleteType.StartOfLine) {
+                    this.insertStatement(
+                        context,
+                        new TemporaryStmt(new AutocompleteTkn(action.data.firstChar, action.data.autocompleteType))
+                    );
+                }
+
+                break;
+            }
+
             case EditActionType.InsertElseStatement: {
                 const newStatement = new ElseStatement(action.data.hasCondition);
 

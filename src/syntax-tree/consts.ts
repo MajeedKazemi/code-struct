@@ -223,3 +223,12 @@ export enum BuiltInFunctions {
     max = "max",
     round = "round",
 }
+
+export enum AutoCompleteType {
+    StartOfLine,
+    LeftOfExpression,
+    RightOfExpression,
+    AtExpressionHole,
+}
+
+export const StartOfLineAutocompleteRegex = RegExp("^[^\\d\\W]\\w*$");

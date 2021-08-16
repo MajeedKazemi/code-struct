@@ -149,6 +149,8 @@ export enum EditActionType {
 
     InsertModifier,
     InsertAssignmentModifier,
+
+    OpenAutocomplete,
 }
 
 export enum ConstructName {
