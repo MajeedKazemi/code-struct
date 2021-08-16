@@ -139,19 +139,19 @@
             "text": "while ---:"
         },
         "if": {
-            "id": "add-while-expr-btn",
+            "id": "add-if-expr-btn",
             "text": "if ---:"
         },
         "elif": {
-            "id": "add-while-expr-btn",
+            "id": "add-elif-expr-btn",
             "text": "elif ---:"
         },
         "else": {
-            "id": "add-while-expr-btn",
+            "id": "add-else-expr-btn",
             "text": "else:"
         },
         "for": {
-            "id": "add-while-expr-btn",
+            "id": "add-for-expr-btn",
             "text": "for --- in ---:"
         },
         "split": {
