@@ -1,3 +1,4 @@
+var controller;
 import { addVariableReferenceButton, removeVariableReferenceButton, ToolboxButton } from "../editor/toolbox";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { DataType, InsertionType } from "./consts";
@@ -55,7 +56,7 @@ export class VariableController {
         });
 
         for (const [key, value] of validActions) {
-            if (value[0].insertionType !== InsertionType.Invalid) {
+            if (value.insertionType !== InsertionType.Invalid) {
                 const menuItem = document.createElement("div");
                 menuItem.classList.add("cascadedMenuContent");
 
@@ -63,12 +64,12 @@ export class VariableController {
                 menuText.classList.add("cascadedMenuOptionTooltip");
 
                 const menuButton = ToolboxButton.createToolboxButtonFromJsonObj({
-                    text: value[1].optionName,
+                    text: value.optionName,
                 }).domElement;
                 menuButton.classList.add("cascadedMenuItem");
 
                 menuButton.addEventListener("click", () => {
-                    this.module.executer.execute(this.module.eventRouter.routeToolboxEvents(value[1], context));
+                    value.performAction(this.module.executer, this.module.eventRouter, context);
                 });
 
                 menuItem.appendChild(menuButton);

@@ -23,9 +23,9 @@ export class ActionFilter {
         this.module = module;
     }
 
-    validateInsertions(): Map<string, InsertionRecord> {
+    validateInsertions(): Map<string, EditCodeAction> {
         const context = this.module.focus.getContext();
-        const validOptionMap: Map<string, InsertionRecord> = new Map<string, InsertionRecord>();
+        const validOptionMap: Map<string, EditCodeAction> = new Map<string, EditCodeAction>();
         //need to know InsertionType in case we want to make any visual changes to those options in the suggestion menu
 
         // loop over all code-constructs and call their validateContext() + typeValidation() => insertionType
@@ -33,12 +33,13 @@ export class ActionFilter {
         for (const action of Actions.instance().actionsList) {
             validOptionMap.set(
                 action.optionName,
-                new InsertionRecord(
-                    action.validateAction(this.module.validator, context),
-                    (() => {
-                        action.performAction(this.module.executer, this.module.eventRouter, context);
-                    }).bind(this),
-                    action.cssId
+                EditCodeAction.createDynamicEditCodeAction(
+                    action.optionName,
+                    action.cssId,
+                    action.getCodeFunction,
+                    action.insertActionType,
+                    action.insertData,
+                    action.validateAction(this.module.validator, context)
                 )
             );
         }
@@ -46,15 +47,15 @@ export class ActionFilter {
         return validOptionMap;
     }
 
-    validateEdits(): Map<string, InsertionRecord> {
+    validateEdits(): Map<string, EditCodeAction> {
         // console.warn("validateEdits() is not implemented.");
 
-        return new Map<string, InsertionRecord>();
+        return new Map<string, EditCodeAction>();
     }
 
-    validateVariableInsertions(): Map<string, InsertionRecord> {
+    validateVariableInsertions(): Map<string, EditCodeAction> {
         const context = this.module.focus.getContext();
-        const validOptionMap: Map<string, InsertionRecord> = new Map<string, InsertionRecord>(); //<option name, function to call on click>
+        const validOptionMap: Map<string, EditCodeAction> = new Map<string, EditCodeAction>(); //<option name, function to call on click>
 
         const availableVars: [Reference, InsertionType][] = Validator.getValidVariableReferences(
             context.selected ? context.token : context.lineStatement,
@@ -63,30 +64,30 @@ export class ActionFilter {
 
         for (const varRecord of availableVars) {
             const varStmt = varRecord[0].statement as VarAssignmentStmt;
-
-            validOptionMap.set(
+            const editAction = EditCodeAction.createDynamicEditCodeAction(
                 varStmt.getIdentifier(),
-                new InsertionRecord(
-                    varRecord[1],
-                    (() => {
-                        this.module.executer.insertVariableReference(varStmt.buttonId, context);
-                    }).bind(this),
-                    varStmt.buttonId
-                )
+                varStmt.buttonId,
+                () => {
+                    return null;
+                },
+                null,
+                {},
+                varRecord[1]
             );
+            editAction.performAction = (() => {
+                this.module.executer.insertVariableReference(varStmt.buttonId, context);
+            }).bind(this);
+            validOptionMap.set(varStmt.getIdentifier(), editAction);
         }
 
         return validOptionMap;
     }
 
-    validateVariableOperations(ref: VariableReferenceExpr): Map<string, [InsertionRecord, EditCodeAction]> {
+    validateVariableOperations(ref: VariableReferenceExpr): Map<string, EditCodeAction> {
         const context = this.module.focus.getContext();
         const dataType = ref.returns;
         const availableModifiers = Actions.instance().varModifiersMap.get(dataType);
-        const validOptionMap: Map<string, [InsertionRecord, EditCodeAction]> = new Map<
-            string,
-            [InsertionRecord, EditCodeAction]
-        >();
+        const validOptionMap: Map<string, EditCodeAction> = new Map<string, EditCodeAction>();
 
         if (availableModifiers) {
             for (const varOperation of availableModifiers) {
@@ -118,22 +119,16 @@ export class ActionFilter {
                         ? InsertActionType.InsertVarOperationStmt
                         : InsertActionType.InsertValOperationExpr
                 );
+                codeAction.insertionType = codeAction.validateAction(this.module.validator, context);
 
-                validOptionMap.set(codeAction.optionName, [
-                    new InsertionRecord(
-                        codeAction.validateAction(this.module.validator, context),
-                        codeAction.getCode,
-                        ""
-                    ),
-                    codeAction,
-                ]);
+                validOptionMap.set(codeAction.optionName, codeAction);
             }
         }
 
         return validOptionMap;
     }
 
-    getAllValidInsertsList(): InsertionRecord[] {
+    getAllValidInsertsList(): EditCodeAction[] {
         const inserts = [];
         inserts.push(...this.getValidConstructInsertions());
         inserts.push(...this.getValidEditInsertions());
@@ -142,24 +137,24 @@ export class ActionFilter {
         return inserts;
     }
 
-    getValidVariableInsertions(): InsertionRecord[] {
+    getValidVariableInsertions(): EditCodeAction[] {
         return this.convertInsertionMapToList(this.validateInsertions());
     }
 
-    getValidEditInsertions(): InsertionRecord[] {
+    getValidEditInsertions(): EditCodeAction[] {
         return this.convertInsertionMapToList(this.validateEdits());
     }
 
-    getValidConstructInsertions(): InsertionRecord[] {
+    getValidConstructInsertions(): EditCodeAction[] {
         return this.convertInsertionMapToList(this.validateVariableInsertions());
     }
 
-    getValidInsertsFromSet(optionNames: string[]): InsertionRecord[] {
+    getValidInsertsFromSet(optionNames: string[]): EditCodeAction[] {
         const constructMap = this.validateInsertions();
         const varMap = this.validateVariableInsertions();
         const editsMap = this.validateEdits();
 
-        const inserts: InsertionRecord[] = [];
+        const inserts: EditCodeAction[] = [];
 
         for (const option of optionNames) {
             if (constructMap.get(option) && constructMap.get(option).insertionType !== InsertionType.Invalid) {
@@ -174,7 +169,7 @@ export class ActionFilter {
         return inserts;
     }
 
-    private convertInsertionMapToList(insertionMap: Map<string, InsertionRecord>): InsertionRecord[] {
+    private convertInsertionMapToList(insertionMap: Map<string, EditCodeAction>): EditCodeAction[] {
         const inserts = [];
         for (const [key, value] of insertionMap.entries()) {
             inserts.push(value);
@@ -204,6 +199,9 @@ export class EditCodeAction extends UserAction {
     insertActionType: InsertActionType;
     insertData: any = {};
     getCodeFunction: () => Statement | Expression;
+    optionText: string;
+    terminatingChar: string[];
+    insertionType: InsertionType;
 
     constructor(
         optionName: string,
@@ -217,6 +215,20 @@ export class EditCodeAction extends UserAction {
         this.getCodeFunction = getCodeFunction;
         this.insertActionType = insertActionType;
         this.insertData = insertData;
+    }
+
+    static createDynamicEditCodeAction(
+        optionName: string,
+        cssId: string,
+        getCodeFunction: () => Statement | Expression,
+        insertActionType: InsertActionType,
+        insertData: any = {},
+        insertionType: InsertionType
+    ) {
+        const action = new EditCodeAction(optionName, cssId, getCodeFunction, insertActionType, insertData);
+        action.insertionType = insertionType;
+
+        return action;
     }
 
     getCode() {
@@ -244,33 +256,5 @@ export class EditCodeAction extends UserAction {
 
     performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {
         executor.execute(eventRouter.routeToolboxEvents(this, context), context);
-    }
-}
-
-export class InsertCodeAction extends UserAction {
-    actionKeyPress: string;
-
-    constructor(optionName: string, cssId: string, actionKeyPress: string) {
-        super(optionName, cssId);
-
-        this.actionKeyPress = actionKeyPress;
-    }
-
-    validateAction(): InsertionType {
-        console.log("Validate this action...");
-        return InsertionType.Invalid;
-    }
-    performAction() {}
-}
-
-export class InsertionRecord {
-    insertionType: InsertionType;
-    getCode: Function;
-    domButtonId: string;
-
-    constructor(insertionType: InsertionType, getCode: Function, domButtonId: string) {
-        this.insertionType = insertionType;
-        this.getCode = getCode;
-        this.domButtonId = domButtonId;
     }
 }
