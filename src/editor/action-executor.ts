@@ -433,18 +433,26 @@ export class ActionExecutor {
 
                 // check if it needs to turn back into a hole:
                 if (newText.length == 0) {
-                    let literalExpr: LiteralValExpr = null;
+                    let removableExpr: CodeConstruct = null;
 
                     if (context.expression instanceof LiteralValExpr) {
-                        literalExpr = context.expression;
+                        removableExpr = context.expression;
+                    } else if (context.token instanceof AutocompleteTkn) {
+                        removableExpr = context.token;
                     } else if (context.expressionToLeft instanceof LiteralValExpr) {
-                        literalExpr = context.expressionToLeft;
+                        removableExpr = context.expressionToLeft;
+                    } else if (context.tokenToLeft instanceof AutocompleteTkn) {
+                        removableExpr = context.tokenToLeft;
                     } else if (context.expressionToRight instanceof LiteralValExpr) {
-                        literalExpr = context.expressionToRight;
+                        removableExpr = context.expressionToRight;
+                    } else if (context.tokenToRight instanceof AutocompleteTkn) {
+                        removableExpr = context.tokenToRight;
                     }
 
-                    if (literalExpr != null) {
-                        this.deleteCode(literalExpr);
+                    if (removableExpr != null) {
+                        if (removableExpr instanceof AutocompleteTkn && removableExpr.rootNode instanceof TemporaryStmt)
+                            this.deleteCode(removableExpr.rootNode, { statement: true });
+                        else this.deleteCode(removableExpr);
 
                         break;
                     }
