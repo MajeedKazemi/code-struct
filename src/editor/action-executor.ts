@@ -77,6 +77,18 @@ export class ActionExecutor {
                         );
 
                         break;
+
+                    case AutoCompleteType.RightOfExpression:
+                        this.insertToken(
+                            context,
+                            new AutocompleteTkn(
+                                action.data.firstChar,
+                                action.data.autocompleteType,
+                                action.data.validMatches
+                            )
+                        );
+
+                        break;
                 }
 
                 break;
@@ -387,9 +399,14 @@ export class ActionExecutor {
                     const match = token.getMatch(pressedKey);
 
                     if (match) {
-                        this.deleteCode(token, {
-                            statement: token.autocompleteType == AutoCompleteType.StartOfLine,
-                        });
+                        if (token.autocompleteType == AutoCompleteType.RightOfExpression)
+                            this.deleteAutocompleteToken(token);
+                        else {
+                            this.deleteCode(token, {
+                                statement: token.autocompleteType == AutoCompleteType.StartOfLine,
+                            });
+                        }
+
                         match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
                             identifier: token.text,
                         });
@@ -450,9 +467,17 @@ export class ActionExecutor {
                     }
 
                     if (removableExpr != null) {
-                        if (removableExpr instanceof AutocompleteTkn && removableExpr.rootNode instanceof TemporaryStmt)
+                        if (
+                            removableExpr instanceof AutocompleteTkn &&
+                            removableExpr.rootNode instanceof TemporaryStmt
+                        ) {
                             this.deleteCode(removableExpr.rootNode, { statement: true });
-                        else this.deleteCode(removableExpr);
+                        } else if (
+                            removableExpr instanceof AutocompleteTkn &&
+                            removableExpr.autocompleteType == AutoCompleteType.RightOfExpression
+                        ) {
+                            this.deleteAutocompleteToken(removableExpr);
+                        } else this.deleteCode(removableExpr);
 
                         break;
                     }
@@ -914,16 +939,22 @@ export class ActionExecutor {
                 const root = context.token.rootNode as Statement;
                 root.replace(code, context.token.indexInRoot);
             }
+
+            const range = new Range(
+                context.position.lineNumber,
+                context.token.left,
+                context.position.lineNumber,
+                context.token.right
+            );
+
+            this.module.editor.executeEdits(range, code);
+        } else if (context.expressionToLeft != null) {
+            const root = context.expressionToLeft.rootNode;
+            code.rootNode = root;
+            root.tokens.splice(context.expressionToLeft.indexInRoot + 1, 0, code);
+            root.rebuild(root.getLeftPosition(), 0);
+            this.module.editor.insertAtCurPos([code]);
         }
-
-        const range = new Range(
-            context.position.lineNumber,
-            context.token.left,
-            context.position.lineNumber,
-            context.token.right
-        );
-
-        this.module.editor.executeEdits(range, code);
     }
 
     private insertExpression(context: Context, code: Expression) {
@@ -1127,6 +1158,16 @@ export class ActionExecutor {
                 positionToMove,
             });
         }
+    }
+
+    private deleteAutocompleteToken(token: Token) {
+        const range = this.getBoundaries(token);
+        const root = token.rootNode as Statement;
+        root.tokens.splice(token.indexInRoot, 1);
+
+        root.rebuild(root.getLeftPosition(), 0);
+
+        this.module.editor.executeEdits(range, null, "");
     }
 
     private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {

@@ -431,7 +431,7 @@ export class Actions {
                     operator: BinaryOperator.Equal,
                 },
                 ["="],
-                ""
+                "="
             ),
 
             new EditCodeAction(
@@ -520,7 +520,7 @@ export class Actions {
                 InsertActionType.InsertStringFindMethod,
                 {},
                 ["("],
-                "find"
+                ".find"
             ),
 
             new EditCodeAction(

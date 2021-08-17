@@ -306,6 +306,14 @@ export class EventRouter {
                                 .getProcessedInsertionsList()
                                 .filter((item) => item.insertionType != InsertionType.Invalid),
                         });
+                    } else if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.OpenAutocomplete, {
+                            autocompleteType: AutoCompleteType.RightOfExpression,
+                            firstChar: e.key,
+                            validMatches: this.module.actionFilter
+                                .getProcessedInsertionsList()
+                                .filter((item) => item.insertionType != InsertionType.Invalid),
+                        });
                     }
                 }
             }
