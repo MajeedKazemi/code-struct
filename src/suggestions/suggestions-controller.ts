@@ -1052,4 +1052,9 @@ export class MenuController {
             }
         }
     }
+
+    updatePosition(pos: { left: number; top: number }) {
+        this.menus[this.focusedMenuIndex].htmlElement.style.left = `${pos.left}px`;
+        this.menus[this.focusedMenuIndex].htmlElement.style.top = `${pos.top}px`;
+    }
 }
