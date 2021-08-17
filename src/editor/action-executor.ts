@@ -54,7 +54,13 @@ export class ActionExecutor {
                 if (action.data.autocompleteType == AutoCompleteType.StartOfLine) {
                     this.insertStatement(
                         context,
-                        new TemporaryStmt(new AutocompleteTkn(action.data.firstChar, action.data.autocompleteType))
+                        new TemporaryStmt(
+                            new AutocompleteTkn(
+                                action.data.firstChar,
+                                action.data.autocompleteType,
+                                action.data.validMatches
+                            )
+                        )
                     );
                 }
 
@@ -143,13 +149,21 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertStatement: {
-                this.insertStatement(context, action.data?.statement as Statement);
+                const statement = action.data?.statement;
+
+                this.insertStatement(context, statement as Statement);
 
                 break;
             }
 
             case EditActionType.InsertVarAssignStatement: {
                 //TODO: Might want to change back to use the case above if no new logic is added
+                const statement = action.data?.statement;
+
+                if (statement instanceof VarAssignmentStmt && action.data?.autocompleteData?.identifier) {
+                    statement.setIdentifier(action.data?.autocompleteData?.identifier);
+                }
+
                 this.insertStatement(context, action.data?.statement as Statement);
 
                 break;
@@ -352,6 +366,19 @@ export class ActionExecutor {
                         cursorPos.lineNumber,
                         cursorPos.column
                     );
+                }
+
+                if (token instanceof AutocompleteTkn) {
+                    const match = token.getMatch(pressedKey);
+
+                    if (match) {
+                        this.deleteCode(token, {
+                            statement: token.autocompleteType == AutoCompleteType.StartOfLine,
+                        });
+                        match.performAction(this, this.module.eventRouter, context, { identifier: token.text });
+
+                        break;
+                    }
                 }
 
                 if (token.setEditedText(newText)) this.module.editor.executeEdits(editRange, null, pressedKey);

@@ -99,7 +99,7 @@ export class ActionFilter {
             for (const varOperation of availableModifiers) {
                 const code = varOperation() as Expression;
 
-                if (code instanceof VarAssignmentStmt) code.setVariable(ref);
+                if (code instanceof VarAssignmentStmt) code.setIdentifier(ref.identifier);
                 else if (code instanceof ValueOperationExpr) code.setVariable(ref);
                 else if (code instanceof VarOperationStmt) {
                     code.setVariable(ref);
@@ -112,7 +112,7 @@ export class ActionFilter {
                     () => {
                         const code = varOperation() as Expression;
 
-                        if (code instanceof VarAssignmentStmt) code.setVariable(ref);
+                        if (code instanceof VarAssignmentStmt) code.setIdentifier(ref.identifier);
                         else if (code instanceof ValueOperationExpr) code.setVariable(ref);
                         else if (code instanceof VarOperationStmt) {
                             code.setVariable(ref);
@@ -316,7 +316,10 @@ export class EditCodeAction extends UserAction {
         }
     }
 
-    performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {
-        executor.execute(eventRouter.routeToolboxEvents(this, context), context);
+    performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context, autocompleteData?: {}) {
+        const editAction = eventRouter.routeToolboxEvents(this, context);
+        editAction.data.autocompleteData = autocompleteData;
+
+        executor.execute(editAction, context);
     }
 }

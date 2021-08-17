@@ -1,6 +1,12 @@
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { AutoCompleteType, BinaryOperator, DataType, StartOfLineAutocompleteRegex } from "./../syntax-tree/consts";
+import {
+    AutoCompleteType,
+    BinaryOperator,
+    DataType,
+    InsertionType,
+    StartOfLineAutocompleteRegex,
+} from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
 import { EditAction } from "./data-types";
@@ -237,8 +243,8 @@ export class EventRouter {
             // }
 
             default: {
-                if (inTextEditMode) {
-                    if (e.key.length == 1) {
+                if (e.key.length == 1) {
+                    if (inTextEditMode) {
                         switch (e.key) {
                             case KeyPress.C:
                                 if (e.ctrlKey) return new EditAction(EditActionType.Copy);
@@ -262,35 +268,37 @@ export class EventRouter {
                         }
 
                         return new EditAction(EditActionType.InsertChar);
-                    }
-                } else if (this.module.validator.atEmptyExpressionHole(context)) {
-                    if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
-                        return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: DataType.Number,
-                            initialValue: e.key,
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
+                            return new EditAction(EditActionType.InsertLiteral, {
+                                literalType: DataType.Number,
+                                initialValue: e.key,
+                            });
+                        }
+                        // else if (["t", "f"].indexOf(e.key) > -1) {
+                        //     return new EditAction(EditActionType.InsertLiteral, {
+                        //         literalType: DataType.Boolean,
+                        //         initialValue: e.key === "t" ? "True" : "False",
+                        //     });
+                        // }
+                        else if (['"'].indexOf(e.key) > -1) {
+                            return new EditAction(EditActionType.InsertLiteral, {
+                                literalType: DataType.String,
+                            });
+                        }
+                    } else if (
+                        this.module.validator.onBeginningOfLine(context) &&
+                        StartOfLineAutocompleteRegex.test(e.key)
+                    ) {
+                        return new EditAction(EditActionType.OpenAutocomplete, {
+                            autocompleteType: AutoCompleteType.StartOfLine,
+                            firstChar: e.key,
+                            validatorRegex: StartOfLineAutocompleteRegex,
+                            validMatches: this.module.actionFilter
+                                .getAllValidInsertsList()
+                                .filter((item) => item.insertionType != InsertionType.Invalid),
                         });
                     }
-                    // else if (["t", "f"].indexOf(e.key) > -1) {
-                    //     return new EditAction(EditActionType.InsertLiteral, {
-                    //         literalType: DataType.Boolean,
-                    //         initialValue: e.key === "t" ? "True" : "False",
-                    //     });
-                    // }
-                    else if (['"'].indexOf(e.key) > -1) {
-                        return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: DataType.String,
-                        });
-                    }
-                } else if (
-                    this.module.validator.onBeginningOfLine(context) &&
-                    StartOfLineAutocompleteRegex.test(e.key)
-                ) {
-                    return new EditAction(EditActionType.OpenAutocomplete, {
-                        autocompleteType: AutoCompleteType.StartOfLine,
-                        firstChar: e.key,
-                        validatorRegex: StartOfLineAutocompleteRegex,
-                        validMatches: [],
-                    });
                 }
             }
         }

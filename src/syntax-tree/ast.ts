@@ -1,4 +1,5 @@
 import { Position, Selection } from "monaco-editor";
+import { EditCodeAction } from "../editor/action-filter";
 import { ConstructName } from "../editor/consts";
 import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
@@ -956,7 +957,7 @@ export class ForStatement extends Statement implements VariableContainer {
     assignNewVariable(varController: VariableController) {
         this.assignId();
         varController.addVariableRefButton(this.loopVar);
-        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
+        this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier());
         this.getModule().processNewVariable(
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
@@ -979,7 +980,7 @@ export class ForStatement extends Statement implements VariableContainer {
         this.buttonId = statement.buttonId;
         this.loopVar.buttonId = statement.buttonId;
 
-        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
+        this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier());
     }
 
     reassignVar(
@@ -1079,7 +1080,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
         if (id) {
             this.buttonId = buttonId;
-            this.setIdentifier(id, id); //TODO: This is a crude hack. Should get the name from the scope or something else that is connected to the AST.
+            this.updateIdentifier(id, id); //TODO: This is a crude hack. Should get the name from the scope or something else that is connected to the AST.
         } else {
             this.oldIdentifier = this.getIdentifier();
         }
@@ -1126,16 +1127,16 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
     }
 
-    setIdentifier(identifier: string, oldIdentifier?: string) {
+    updateIdentifier(identifier: string, oldIdentifier?: string) {
         this.oldIdentifier = oldIdentifier ?? this.getIdentifier();
 
         (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
         this.updateButton();
     }
 
-    setVariable(ref: VariableReferenceExpr) {
+    setIdentifier(identifier: string) {
         // this is only for user-defined variables (coming from the action-filter)
-        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(ref.identifier);
+        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
     }
 
     onFocusOff(): void {
@@ -2421,12 +2422,20 @@ export class TemporaryStmt extends Statement {
 export class AutocompleteTkn extends Token implements TextEditable {
     isTextEditable = true;
     validatorRegex: RegExp = null;
-    autocompleteCategory: AutoCompleteType;
+    autocompleteType: AutoCompleteType;
+    validMatches: EditCodeAction[];
 
-    constructor(firstChar: string, autocompleteCategory: AutoCompleteType, root?: CodeConstruct, indexInRoot?: number) {
+    constructor(
+        firstChar: string,
+        autocompleteCategory: AutoCompleteType,
+        validMatches: EditCodeAction[],
+        root?: CodeConstruct,
+        indexInRoot?: number
+    ) {
         super(firstChar);
 
-        this.autocompleteCategory = autocompleteCategory;
+        this.validMatches = validMatches;
+        this.autocompleteType = autocompleteCategory;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
     }
@@ -2437,6 +2446,20 @@ export class AutocompleteTkn extends Token implements TextEditable {
 
     getLeft(): number {
         return this.left;
+    }
+
+    getMatch(newChar: string): EditCodeAction {
+        for (const match of this.validMatches) {
+            if (match.terminatingChars.indexOf(newChar) >= 0) {
+                if (match.matchString && this.text == match.matchString) {
+                    return match;
+                } else if (match.matchRegex && match.matchRegex.test(this.text)) {
+                    return match;
+                }
+            }
+        }
+
+        return null;
     }
 
     setEditedText(text: string): boolean {
