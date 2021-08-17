@@ -90,6 +90,45 @@ export class ActionExecutor {
 
                     this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
                 }
+                switch (action.data.autocompleteType) {
+                    case AutoCompleteType.StartOfLine:
+                        this.insertStatement(
+                            context,
+                            new TemporaryStmt(
+                                new AutocompleteTkn(
+                                    action.data.firstChar,
+                                    action.data.autocompleteType,
+                                    action.data.validMatches
+                                )
+                            )
+                        );
+
+                        break;
+
+                    case AutoCompleteType.AtExpressionHole:
+                        this.insertToken(
+                            context,
+                            new AutocompleteTkn(
+                                action.data.firstChar,
+                                action.data.autocompleteType,
+                                action.data.validMatches
+                            )
+                        );
+
+                        break;
+
+                    case AutoCompleteType.RightOfExpression:
+                        this.insertToken(
+                            context,
+                            new AutocompleteTkn(
+                                action.data.firstChar,
+                                action.data.autocompleteType,
+                                action.data.validMatches
+                            )
+                        );
+
+                        break;
+                }
 
                 break;
             }
@@ -399,10 +438,17 @@ export class ActionExecutor {
                     const match = token.getMatch(pressedKey);
 
                     if (match) {
-                        this.deleteCode(token, {
-                            statement: token.autocompleteType == AutoCompleteType.StartOfLine,
+                        if (token.autocompleteType == AutoCompleteType.RightOfExpression)
+                            this.deleteAutocompleteToken(token);
+                        else {
+                            this.deleteCode(token, {
+                                statement: token.autocompleteType == AutoCompleteType.StartOfLine,
+                            });
+                        }
+
+                        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
+                            identifier: token.text,
                         });
-                        match.performAction(this, this.module.eventRouter, context, { identifier: token.text });
 
                         break;
                     }
@@ -443,18 +489,34 @@ export class ActionExecutor {
 
                 // check if it needs to turn back into a hole:
                 if (newText.length == 0) {
-                    let literalExpr: LiteralValExpr = null;
+                    let removableExpr: CodeConstruct = null;
 
                     if (context.expression instanceof LiteralValExpr) {
-                        literalExpr = context.expression;
+                        removableExpr = context.expression;
+                    } else if (context.token instanceof AutocompleteTkn) {
+                        removableExpr = context.token;
                     } else if (context.expressionToLeft instanceof LiteralValExpr) {
-                        literalExpr = context.expressionToLeft;
+                        removableExpr = context.expressionToLeft;
+                    } else if (context.tokenToLeft instanceof AutocompleteTkn) {
+                        removableExpr = context.tokenToLeft;
                     } else if (context.expressionToRight instanceof LiteralValExpr) {
-                        literalExpr = context.expressionToRight;
+                        removableExpr = context.expressionToRight;
+                    } else if (context.tokenToRight instanceof AutocompleteTkn) {
+                        removableExpr = context.tokenToRight;
                     }
 
-                    if (literalExpr != null) {
-                        this.deleteCode(literalExpr);
+                    if (removableExpr != null) {
+                        if (
+                            removableExpr instanceof AutocompleteTkn &&
+                            removableExpr.rootNode instanceof TemporaryStmt
+                        ) {
+                            this.deleteCode(removableExpr.rootNode, { statement: true });
+                        } else if (
+                            removableExpr instanceof AutocompleteTkn &&
+                            removableExpr.autocompleteType == AutoCompleteType.RightOfExpression
+                        ) {
+                            this.deleteAutocompleteToken(removableExpr);
+                        } else this.deleteCode(removableExpr);
 
                         break;
                     }
@@ -809,7 +871,7 @@ export class ActionExecutor {
                 break;*/
 
             case EditActionType.OpenValidInsertMenu:
-                this.openAutocompleteMenu(this.module.actionFilter.getAllValidInsertsList());
+                this.openAutocompleteMenu(this.module.actionFilter.getProcessedInsertionsList());
 
                 break;
 
@@ -892,6 +954,33 @@ export class ActionExecutor {
             this.insertStatement(context, new VarOperationStmt(this.createVarReference(buttonId)));
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
             this.insertExpression(context, this.createVarReference(buttonId));
+        }
+    }
+
+    private insertToken(context: Context, code: Token) {
+        if (context.token instanceof TypedEmptyExpr) {
+            if (context.expression != null) {
+                const root = context.expression.rootNode as Statement;
+                root.replace(code, context.expression.indexInRoot);
+            } else if (context.token != null) {
+                const root = context.token.rootNode as Statement;
+                root.replace(code, context.token.indexInRoot);
+            }
+
+            const range = new Range(
+                context.position.lineNumber,
+                context.token.left,
+                context.position.lineNumber,
+                context.token.right
+            );
+
+            this.module.editor.executeEdits(range, code);
+        } else if (context.expressionToLeft != null) {
+            const root = context.expressionToLeft.rootNode;
+            code.rootNode = root;
+            root.tokens.splice(context.expressionToLeft.indexInRoot + 1, 0, code);
+            root.rebuild(root.getLeftPosition(), 0);
+            this.module.editor.insertAtCurPos([code]);
         }
     }
 
@@ -1103,6 +1192,16 @@ export class ActionExecutor {
                 positionToMove,
             });
         }
+    }
+
+    private deleteAutocompleteToken(token: Token) {
+        const range = this.getBoundaries(token);
+        const root = token.rootNode as Statement;
+        root.tokens.splice(token.indexInRoot, 1);
+
+        root.rebuild(root.getLeftPosition(), 0);
+
+        this.module.editor.executeEdits(range, null, "");
     }
 
     private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {

@@ -138,29 +138,29 @@ export class ActionFilter {
         return validOptionMap;
     }
 
-    getAllValidInsertsList(): EditCodeAction[] {
+    getProcessedInsertionsList(): EditCodeAction[] {
         const inserts = [];
-        inserts.push(...this.getValidConstructInsertions());
-        inserts.push(...this.getValidEditInsertions());
-        inserts.push(...this.getValidVariableInsertions());
-        inserts.push(...this.getValidVariableOperations());
+        inserts.push(...this.getProcessedConstructInsertions());
+        inserts.push(...this.getProcessedEditInsertions());
+        inserts.push(...this.getProcessedVariableInsertions());
+        inserts.push(...this.getProcessedVariableOperations());
 
         return inserts;
     }
 
-    getValidVariableInsertions(): EditCodeAction[] {
+    getProcessedVariableInsertions(): EditCodeAction[] {
         return this.convertInsertionMapToList(this.validateInsertions());
     }
 
-    getValidEditInsertions(): EditCodeAction[] {
+    getProcessedEditInsertions(): EditCodeAction[] {
         return this.convertInsertionMapToList(this.validateEdits());
     }
 
-    getValidConstructInsertions(): EditCodeAction[] {
+    getProcessedConstructInsertions(): EditCodeAction[] {
         return this.convertInsertionMapToList(this.validateVariableInsertions());
     }
 
-    getValidVariableOperations(): EditCodeAction[] {
+    getProcessedVariableOperations(): EditCodeAction[] {
         const context = this.module.focus.getContext();
         const availableRefs: [Reference, InsertionType][] = Validator.getValidVariableReferences(
             context.selected ? context.token : context.lineStatement,

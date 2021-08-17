@@ -297,6 +297,14 @@ export class EventRouter {
                             return new EditAction(EditActionType.InsertLiteral, {
                                 literalType: DataType.String,
                             });
+                        } else {
+                            return new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.AtExpressionHole,
+                                firstChar: e.key,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            });
                         }
                     } else if (
                         this.module.validator.onBeginningOfLine(context) &&
@@ -307,7 +315,15 @@ export class EventRouter {
                             firstChar: e.key,
                             validatorRegex: StartOfLineAutocompleteRegex,
                             validMatches: this.module.actionFilter
-                                .getAllValidInsertsList()
+                                .getProcessedInsertionsList()
+                                .filter((item) => item.insertionType != InsertionType.Invalid),
+                        });
+                    } else if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.OpenAutocomplete, {
+                            autocompleteType: AutoCompleteType.RightOfExpression,
+                            firstChar: e.key,
+                            validMatches: this.module.actionFilter
+                                .getProcessedInsertionsList()
                                 .filter((item) => item.insertionType != InsertionType.Invalid),
                         });
                     }
