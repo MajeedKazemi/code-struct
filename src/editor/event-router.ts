@@ -37,11 +37,17 @@ export class EventRouter {
             }
 
             case KeyPress.ArrowLeft: {
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+                if (
+                    !inTextEditMode &&
+                    !(
+                        context.token instanceof ast.AutocompleteTkn ||
+                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
+                        context.tokenToRight instanceof ast.AutocompleteTkn
+                    ) &&
+                    this.module.menuController.isMenuOpen()
+                ) {
                     return new EditAction(EditActionType.CloseSubMenu);
-                }
-
-                if (inTextEditMode) {
+                } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToPrevTokenAtTextEditable(context)) {
                         return new EditAction(EditActionType.SelectPrevToken);
                     }
@@ -54,11 +60,17 @@ export class EventRouter {
             }
 
             case KeyPress.ArrowRight: {
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+                if (
+                    !inTextEditMode &&
+                    !(
+                        context.token instanceof ast.AutocompleteTkn ||
+                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
+                        context.tokenToRight instanceof ast.AutocompleteTkn
+                    ) &&
+                    this.module.menuController.isMenuOpen()
+                ) {
                     return new EditAction(EditActionType.OpenSubMenu);
-                }
-
-                if (inTextEditMode) {
+                } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToNextTokenAtTextEditable(context)) {
                         return new EditAction(EditActionType.SelectNextToken);
                     }

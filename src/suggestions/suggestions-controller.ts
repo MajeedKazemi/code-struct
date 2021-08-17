@@ -14,6 +14,7 @@ class Menu {
     //Menu object
     private isMenuOpen: boolean = false;
     options: MenuOption[] = [];
+    editCodeActionsOptions: EditCodeAction[];
 
     /**
      * Index into this.options of an option that is currently focused and links to another menu.
@@ -539,6 +540,7 @@ export class MenuController {
             menu.open();
             this.indexOfRootMenu = 0;
             this.focusedOptionIndex = -1;
+            menu.editCodeActionsOptions = suggestions;
         }
     }
 
@@ -1011,5 +1013,43 @@ export class MenuController {
         root.children.forEach((child) => {
             this.updateMenuArrayFromTree(child, false);
         });
+    }
+
+    updateMenuOptions(optionText: string) {
+        if (this.isMenuOpen()) {
+            const menu = this.menus[this.focusedMenuIndex];
+            const actionsToKeep = menu.editCodeActionsOptions.filter((option) => {
+                return Validator.matchString(optionText, option.matchString ?? "") <= 10;
+            });
+
+            let focusedOptionText = "";
+            if (this.focusedOptionIndex > -1) {
+                focusedOptionText = menu.options[this.focusedOptionIndex].text;
+            }
+
+            menu.options.forEach((option) => {
+                option.removeFromDOM();
+            });
+
+            menu.options = [];
+
+            for (const editAction of actionsToKeep) {
+                const option = new MenuOption(editAction.optionName, null, menu, null, () => {
+                    editAction.performAction(
+                        this.module.executer,
+                        this.module.eventRouter,
+                        this.module.focus.getContext()
+                    );
+                });
+                option.attachToParentMenu(menu);
+
+                menu.options.push(option);
+
+                if (option.text === focusedOptionText) {
+                    this.focusedOptionIndex = menu.options.length - 1;
+                    option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
+                }
+            }
+        }
     }
 }

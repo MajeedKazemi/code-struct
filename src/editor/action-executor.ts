@@ -24,7 +24,7 @@ import {
     VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
-import { CallbackType } from "../syntax-tree/callback";
+import { Callback, CallbackType } from "../syntax-tree/callback";
 import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -52,17 +52,23 @@ export class ActionExecutor {
         switch (action.type) {
             case EditActionType.OpenAutocomplete: {
                 if (action.data.autocompleteType == AutoCompleteType.StartOfLine) {
+                    const autocompleteTkn = new AutocompleteTkn(
+                        action.data.firstChar,
+                        action.data.autocompleteType,
+                        action.data.validMatches
+                    );
                     this.openAutocompleteMenu(action.data.validMatches);
-                    this.insertStatement(
-                        context,
-                        new TemporaryStmt(
-                            new AutocompleteTkn(
-                                action.data.firstChar,
-                                action.data.autocompleteType,
-                                action.data.validMatches
-                            )
+
+                    autocompleteTkn.subscribe(
+                        CallbackType.change,
+                        new Callback(
+                            (() => {
+                                this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
+                            }).bind(this)
                         )
                     );
+
+                    this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
                 }
 
                 break;
