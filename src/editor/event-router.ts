@@ -285,6 +285,14 @@ export class EventRouter {
                             return new EditAction(EditActionType.InsertLiteral, {
                                 literalType: DataType.String,
                             });
+                        } else {
+                            return new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.AtExpressionHole,
+                                firstChar: e.key,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            });
                         }
                     } else if (
                         this.module.validator.onBeginningOfLine(context) &&

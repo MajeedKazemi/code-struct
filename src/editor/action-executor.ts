@@ -51,17 +51,32 @@ export class ActionExecutor {
 
         switch (action.type) {
             case EditActionType.OpenAutocomplete: {
-                if (action.data.autocompleteType == AutoCompleteType.StartOfLine) {
-                    this.insertStatement(
-                        context,
-                        new TemporaryStmt(
+                switch (action.data.autocompleteType) {
+                    case AutoCompleteType.StartOfLine:
+                        this.insertStatement(
+                            context,
+                            new TemporaryStmt(
+                                new AutocompleteTkn(
+                                    action.data.firstChar,
+                                    action.data.autocompleteType,
+                                    action.data.validMatches
+                                )
+                            )
+                        );
+
+                        break;
+
+                    case AutoCompleteType.AtExpressionHole:
+                        this.insertToken(
+                            context,
                             new AutocompleteTkn(
                                 action.data.firstChar,
                                 action.data.autocompleteType,
                                 action.data.validMatches
                             )
-                        )
-                    );
+                        );
+
+                        break;
                 }
 
                 break;
@@ -375,7 +390,9 @@ export class ActionExecutor {
                         this.deleteCode(token, {
                             statement: token.autocompleteType == AutoCompleteType.StartOfLine,
                         });
-                        match.performAction(this, this.module.eventRouter, context, { identifier: token.text });
+                        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
+                            identifier: token.text,
+                        });
 
                         break;
                     }
@@ -878,6 +895,27 @@ export class ActionExecutor {
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
             this.insertExpression(context, this.createVarReference(buttonId));
         }
+    }
+
+    private insertToken(context: Context, code: Token) {
+        if (context.token instanceof TypedEmptyExpr) {
+            if (context.expression != null) {
+                const root = context.expression.rootNode as Statement;
+                root.replace(code, context.expression.indexInRoot);
+            } else if (context.token != null) {
+                const root = context.token.rootNode as Statement;
+                root.replace(code, context.token.indexInRoot);
+            }
+        }
+
+        const range = new Range(
+            context.position.lineNumber,
+            context.token.left,
+            context.position.lineNumber,
+            context.token.right
+        );
+
+        this.module.editor.executeEdits(range, code);
     }
 
     private insertExpression(context: Context, code: Expression) {
