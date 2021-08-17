@@ -103,7 +103,7 @@ export class Module {
         //use methods like above code
         this.focus.subscribeOnNavChangeCallback(
             ((c: Context) => {
-                const inserts = this.actionFilter.getAllValidInsertsList();
+                const inserts = this.actionFilter.getProcessedInsertionsList();
 
                 //mark draft mode buttons
                 updateButtonsVisualMode(inserts);

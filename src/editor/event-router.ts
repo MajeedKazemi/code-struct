@@ -295,7 +295,7 @@ export class EventRouter {
                             firstChar: e.key,
                             validatorRegex: StartOfLineAutocompleteRegex,
                             validMatches: this.module.actionFilter
-                                .getAllValidInsertsList()
+                                .getProcessedInsertionsList()
                                 .filter((item) => item.insertionType != InsertionType.Invalid),
                         });
                     }
