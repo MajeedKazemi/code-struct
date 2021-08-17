@@ -30,6 +30,7 @@ import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
+import { EditCodeAction } from "./action-filter";
 import { EditActionType } from "./consts";
 import { EditAction } from "./data-types";
 import { Context } from "./focus";
@@ -51,6 +52,7 @@ export class ActionExecutor {
         switch (action.type) {
             case EditActionType.OpenAutocomplete: {
                 if (action.data.autocompleteType == AutoCompleteType.StartOfLine) {
+                    this.openAutocompleteMenu(action.data.validMatches);
                     this.insertStatement(
                         context,
                         new TemporaryStmt(
@@ -781,11 +783,7 @@ export class ActionExecutor {
                 break;*/
 
             case EditActionType.OpenValidInsertMenu:
-                if (!this.module.menuController.isMenuOpen()) {
-                    let inserts = this.module.actionFilter.getAllValidInsertsList();
-                    inserts = inserts.filter((insert) => insert.insertionType !== InsertionType.Invalid);
-                    this.module.menuController.buildSingleLevelMenu(inserts);
-                } else this.module.menuController.removeMenus();
+                this.openAutocompleteMenu(this.module.actionFilter.getAllValidInsertsList());
 
                 break;
 
@@ -911,6 +909,13 @@ export class ActionExecutor {
 
             if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
         }
+    }
+
+    private openAutocompleteMenu(inserts: EditCodeAction[]) {
+        if (!this.module.menuController.isMenuOpen()) {
+            inserts = inserts.filter((insert) => insert.insertionType !== InsertionType.Invalid);
+            this.module.menuController.buildSingleLevelMenu(inserts);
+        } else this.module.menuController.removeMenus();
     }
 
     private insertStatement(context: Context, statement: Statement) {

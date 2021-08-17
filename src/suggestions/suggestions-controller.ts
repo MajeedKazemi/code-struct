@@ -538,6 +538,7 @@ export class MenuController {
             const menu = this.module.menuController.buildMenu(suggestions, pos);
             menu.open();
             this.indexOfRootMenu = 0;
+            this.focusedOptionIndex = -1;
         }
     }
 
@@ -988,7 +989,9 @@ export class MenuController {
 
     //Perform the action associated with the currently focused option.
     selectFocusedOption() {
-        this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].select();
+        if (this.focusedOptionIndex > -1) {
+            this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].select();
+        }
     }
 
     isMenuOpen() {

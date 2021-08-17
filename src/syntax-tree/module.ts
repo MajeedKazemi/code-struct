@@ -13,6 +13,7 @@ import { NotificationSystemController } from "../notification-system/notificatio
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
+    AutocompleteTkn,
     CodeConstruct,
     EmptyLineStmt,
     Expression,
@@ -112,7 +113,16 @@ export class Module {
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const menuController = MenuController.getInstance();
-            if (menuController.isMenuOpen()) menuController.removeMenus();
+
+            if (
+                !(
+                    c.token instanceof AutocompleteTkn ||
+                    c.tokenToLeft instanceof AutocompleteTkn ||
+                    c.tokenToRight instanceof AutocompleteTkn
+                ) &&
+                menuController.isMenuOpen()
+            )
+                menuController.removeMenus();
         });
 
         this.body.push(new EmptyLineStmt(this, 0));
