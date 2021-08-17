@@ -233,14 +233,14 @@ export class EventRouter {
                 break;
             }
 
-            // case KeyPress.Space: {
-            //     if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-            //     if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
-            //         return new EditAction(EditActionType.OpenValidInsertMenu);
-            //     }
+            case KeyPress.Space: {
+                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
+                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
+                    return new EditAction(EditActionType.OpenValidInsertMenu);
+                }
 
-            //     break;
-            // }
+                break;
+            }
 
             default: {
                 if (e.key.length == 1) {

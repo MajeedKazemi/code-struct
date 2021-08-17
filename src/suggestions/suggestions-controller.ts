@@ -1,3 +1,4 @@
+import { EditCodeAction } from "../editor/action-filter";
 import { Editor } from "../editor/editor";
 import { Validator } from "../editor/validator";
 import { VarAssignmentStmt } from "../syntax-tree/ast";
@@ -28,7 +29,7 @@ class Menu {
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
 
-    constructor(options: Map<string, Function>, keys: string[]) {
+    constructor(options: Map<string, Function>) {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.menuElementClass);
         this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
@@ -36,21 +37,12 @@ class Menu {
 
         Menu.menuCount++;
 
-        keys.forEach(
-            ((key) => {
-                const option = new MenuOption(
-                    key,
-                    null,
-                    this,
-                    Util.getInstance(MenuController.getInstance().module).constructDocs.get(key),
-                    options.get(key)
-                );
-                option.attachToParentMenu(this);
+        for (const [key, value] of options) {
+            const option = new MenuOption(key, null, this, null, value);
+            option.attachToParentMenu(this);
 
-                this.options.push(option);
-                this.htmlElement.appendChild(option.htmlElement);
-            }).bind(this)
-        );
+            this.options.push(option);
+        }
 
         this.htmlElement.addEventListener("mouseover", () => {
             this.htmlElement.style.visibility = "visible";
@@ -285,6 +277,8 @@ class MenuOption {
             this.select();
             MenuController.getInstance().removeMenus();
         });
+
+        parentMenu.htmlElement.appendChild(this.htmlElement);
     }
 
     private addArrowImg() {
@@ -538,18 +532,12 @@ export class MenuController {
      *
      * @param pos         Starting top-left corner of this menu in the editor.
      */
-    buildSingleLevelMenu(
-        suggestions: Array<string | ConstructKeys>,
-        actionMap: Map<string, Function>,
-        pos: any = { left: 0, top: 0 }
-    ) {
+    buildSingleLevelMenu(suggestions: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
         if (this.menus.length > 0) this.removeMenus();
-        else {
-            const suggestionMap = new Map<string, Array<string>>([["Top", suggestions]]);
-
-            if (suggestions.length > 0) {
-                this.module.menuController.buildMenuFromOptionMap(suggestionMap, ["Top"], "Top", actionMap, pos);
-            }
+        else if (suggestions.length > 0) {
+            const menu = this.module.menuController.buildMenu(suggestions, pos);
+            menu.open();
+            this.indexOfRootMenu = 0;
         }
     }
 
@@ -738,7 +726,7 @@ export class MenuController {
             const menus = new Map<string, Menu>();
 
             keys.forEach((menuKey) => {
-                menus.set(menuKey, this.buildMenu(map.get(menuKey), pos));
+                //menus.set(menuKey, this.buildMenu(map.get(menuKey), pos));
 
                 if (menuKey == rootKey) {
                     this.indexOfRootMenu = this.menus.length - 1;
@@ -839,27 +827,17 @@ export class MenuController {
      *
      * @returns the constructed menu. Null if no options was empty.
      */
-    private buildMenu(options: Array<ConstructKeys | string>, pos: any = { left: 0, top: 0 }) {
+    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
-            // TODO: need to fix this in the pre-validator
+            for (const action of options) {
+                menuOptions.set(action.optionName, () => {
+                    action.performAction(this.module.executer, this.module.eventRouter, this.module.focus.getContext());
+                });
+            }
 
-            // options.forEach((option) => {
-            //     if (
-            //         Object.keys(ConstructKeys)
-            //             .map((key) => ConstructKeys[key])
-            //             .indexOf(option) > -1
-            //     ) {
-            //         menuOptions.set(option as ConstructKeys, () => {
-            //             this.module.insert(
-            //                 Util.getInstance(this.module).dummyToolboxConstructs.get(option as ConstructKeys)
-            //             );
-            //         });
-            //     } else menuOptions.set(option, null);
-            // });
-
-            const menu = new Menu(menuOptions, options);
+            const menu = new Menu(menuOptions);
 
             //TODO: These are the same values as the ones used for mouse offset by the Notifications so maybe make them shared in some util file
             menu.htmlElement.style.left = `${pos.left + document.getElementById("editor").offsetLeft}px`;

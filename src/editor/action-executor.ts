@@ -29,7 +29,6 @@ import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
-import { ConstructKeys, Util } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditActionType } from "./consts";
 import { EditAction } from "./data-types";
@@ -737,7 +736,7 @@ export class ActionExecutor {
 
                 break;
             }
-
+            /*
             case EditActionType.DisplayGreaterThanSuggestion:
                 if (this.module.isAbleToInsertComparator(context)) {
                     this.module.menuController.buildSingleLevelMenu(
@@ -779,21 +778,13 @@ export class ActionExecutor {
                     }
                 );
 
-                break;
+                break;*/
 
             case EditActionType.OpenValidInsertMenu:
                 if (!this.module.menuController.isMenuOpen()) {
-                    /*
-                    TODO: Make this work with ActionFilter
-                    const validInserts = this.module.getAllValidInsertsList(focusedNode);
-                    this.module.menuController.buildAvailableInsertsMenu(
-                        validInserts,
-                        Util.getInstance(this.module).constructActions,
-                        {
-                            left: selection.startColumn * this.module.editor.computeCharWidth(),
-                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                        }
-                    );*/
+                    let inserts = this.module.actionFilter.getAllValidInsertsList();
+                    inserts = inserts.filter((insert) => insert.insertionType !== InsertionType.Invalid);
+                    this.module.menuController.buildSingleLevelMenu(inserts);
                 } else this.module.menuController.removeMenus();
 
                 break;
