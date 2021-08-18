@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -608,60 +609,16 @@ export class Validator {
         }
     }
 
-    static matchString(str: string, matchWith: string): number {
-        const opt: number[][] = new Array(str.length + 1);
+    static matchString(searchString: string, possibilities: string[]) {
+        const options = {
+            includeScore: true,
+            includeMatches: true,
+            shouldSort: true,
+            findAllMatches: true,
+            threshold: 0.4,
+        };
+        const fuse = new Fuse(possibilities, options);
 
-        //init inner lists
-        for (let i = 0; i < str.length + 1; i++) {
-            opt[i] = [];
-        }
-
-        //init values
-        for (let i = 0; i < str.length + 1; i++) {
-            for (let j = 0; j < matchWith.length + 1; j++) {
-                //i = 0 or j = 0 means we are matching with an empty string. Therefore, we use the cost of deleting all
-                //chars from the other string
-                if (i == 0) {
-                    opt[i].push(Validator.charDeletionCost() * j);
-                } else if (j == 0) {
-                    opt[i].push(Validator.charDeletionCost() * i);
-                } else {
-                    opt[i].push(0);
-                }
-            }
-        }
-
-        for (let i = 1; i < str.length + 1; i++) {
-            for (let j = 1; j < matchWith.length + 1; j++) {
-                /**
-                 * 1. Delete char from str
-                 * 2. Delete char from matchWith
-                 * 3. Reaplce str[i] with matchWith[j]
-                 */
-                opt[i][j] = Math.min(
-                    opt[i - 1][j] + Validator.charDeletionCost(),
-                    opt[i][j - 1] + Validator.charDeletionCost(),
-                    opt[i - 1][j - 1] + Validator.charReplacementCost(str, i - 1, matchWith[j - 1])
-                );
-            }
-        }
-
-        return opt[str.length][matchWith.length];
-    }
-
-    static charDeletionCost(): number {
-        return 2;
-    }
-
-    static charReplacementCost(replaceIn: string, replacePosition: number, replaceWithChar: string): number {
-        if (replaceWithChar.length > 1) {
-            console.error(
-                `Attempted to replace ${replaceIn.charAt(
-                    replacePosition
-                )} with ${replaceWithChar}. \n Can only replace a character with another character and not a string.`
-            );
-        }
-
-        return Math.abs(replaceIn.charCodeAt(replacePosition) - replaceWithChar.charCodeAt(0));
+        return fuse.search(searchString);
     }
 }

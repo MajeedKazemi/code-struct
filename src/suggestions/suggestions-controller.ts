@@ -1018,9 +1018,14 @@ export class MenuController {
     updateMenuOptions(optionText: string) {
         if (this.isMenuOpen()) {
             const menu = this.menus[this.focusedMenuIndex];
-            const actionsToKeep = menu.editCodeActionsOptions.filter((option) => {
-                return Validator.matchString(optionText, option.matchString ?? "") <= 10;
-            });
+            const searchResult = Validator.matchString(
+                optionText,
+                menu.editCodeActionsOptions.map((action) => action.optionName)
+            );
+            const searchResultStrings = searchResult.map((result) => result.item);
+            const optionsToKeep = menu.editCodeActionsOptions.filter(
+                (action) => searchResultStrings.indexOf(action.optionName) > -1
+            );
 
             let focusedOptionText = "";
             if (this.focusedOptionIndex > -1) {
@@ -1033,7 +1038,7 @@ export class MenuController {
 
             menu.options = [];
 
-            for (const editAction of actionsToKeep) {
+            for (const editAction of optionsToKeep) {
                 const option = new MenuOption(editAction.optionName, null, menu, null, () => {
                     editAction.performAction(
                         this.module.executer,
@@ -1049,6 +1054,12 @@ export class MenuController {
                     this.focusedOptionIndex = menu.options.length - 1;
                     option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
                 }
+            }
+
+            if (optionsToKeep.length == 0) {
+                const option = new MenuOption("No suitable options found.", null, menu, null, () => {});
+                option.attachToParentMenu(menu);
+                this.focusedOptionIndex = -1;
             }
         }
     }
