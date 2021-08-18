@@ -1046,9 +1046,8 @@ export class MenuController {
                         this.module.focus.getContext()
                     );
                 });
-                option.attachToParentMenu(menu);
 
-                menu.options.push(option);
+                this.insertOptionIntoMenu(option, menu);
 
                 if (option.text === focusedOptionText) {
                     this.focusedOptionIndex = menu.options.length - 1;
@@ -1058,7 +1057,7 @@ export class MenuController {
 
             if (optionsToKeep.length == 0) {
                 const option = new MenuOption("No suitable options found.", null, menu, null, () => {});
-                option.attachToParentMenu(menu);
+                this.insertOptionIntoMenu(option, menu);
                 this.focusedOptionIndex = -1;
             }
         }
@@ -1089,5 +1088,10 @@ export class MenuController {
             parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
 
         return pos;
+    }
+
+    private insertOptionIntoMenu(option: MenuOption, menu: Menu) {
+        option.attachToParentMenu(menu);
+        menu.options.push(option);
     }
 }
