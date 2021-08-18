@@ -549,7 +549,7 @@ export class MenuController {
             const menu = this.module.menuController.buildMenu(suggestions, pos);
             menu.open();
             this.indexOfRootMenu = 0;
-            this.focusedOptionIndex = -1;
+            this.focusedOptionIndex = 0;
             menu.editCodeActionsOptions = suggestions;
         }
     }
@@ -890,7 +890,7 @@ export class MenuController {
 
         this.menus = [];
         this.focusedMenuIndex = 0;
-        this.focusedOptionIndex = -1;
+        this.focusedOptionIndex = 0;
     }
 
     //Removes focus from currently focused option and sets it to the option below it.
@@ -1016,7 +1016,7 @@ export class MenuController {
         if (isRoot) {
             this.indexOfRootMenu = 0;
             this.menus = [];
-            this.focusedOptionIndex = -1;
+            this.focusedOptionIndex = 0;
             this.focusedMenuIndex = 0;
         }
 
@@ -1078,7 +1078,7 @@ export class MenuController {
             if (optionsToKeep.length == 0) {
                 const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
                 this.insertOptionIntoMenu(option, menu);
-                this.focusedOptionIndex = -1;
+                this.focusedOptionIndex = 0;
             }
         }
     }
