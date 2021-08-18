@@ -1032,16 +1032,27 @@ export class MenuController {
         if (this.isMenuOpen()) {
             const textEnhance = new TextEnhance();
             const menu = this.menus[this.focusedMenuIndex];
+
+            //get matches from fuse
             const searchResult = Validator.matchString(
                 optionText,
                 menu.editCodeActionsOptions.map((action) => action.optionName)
             );
-            const searchResultStrings = searchResult.map((result) => result.item);
 
-            const optionsToKeep = menu.editCodeActionsOptions.filter(
-                (action) => searchResultStrings.indexOf(action.optionName) > -1
+            //filter EditCodeAction options based on what strings matched
+            const searchResultStrings = searchResult.map((result) => result.item);
+            let optionsToKeep = menu.editCodeActionsOptions.filter((action) =>
+                action.matchRegex ? true : searchResultStrings.indexOf(action.optionName) > -1
             );
 
+            /*Second round of filtering for regex-based items
+              Currently only used by variable assignment
+            */
+            optionsToKeep = optionsToKeep.filter((editCodeAction) =>
+                editCodeAction.matchRegex ? editCodeAction.matchRegex.test(optionText) : true
+            );
+
+            //recreate options
             let focusedOptionText = "";
             if (this.focusedOptionIndex > -1) {
                 focusedOptionText = menu.options[this.focusedOptionIndex].text;
@@ -1050,17 +1061,28 @@ export class MenuController {
             menu.options.forEach((option) => {
                 option.removeFromDOM();
             });
-
             menu.options = [];
 
             for (const editAction of optionsToKeep) {
-                const stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
-                const matchesArr = [];
-                for (const match of stringMatch.matches) {
-                    matchesArr.push(match.indices);
+                let stringMatch; //user input if editAction has a matchRegex; a Fuse match object otherwise
+                let substringMatchRanges = [];
+                if (editAction.matchRegex) {
+                    stringMatch = optionText + editAction.optionName;
+                    substringMatchRanges = [[0, stringMatch.length - 1]];
+                } else {
+                    stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
+
+                    for (const match of stringMatch.matches) {
+                        substringMatchRanges.push(match.indices);
+                    }
                 }
-                const optionText = textEnhance.getStyledSpanAtSubstrings(stringMatch.item, "matchingText", matchesArr);
-                const option = new MenuOption(optionText, true, null, menu, null, () => {
+
+                const optionDisplayText = textEnhance.getStyledSpanAtSubstrings(
+                    stringMatch.item ?? stringMatch,
+                    "matchingText",
+                    substringMatchRanges
+                );
+                const option = new MenuOption(optionDisplayText, true, null, menu, null, () => {
                     editAction.performAction(
                         this.module.executer,
                         this.module.eventRouter,

@@ -205,7 +205,7 @@ export class Actions {
     private constructor() {
         this.actionsList = new Array<EditCodeAction>(
             new EditCodeAction(
-                "var = ---",
+                " = ---",
                 "add-var-btn",
                 () => new VarAssignmentStmt(),
                 InsertActionType.InsertNewVariableStmt,
@@ -216,7 +216,7 @@ export class Actions {
             ),
 
             new EditCodeAction(
-                "---[---] = ---",
+                " [---] = ---",
                 "add-list-elem-assign-btn",
                 () => new ListElementAssignment(),
                 InsertActionType.InsertListIndexAssignment,
