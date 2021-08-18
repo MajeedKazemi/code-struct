@@ -2448,14 +2448,20 @@ export class AutocompleteTkn extends Token implements TextEditable {
         return this.left;
     }
 
-    getMatch(newChar: string): EditCodeAction {
+    isMatch(): EditCodeAction {
+        const newChar = this.text[this.text.length - 1];
+        const curText = this.text.substring(0, this.text.length - 2);
+
+        return this.checkMatch(newChar, curText);
+    }
+
+    checkMatch(newChar: string, text?: string): EditCodeAction {
+        const curText = text !== undefined ? text : this.text;
+
         for (const match of this.validMatches) {
             if (match.terminatingChars.indexOf(newChar) >= 0) {
-                if (match.matchString && this.text == match.matchString) {
-                    return match;
-                } else if (match.matchRegex && match.matchRegex.test(this.text)) {
-                    return match;
-                }
+                if (curText == match.matchString) return match;
+                else if (match.matchRegex != null && match.matchRegex.test(curText)) return match;
             }
         }
 
