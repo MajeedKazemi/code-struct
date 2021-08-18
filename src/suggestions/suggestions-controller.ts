@@ -5,6 +5,7 @@ import { Validator } from "../editor/validator";
 import { CodeConstruct, VarAssignmentStmt } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { TextEnhance } from "../utilities/text-enhance";
 import { ConstructKeys, Util } from "../utilities/util";
 import { ConstructDoc } from "./construct-doc";
 
@@ -40,7 +41,7 @@ class Menu {
         Menu.menuCount++;
 
         for (const [key, value] of options) {
-            const option = new MenuOption(key, null, this, null, value);
+            const option = new MenuOption(key, false, null, this, null, value);
             option.attachToParentMenu(this);
 
             this.options.push(option);
@@ -247,6 +248,7 @@ class MenuOption {
 
     constructor(
         text: string = "Option Text",
+        useInnerHTML: boolean = false,
         childMenu?: Menu,
         parentMenu?: Menu,
         doc?: ConstructDoc,
@@ -261,9 +263,16 @@ class MenuOption {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
 
-        const textNode = document.createElement("span");
+        let textNode;
+        if (useInnerHTML) {
+            textNode = document.createElement("div");
+            textNode.innerHTML = text;
+        } else {
+            textNode = document.createElement("span");
+            textNode.textContent = text;
+        }
+
         textNode.classList.add(MenuController.optionTextElementClass);
-        textNode.textContent = text;
         this.htmlElement.appendChild(textNode);
 
         this.addArrowImg();
@@ -1018,12 +1027,14 @@ export class MenuController {
 
     updateMenuOptions(optionText: string) {
         if (this.isMenuOpen()) {
+            const textEnhance = new TextEnhance();
             const menu = this.menus[this.focusedMenuIndex];
             const searchResult = Validator.matchString(
                 optionText,
                 menu.editCodeActionsOptions.map((action) => action.optionName)
             );
             const searchResultStrings = searchResult.map((result) => result.item);
+
             const optionsToKeep = menu.editCodeActionsOptions.filter(
                 (action) => searchResultStrings.indexOf(action.optionName) > -1
             );
@@ -1040,7 +1051,13 @@ export class MenuController {
             menu.options = [];
 
             for (const editAction of optionsToKeep) {
-                const option = new MenuOption(editAction.optionName, null, menu, null, () => {
+                const stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
+                const matchesArr = [];
+                for (const match of stringMatch.matches) {
+                    matchesArr.push(match.indices);
+                }
+                const optionText = textEnhance.getStyledSpanAtSubstrings(stringMatch.item, "matchingText", matchesArr);
+                const option = new MenuOption(optionText, true, null, menu, null, () => {
                     editAction.performAction(
                         this.module.executer,
                         this.module.eventRouter,
@@ -1057,7 +1074,7 @@ export class MenuController {
             }
 
             if (optionsToKeep.length == 0) {
-                const option = new MenuOption("No suitable options found.", null, menu, null, () => {});
+                const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
                 this.insertOptionIntoMenu(option, menu);
                 this.focusedOptionIndex = -1;
             }
