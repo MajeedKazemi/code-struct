@@ -63,34 +63,12 @@ export class ActionExecutor {
                             CallbackType.change,
                             new Callback(
                                 (() => {
-                                    this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
-
-                                    const pos = { left: 0, top: 0 };
-                                    pos.left = pos.left =
-                                        document.getElementById("editor").offsetLeft +
-                                        (
-                                            document
-                                                .getElementById("editor")
-                                                .getElementsByClassName(
-                                                    "monaco-editor no-user-select  showUnused showDeprecated vs"
-                                                )[0]
-                                                .getElementsByClassName("overflow-guard")[0]
-                                                .getElementsByClassName("margin")[0] as HTMLElement
-                                        ).offsetWidth +
-                                        autocompleteTkn.getRenderText().length * this.module.editor.computeCharWidth();
-                                    pos.top =
-                                        this.module.editor.monaco.getSelection().startLineNumber *
-                                            this.module.editor.computeCharHeight() +
-                                        parseFloat(
-                                            window.getComputedStyle(document.getElementById("editor")).paddingTop
-                                        );
-
-                                    this.module.menuController.updatePosition(pos);
+                                    this.updateAutocompleteMenu(autocompleteTkn);
                                 }).bind(this)
                             )
                         );
-                        this.openAutocompleteMenu(action.data.validMatches);
 
+                        this.openAutocompleteMenu(action.data.validMatches);
                         this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
 
                         break;
@@ -1235,5 +1213,10 @@ export class ActionExecutor {
                 );
             }
         }
+    }
+
+    private updateAutocompleteMenu(autocompleteTkn: AutocompleteTkn) {
+        this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
+        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPosition(autocompleteTkn));
     }
 }

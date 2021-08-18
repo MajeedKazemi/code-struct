@@ -1,7 +1,7 @@
 import { EditCodeAction } from "../editor/action-filter";
 import { Editor } from "../editor/editor";
 import { Validator } from "../editor/validator";
-import { VarAssignmentStmt } from "../syntax-tree/ast";
+import { CodeConstruct, VarAssignmentStmt } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { ConstructKeys, Util } from "../utilities/util";
@@ -1067,5 +1067,27 @@ export class MenuController {
     updatePosition(pos: { left: number; top: number }) {
         this.menus[this.focusedMenuIndex].htmlElement.style.left = `${pos.left}px`;
         this.menus[this.focusedMenuIndex].htmlElement.style.top = `${pos.top}px`;
+    }
+
+    getNewMenuPosition(code: CodeConstruct): { left: number; top: number } {
+        const pos = { left: 0, top: 0 };
+        pos.left =
+            document.getElementById("editor").offsetLeft +
+            (
+                document
+                    .getElementById("editor")
+                    .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                    .getElementsByClassName("overflow-guard")[0]
+                    .getElementsByClassName("margin")[0] as HTMLElement
+            ).offsetWidth +
+            (this.module.editor.computeCharWidth()
+                ? code.getRenderText().length * this.module.editor.computeCharWidth()
+                : 0);
+
+        pos.top =
+            this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
+            parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
+
+        return pos;
     }
 }
