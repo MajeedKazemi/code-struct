@@ -44,104 +44,71 @@ export class ActionExecutor {
 
     execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-        const selection = this.module.editor.monaco.getSelection();
 
-        let suggestions = [];
         let preventDefaultEvent = true;
 
         switch (action.type) {
             case EditActionType.OpenAutocomplete: {
-                if (action.data.autocompleteType == AutoCompleteType.StartOfLine) {
-                    const autocompleteTkn = new AutocompleteTkn(
-                        action.data.firstChar,
-                        action.data.autocompleteType,
-                        action.data.validMatches
-                    );
+                const autocompleteTkn = new AutocompleteTkn(
+                    action.data.firstChar,
+                    action.data.autocompleteType,
+                    action.data.validMatches
+                );
 
-                    autocompleteTkn.subscribe(
-                        CallbackType.change,
-                        new Callback(
-                            (() => {
-                                this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
+                autocompleteTkn.subscribe(
+                    CallbackType.change,
+                    new Callback(
+                        (() => {
+                            this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
 
-                                const pos = { left: 0, top: 0 };
-                                pos.left = pos.left =
-                                    document.getElementById("editor").offsetLeft +
-                                    (
-                                        document
-                                            .getElementById("editor")
-                                            .getElementsByClassName(
-                                                "monaco-editor no-user-select  showUnused showDeprecated vs"
-                                            )[0]
-                                            .getElementsByClassName("overflow-guard")[0]
-                                            .getElementsByClassName("margin")[0] as HTMLElement
-                                    ).offsetWidth +
-                                    autocompleteTkn.getRenderText().length * this.module.editor.computeCharWidth();
-                                pos.top =
-                                    this.module.editor.monaco.getSelection().startLineNumber *
-                                        this.module.editor.computeCharHeight() +
-                                    parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
+                            const pos = { left: 0, top: 0 };
+                            pos.left = pos.left =
+                                document.getElementById("editor").offsetLeft +
+                                (
+                                    document
+                                        .getElementById("editor")
+                                        .getElementsByClassName(
+                                            "monaco-editor no-user-select  showUnused showDeprecated vs"
+                                        )[0]
+                                        .getElementsByClassName("overflow-guard")[0]
+                                        .getElementsByClassName("margin")[0] as HTMLElement
+                                ).offsetWidth +
+                                autocompleteTkn.getRenderText().length * this.module.editor.computeCharWidth();
+                            pos.top =
+                                this.module.editor.monaco.getSelection().startLineNumber *
+                                    this.module.editor.computeCharHeight() +
+                                parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
 
-                                this.module.menuController.updatePosition(pos);
-                            }).bind(this)
-                        )
-                    );
-                    this.openAutocompleteMenu(action.data.validMatches);
+                            this.module.menuController.updatePosition(pos);
+                        }).bind(this)
+                    )
+                );
+                this.openAutocompleteMenu(action.data.validMatches);
 
-                    this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
-                }
                 switch (action.data.autocompleteType) {
                     case AutoCompleteType.StartOfLine:
-                        this.insertStatement(
-                            context,
-                            new TemporaryStmt(
-                                new AutocompleteTkn(
-                                    action.data.firstChar,
-                                    action.data.autocompleteType,
-                                    action.data.validMatches
-                                )
-                            )
-                        );
+                        this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
 
                         break;
 
                     case AutoCompleteType.AtExpressionHole:
-                        this.insertToken(
-                            context,
-                            new AutocompleteTkn(
-                                action.data.firstChar,
-                                action.data.autocompleteType,
-                                action.data.validMatches
-                            )
-                        );
+                        this.insertToken(context, autocompleteTkn);
 
                         break;
 
                     case AutoCompleteType.RightOfExpression:
-                        this.insertToken(
-                            context,
-                            new AutocompleteTkn(
-                                action.data.firstChar,
-                                action.data.autocompleteType,
-                                action.data.validMatches
-                            ),
-                            { toRight: true }
-                        );
+                        this.insertToken(context, autocompleteTkn, { toRight: true });
 
                         break;
                     case AutoCompleteType.LeftOfExpression:
-                        this.insertToken(
-                            context,
-                            new AutocompleteTkn(
-                                action.data.firstChar,
-                                action.data.autocompleteType,
-                                action.data.validMatches
-                            ),
-                            { toLeft: true }
-                        );
+                        this.insertToken(context, autocompleteTkn, { toLeft: true });
 
                         break;
                 }
+
+                const match = autocompleteTkn.isMatch();
+
+                if (match) this.performMatchAction(match, autocompleteTkn);
 
                 break;
             }
@@ -448,23 +415,10 @@ export class ActionExecutor {
                 }
 
                 if (token instanceof AutocompleteTkn) {
-                    const match = token.getMatch(pressedKey);
+                    const match = token.checkMatch(pressedKey);
 
                     if (match) {
-                        if (
-                            token.autocompleteType == AutoCompleteType.RightOfExpression ||
-                            token.autocompleteType == AutoCompleteType.LeftOfExpression
-                        )
-                            this.deleteAutocompleteToken(token);
-                        else {
-                            this.deleteCode(token, {
-                                statement: token.autocompleteType == AutoCompleteType.StartOfLine,
-                            });
-                        }
-
-                        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
-                            identifier: token.text,
-                        });
+                        this.performMatchAction(match, token);
 
                         break;
                     }
@@ -971,6 +925,23 @@ export class ActionExecutor {
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
             this.insertExpression(context, this.createVarReference(buttonId));
         }
+    }
+
+    private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
+        if (
+            token.autocompleteType == AutoCompleteType.RightOfExpression ||
+            token.autocompleteType == AutoCompleteType.LeftOfExpression
+        )
+            this.deleteAutocompleteToken(token);
+        else {
+            this.deleteCode(token, {
+                statement: token.autocompleteType == AutoCompleteType.StartOfLine,
+            });
+        }
+
+        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
+            identifier: token.text,
+        });
     }
 
     private insertToken(context: Context, code: Token, { toLeft = false, toRight = false } = {}) {

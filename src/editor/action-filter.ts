@@ -318,7 +318,7 @@ export class EditCodeAction extends UserAction {
 
     performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context, autocompleteData?: {}) {
         const editAction = eventRouter.routeToolboxEvents(this, context);
-        editAction.data.autocompleteData = autocompleteData;
+        if (editAction.data) editAction.data.autocompleteData = autocompleteData;
 
         executor.execute(editAction, context);
     }
