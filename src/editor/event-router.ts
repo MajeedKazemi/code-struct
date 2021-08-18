@@ -229,8 +229,7 @@ export class EventRouter {
             // }
 
             case KeyPress.Escape: {
-                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                else if (this.module.menuController.isMenuOpen()) {
+                if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseValidInsertMenu);
                 } else {
                     const draftModeNode = this.module.focus.getContainingDraftNode(context);
