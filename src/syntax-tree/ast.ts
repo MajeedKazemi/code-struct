@@ -2466,8 +2466,6 @@ export class AutocompleteTkn extends Token implements TextEditable {
         this.text = text;
         (this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
 
-        this.notify(CallbackType.change);
-
         return true;
     }
 }
