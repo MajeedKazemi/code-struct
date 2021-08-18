@@ -104,10 +104,12 @@ export class Module {
         //use methods like above code
         this.focus.subscribeOnNavChangeCallback(
             ((c: Context) => {
-                const inserts = this.actionFilter.getProcessedInsertionsList();
+                if (!(c.tokenToLeft instanceof AutocompleteTkn || c.tokenToRight instanceof AutocompleteTkn)) {
+                    const inserts = this.actionFilter.getProcessedInsertionsList();
 
-                //mark draft mode buttons
-                updateButtonsVisualMode(inserts);
+                    //mark draft mode buttons
+                    updateButtonsVisualMode(inserts);
+                }
             }).bind(this)
         );
 

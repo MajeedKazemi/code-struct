@@ -124,7 +124,20 @@ export class ActionExecutor {
                                 action.data.firstChar,
                                 action.data.autocompleteType,
                                 action.data.validMatches
-                            )
+                            ),
+                            { toRight: true }
+                        );
+
+                        break;
+                    case AutoCompleteType.LeftOfExpression:
+                        this.insertToken(
+                            context,
+                            new AutocompleteTkn(
+                                action.data.firstChar,
+                                action.data.autocompleteType,
+                                action.data.validMatches
+                            ),
+                            { toLeft: true }
                         );
 
                         break;
@@ -438,7 +451,10 @@ export class ActionExecutor {
                     const match = token.getMatch(pressedKey);
 
                     if (match) {
-                        if (token.autocompleteType == AutoCompleteType.RightOfExpression)
+                        if (
+                            token.autocompleteType == AutoCompleteType.RightOfExpression ||
+                            token.autocompleteType == AutoCompleteType.LeftOfExpression
+                        )
                             this.deleteAutocompleteToken(token);
                         else {
                             this.deleteCode(token, {
@@ -957,7 +973,7 @@ export class ActionExecutor {
         }
     }
 
-    private insertToken(context: Context, code: Token) {
+    private insertToken(context: Context, code: Token, { toLeft = false, toRight = false } = {}) {
         if (context.token instanceof TypedEmptyExpr) {
             if (context.expression != null) {
                 const root = context.expression.rootNode as Statement;
@@ -975,10 +991,16 @@ export class ActionExecutor {
             );
 
             this.module.editor.executeEdits(range, code);
-        } else if (context.expressionToLeft != null) {
+        } else if (toRight && context.expressionToLeft != null) {
             const root = context.expressionToLeft.rootNode;
             code.rootNode = root;
             root.tokens.splice(context.expressionToLeft.indexInRoot + 1, 0, code);
+            root.rebuild(root.getLeftPosition(), 0);
+            this.module.editor.insertAtCurPos([code]);
+        } else if (toLeft && context.expressionToRight != null) {
+            const root = context.expressionToRight.rootNode;
+            code.rootNode = root;
+            root.tokens.splice(context.expressionToRight.indexInRoot, 0, code);
             root.rebuild(root.getLeftPosition(), 0);
             this.module.editor.insertAtCurPos([code]);
         }
