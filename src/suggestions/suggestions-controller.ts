@@ -1,5 +1,6 @@
 import { EditCodeAction } from "../editor/action-filter";
 import { Editor } from "../editor/editor";
+import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeConstruct, VarAssignmentStmt } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
@@ -34,7 +35,7 @@ class Menu {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.menuElementClass);
         this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
-        document.getElementById("editor").appendChild(this.htmlElement);
+        document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
 
         Menu.menuCount++;
 
@@ -220,7 +221,7 @@ class Menu {
     }
 
     removeFromDOM() {
-        document.getElementById("editor").removeChild(this.htmlElement);
+        document.getElementById(EDITOR_DOM_ID).removeChild(this.htmlElement);
     }
 
     getOptionByText(optionText: string) {
@@ -843,16 +844,16 @@ export class MenuController {
             const menu = new Menu(menuOptions);
 
             //TODO: These are the same values as the ones used for mouse offset by the Notifications so maybe make them shared in some util file
-            menu.htmlElement.style.left = `${pos.left + document.getElementById("editor").offsetLeft}px`;
+            menu.htmlElement.style.left = `${pos.left + document.getElementById(EDITOR_DOM_ID).offsetLeft}px`;
             menu.htmlElement.style.top = `${
-                pos.top + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop)
+                pos.top + parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop)
             }px`;
 
             //TODO: No good way of separating responsibility completely because ready doc objects are stored in util instead of being created here.
             //I guess, it is always possible to have a list of active docs and loop through it here and update their positions instead of
             //using the static method to update them all. Do that in case this ever slows down anything.
             ConstructDoc.updateDocsLeftOffset(
-                document.getElementById("editor").offsetLeft +
+                document.getElementById(EDITOR_DOM_ID).offsetLeft +
                     document.getElementById(`${Menu.idPrefix}${Menu.menuCount - 1}`).offsetWidth
             );
 
@@ -1071,10 +1072,10 @@ export class MenuController {
     getNewMenuPosition(code: CodeConstruct): { left: number; top: number } {
         const pos = { left: 0, top: 0 };
         pos.left =
-            document.getElementById("editor").offsetLeft +
+            document.getElementById(EDITOR_DOM_ID).offsetLeft +
             (
                 document
-                    .getElementById("editor")
+                    .getElementById(EDITOR_DOM_ID)
                     .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
                     .getElementsByClassName("overflow-guard")[0]
                     .getElementsByClassName("margin")[0] as HTMLElement
@@ -1085,7 +1086,7 @@ export class MenuController {
 
         pos.top =
             this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
-            parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
+            parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
 
         return pos;
     }

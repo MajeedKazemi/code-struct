@@ -4,6 +4,8 @@ import { EditCodeAction } from "./action-filter";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import * as options from "./toolbox.json";
 
+export const EDITOR_DOM_ID = "editor";
+
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
     const container = document.createElement("grid");
     container.classList.add("var-button-container");
