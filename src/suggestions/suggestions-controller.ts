@@ -1071,12 +1071,12 @@ export class MenuController {
                 //TODO: If there are more constructs that need to have a custom performAction based on user input then consider changing this to be more general
                 if (editAction.insertActionType === InsertActionType.InsertNewVariableStmt) {
                     stringMatch = optionText + " = ---";
-                    substringMatchRanges = [[0, stringMatch.length - 1]];
+                    substringMatchRanges = [[[0, optionText.length - 1]]];
                     editAction.getCode = () => new VarAssignmentStmt("", optionText);
                 } else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
                     //TODO: Need to think about whether to remove this or not
                     stringMatch = optionText + "[---]= ---";
-                    substringMatchRanges = [[0, stringMatch.length - 1]];
+                    substringMatchRanges = [[[0, optionText.length - 1]]];
                     editAction.getCode = () => {
                         const code = new ListElementAssignment();
                         (code.tokens[0] as TypedEmptyExpr).text = optionText;
