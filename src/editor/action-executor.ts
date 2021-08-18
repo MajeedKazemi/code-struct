@@ -467,7 +467,8 @@ export class ActionExecutor {
                             this.deleteCode(removableExpr.rootNode, { statement: true });
                         } else if (
                             removableExpr instanceof AutocompleteTkn &&
-                            removableExpr.autocompleteType == AutoCompleteType.RightOfExpression
+                            (removableExpr.autocompleteType == AutoCompleteType.RightOfExpression ||
+                                removableExpr.autocompleteType == AutoCompleteType.LeftOfExpression)
                         ) {
                             this.deleteAutocompleteToken(removableExpr);
                         } else this.deleteCode(removableExpr);
