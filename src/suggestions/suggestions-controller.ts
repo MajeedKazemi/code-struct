@@ -551,6 +551,7 @@ export class MenuController {
             this.indexOfRootMenu = 0;
             this.focusedOptionIndex = 0;
             menu.editCodeActionsOptions = suggestions;
+            this.focusOption(menu.options[this.focusedOptionIndex]);
         }
     }
 
@@ -1072,6 +1073,8 @@ export class MenuController {
                 if (option.text === focusedOptionText) {
                     this.focusedOptionIndex = menu.options.length - 1;
                     option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
+                } else {
+                    this.focusedOptionIndex = 0;
                 }
             }
 
@@ -1079,6 +1082,8 @@ export class MenuController {
                 const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
                 this.insertOptionIntoMenu(option, menu);
                 this.focusedOptionIndex = 0;
+            } else {
+                this.focusOption(menu.options[this.focusedOptionIndex]);
             }
         }
     }
