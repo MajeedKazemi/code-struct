@@ -55,22 +55,23 @@ export class ActionExecutor {
                     action.data.validMatches
                 );
 
+                autocompleteTkn.subscribe(
+                    CallbackType.change,
+                    new Callback(
+                        (() => {
+                            if (!this.module.menuController.isMenuOpen()) {
+                                this.openAutocompleteMenu(action.data.validMatches);
+                            }
+
+                            this.updateAutocompleteMenu(autocompleteTkn);
+                        }).bind(this)
+                    )
+                );
+
+                this.openAutocompleteMenu(action.data.validMatches);
+
                 switch (action.data.autocompleteType) {
                     case AutoCompleteType.StartOfLine:
-                        autocompleteTkn.subscribe(
-                            CallbackType.change,
-                            new Callback(
-                                (() => {
-                                    if (!this.module.menuController.isMenuOpen()) {
-                                        this.openAutocompleteMenu(action.data.validMatches);
-                                    }
-
-                                    this.updateAutocompleteMenu(autocompleteTkn);
-                                }).bind(this)
-                            )
-                        );
-
-                        this.openAutocompleteMenu(action.data.validMatches);
                         this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
 
                         break;
