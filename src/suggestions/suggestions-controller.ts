@@ -889,6 +889,8 @@ export class MenuController {
         });
 
         this.menus = [];
+        this.focusedMenuIndex = 0;
+        this.focusedOptionIndex = -1;
     }
 
     //Removes focus from currently focused option and sets it to the option below it.
