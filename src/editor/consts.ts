@@ -205,7 +205,7 @@ export class Actions {
     private constructor() {
         this.actionsList = new Array<EditCodeAction>(
             new EditCodeAction(
-                " = ---",
+                "var = ---",
                 "add-var-btn",
                 () => new VarAssignmentStmt(),
                 InsertActionType.InsertNewVariableStmt,
@@ -214,9 +214,9 @@ export class Actions {
                 null,
                 new RegExp("^[^\\d\\W]\\w*$")
             ),
-
+            //TODO: Need to think about whether to remove this or not. See suggestions-controller.ts: 1077
             new EditCodeAction(
-                " [---] = ---",
+                "var[---] = ---",
                 "add-list-elem-assign-btn",
                 () => new ListElementAssignment(),
                 InsertActionType.InsertListIndexAssignment,

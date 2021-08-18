@@ -1131,7 +1131,10 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         this.oldIdentifier = oldIdentifier ?? this.getIdentifier();
 
         (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
-        this.updateButton();
+
+        if (this.buttonId && this.buttonId !== "") {
+            this.updateButton();
+        }
     }
 
     setIdentifier(identifier: string) {
@@ -1143,7 +1146,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         const currentIdentifier = this.getIdentifier();
         const varController = this.getModule().variableController;
 
-        if (currentIdentifier !== this.oldIdentifier) {
+        if (currentIdentifier !== this.oldIdentifier || this.buttonId === "") {
             if (currentIdentifier === "   ") {
                 this.removeAssignment();
 

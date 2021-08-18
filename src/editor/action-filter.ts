@@ -77,8 +77,8 @@ export class ActionFilter {
                 {},
                 varRecord[1],
                 [""], //TODO: The terminating char needs to be updated,
-                "", //TODO: The match string needs to be updated
-                new RegExp("") //TODO: The match regex needs to be updated,
+                varStmt.getIdentifier(), //TODO: The match string needs to be updated
+                null //TODO: The match regex needs to be updated,
             );
             editAction.performAction = (() => {
                 this.module.executer.insertVariableReference(varStmt.buttonId, context);
@@ -127,7 +127,7 @@ export class ActionFilter {
                     {},
                     [""], //TODO: The terminating char needs to be updated
                     "", //TODO: The match string needs to be updated
-                    new RegExp("") //TODO: The match regex needs to be updated,
+                    null //TODO: The match regex needs to be updated,
                 );
                 codeAction.insertionType = codeAction.validateAction(this.module.validator, context);
 

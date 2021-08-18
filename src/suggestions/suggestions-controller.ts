@@ -1,8 +1,9 @@
 import { EditCodeAction } from "../editor/action-filter";
+import { InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { CodeConstruct, VarAssignmentStmt } from "../syntax-tree/ast";
+import { CodeConstruct, ListElementAssignment, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TextEnhance } from "../utilities/text-enhance";
@@ -1066,9 +1067,22 @@ export class MenuController {
             for (const editAction of optionsToKeep) {
                 let stringMatch; //user input if editAction has a matchRegex; a Fuse match object otherwise
                 let substringMatchRanges = [];
-                if (editAction.matchRegex) {
-                    stringMatch = optionText + editAction.optionName;
+
+                //TODO: If there are more constructs that need to have a custom performAction based on user input then consider changing this to be more general
+                if (editAction.insertActionType === InsertActionType.InsertNewVariableStmt) {
+                    stringMatch = optionText + " = ---";
                     substringMatchRanges = [[0, stringMatch.length - 1]];
+                    editAction.getCode = () => new VarAssignmentStmt("", optionText);
+                } else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
+                    //TODO: Need to think about whether to remove this or not
+                    stringMatch = optionText + "[---]= ---";
+                    substringMatchRanges = [[0, stringMatch.length - 1]];
+                    editAction.getCode = () => {
+                        const code = new ListElementAssignment();
+                        (code.tokens[0] as TypedEmptyExpr).text = optionText;
+
+                        return code;
+                    };
                 } else {
                     stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
 
@@ -1076,7 +1090,6 @@ export class MenuController {
                         substringMatchRanges.push(match.indices);
                     }
                 }
-
                 const optionDisplayText = textEnhance.getStyledSpanAtSubstrings(
                     stringMatch.item ?? stringMatch,
                     "matchingText",
