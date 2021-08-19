@@ -19,7 +19,7 @@ import {
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
-import { DataType, InsertionType, TAB_SPACES } from "./../syntax-tree/consts";
+import { DataType, InsertionType, NumberRegex, TAB_SPACES } from "./../syntax-tree/consts";
 import { Context } from "./focus";
 
 export class Validator {
@@ -27,6 +27,24 @@ export class Validator {
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    canSwitchLeftNumToAutocomplete(pressedKey: string, providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.expressionToLeft instanceof LiteralValExpr &&
+            !NumberRegex.test(context.expressionToLeft.getValue() + pressedKey)
+        );
+    }
+
+    canSwitchRightNumToAutocomplete(pressedKey: string, providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.expressionToRight instanceof LiteralValExpr &&
+            !NumberRegex.test(context.expressionToRight.getValue() + pressedKey)
+        );
     }
 
     atBeginningOfValOperation(providedContext?: Context): boolean {

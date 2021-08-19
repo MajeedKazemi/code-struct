@@ -16,9 +16,11 @@ import {
     boolOps,
     comparisonOps,
     DataType,
+    IdentifierRegex,
     IndexableTypes,
     InsertionType,
     ListTypes,
+    NumberRegex,
     TAB_SPACES,
     UnaryOp,
 } from "./consts";
@@ -2226,6 +2228,8 @@ export class EditableTextTkn extends Token implements TextEditable {
 }
 
 export class LiteralValExpr extends Expression {
+    valueTokenIndex: number = 0;
+
     constructor(returns: DataType, value?: string, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
@@ -2233,33 +2237,27 @@ export class LiteralValExpr extends Expression {
             case DataType.String: {
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
                 this.tokens.push(
-                    new EditableTextTkn(
-                        value == undefined ? "" : value,
-                        RegExp('^([^\\r\\n\\"]*)$'),
-                        this,
-                        this.tokens.length
-                    )
+                    new EditableTextTkn(value == undefined ? "" : value, IdentifierRegex, this, this.tokens.length)
                 );
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
+
+                this.valueTokenIndex = 1;
 
                 break;
             }
 
             case DataType.Number: {
                 this.tokens.push(
-                    new EditableTextTkn(
-                        value == undefined ? "" : value,
-                        RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$"),
-                        this,
-                        this.tokens.length
-                    )
+                    new EditableTextTkn(value == undefined ? "" : value, NumberRegex, this, this.tokens.length)
                 );
+                this.valueTokenIndex = 0;
 
                 break;
             }
 
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTkn(value, this, this.tokens.length));
+                this.valueTokenIndex = 0;
 
                 break;
             }
@@ -2267,6 +2265,10 @@ export class LiteralValExpr extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+    }
+
+    getValue(): string {
+        return (this.tokens[this.valueTokenIndex] as Token).text;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {

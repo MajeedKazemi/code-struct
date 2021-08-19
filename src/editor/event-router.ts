@@ -1,12 +1,6 @@
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import {
-    AutoCompleteType,
-    BinaryOperator,
-    DataType,
-    InsertionType,
-    StartOfLineAutocompleteRegex,
-} from "./../syntax-tree/consts";
+import { AutoCompleteType, BinaryOperator, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
 import { EditAction } from "./data-types";
@@ -278,7 +272,23 @@ export class EventRouter {
                                 break;
                         }
 
-                        return new EditAction(EditActionType.InsertChar);
+                        if (this.module.validator.canSwitchLeftNumToAutocomplete(e.key)) {
+                            return new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.RightOfExpression,
+                                firstChar: e.key,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            });
+                        } else if (this.module.validator.canSwitchRightNumToAutocomplete(e.key)) {
+                            return new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.LeftOfExpression,
+                                firstChar: e.key,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            });
+                        } else return new EditAction(EditActionType.InsertChar);
                     } else if (this.module.validator.atEmptyExpressionHole(context)) {
                         if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
                             return new EditAction(EditActionType.InsertLiteral, {
@@ -305,14 +315,11 @@ export class EventRouter {
                                     .filter((item) => item.insertionType != InsertionType.Invalid),
                             });
                         }
-                    } else if (
-                        this.module.validator.onBeginningOfLine(context) &&
-                        StartOfLineAutocompleteRegex.test(e.key)
-                    ) {
+                    } else if (this.module.validator.onBeginningOfLine(context) && IdentifierRegex.test(e.key)) {
                         return new EditAction(EditActionType.OpenAutocomplete, {
                             autocompleteType: AutoCompleteType.StartOfLine,
                             firstChar: e.key,
-                            validatorRegex: StartOfLineAutocompleteRegex,
+                            validatorRegex: IdentifierRegex,
                             validMatches: this.module.actionFilter
                                 .getProcessedInsertionsList()
                                 .filter((item) => item.insertionType != InsertionType.Invalid),

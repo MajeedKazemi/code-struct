@@ -231,4 +231,5 @@ export enum AutoCompleteType {
     AtExpressionHole,
 }
 
-export const StartOfLineAutocompleteRegex = RegExp("^[^\\d\\W]\\w*$");
+export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");
+export const NumberRegex = RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$");
