@@ -10,7 +10,6 @@ import {
     IfStatement,
     ListAccessModifier,
     ListComma,
-    ListElementAssignment,
     ListLiteralExpression,
     LiteralValExpr,
     MethodCallModifier,
@@ -213,17 +212,6 @@ export class Actions {
                 ["="],
                 null,
                 new RegExp("^[^\\d\\W]\\w*$")
-            ),
-            //TODO: Need to think about whether to remove this or not. See suggestions-controller.ts: 1077
-            new EditCodeAction(
-                "var[---] = ---",
-                "add-list-elem-assign-btn",
-                () => new ListElementAssignment(),
-                InsertActionType.InsertListIndexAssignment,
-                {},
-                ["["],
-                "",
-                new RegExp("^[^\\d\\W]\\w*$") //TODO: This does not have a match string either because the first part of the expression is a var identifier
             ),
 
             new EditCodeAction(
