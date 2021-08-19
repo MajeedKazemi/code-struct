@@ -166,19 +166,21 @@ export class VariableController {
 
     hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number) {
         const availableRefs = scope
-            .getValidReferences(lineNumber)
-            .map((ref) => (ref.statement as VarAssignmentStmt).buttonId);
+            ?.getValidReferences(lineNumber)
+            ?.map((ref) => (ref.statement as VarAssignmentStmt).buttonId);
 
-        for (const button of this.variableButtons) {
-            if (availableRefs.indexOf(button.id) === -1) {
-                button.parentElement.style.display = "none";
-            } else {
-                button.parentElement.style.display = "grid";
-                button.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
-                    scope,
-                    lineNumber,
-                    button.textContent
-                );
+        if (availableRefs) {
+            for (const button of this.variableButtons) {
+                if (availableRefs.indexOf(button.id) === -1) {
+                    button.parentElement.style.display = "none";
+                } else {
+                    button.parentElement.style.display = "grid";
+                    button.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
+                        scope,
+                        lineNumber,
+                        button.textContent
+                    );
+                }
             }
         }
     }

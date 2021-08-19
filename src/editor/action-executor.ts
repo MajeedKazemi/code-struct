@@ -914,15 +914,28 @@ export class ActionExecutor {
     }
 
     private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
-        if (
-            token.autocompleteType == AutoCompleteType.RightOfExpression ||
-            token.autocompleteType == AutoCompleteType.LeftOfExpression
-        )
-            this.deleteAutocompleteToken(token);
-        else {
-            this.deleteCode(token, {
-                statement: token.autocompleteType == AutoCompleteType.StartOfLine,
-            });
+        switch (token.autocompleteType) {
+            case AutoCompleteType.RightOfExpression:
+            case AutoCompleteType.LeftOfExpression:
+                this.deleteAutocompleteToken(token);
+
+                break;
+
+            case AutoCompleteType.StartOfLine:
+                if (token.rootNode instanceof TemporaryStmt) {
+                    this.deleteCode(token.rootNode, {
+                        statement: true,
+                    });
+                } else {
+                    this.deleteCode(token);
+                }
+
+                break;
+
+            case AutoCompleteType.AtExpressionHole:
+                this.deleteCode(token);
+
+                break;
         }
 
         match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
