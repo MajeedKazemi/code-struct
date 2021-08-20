@@ -715,10 +715,12 @@ export function areEqualTypes(incoming: DataType, receiving: DataType): boolean 
  * Return whether list1 contains at least one item from list2.
  */
 export function hasMatch(list1: any[], list2: any[]): boolean {
-    if (list2.length == 0 || list1.length == 0) return false;
+    if (list2?.length == 0 || list1?.length == 0) return false;
 
-    for (const item of list2) {
-        if (list1.indexOf(item) > -1) return true;
+    if (list2) {
+        for (const item of list2) {
+            if (list1?.indexOf(item) > -1) return true;
+        }
     }
 
     return false;

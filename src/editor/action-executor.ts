@@ -21,7 +21,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt,
+    VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
@@ -710,12 +710,12 @@ export class ActionExecutor {
             case EditActionType.InsertEmptyListItem: {
                 if (action.data.toRight) {
                     const code = [new NonEditableTkn(", "), new TypedEmptyExpr([DataType.Any])];
-                    this.module.insertAfterIndex(context.tokenToRight, context.tokenToRight.indexInRoot, code);
+                    this.insertEmptyListItem(context.tokenToRight, context.tokenToRight.indexInRoot, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[1] });
                 } else if (action.data.toLeft) {
                     const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(", ")];
-                    this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
+                    this.insertEmptyListItem(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
                 }
@@ -910,6 +910,23 @@ export class ActionExecutor {
             this.insertStatement(context, new VarOperationStmt(this.createVarReference(buttonId)));
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
             this.insertExpression(context, this.createVarReference(buttonId));
+        }
+    }
+
+    private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
+        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
+            const root = focusedCode.rootNode;
+
+            if (root instanceof Statement && root.tokens.length > 0) {
+                root.tokens.splice(index, 0, ...items);
+
+                for (let i = 0; i < root.tokens.length; i++) {
+                    root.tokens[i].indexInRoot = i;
+                    root.tokens[i].rootNode = root;
+                }
+
+                root.rebuild(root.getLeftPosition(), 0);
+            }
         }
     }
 

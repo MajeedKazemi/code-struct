@@ -434,12 +434,12 @@ export abstract class Statement implements CodeConstruct {
     }
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType {
-        if (insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1) {
+        if (insertInto?.type?.indexOf(insertCode.returns) > -1 || insertInto?.type?.indexOf(DataType.Any) > -1) {
             return InsertionType.Valid;
         } //types match or one of them is Any
 
         //need to check if the type being inserted can be converted into any of the types that the hole accepts
-        return insertInto.canReplaceWithConstruct(insertCode);
+        return insertInto?.canReplaceWithConstruct(insertCode);
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}

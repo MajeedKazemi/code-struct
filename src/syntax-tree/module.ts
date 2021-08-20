@@ -334,23 +334,6 @@ export class Module {
         return null;
     }
 
-    insertAfterIndex(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
-        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
-            const root = focusedCode.rootNode;
-
-            if (root instanceof Statement && root.tokens.length > 0) {
-                root.tokens.splice(index, 0, ...items);
-
-                for (let i = 0; i < root.tokens.length; i++) {
-                    root.tokens[i].indexInRoot = i;
-                    root.tokens[i].rootNode = root;
-                }
-
-                root.rebuild(root.getLeftPosition(), 0);
-            }
-        }
-    }
-
     reset() {
         this.body = new Array<Statement>();
 
