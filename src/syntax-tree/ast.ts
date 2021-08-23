@@ -3,6 +3,7 @@ import { EditCodeAction } from "../editor/action-filter";
 import { ConstructName } from "../editor/consts";
 import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
+import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { Notification } from "../notification-system/notification";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
@@ -1188,12 +1189,17 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
                 this.oldIdentifier = currentIdentifier;
 
+                //There are two types of callbacks in focus.ts OnNavChangeCallbacks and OnNavOffCallbacks. They also run in this order.
+                //The variable is created by the latter and the former runs validation checks. When a variable is first created we therefore
+                //have to manually run variable-related validations here.
                 varController.updateVarButtonWithType(
                     this.buttonId,
                     (this.rootNode as Module | Statement).scope,
                     this.lineNumber,
                     this.getIdentifier()
                 );
+                const insertions = this.getModule().actionFilter.getProcessedVariableInsertions();
+                updateButtonsVisualMode(insertions);
             }
         }
     }

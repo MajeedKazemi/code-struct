@@ -157,7 +157,7 @@ export class ActionFilter {
     }
 
     getProcessedVariableInsertions(): EditCodeAction[] {
-        return this.convertInsertionMapToList(this.validateInsertions());
+        return this.convertInsertionMapToList(this.validateVariableInsertions());
     }
 
     getProcessedEditInsertions(): EditCodeAction[] {
@@ -165,7 +165,7 @@ export class ActionFilter {
     }
 
     getProcessedConstructInsertions(): EditCodeAction[] {
-        return this.convertInsertionMapToList(this.validateVariableInsertions());
+        return this.convertInsertionMapToList(this.validateInsertions());
     }
 
     getProcessedVariableOperations(): EditCodeAction[] {
