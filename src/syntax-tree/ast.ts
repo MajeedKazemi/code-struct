@@ -1372,7 +1372,10 @@ export class ValueOperationExpr extends Expression {
     }
 
     updateReturnType() {
-        for (const mod of this.tokens) if (mod instanceof Expression) this.returns = mod.returns;
+        for (const mod of this.tokens) {
+            if (mod instanceof ListAccessModifier) this.returns = TypeChecker.getElementTypeFromListType(this.returns);
+            else if (mod instanceof Expression) this.returns = mod.returns;
+        }
     }
 
     appendModifier(mod: Modifier) {

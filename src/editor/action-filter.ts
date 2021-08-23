@@ -108,8 +108,10 @@ export class ActionFilter {
                 const code = varOperation() as Expression;
 
                 if (code instanceof VarAssignmentStmt) code.setIdentifier(ref.identifier);
-                else if (code instanceof ValueOperationExpr) code.setVariable(ref);
-                else if (code instanceof VarOperationStmt) {
+                else if (code instanceof ValueOperationExpr) {
+                    code.setVariable(ref);
+                    code.updateReturnType();
+                } else if (code instanceof VarOperationStmt) {
                     code.setVariable(ref);
                     code.updateModifierTypes();
                 }
@@ -121,8 +123,10 @@ export class ActionFilter {
                         const code = varOperation() as Expression;
 
                         if (code instanceof VarAssignmentStmt) code.setIdentifier(ref.identifier);
-                        else if (code instanceof ValueOperationExpr) code.setVariable(ref);
-                        else if (code instanceof VarOperationStmt) {
+                        else if (code instanceof ValueOperationExpr) {
+                            code.setVariable(ref);
+                            code.updateReturnType();
+                        } else if (code instanceof VarOperationStmt) {
                             code.setVariable(ref);
                             code.updateModifierTypes();
                         }
