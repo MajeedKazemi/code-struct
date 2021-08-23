@@ -4,6 +4,7 @@ import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeConstruct, ListElementAssignment, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TextEnhance } from "../utilities/text-enhance";
@@ -1095,21 +1096,31 @@ export class MenuController {
                     "matchingText",
                     substringMatchRanges
                 );
-                const option = new MenuOption(optionDisplayText, true, null, menu, null, () => {
-                    editAction.performAction(
-                        this.module.executer,
-                        this.module.eventRouter,
-                        this.module.focus.getContext()
-                    );
-                });
 
-                this.insertOptionIntoMenu(option, menu);
+                //necessary so that we don't create variables with keywords as identifiers
+                let option;
+                if (
+                    (editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
+                        Object.keys(PythonKeywords).indexOf(optionText) == -1 &&
+                        Object.keys(BuiltInFunctions).indexOf(optionText) == -1) ||
+                    editAction.insertActionType !== InsertActionType.InsertNewVariableStmt
+                ) {
+                    option = new MenuOption(optionDisplayText, true, null, menu, null, () => {
+                        editAction.performAction(
+                            this.module.executer,
+                            this.module.eventRouter,
+                            this.module.focus.getContext()
+                        );
+                    });
 
-                if (option.text === focusedOptionText) {
-                    this.focusedOptionIndex = menu.options.length - 1;
-                    option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
-                } else {
-                    this.focusedOptionIndex = 0;
+                    this.insertOptionIntoMenu(option, menu);
+
+                    if (option.text === focusedOptionText) {
+                        this.focusedOptionIndex = menu.options.length - 1;
+                        option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
+                    } else {
+                        this.focusedOptionIndex = 0;
+                    }
                 }
             }
 
