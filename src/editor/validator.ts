@@ -451,7 +451,12 @@ export class Validator {
     canDeleteListItemToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+        if (
+            context.selected &&
+            context.token != null &&
+            context.token.rootNode instanceof ListLiteralExpression &&
+            context.token.rootNode.tokens.length != 3
+        ) {
             const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
 
             // [|---|, ---] [|---|, "123"] [|---|, ---, 123]

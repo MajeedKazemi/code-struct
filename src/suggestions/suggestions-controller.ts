@@ -1121,7 +1121,8 @@ export class MenuController {
                         editAction.performAction(
                             this.module.executer,
                             this.module.eventRouter,
-                            this.module.focus.getContext()
+                            this.module.focus.getContext(),
+                            {}
                         );
                     });
 
