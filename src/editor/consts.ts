@@ -204,17 +204,6 @@ export class Actions {
     private constructor() {
         this.actionsList = new Array<EditCodeAction>(
             new EditCodeAction(
-                "var = ---",
-                "add-var-btn",
-                () => new VarAssignmentStmt(),
-                InsertActionType.InsertNewVariableStmt,
-                {},
-                ["="],
-                null,
-                new RegExp("^[^\\d\\W]\\w*$")
-            ),
-
-            new EditCodeAction(
                 "print(---)",
                 "add-print-btn",
                 () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void),
@@ -731,6 +720,16 @@ export class Actions {
                 {},
                 ["("],
                 "str"
+            ),
+            new EditCodeAction(
+                "var = ---",
+                "add-var-btn",
+                () => new VarAssignmentStmt(),
+                InsertActionType.InsertNewVariableStmt,
+                {},
+                ["="],
+                null,
+                new RegExp("^[^\\d\\W]\\w*$")
             )
         );
 
