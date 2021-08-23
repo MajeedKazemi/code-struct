@@ -1937,12 +1937,21 @@ export class BinaryOperatorExpr extends Expression {
 
             this.returns = DataType.Boolean;
         } else if (this.operatorCategory == BinaryOperatorCategory.Comparison) {
-            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-            this.rightOperandIndex = this.tokens.length;
-            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+            if (this.operator === BinaryOperator.Equal || this.operator === BinaryOperator.NotEqual) {
+                this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+            } else {
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+            }
 
             this.returns = DataType.Boolean;
         }
