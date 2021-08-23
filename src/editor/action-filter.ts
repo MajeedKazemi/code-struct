@@ -107,7 +107,7 @@ export class ActionFilter {
                 }
 
                 const codeAction = new EditCodeAction(
-                    code.getRenderText().replace(/   /g, "---"),
+                    code.getRenderText().replace(/   /g, " ---"),
                     "",
                     () => {
                         const code = varOperation() as Expression;
