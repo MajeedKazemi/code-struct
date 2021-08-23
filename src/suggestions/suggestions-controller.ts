@@ -848,7 +848,12 @@ export class MenuController {
 
             for (const action of options) {
                 menuOptions.set(action.optionName, () => {
-                    action.performAction(this.module.executer, this.module.eventRouter, this.module.focus.getContext());
+                    action.performAction(
+                        this.module.executer,
+                        this.module.eventRouter,
+                        this.module.focus.getContext(),
+                        {}
+                    );
                 });
             }
 
@@ -1099,7 +1104,8 @@ export class MenuController {
                     editAction.performAction(
                         this.module.executer,
                         this.module.eventRouter,
-                        this.module.focus.getContext()
+                        this.module.focus.getContext(),
+                        {}
                     );
                 });
 
