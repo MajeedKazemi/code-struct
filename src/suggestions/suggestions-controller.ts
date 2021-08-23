@@ -1070,7 +1070,13 @@ export class MenuController {
                 let substringMatchRanges = [];
 
                 //TODO: If there are more constructs that need to have a custom performAction based on user input then consider changing this to be more general
-                if (editAction.insertActionType === InsertActionType.InsertNewVariableStmt) {
+                const currentStmt = this.module.focus.getFocusedStatement();
+                const currentScope = currentStmt.hasScope() ? currentStmt.scope : currentStmt.rootNode.scope;
+                if (
+                    editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
+                    currentScope.getAllAssignmentsToVarAboveLine(optionText, this.module, currentStmt.lineNumber)
+                        .length === 0
+                ) {
                     stringMatch = optionText + " = ---";
                     substringMatchRanges = [[[0, optionText.length - 1]]];
                     editAction.getCode = () => new VarAssignmentStmt("", optionText);
