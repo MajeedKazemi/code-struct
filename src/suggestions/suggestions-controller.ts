@@ -1098,12 +1098,15 @@ export class MenuController {
                 } else {
                     stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
 
-                    for (const match of stringMatch.matches) {
-                        substringMatchRanges.push(match.indices);
+                    if (stringMatch) {
+                        for (const match of stringMatch.matches) {
+                            substringMatchRanges.push(match.indices);
+                        }
                     }
                 }
+
                 const optionDisplayText = textEnhance.getStyledSpanAtSubstrings(
-                    stringMatch.item ?? stringMatch,
+                    stringMatch?.item ?? stringMatch,
                     "matchingText",
                     substringMatchRanges
                 );

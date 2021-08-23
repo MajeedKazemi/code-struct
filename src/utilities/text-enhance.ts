@@ -22,7 +22,7 @@ export class TextEnhance {
             }
         }
 
-        for (let i = 0; i < content.length; i++) {
+        for (let i = 0; i < content?.length; i++) {
             if (startIndexToLength.length > 0 && i === startIndexToLength[0][0]) {
                 let stringToAdd = "";
                 for (let j = i; j < i + startIndexToLength[0][1]; j++) {
