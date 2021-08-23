@@ -80,8 +80,16 @@ export class ActionFilter {
                 varStmt.getIdentifier(), //TODO: The match string needs to be updated
                 null //TODO: The match regex needs to be updated,
             );
-            editAction.performAction = (() => {
-                this.module.executer.insertVariableReference(varStmt.buttonId, context);
+            editAction.performAction = ((
+                executor: ActionExecutor,
+                eventRouter: EventRouter,
+                providedContext: Context,
+                autocompleteData?: {}
+            ) => {
+                let context = providedContext;
+                if (autocompleteData) context = executor.deleteAutocompleteOnMatch(providedContext);
+
+                executor.insertVariableReference(varStmt.buttonId, context, autocompleteData);
             }).bind(this);
             validOptionMap.set(varStmt.getIdentifier(), editAction);
         }
@@ -316,9 +324,15 @@ export class EditCodeAction extends UserAction {
         }
     }
 
-    performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context, autocompleteData?: {}) {
+    performAction(executor: ActionExecutor, eventRouter: EventRouter, providedContext: Context, autocompleteData?: {}) {
+        let context = providedContext;
+
+        if (autocompleteData) context = executor.deleteAutocompleteOnMatch(providedContext);
+
         const editAction = eventRouter.routeToolboxEvents(this, context);
+
         if (editAction.data) editAction.data.autocompleteData = autocompleteData;
+        else editAction.data = { autocompleteData };
 
         executor.execute(editAction, context);
     }

@@ -849,7 +849,12 @@ export class MenuController {
 
             for (const action of options) {
                 menuOptions.set(action.optionName, () => {
-                    action.performAction(this.module.executer, this.module.eventRouter, this.module.focus.getContext());
+                    action.performAction(
+                        this.module.executer,
+                        this.module.eventRouter,
+                        this.module.focus.getContext(),
+                        {}
+                    );
                 });
             }
 
@@ -1104,7 +1109,8 @@ export class MenuController {
                 );
 
                 //necessary so that we don't create variables with keywords as identifiers
-                let option;
+                let option: MenuOption;
+
                 if (
                     (editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
                         Object.keys(PythonKeywords).indexOf(optionText) == -1 &&

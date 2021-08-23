@@ -21,7 +21,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
@@ -43,7 +43,7 @@ export class ActionExecutor {
     }
 
     execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
+        let context = providedContext ? providedContext : this.module.focus.getContext();
 
         let preventDefaultEvent = true;
 
@@ -782,49 +782,6 @@ export class ActionExecutor {
 
                 break;
             }
-            /*
-            case EditActionType.DisplayGreaterThanSuggestion:
-                if (this.module.isAbleToInsertComparator(context)) {
-                    this.module.menuController.buildSingleLevelMenu(
-                        [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
-                        Util.getInstance(this.module).constructActions,
-                        {
-                            left: selection.startColumn * this.module.editor.computeCharWidth(),
-                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                        }
-                    );
-                }
-
-                break;
-
-            case EditActionType.DisplayLessThanSuggestion:
-                if (this.module.isAbleToInsertComparator(context)) {
-                    this.module.menuController.buildSingleLevelMenu(
-                        [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
-                        Util.getInstance(this.module).constructActions,
-                        {
-                            left: selection.startColumn * this.module.editor.computeCharWidth(),
-                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                        }
-                    );
-                }
-
-                break;
-
-            case EditActionType.DisplayEqualsSuggestion:
-                suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
-                // suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
-
-                this.module.menuController.buildSingleLevelMenu(
-                    suggestions,
-                    Util.getInstance(this.module).constructActions,
-                    {
-                        left: selection.startColumn * this.module.editor.computeCharWidth(),
-                        top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                    }
-                );
-
-                break;*/
 
             case EditActionType.OpenValidInsertMenu:
                 this.openAutocompleteMenu(this.module.actionFilter.getProcessedInsertionsList());
@@ -903,8 +860,8 @@ export class ActionExecutor {
         return new VariableReferenceExpr(identifier, dataType, buttonId);
     }
 
-    insertVariableReference(buttonId: string, providedContext?: Context) {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
+    insertVariableReference(buttonId: string, providedContext?: Context, autocompleteData?: {}) {
+        let context = providedContext ? providedContext : this.module.focus.getContext();
 
         if (this.module.validator.onBeginningOfLine(context)) {
             this.insertStatement(context, new VarOperationStmt(this.createVarReference(buttonId)));
@@ -913,24 +870,13 @@ export class ActionExecutor {
         }
     }
 
-    private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
-        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
-            const root = focusedCode.rootNode;
+    deleteAutocompleteOnMatch(context: Context): Context {
+        let token: AutocompleteTkn;
 
-            if (root instanceof Statement && root.tokens.length > 0) {
-                root.tokens.splice(index, 0, ...items);
+        if (context.token instanceof AutocompleteTkn) token = context.token;
+        if (context.tokenToLeft instanceof AutocompleteTkn) token = context.tokenToLeft;
+        if (context.tokenToRight instanceof AutocompleteTkn) token = context.tokenToRight;
 
-                for (let i = 0; i < root.tokens.length; i++) {
-                    root.tokens[i].indexInRoot = i;
-                    root.tokens[i].rootNode = root;
-                }
-
-                root.rebuild(root.getLeftPosition(), 0);
-            }
-        }
-    }
-
-    private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
         switch (token.autocompleteType) {
             case AutoCompleteType.RightOfExpression:
             case AutoCompleteType.LeftOfExpression:
@@ -955,6 +901,27 @@ export class ActionExecutor {
                 break;
         }
 
+        return this.module.focus.getContext();
+    }
+
+    private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
+        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
+            const root = focusedCode.rootNode;
+
+            if (root instanceof Statement && root.tokens.length > 0) {
+                root.tokens.splice(index, 0, ...items);
+
+                for (let i = 0; i < root.tokens.length; i++) {
+                    root.tokens[i].indexInRoot = i;
+                    root.tokens[i].rootNode = root;
+                }
+
+                root.rebuild(root.getLeftPosition(), 0);
+            }
+        }
+    }
+
+    private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
         match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
             identifier: token.text,
         });
