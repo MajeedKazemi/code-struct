@@ -877,28 +877,30 @@ export class ActionExecutor {
         if (context.tokenToLeft instanceof AutocompleteTkn) token = context.tokenToLeft;
         if (context.tokenToRight instanceof AutocompleteTkn) token = context.tokenToRight;
 
-        switch (token.autocompleteType) {
-            case AutoCompleteType.RightOfExpression:
-            case AutoCompleteType.LeftOfExpression:
-                this.deleteAutocompleteToken(token);
+        if (token) {
+            switch (token.autocompleteType) {
+                case AutoCompleteType.RightOfExpression:
+                case AutoCompleteType.LeftOfExpression:
+                    this.deleteAutocompleteToken(token);
 
-                break;
+                    break;
 
-            case AutoCompleteType.StartOfLine:
-                if (token.rootNode instanceof TemporaryStmt) {
-                    this.deleteCode(token.rootNode, {
-                        statement: true,
-                    });
-                } else {
+                case AutoCompleteType.StartOfLine:
+                    if (token.rootNode instanceof TemporaryStmt) {
+                        this.deleteCode(token.rootNode, {
+                            statement: true,
+                        });
+                    } else {
+                        this.deleteCode(token);
+                    }
+
+                    break;
+
+                case AutoCompleteType.AtExpressionHole:
                     this.deleteCode(token);
-                }
 
-                break;
-
-            case AutoCompleteType.AtExpressionHole:
-                this.deleteCode(token);
-
-                break;
+                    break;
+            }
         }
 
         return this.module.focus.getContext();
