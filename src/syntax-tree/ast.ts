@@ -1467,6 +1467,7 @@ export class ListAccessModifier extends Modifier {
 
         this.tokens.push(new NonEditableTkn(`[`, this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
     }
 
