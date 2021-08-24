@@ -17,11 +17,11 @@ import {
     boolOps,
     comparisonOps,
     DataType,
-    IdentifierRegex,
     IndexableTypes,
     InsertionType,
     ListTypes,
     NumberRegex,
+    StringRegex,
     TAB_SPACES,
     UnaryOp,
 } from "./consts";
@@ -2256,7 +2256,7 @@ export class LiteralValExpr extends Expression {
             case DataType.String: {
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
                 this.tokens.push(
-                    new EditableTextTkn(value == undefined ? "" : value, IdentifierRegex, this, this.tokens.length)
+                    new EditableTextTkn(value == undefined ? "" : value, StringRegex, this, this.tokens.length)
                 );
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
 

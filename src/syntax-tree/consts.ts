@@ -233,3 +233,4 @@ export enum AutoCompleteType {
 
 export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");
 export const NumberRegex = RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$");
+export const StringRegex = RegExp('^([^\\r\\n\\"]*)$');
