@@ -1,6 +1,6 @@
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { BinaryOperator, DataType } from "./../syntax-tree/consts";
+import { AutoCompleteType, BinaryOperator, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
 import { EditAction } from "./data-types";
@@ -31,11 +31,17 @@ export class EventRouter {
             }
 
             case KeyPress.ArrowLeft: {
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+                if (
+                    !inTextEditMode &&
+                    !(
+                        context.token instanceof ast.AutocompleteTkn ||
+                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
+                        context.tokenToRight instanceof ast.AutocompleteTkn
+                    ) &&
+                    this.module.menuController.isMenuOpen()
+                ) {
                     return new EditAction(EditActionType.CloseSubMenu);
-                }
-
-                if (inTextEditMode) {
+                } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToPrevTokenAtTextEditable(context)) {
                         return new EditAction(EditActionType.SelectPrevToken);
                     }
@@ -48,11 +54,17 @@ export class EventRouter {
             }
 
             case KeyPress.ArrowRight: {
-                if (!inTextEditMode && this.module.menuController.isMenuOpen()) {
+                if (
+                    !inTextEditMode &&
+                    !(
+                        context.token instanceof ast.AutocompleteTkn ||
+                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
+                        context.tokenToRight instanceof ast.AutocompleteTkn
+                    ) &&
+                    this.module.menuController.isMenuOpen()
+                ) {
                     return new EditAction(EditActionType.OpenSubMenu);
-                }
-
-                if (inTextEditMode) {
+                } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToNextTokenAtTextEditable(context)) {
                         return new EditAction(EditActionType.SelectNextToken);
                     }
@@ -163,56 +175,8 @@ export class EventRouter {
                 break;
             }
 
-            case KeyPress.OpenBracket: {
-                if (this.module.validator.canInsertEmptyList(context)) {
-                    return new EditAction(EditActionType.InsertEmptyList);
-                } else if (this.module.validator.atLeftOfExpression(context)) {
-                    return new EditAction(EditActionType.WrapExpressionWithItem, {
-                        expression: new ast.ListLiteralExpression(),
-                    });
-                }
-
-                break;
-            }
-
-            case KeyPress.Comma: {
-                const toRight = this.module.validator.canAddListItemToRight(context);
-                const toLeft = this.module.validator.canAddListItemToLeft(context);
-
-                if (toLeft || toRight) {
-                    return new EditAction(EditActionType.InsertEmptyListItem, {
-                        toRight,
-                        toLeft,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-
-                break;
-            }
-
-            case KeyPress.GreaterThan:
-            case KeyPress.LessThan:
-            case KeyPress.Equals:
-            case KeyPress.ForwardSlash:
-            case KeyPress.Plus:
-            case KeyPress.Minus:
-            case KeyPress.Star: {
-                const toRight = this.module.validator.atRightOfExpression(context);
-                const toLeft = this.module.validator.atLeftOfExpression(context);
-                const replace = this.module.validator.atEmptyExpressionHole(context);
-
-                if (toRight || toLeft || replace) {
-                    return new EditAction(EditActionType.InsertBinaryOperator, {
-                        operator: this.getBinaryOperatorFromKey(e.key),
-                        toRight,
-                        toLeft,
-                        replace,
-                    });
-                } else if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-            }
-
             case KeyPress.Escape: {
-                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                else if (this.module.menuController.isMenuOpen()) {
+                if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseValidInsertMenu);
                 } else {
                     const draftModeNode = this.module.focus.getContainingDraftNode(context);
@@ -236,19 +200,9 @@ export class EventRouter {
                 break;
             }
 
-            //TODO: Remove later
-            case KeyPress.P: {
-                if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                if (!inTextEditMode && e.ctrlKey && e.key.length == 1) {
-                    return new EditAction(EditActionType.OpenValidInsertMenuSingleLevel);
-                }
-
-                break;
-            }
-
             default: {
-                if (inTextEditMode) {
-                    if (e.key.length == 1) {
+                if (e.key.length == 1) {
+                    if (inTextEditMode) {
                         switch (e.key) {
                             case KeyPress.C:
                                 if (e.ctrlKey) return new EditAction(EditActionType.Copy);
@@ -271,22 +225,66 @@ export class EventRouter {
                                 break;
                         }
 
-                        return new EditAction(EditActionType.InsertChar);
-                    }
-                } else {
-                    if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
-                        return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: DataType.Number,
-                            initialValue: e.key,
+                        if (this.module.validator.canSwitchLeftNumToAutocomplete(e.key)) {
+                            return new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.RightOfExpression,
+                                firstChar: e.key,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            });
+                        } else if (this.module.validator.canSwitchRightNumToAutocomplete(e.key)) {
+                            return new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.LeftOfExpression,
+                                firstChar: e.key,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            });
+                        } else return new EditAction(EditActionType.InsertChar);
+                    } else if (this.module.validator.atEmptyExpressionHole(context)) {
+                        if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
+                            return new EditAction(EditActionType.InsertLiteral, {
+                                literalType: DataType.Number,
+                                initialValue: e.key,
+                            });
+                        } else if (['"'].indexOf(e.key) > -1) {
+                            return new EditAction(EditActionType.InsertLiteral, {
+                                literalType: DataType.String,
+                            });
+                        } else {
+                            return new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.AtExpressionHole,
+                                firstChar: e.key,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            });
+                        }
+                    } else if (this.module.validator.onBeginningOfLine(context) && IdentifierRegex.test(e.key)) {
+                        return new EditAction(EditActionType.OpenAutocomplete, {
+                            autocompleteType: AutoCompleteType.StartOfLine,
+                            firstChar: e.key,
+                            validatorRegex: IdentifierRegex,
+                            validMatches: this.module.actionFilter
+                                .getProcessedInsertionsList()
+                                .filter((item) => item.insertionType != InsertionType.Invalid),
                         });
-                    } else if (["t", "f"].indexOf(e.key) > -1) {
-                        return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: DataType.Boolean,
-                            initialValue: e.key === "t" ? "True" : "False",
+                    } else if (this.module.validator.atRightOfExpression(context)) {
+                        return new EditAction(EditActionType.OpenAutocomplete, {
+                            autocompleteType: AutoCompleteType.RightOfExpression,
+                            firstChar: e.key,
+                            validMatches: this.module.actionFilter
+                                .getProcessedInsertionsList()
+                                .filter((item) => item.insertionType != InsertionType.Invalid),
                         });
-                    } else if (['"'].indexOf(e.key) > -1) {
-                        return new EditAction(EditActionType.InsertLiteral, {
-                            literalType: DataType.String,
+                    } else if (this.module.validator.atLeftOfExpression(context)) {
+                        return new EditAction(EditActionType.OpenAutocomplete, {
+                            autocompleteType: AutoCompleteType.LeftOfExpression,
+                            firstChar: e.key,
+                            validMatches: this.module.actionFilter
+                                .getProcessedInsertionsList()
+                                .filter((item) => item.insertionType != InsertionType.Invalid),
                         });
                     }
                 }

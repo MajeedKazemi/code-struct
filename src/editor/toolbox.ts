@@ -1,8 +1,10 @@
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
-import { InsertionRecord } from "./action-filter";
+import { EditCodeAction } from "./action-filter";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import * as options from "./toolbox.json";
+
+export const EDITOR_DOM_ID = "editor";
 
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
     const container = document.createElement("grid");
@@ -53,22 +55,22 @@ export function removeClassFromButton(buttonId: string, className: string) {
     }
 }
 
-export function updateButtonsVisualMode(insertionRecords: InsertionRecord[]) {
+export function updateButtonsVisualMode(insertionRecords: EditCodeAction[]) {
     for (const insertionRecord of insertionRecords) {
-        const button = document.getElementById(insertionRecord.domButtonId) as HTMLButtonElement;
+        const button = document.getElementById(insertionRecord.cssId) as HTMLButtonElement;
 
         if (button) {
             if (insertionRecord.insertionType === InsertionType.DraftMode) {
-                addClassToButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-                removeClassFromButton(insertionRecord.domButtonId, Module.disabledButtonClass);
+                addClassToButton(insertionRecord.cssId, Module.draftModeButtonClass);
+                removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
                 button.disabled = false;
             } else if (insertionRecord.insertionType === InsertionType.Valid) {
-                removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-                removeClassFromButton(insertionRecord.domButtonId, Module.disabledButtonClass);
+                removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
+                removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
                 button.disabled = false;
             } else {
-                removeClassFromButton(insertionRecord.domButtonId, Module.draftModeButtonClass);
-                addClassToButton(insertionRecord.domButtonId, Module.disabledButtonClass);
+                removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
+                addClassToButton(insertionRecord.cssId, Module.disabledButtonClass);
                 button.disabled = true;
             }
         }

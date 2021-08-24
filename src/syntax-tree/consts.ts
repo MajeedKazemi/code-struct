@@ -223,3 +223,13 @@ export enum BuiltInFunctions {
     max = "max",
     round = "round",
 }
+
+export enum AutoCompleteType {
+    StartOfLine,
+    LeftOfExpression,
+    RightOfExpression,
+    AtExpressionHole,
+}
+
+export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");
+export const NumberRegex = RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$");

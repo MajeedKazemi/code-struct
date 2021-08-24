@@ -13,6 +13,7 @@ import { NotificationSystemController } from "../notification-system/notificatio
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
+    AutocompleteTkn,
     CodeConstruct,
     EmptyLineStmt,
     Expression,
@@ -103,16 +104,33 @@ export class Module {
         //use methods like above code
         this.focus.subscribeOnNavChangeCallback(
             ((c: Context) => {
-                const inserts = this.actionFilter.getAllValidInsertsList();
+                if (
+                    !(
+                        c.tokenToLeft instanceof AutocompleteTkn ||
+                        c.tokenToRight instanceof AutocompleteTkn ||
+                        c.token instanceof AutocompleteTkn
+                    )
+                ) {
+                    const inserts = this.actionFilter.getProcessedInsertionsList();
 
-                //mark draft mode buttons
-                updateButtonsVisualMode(inserts);
+                    //mark draft mode buttons
+                    updateButtonsVisualMode(inserts);
+                }
             }).bind(this)
         );
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const menuController = MenuController.getInstance();
-            if (menuController.isMenuOpen()) menuController.removeMenus();
+
+            if (
+                !(
+                    c.token instanceof AutocompleteTkn ||
+                    c.tokenToLeft instanceof AutocompleteTkn ||
+                    c.tokenToRight instanceof AutocompleteTkn
+                ) &&
+                menuController.isMenuOpen()
+            )
+                menuController.removeMenus();
         });
 
         this.body.push(new EmptyLineStmt(this, 0));
@@ -314,23 +332,6 @@ export class Module {
         }
 
         return null;
-    }
-
-    insertAfterIndex(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
-        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
-            const root = focusedCode.rootNode;
-
-            if (root instanceof Statement && root.tokens.length > 0) {
-                root.tokens.splice(index, 0, ...items);
-
-                for (let i = 0; i < root.tokens.length; i++) {
-                    root.tokens[i].indexInRoot = i;
-                    root.tokens[i].rootNode = root;
-                }
-
-                root.rebuild(root.getLeftPosition(), 0);
-            }
-        }
     }
 
     reset() {

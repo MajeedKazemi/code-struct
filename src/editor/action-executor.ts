@@ -2,6 +2,7 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import {
     AssignmentModifier,
+    AutocompleteTkn,
     BinaryOperatorExpr,
     CodeConstruct,
     ElseStatement,
@@ -14,6 +15,7 @@ import {
     Modifier,
     NonEditableTkn,
     Statement,
+    TemporaryStmt,
     Token,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -22,13 +24,13 @@ import {
     VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
-import { CallbackType } from "../syntax-tree/callback";
-import { BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
+import { Callback, CallbackType } from "../syntax-tree/callback";
+import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
-import { ConstructKeys, Util } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
+import { EditCodeAction } from "./action-filter";
 import { EditActionType } from "./consts";
 import { EditAction } from "./data-types";
 import { Context } from "./focus";
@@ -41,13 +43,61 @@ export class ActionExecutor {
     }
 
     execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-        const selection = this.module.editor.monaco.getSelection();
+        let context = providedContext ? providedContext : this.module.focus.getContext();
 
-        let suggestions = [];
         let preventDefaultEvent = true;
 
         switch (action.type) {
+            case EditActionType.OpenAutocomplete: {
+                const autocompleteTkn = new AutocompleteTkn(
+                    action.data.firstChar,
+                    action.data.autocompleteType,
+                    action.data.validMatches
+                );
+
+                autocompleteTkn.subscribe(
+                    CallbackType.change,
+                    new Callback(
+                        (() => {
+                            if (!this.module.menuController.isMenuOpen()) {
+                                this.openAutocompleteMenu(action.data.validMatches);
+                            }
+
+                            this.updateAutocompleteMenu(autocompleteTkn);
+                        }).bind(this)
+                    )
+                );
+
+                this.openAutocompleteMenu(action.data.validMatches);
+
+                switch (action.data.autocompleteType) {
+                    case AutoCompleteType.StartOfLine:
+                        this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
+
+                        break;
+
+                    case AutoCompleteType.AtExpressionHole:
+                        this.insertToken(context, autocompleteTkn);
+
+                        break;
+
+                    case AutoCompleteType.RightOfExpression:
+                        this.insertToken(context, autocompleteTkn, { toRight: true });
+
+                        break;
+                    case AutoCompleteType.LeftOfExpression:
+                        this.insertToken(context, autocompleteTkn, { toLeft: true });
+
+                        break;
+                }
+
+                const match = autocompleteTkn.isMatch();
+
+                if (match) this.performMatchAction(match, autocompleteTkn);
+
+                break;
+            }
+
             case EditActionType.InsertElseStatement: {
                 const newStatement = new ElseStatement(action.data.hasCondition);
 
@@ -130,13 +180,21 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertStatement: {
-                this.insertStatement(context, action.data?.statement as Statement);
+                const statement = action.data?.statement;
+
+                this.insertStatement(context, statement as Statement);
 
                 break;
             }
 
             case EditActionType.InsertVarAssignStatement: {
                 //TODO: Might want to change back to use the case above if no new logic is added
+                const statement = action.data?.statement;
+
+                if (statement instanceof VarAssignmentStmt && action.data?.autocompleteData?.identifier) {
+                    statement.setIdentifier(action.data?.autocompleteData?.identifier);
+                }
+
                 this.insertStatement(context, action.data?.statement as Statement);
 
                 break;
@@ -341,6 +399,16 @@ export class ActionExecutor {
                     );
                 }
 
+                if (token instanceof AutocompleteTkn) {
+                    const match = token.checkMatch(pressedKey);
+
+                    if (match) {
+                        this.performMatchAction(match, token);
+
+                        break;
+                    }
+                }
+
                 if (token.setEditedText(newText)) this.module.editor.executeEdits(editRange, null, pressedKey);
 
                 break;
@@ -376,18 +444,35 @@ export class ActionExecutor {
 
                 // check if it needs to turn back into a hole:
                 if (newText.length == 0) {
-                    let literalExpr: LiteralValExpr = null;
+                    let removableExpr: CodeConstruct = null;
 
                     if (context.expression instanceof LiteralValExpr) {
-                        literalExpr = context.expression;
+                        removableExpr = context.expression;
+                    } else if (context.token instanceof AutocompleteTkn) {
+                        removableExpr = context.token;
                     } else if (context.expressionToLeft instanceof LiteralValExpr) {
-                        literalExpr = context.expressionToLeft;
+                        removableExpr = context.expressionToLeft;
+                    } else if (context.tokenToLeft instanceof AutocompleteTkn) {
+                        removableExpr = context.tokenToLeft;
                     } else if (context.expressionToRight instanceof LiteralValExpr) {
-                        literalExpr = context.expressionToRight;
+                        removableExpr = context.expressionToRight;
+                    } else if (context.tokenToRight instanceof AutocompleteTkn) {
+                        removableExpr = context.tokenToRight;
                     }
 
-                    if (literalExpr != null) {
-                        this.deleteCode(literalExpr);
+                    if (removableExpr != null) {
+                        if (
+                            removableExpr instanceof AutocompleteTkn &&
+                            removableExpr.rootNode instanceof TemporaryStmt
+                        ) {
+                            this.deleteCode(removableExpr.rootNode, { statement: true });
+                        } else if (
+                            removableExpr instanceof AutocompleteTkn &&
+                            (removableExpr.autocompleteType == AutoCompleteType.RightOfExpression ||
+                                removableExpr.autocompleteType == AutoCompleteType.LeftOfExpression)
+                        ) {
+                            this.deleteAutocompleteToken(removableExpr);
+                        } else this.deleteCode(removableExpr);
 
                         break;
                     }
@@ -625,12 +710,12 @@ export class ActionExecutor {
             case EditActionType.InsertEmptyListItem: {
                 if (action.data.toRight) {
                     const code = [new NonEditableTkn(", "), new TypedEmptyExpr([DataType.Any])];
-                    this.module.insertAfterIndex(context.tokenToRight, context.tokenToRight.indexInRoot, code);
+                    this.insertEmptyListItem(context.tokenToRight, context.tokenToRight.indexInRoot, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[1] });
                 } else if (action.data.toLeft) {
                     const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(", ")];
-                    this.module.insertAfterIndex(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
+                    this.insertEmptyListItem(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
                 }
@@ -698,63 +783,8 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.DisplayGreaterThanSuggestion:
-                if (this.module.isAbleToInsertComparator(context)) {
-                    this.module.menuController.buildSingleLevelMenu(
-                        [ConstructKeys.GreaterThan, ConstructKeys.GreaterThanOrEqual],
-                        Util.getInstance(this.module).constructActions,
-                        {
-                            left: selection.startColumn * this.module.editor.computeCharWidth(),
-                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                        }
-                    );
-                }
-
-                break;
-
-            case EditActionType.DisplayLessThanSuggestion:
-                if (this.module.isAbleToInsertComparator(context)) {
-                    this.module.menuController.buildSingleLevelMenu(
-                        [ConstructKeys.LessThan, ConstructKeys.LessThanOrEqual],
-                        Util.getInstance(this.module).constructActions,
-                        {
-                            left: selection.startColumn * this.module.editor.computeCharWidth(),
-                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                        }
-                    );
-                }
-
-                break;
-
-            case EditActionType.DisplayEqualsSuggestion:
-                suggestions = [ConstructKeys.Equals, ConstructKeys.NotEquals, ConstructKeys.VariableAssignment];
-                // suggestions = this.module.getValidInsertsFromSet(focusedNode, suggestions);
-
-                this.module.menuController.buildSingleLevelMenu(
-                    suggestions,
-                    Util.getInstance(this.module).constructActions,
-                    {
-                        left: selection.startColumn * this.module.editor.computeCharWidth(),
-                        top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                    }
-                );
-
-                break;
-
             case EditActionType.OpenValidInsertMenu:
-                if (!this.module.menuController.isMenuOpen()) {
-                    /*
-                    TODO: Make this work with ActionFilter
-                    const validInserts = this.module.getAllValidInsertsList(focusedNode);
-                    this.module.menuController.buildAvailableInsertsMenu(
-                        validInserts,
-                        Util.getInstance(this.module).constructActions,
-                        {
-                            left: selection.startColumn * this.module.editor.computeCharWidth(),
-                            top: selection.startLineNumber * this.module.editor.computeCharHeight(),
-                        }
-                    );*/
-                } else this.module.menuController.removeMenus();
+                this.openAutocompleteMenu(this.module.actionFilter.getProcessedInsertionsList());
 
                 break;
 
@@ -830,13 +860,105 @@ export class ActionExecutor {
         return new VariableReferenceExpr(identifier, dataType, buttonId);
     }
 
-    insertVariableReference(buttonId: string, providedContext?: Context) {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
+    insertVariableReference(buttonId: string, providedContext?: Context, autocompleteData?: {}) {
+        let context = providedContext ? providedContext : this.module.focus.getContext();
 
         if (this.module.validator.onBeginningOfLine(context)) {
             this.insertStatement(context, new VarOperationStmt(this.createVarReference(buttonId)));
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
             this.insertExpression(context, this.createVarReference(buttonId));
+        }
+    }
+
+    deleteAutocompleteOnMatch(context: Context): Context {
+        let token: AutocompleteTkn;
+
+        if (context.token instanceof AutocompleteTkn) token = context.token;
+        if (context.tokenToLeft instanceof AutocompleteTkn) token = context.tokenToLeft;
+        if (context.tokenToRight instanceof AutocompleteTkn) token = context.tokenToRight;
+
+        if (token) {
+            switch (token.autocompleteType) {
+                case AutoCompleteType.RightOfExpression:
+                case AutoCompleteType.LeftOfExpression:
+                    this.deleteAutocompleteToken(token);
+
+                    break;
+
+                case AutoCompleteType.StartOfLine:
+                    if (token.rootNode instanceof TemporaryStmt) {
+                        this.deleteCode(token.rootNode, {
+                            statement: true,
+                        });
+                    } else {
+                        this.deleteCode(token);
+                    }
+
+                    break;
+
+                case AutoCompleteType.AtExpressionHole:
+                    this.deleteCode(token);
+
+                    break;
+            }
+        }
+
+        return this.module.focus.getContext();
+    }
+
+    private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
+        if (focusedCode instanceof Token || focusedCode instanceof Expression) {
+            const root = focusedCode.rootNode;
+
+            if (root instanceof Statement && root.tokens.length > 0) {
+                root.tokens.splice(index, 0, ...items);
+
+                for (let i = 0; i < root.tokens.length; i++) {
+                    root.tokens[i].indexInRoot = i;
+                    root.tokens[i].rootNode = root;
+                }
+
+                root.rebuild(root.getLeftPosition(), 0);
+            }
+        }
+    }
+
+    private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
+        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
+            identifier: token.text,
+        });
+    }
+
+    private insertToken(context: Context, code: Token, { toLeft = false, toRight = false } = {}) {
+        if (context.token instanceof TypedEmptyExpr) {
+            if (context.expression != null) {
+                const root = context.expression.rootNode as Statement;
+                root.replace(code, context.expression.indexInRoot);
+            } else if (context.token != null) {
+                const root = context.token.rootNode as Statement;
+                root.replace(code, context.token.indexInRoot);
+            }
+
+            const range = new Range(
+                context.position.lineNumber,
+                context.token.left,
+                context.position.lineNumber,
+                context.token.right
+            );
+
+            this.module.editor.executeEdits(range, code);
+        } else if (toRight && context.expressionToLeft != null) {
+            const root = context.expressionToLeft.rootNode;
+            code.rootNode = root;
+            root.tokens.splice(context.expressionToLeft.indexInRoot + 1, 0, code);
+            root.rebuild(root.getLeftPosition(), 0);
+            this.module.editor.insertAtCurPos([code]);
+        } else if (toLeft && context.expressionToRight != null) {
+            const root = context.expressionToRight.rootNode;
+            code.rootNode = root;
+            root.tokens.splice(context.expressionToRight.indexInRoot, 0, code);
+            root.rebuild(root.getLeftPosition(), 0);
+            this.module.editor.insertAtCurPos([code]);
         }
     }
 
@@ -880,6 +1002,13 @@ export class ActionExecutor {
 
             if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
         }
+    }
+
+    private openAutocompleteMenu(inserts: EditCodeAction[]) {
+        if (!this.module.menuController.isMenuOpen()) {
+            inserts = inserts.filter((insert) => insert.insertionType !== InsertionType.Invalid);
+            this.module.menuController.buildSingleLevelMenu(inserts);
+        } else this.module.menuController.removeMenus();
     }
 
     private insertStatement(context: Context, statement: Statement) {
@@ -1043,6 +1172,16 @@ export class ActionExecutor {
         }
     }
 
+    private deleteAutocompleteToken(token: Token) {
+        const range = this.getBoundaries(token);
+        const root = token.rootNode as Statement;
+        root.tokens.splice(token.indexInRoot, 1);
+
+        root.rebuild(root.getLeftPosition(), 0);
+
+        this.module.editor.executeEdits(range, null, "");
+    }
+
     private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
@@ -1084,5 +1223,10 @@ export class ActionExecutor {
                 );
             }
         }
+    }
+
+    private updateAutocompleteMenu(autocompleteTkn: AutocompleteTkn) {
+        this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
+        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPosition(autocompleteTkn));
     }
 }

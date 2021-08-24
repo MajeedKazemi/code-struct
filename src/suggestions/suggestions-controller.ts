@@ -1,8 +1,13 @@
+import { EditCodeAction } from "../editor/action-filter";
+import { InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
+import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { VarAssignmentStmt } from "../syntax-tree/ast";
+import { CodeConstruct, ListElementAssignment, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
+import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { TextEnhance } from "../utilities/text-enhance";
 import { ConstructKeys, Util } from "../utilities/util";
 import { ConstructDoc } from "./construct-doc";
 
@@ -13,6 +18,7 @@ class Menu {
     //Menu object
     private isMenuOpen: boolean = false;
     options: MenuOption[] = [];
+    editCodeActionsOptions: EditCodeAction[];
 
     /**
      * Index into this.options of an option that is currently focused and links to another menu.
@@ -28,29 +34,20 @@ class Menu {
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
 
-    constructor(options: Map<string, Function>, keys: string[]) {
+    constructor(options: Map<string, Function>) {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.menuElementClass);
         this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
-        document.getElementById("editor").appendChild(this.htmlElement);
+        document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
 
         Menu.menuCount++;
 
-        keys.forEach(
-            ((key) => {
-                const option = new MenuOption(
-                    key,
-                    null,
-                    this,
-                    Util.getInstance(MenuController.getInstance().module).constructDocs.get(key),
-                    options.get(key)
-                );
-                option.attachToParentMenu(this);
+        for (const [key, value] of options) {
+            const option = new MenuOption(key, false, null, this, null, value);
+            option.attachToParentMenu(this);
 
-                this.options.push(option);
-                this.htmlElement.appendChild(option.htmlElement);
-            }).bind(this)
-        );
+            this.options.push(option);
+        }
 
         this.htmlElement.addEventListener("mouseover", () => {
             this.htmlElement.style.visibility = "visible";
@@ -227,7 +224,7 @@ class Menu {
     }
 
     removeFromDOM() {
-        document.getElementById("editor").removeChild(this.htmlElement);
+        document.getElementById(EDITOR_DOM_ID).removeChild(this.htmlElement);
     }
 
     getOptionByText(optionText: string) {
@@ -253,6 +250,7 @@ class MenuOption {
 
     constructor(
         text: string = "Option Text",
+        useInnerHTML: boolean = false,
         childMenu?: Menu,
         parentMenu?: Menu,
         doc?: ConstructDoc,
@@ -267,9 +265,16 @@ class MenuOption {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
 
-        const textNode = document.createElement("span");
+        let textNode;
+        if (useInnerHTML) {
+            textNode = document.createElement("div");
+            textNode.innerHTML = text;
+        } else {
+            textNode = document.createElement("span");
+            textNode.textContent = text;
+        }
+
         textNode.classList.add(MenuController.optionTextElementClass);
-        textNode.textContent = text;
         this.htmlElement.appendChild(textNode);
 
         this.addArrowImg();
@@ -285,6 +290,8 @@ class MenuOption {
             this.select();
             MenuController.getInstance().removeMenus();
         });
+
+        parentMenu.htmlElement.appendChild(this.htmlElement);
     }
 
     private addArrowImg() {
@@ -538,18 +545,15 @@ export class MenuController {
      *
      * @param pos         Starting top-left corner of this menu in the editor.
      */
-    buildSingleLevelMenu(
-        suggestions: Array<string | ConstructKeys>,
-        actionMap: Map<string, Function>,
-        pos: any = { left: 0, top: 0 }
-    ) {
+    buildSingleLevelMenu(suggestions: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
         if (this.menus.length > 0) this.removeMenus();
-        else {
-            const suggestionMap = new Map<string, Array<string>>([["Top", suggestions]]);
-
-            if (suggestions.length > 0) {
-                this.module.menuController.buildMenuFromOptionMap(suggestionMap, ["Top"], "Top", actionMap, pos);
-            }
+        else if (suggestions.length > 0) {
+            const menu = this.module.menuController.buildMenu(suggestions, pos);
+            menu.open();
+            this.indexOfRootMenu = 0;
+            this.focusedOptionIndex = 0;
+            menu.editCodeActionsOptions = suggestions;
+            this.focusOption(menu.options[this.focusedOptionIndex]);
         }
     }
 
@@ -738,7 +742,7 @@ export class MenuController {
             const menus = new Map<string, Menu>();
 
             keys.forEach((menuKey) => {
-                menus.set(menuKey, this.buildMenu(map.get(menuKey), pos));
+                //menus.set(menuKey, this.buildMenu(map.get(menuKey), pos));
 
                 if (menuKey == rootKey) {
                     this.indexOfRootMenu = this.menus.length - 1;
@@ -839,39 +843,34 @@ export class MenuController {
      *
      * @returns the constructed menu. Null if no options was empty.
      */
-    private buildMenu(options: Array<ConstructKeys | string>, pos: any = { left: 0, top: 0 }) {
+    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
-            // TODO: need to fix this in the pre-validator
+            for (const action of options) {
+                menuOptions.set(action.optionName, () => {
+                    action.performAction(
+                        this.module.executer,
+                        this.module.eventRouter,
+                        this.module.focus.getContext(),
+                        {}
+                    );
+                });
+            }
 
-            // options.forEach((option) => {
-            //     if (
-            //         Object.keys(ConstructKeys)
-            //             .map((key) => ConstructKeys[key])
-            //             .indexOf(option) > -1
-            //     ) {
-            //         menuOptions.set(option as ConstructKeys, () => {
-            //             this.module.insert(
-            //                 Util.getInstance(this.module).dummyToolboxConstructs.get(option as ConstructKeys)
-            //             );
-            //         });
-            //     } else menuOptions.set(option, null);
-            // });
-
-            const menu = new Menu(menuOptions, options);
+            const menu = new Menu(menuOptions);
 
             //TODO: These are the same values as the ones used for mouse offset by the Notifications so maybe make them shared in some util file
-            menu.htmlElement.style.left = `${pos.left + document.getElementById("editor").offsetLeft}px`;
+            menu.htmlElement.style.left = `${pos.left + document.getElementById(EDITOR_DOM_ID).offsetLeft}px`;
             menu.htmlElement.style.top = `${
-                pos.top + parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop)
+                pos.top + parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop)
             }px`;
 
             //TODO: No good way of separating responsibility completely because ready doc objects are stored in util instead of being created here.
             //I guess, it is always possible to have a list of active docs and loop through it here and update their positions instead of
             //using the static method to update them all. Do that in case this ever slows down anything.
             ConstructDoc.updateDocsLeftOffset(
-                document.getElementById("editor").offsetLeft +
+                document.getElementById(EDITOR_DOM_ID).offsetLeft +
                     document.getElementById(`${Menu.idPrefix}${Menu.menuCount - 1}`).offsetWidth
             );
 
@@ -898,6 +897,8 @@ export class MenuController {
         });
 
         this.menus = [];
+        this.focusedMenuIndex = 0;
+        this.focusedOptionIndex = 0;
     }
 
     //Removes focus from currently focused option and sets it to the option below it.
@@ -1010,7 +1011,9 @@ export class MenuController {
 
     //Perform the action associated with the currently focused option.
     selectFocusedOption() {
-        this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].select();
+        if (this.focusedOptionIndex > -1) {
+            this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].select();
+        }
     }
 
     isMenuOpen() {
@@ -1021,7 +1024,7 @@ export class MenuController {
         if (isRoot) {
             this.indexOfRootMenu = 0;
             this.menus = [];
-            this.focusedOptionIndex = -1;
+            this.focusedOptionIndex = 0;
             this.focusedMenuIndex = 0;
         }
 
@@ -1030,5 +1033,152 @@ export class MenuController {
         root.children.forEach((child) => {
             this.updateMenuArrayFromTree(child, false);
         });
+    }
+
+    updateMenuOptions(optionText: string) {
+        if (this.isMenuOpen()) {
+            const textEnhance = new TextEnhance();
+            const menu = this.menus[this.focusedMenuIndex];
+
+            //get matches from fuse
+            const searchResult = Validator.matchString(
+                optionText,
+                menu.editCodeActionsOptions.map((action) => action.optionName)
+            );
+
+            //filter EditCodeAction options based on what strings matched
+            const searchResultStrings = searchResult.map((result) => result.item);
+            let optionsToKeep = menu.editCodeActionsOptions.filter((action) =>
+                action.matchRegex ? true : searchResultStrings.indexOf(action.optionName) > -1
+            );
+
+            /*Second round of filtering for regex-based items
+              Currently only used by variable assignment
+            */
+            optionsToKeep = optionsToKeep.filter((editCodeAction) =>
+                editCodeAction.matchRegex ? editCodeAction.matchRegex.test(optionText) : true
+            );
+
+            //recreate options
+            let focusedOptionText = "";
+            if (this.focusedOptionIndex > -1) {
+                focusedOptionText = menu.options[this.focusedOptionIndex].text;
+            }
+
+            menu.options.forEach((option) => {
+                option.removeFromDOM();
+            });
+            menu.options = [];
+
+            for (const editAction of optionsToKeep) {
+                let stringMatch; //user input if editAction has a matchRegex; a Fuse match object otherwise
+                let substringMatchRanges = [];
+
+                //TODO: If there are more constructs that need to have a custom performAction based on user input then consider changing this to be more general
+                const currentStmt = this.module.focus.getFocusedStatement();
+                const currentScope = currentStmt.hasScope() ? currentStmt.scope : currentStmt.rootNode.scope;
+                if (
+                    editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
+                    currentScope.getAllAssignmentsToVarAboveLine(optionText, this.module, currentStmt.lineNumber)
+                        .length === 0
+                ) {
+                    stringMatch = optionText + " = ---";
+                    substringMatchRanges = [[[0, optionText.length - 1]]];
+                    editAction.getCode = () => new VarAssignmentStmt("", optionText);
+                } else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
+                    //TODO: Need to think about whether to remove this or not
+                    stringMatch = optionText + "[---]= ---";
+                    substringMatchRanges = [[[0, optionText.length - 1]]];
+                    editAction.getCode = () => {
+                        const code = new ListElementAssignment();
+                        (code.tokens[0] as TypedEmptyExpr).text = optionText;
+
+                        return code;
+                    };
+                } else {
+                    stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
+
+                    if (stringMatch) {
+                        for (const match of stringMatch.matches) {
+                            substringMatchRanges.push(match.indices);
+                        }
+                    }
+                }
+
+                const optionDisplayText = textEnhance.getStyledSpanAtSubstrings(
+                    stringMatch?.item ?? stringMatch,
+                    "matchingText",
+                    substringMatchRanges
+                );
+
+                //necessary so that we don't create variables with keywords as identifiers
+                let option: MenuOption;
+
+                if (
+                    (editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
+                        Object.keys(PythonKeywords).indexOf(optionText) == -1 &&
+                        Object.keys(BuiltInFunctions).indexOf(optionText) == -1) ||
+                    editAction.insertActionType !== InsertActionType.InsertNewVariableStmt
+                ) {
+                    option = new MenuOption(optionDisplayText, true, null, menu, null, () => {
+                        editAction.performAction(
+                            this.module.executer,
+                            this.module.eventRouter,
+                            this.module.focus.getContext(),
+                            {}
+                        );
+                    });
+
+                    this.insertOptionIntoMenu(option, menu);
+
+                    if (option.text === focusedOptionText) {
+                        this.focusedOptionIndex = menu.options.length - 1;
+                        option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
+                    } else {
+                        this.focusedOptionIndex = 0;
+                    }
+                }
+            }
+
+            if (optionsToKeep.length == 0) {
+                const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
+                this.insertOptionIntoMenu(option, menu);
+                this.focusedOptionIndex = 0;
+            } else {
+                this.focusOption(menu.options[this.focusedOptionIndex]);
+            }
+        }
+    }
+
+    updatePosition(pos: { left: number; top: number }) {
+        this.menus[this.focusedMenuIndex].htmlElement.style.left = `${pos.left}px`;
+        this.menus[this.focusedMenuIndex].htmlElement.style.top = `${pos.top}px`;
+    }
+
+    getNewMenuPosition(code: CodeConstruct): { left: number; top: number } {
+        const pos = { left: 0, top: 0 };
+        pos.left =
+            document.getElementById(EDITOR_DOM_ID).offsetLeft +
+            (
+                document
+                    .getElementById(EDITOR_DOM_ID)
+                    .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                    .getElementsByClassName("overflow-guard")[0]
+                    .getElementsByClassName("margin")[0] as HTMLElement
+            ).offsetWidth +
+            (this.module.editor.computeCharWidth()
+                ? code.getRenderText().length * this.module.editor.computeCharWidth()
+                : 0);
+
+        pos.top =
+            this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
+            parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
+
+        return pos;
+    }
+
+    private insertOptionIntoMenu(option: MenuOption, menu: Menu) {
+        option.attachToParentMenu(menu);
+        menu.options.push(option);
     }
 }

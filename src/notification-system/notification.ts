@@ -1,5 +1,6 @@
 import { Selection } from "monaco-editor";
 import { Editor } from "../editor/editor";
+import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 
@@ -359,10 +360,10 @@ export class HoverNotification extends Notification {
      */
     private updateMouseOffsets() {
         this.mouseLeftOffset =
-            document.getElementById("editor").offsetLeft +
+            document.getElementById(EDITOR_DOM_ID).offsetLeft +
             (
                 document
-                    .getElementById("editor")
+                    .getElementById(EDITOR_DOM_ID)
                     .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
                     .getElementsByClassName("overflow-guard")[0]
                     .getElementsByClassName("margin")[0] as HTMLElement
@@ -370,7 +371,7 @@ export class HoverNotification extends Notification {
 
         //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
         //wrong from time to time...
-        this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById("editor")).paddingTop);
+        this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
     }
 
     private scheduleCollisionCheck() {

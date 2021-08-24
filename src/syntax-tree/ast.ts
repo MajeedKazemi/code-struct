@@ -1,7 +1,9 @@
 import { Position, Selection } from "monaco-editor";
+import { EditCodeAction } from "../editor/action-filter";
 import { ConstructName } from "../editor/consts";
 import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
+import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { Notification } from "../notification-system/notification";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
@@ -9,14 +11,17 @@ import { Callback, CallbackType } from "./callback";
 import {
     arithmeticOps,
     AugmentedAssignmentOperator,
+    AutoCompleteType,
     BinaryOperator,
     BinaryOperatorCategory,
     boolOps,
     comparisonOps,
     DataType,
+    IdentifierRegex,
     IndexableTypes,
     InsertionType,
     ListTypes,
+    NumberRegex,
     TAB_SPACES,
     UnaryOp,
 } from "./consts";
@@ -430,12 +435,12 @@ export abstract class Statement implements CodeConstruct {
     }
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType {
-        if (insertInto.type.indexOf(insertCode.returns) > -1 || insertInto.type.indexOf(DataType.Any) > -1) {
+        if (insertInto?.type?.indexOf(insertCode.returns) > -1 || insertInto?.type?.indexOf(DataType.Any) > -1) {
             return InsertionType.Valid;
         } //types match or one of them is Any
 
         //need to check if the type being inserted can be converted into any of the types that the hole accepts
-        return insertInto.canReplaceWithConstruct(insertCode);
+        return insertInto?.canReplaceWithConstruct(insertCode);
     }
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
@@ -955,7 +960,7 @@ export class ForStatement extends Statement implements VariableContainer {
     assignNewVariable(varController: VariableController) {
         this.assignId();
         varController.addVariableRefButton(this.loopVar);
-        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
+        this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier());
         this.getModule().processNewVariable(
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
@@ -978,7 +983,7 @@ export class ForStatement extends Statement implements VariableContainer {
         this.buttonId = statement.buttonId;
         this.loopVar.buttonId = statement.buttonId;
 
-        this.loopVar.setIdentifier(this.getIdentifier(), this.getIdentifier());
+        this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier());
     }
 
     reassignVar(
@@ -1078,7 +1083,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
         if (id) {
             this.buttonId = buttonId;
-            this.setIdentifier(id, id); //TODO: This is a crude hack. Should get the name from the scope or something else that is connected to the AST.
+            this.updateIdentifier(id, id); //TODO: This is a crude hack. Should get the name from the scope or something else that is connected to the AST.
         } else {
             this.oldIdentifier = this.getIdentifier();
         }
@@ -1125,23 +1130,26 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
     }
 
-    setIdentifier(identifier: string, oldIdentifier?: string) {
+    updateIdentifier(identifier: string, oldIdentifier?: string) {
         this.oldIdentifier = oldIdentifier ?? this.getIdentifier();
 
         (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
-        this.updateButton();
+
+        if (this.buttonId && this.buttonId !== "") {
+            this.updateButton();
+        }
     }
 
-    setVariable(ref: VariableReferenceExpr) {
+    setIdentifier(identifier: string) {
         // this is only for user-defined variables (coming from the action-filter)
-        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(ref.identifier);
+        (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
     }
 
     onFocusOff(): void {
         const currentIdentifier = this.getIdentifier();
         const varController = this.getModule().variableController;
 
-        if (currentIdentifier !== this.oldIdentifier) {
+        if (currentIdentifier !== this.oldIdentifier || this.buttonId === "") {
             if (currentIdentifier === "   ") {
                 this.removeAssignment();
 
@@ -1181,12 +1189,17 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
                 this.oldIdentifier = currentIdentifier;
 
+                //There are two types of callbacks in focus.ts OnNavChangeCallbacks and OnNavOffCallbacks. They also run in this order.
+                //The variable is created by the latter and the former runs validation checks. When a variable is first created we therefore
+                //have to manually run variable-related validations here.
                 varController.updateVarButtonWithType(
                     this.buttonId,
                     (this.rootNode as Module | Statement).scope,
                     this.lineNumber,
                     this.getIdentifier()
                 );
+                const insertions = this.getModule().actionFilter.getProcessedVariableInsertions();
+                updateButtonsVisualMode(insertions);
             }
         }
     }
@@ -1359,7 +1372,10 @@ export class ValueOperationExpr extends Expression {
     }
 
     updateReturnType() {
-        for (const mod of this.tokens) if (mod instanceof Expression) this.returns = mod.returns;
+        for (const mod of this.tokens) {
+            if (mod instanceof ListAccessModifier) this.returns = TypeChecker.getElementTypeFromListType(this.returns);
+            else if (mod instanceof Expression) this.returns = mod.returns;
+        }
     }
 
     appendModifier(mod: Modifier) {
@@ -1451,6 +1467,7 @@ export class ListAccessModifier extends Modifier {
 
         this.tokens.push(new NonEditableTkn(`[`, this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
+        this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
     }
 
@@ -1924,12 +1941,21 @@ export class BinaryOperatorExpr extends Expression {
 
             this.returns = DataType.Boolean;
         } else if (this.operatorCategory == BinaryOperatorCategory.Comparison) {
-            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
-            this.rightOperandIndex = this.tokens.length;
-            this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
-            this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+            if (this.operator === BinaryOperator.Equal || this.operator === BinaryOperator.NotEqual) {
+                this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+            } else {
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+            }
 
             this.returns = DataType.Boolean;
         }
@@ -2221,6 +2247,8 @@ export class EditableTextTkn extends Token implements TextEditable {
 }
 
 export class LiteralValExpr extends Expression {
+    valueTokenIndex: number = 0;
+
     constructor(returns: DataType, value?: string, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
@@ -2228,33 +2256,27 @@ export class LiteralValExpr extends Expression {
             case DataType.String: {
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
                 this.tokens.push(
-                    new EditableTextTkn(
-                        value == undefined ? "" : value,
-                        RegExp('^([^\\r\\n\\"]*)$'),
-                        this,
-                        this.tokens.length
-                    )
+                    new EditableTextTkn(value == undefined ? "" : value, IdentifierRegex, this, this.tokens.length)
                 );
                 this.tokens.push(new NonEditableTkn('"', this, this.tokens.length));
+
+                this.valueTokenIndex = 1;
 
                 break;
             }
 
             case DataType.Number: {
                 this.tokens.push(
-                    new EditableTextTkn(
-                        value == undefined ? "" : value,
-                        RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$"),
-                        this,
-                        this.tokens.length
-                    )
+                    new EditableTextTkn(value == undefined ? "" : value, NumberRegex, this, this.tokens.length)
                 );
+                this.valueTokenIndex = 0;
 
                 break;
             }
 
             case DataType.Boolean: {
                 this.tokens.push(new NonEditableTkn(value, this, this.tokens.length));
+                this.valueTokenIndex = 0;
 
                 break;
             }
@@ -2262,6 +2284,10 @@ export class LiteralValExpr extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+    }
+
+    getValue(): string {
+        return (this.tokens[this.valueTokenIndex] as Token).text;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -2400,6 +2426,77 @@ export class IdentifierTkn extends Token implements TextEditable {
 
     setIdentifierText(text: string) {
         this.text = text;
+    }
+}
+
+export class TemporaryStmt extends Statement {
+    constructor(token: CodeConstruct) {
+        super();
+
+        token.indexInRoot = this.tokens.length;
+        token.rootNode = this;
+        this.tokens.push(token);
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+}
+
+export class AutocompleteTkn extends Token implements TextEditable {
+    isTextEditable = true;
+    validatorRegex: RegExp = null;
+    autocompleteType: AutoCompleteType;
+    validMatches: EditCodeAction[];
+
+    constructor(
+        firstChar: string,
+        autocompleteCategory: AutoCompleteType,
+        validMatches: EditCodeAction[],
+        root?: CodeConstruct,
+        indexInRoot?: number
+    ) {
+        super(firstChar);
+
+        this.validMatches = validMatches;
+        this.autocompleteType = autocompleteCategory;
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+    }
+
+    getEditableText(): string {
+        return this.text;
+    }
+
+    getLeft(): number {
+        return this.left;
+    }
+
+    isMatch(): EditCodeAction {
+        const newChar = this.text[this.text.length - 1];
+        const curText = this.text.substring(0, this.text.length - 2);
+
+        return this.checkMatch(newChar, curText);
+    }
+
+    checkMatch(newChar: string, text?: string): EditCodeAction {
+        const curText = text !== undefined ? text : this.text;
+
+        for (const match of this.validMatches) {
+            if (match.terminatingChars.indexOf(newChar) >= 0) {
+                if (curText == match.matchString) return match;
+                else if (match.matchRegex != null && match.matchRegex.test(curText)) return match;
+            }
+        }
+
+        return null;
+    }
+
+    setEditedText(text: string): boolean {
+        this.text = text;
+        (this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
+
+        return true;
     }
 }
 

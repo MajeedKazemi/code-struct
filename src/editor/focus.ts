@@ -1,5 +1,6 @@
 import { Position, Selection } from "monaco-editor";
 import {
+    AutocompleteTkn,
     CodeConstruct,
     EditableTextTkn,
     EmptyLineStmt,
@@ -9,7 +10,7 @@ import {
     NonEditableTkn,
     Statement,
     TextEditable,
-    Token
+    Token,
 } from "../syntax-tree/ast";
 import { CallbackType } from "../syntax-tree/callback";
 import { Module } from "../syntax-tree/module";
@@ -68,11 +69,23 @@ export class Focus {
     getTextEditableItem(providedContext?: Context): TextEditable {
         const context = providedContext ? providedContext : this.getContext();
 
-        if (context.token instanceof IdentifierTkn || context.token instanceof EditableTextTkn) {
+        if (
+            context.token instanceof IdentifierTkn ||
+            context.token instanceof EditableTextTkn ||
+            context.token instanceof AutocompleteTkn
+        ) {
             return context.token;
-        } else if (context.tokenToLeft instanceof IdentifierTkn || context.tokenToLeft instanceof EditableTextTkn) {
+        } else if (
+            context.tokenToLeft instanceof IdentifierTkn ||
+            context.tokenToLeft instanceof EditableTextTkn ||
+            context.tokenToLeft instanceof AutocompleteTkn
+        ) {
             return context.tokenToLeft;
-        } else if (context.tokenToRight instanceof IdentifierTkn || context.tokenToRight instanceof EditableTextTkn) {
+        } else if (
+            context.tokenToRight instanceof IdentifierTkn ||
+            context.tokenToRight instanceof EditableTextTkn ||
+            context.tokenToRight instanceof AutocompleteTkn
+        ) {
             return context.tokenToRight;
         }
     }

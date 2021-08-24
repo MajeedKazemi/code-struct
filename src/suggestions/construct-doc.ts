@@ -1,3 +1,4 @@
+import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { constructKeys, Util } from "../utilities/util";
 
 /**
@@ -66,12 +67,12 @@ export class ConstructDoc {
         if (this.links.length > 0) this.addLinkSection();
 
         //TODO: Should be global...
-        this.parentElement.style.left = `${document.getElementById("editor").offsetLeft}px`;
+        this.parentElement.style.left = `${document.getElementById(EDITOR_DOM_ID).offsetLeft}px`;
         this.parentElement.style.top = `${parseFloat(
-            window.getComputedStyle(document.getElementById("editor")).paddingTop
+            window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop
         )}px`;
 
-        document.getElementById("editor").appendChild(this.parentElement);
+        document.getElementById(EDITOR_DOM_ID).appendChild(this.parentElement);
     }
 
     private addImageSection() {

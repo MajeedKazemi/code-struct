@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -18,7 +19,7 @@ import {
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
-import { DataType, InsertionType, TAB_SPACES } from "./../syntax-tree/consts";
+import { DataType, InsertionType, NumberRegex, TAB_SPACES } from "./../syntax-tree/consts";
 import { Context } from "./focus";
 
 export class Validator {
@@ -26,6 +27,24 @@ export class Validator {
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    canSwitchLeftNumToAutocomplete(pressedKey: string, providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.expressionToLeft instanceof LiteralValExpr &&
+            !NumberRegex.test(context.expressionToLeft.getValue() + pressedKey)
+        );
+    }
+
+    canSwitchRightNumToAutocomplete(pressedKey: string, providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.expressionToRight instanceof LiteralValExpr &&
+            !NumberRegex.test(context.expressionToRight.getValue() + pressedKey)
+        );
     }
 
     atBeginningOfValOperation(providedContext?: Context): boolean {
@@ -432,7 +451,12 @@ export class Validator {
     canDeleteListItemToRight(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        if (context.selected && context.token != null && context.token.rootNode instanceof ListLiteralExpression) {
+        if (
+            context.selected &&
+            context.token != null &&
+            context.token.rootNode instanceof ListLiteralExpression &&
+            context.token.rootNode.tokens.length != 3
+        ) {
             const itemBefore = context.token.rootNode.tokens[context.token.indexInRoot - 1];
 
             // [|---|, ---] [|---|, "123"] [|---|, ---, 123]
@@ -606,5 +630,18 @@ export class Validator {
         } finally {
             return mappedRefs;
         }
+    }
+
+    static matchString(searchString: string, possibilities: string[]) {
+        const options = {
+            includeScore: true,
+            includeMatches: true,
+            shouldSort: true,
+            findAllMatches: true,
+            threshold: 0.4,
+        };
+        const fuse = new Fuse(possibilities, options);
+
+        return fuse.search(searchString);
     }
 }
