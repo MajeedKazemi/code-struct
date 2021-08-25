@@ -1251,6 +1251,7 @@ export class ActionExecutor {
         root.tokens.splice(token.indexInRoot, 1);
 
         root.rebuild(root.getLeftPosition(), 0);
+        token.notify(CallbackType.delete);
 
         this.module.editor.executeEdits(range, null, "");
     }
