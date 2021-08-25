@@ -1,14 +1,15 @@
-.codeVisual{
+.codeVisual {
     display: block;
     position: absolute;
     pointer-events: none;
+    z-index: -999;
 }
 
-.codeVisual.highlight{
+.codeVisual.highlight {
     border-radius: 5px;
 }
 
-.codeVisual.textBox{
+.codeVisual.textBox {
     display: block;
 
     background-color: rgba(247, 201, 131, 1);
