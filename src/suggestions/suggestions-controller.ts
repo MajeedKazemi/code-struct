@@ -1140,12 +1140,14 @@ export class MenuController {
                 }
             }
 
-            if (optionsToKeep.length == 0) {
+            if (menu.options.length == 0) {
                 const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
                 this.insertOptionIntoMenu(option, menu);
                 this.focusedOptionIndex = 0;
-            } else {
+            } else if (this.focusedOptionIndex < menu.options.length) {
                 this.focusOption(menu.options[this.focusedOptionIndex]);
+            } else {
+                console.error("suggestion-controller: this.focusedOptionIndex >= menu.options.length");
             }
         }
     }
