@@ -132,7 +132,7 @@ abstract class ConstructVisualElement {
     }
 }
 
-class ConstructHighlight extends ConstructVisualElement {
+export class ConstructHighlight extends ConstructVisualElement {
     constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]) {
         super(editor, codeToHighlight);
 
