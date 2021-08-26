@@ -1,5 +1,6 @@
 import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
+import { ConstructHighlight } from "../notification-system/notification";
 import {
     AssignmentModifier,
     AutocompleteTkn,
@@ -46,6 +47,9 @@ export class ActionExecutor {
         let context = providedContext ? providedContext : this.module.focus.getContext();
 
         let preventDefaultEvent = true;
+        let flashGreen = false;
+
+        if (action?.data?.autocompleteData) flashGreen = true;
 
         switch (action.type) {
             case EditActionType.OpenAutocomplete: {
@@ -94,6 +98,19 @@ export class ActionExecutor {
                 const match = autocompleteTkn.isMatch();
 
                 if (match) this.performMatchAction(match, autocompleteTkn);
+                else {
+                    let highlight = new ConstructHighlight(this.module.editor, autocompleteTkn, [251, 225, 149, 0.7]);
+
+                    autocompleteTkn.subscribe(
+                        CallbackType.delete,
+                        new Callback(() => {
+                            if (highlight) {
+                                highlight.removeFromDOM();
+                                highlight = null;
+                            }
+                        })
+                    );
+                }
 
                 break;
             }
@@ -170,11 +187,15 @@ export class ActionExecutor {
                     );
                 }
 
+                if (flashGreen) this.flashGreen(newStatement);
+
                 break;
             }
 
             case EditActionType.InsertExpression: {
                 this.insertExpression(context, action.data?.expression);
+
+                if (flashGreen) this.flashGreen(action.data?.expression);
 
                 break;
             }
@@ -183,6 +204,8 @@ export class ActionExecutor {
                 const statement = action.data?.statement;
 
                 this.insertStatement(context, statement as Statement);
+
+                if (flashGreen) this.flashGreen(action.data?.statement);
 
                 break;
             }
@@ -196,6 +219,8 @@ export class ActionExecutor {
                 }
 
                 this.insertStatement(context, action.data?.statement as Statement);
+
+                if (flashGreen) this.flashGreen(action.data?.statement);
 
                 break;
             }
@@ -555,6 +580,8 @@ export class ActionExecutor {
                     }
                 }
 
+                if (flashGreen) this.flashGreen(action.data.modifier);
+
                 break;
             }
 
@@ -634,20 +661,27 @@ export class ActionExecutor {
                     }
                 }
 
+                if (flashGreen) this.flashGreen(action.data.modifier);
+
                 break;
             }
 
             case EditActionType.InsertBinaryOperator: {
+                let binExpr: BinaryOperatorExpr;
                 if (action.data.toRight) {
-                    this.replaceWithBinaryOp(action.data.operator, context.expressionToLeft, { toLeft: true });
+                    binExpr = this.replaceWithBinaryOp(action.data.operator, context.expressionToLeft, {
+                        toLeft: true,
+                    });
                 } else if (action.data.toLeft) {
-                    this.replaceWithBinaryOp(action.data.operator, context.expressionToRight, { toRight: true });
+                    binExpr = this.replaceWithBinaryOp(action.data.operator, context.expressionToRight, {
+                        toRight: true,
+                    });
                 } else if (action.data.replace) {
-                    this.insertExpression(
-                        context,
-                        new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
-                    );
+                    binExpr = new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0]);
+                    this.insertExpression(context, binExpr);
                 }
+
+                if (flashGreen) this.flashGreen(binExpr);
 
                 break;
             }
@@ -698,6 +732,8 @@ export class ActionExecutor {
                     this.module.openDraftMode(newCode);
                 }
 
+                if (flashGreen) this.flashGreen(newCode);
+
                 break;
             }
 
@@ -713,11 +749,15 @@ export class ActionExecutor {
                     this.insertEmptyListItem(context.tokenToRight, context.tokenToRight.indexInRoot, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[1] });
+
+                    if (flashGreen) this.flashGreen(code[1]);
                 } else if (action.data.toLeft) {
                     const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(", ")];
                     this.insertEmptyListItem(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
+
+                    if (flashGreen) this.flashGreen(code[0]);
                 }
 
                 break;
@@ -864,9 +904,19 @@ export class ActionExecutor {
         let context = providedContext ? providedContext : this.module.focus.getContext();
 
         if (this.module.validator.onBeginningOfLine(context)) {
-            this.insertStatement(context, new VarOperationStmt(this.createVarReference(buttonId)));
+            const stmt = new VarOperationStmt(this.createVarReference(buttonId));
+            this.insertStatement(context, stmt);
+
+            if (autocompleteData) {
+                this.flashGreen(stmt);
+            }
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
-            this.insertExpression(context, this.createVarReference(buttonId));
+            const expr = this.createVarReference(buttonId);
+            this.insertExpression(context, expr);
+
+            if (autocompleteData) {
+                this.flashGreen(expr);
+            }
         }
     }
 
@@ -904,6 +954,21 @@ export class ActionExecutor {
         }
 
         return this.module.focus.getContext();
+    }
+
+    private flashGreen(code: CodeConstruct) {
+        let highlight = new ConstructHighlight(this.module.editor, code, [109, 242, 162, 1]);
+
+        setTimeout(() => {
+            if (highlight) {
+                highlight.changeHighlightColour([255, 255, 255, 0]);
+
+                setTimeout(() => {
+                    highlight.removeFromDOM();
+                    highlight = null;
+                }, 500);
+            }
+        }, 1);
     }
 
     private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
@@ -1033,7 +1098,11 @@ export class ActionExecutor {
         this.module.focus.updateContext(statement.getInitialFocus());
     }
 
-    private replaceWithBinaryOp(op: BinaryOperator, expr: Expression, { toLeft = false, toRight = false }) {
+    private replaceWithBinaryOp(
+        op: BinaryOperator,
+        expr: Expression,
+        { toLeft = false, toRight = false }
+    ): BinaryOperatorExpr {
         const initialBoundary = this.getBoundaries(expr);
         const root = expr.rootNode as Statement;
         const index = expr.indexInRoot;
@@ -1080,6 +1149,8 @@ export class ActionExecutor {
                 } else {
                     this.module.openDraftMode(newCode);
                 }
+
+                return newCode;
             }
         }
     }
@@ -1178,6 +1249,7 @@ export class ActionExecutor {
         root.tokens.splice(token.indexInRoot, 1);
 
         root.rebuild(root.getLeftPosition(), 0);
+        token.notify(CallbackType.delete);
 
         this.module.editor.executeEdits(range, null, "");
     }

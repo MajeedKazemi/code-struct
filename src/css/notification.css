@@ -1,14 +1,23 @@
-.codeVisual{
+.codeVisual {
     display: block;
     position: absolute;
     pointer-events: none;
+    z-index: -999;
 }
 
-.codeVisual.highlight{
+.codeVisual.highlight {
     border-radius: 5px;
+
+    background-color: rgba(255, 255, 255, 0);
+
+    transition: background-color 0.3s ease-in-out;
+    -webkit-transition: background-color 0.3s ease-in-out;
+    -moz-transition: background-color 0.3s ease-in-out;
+    -o-transition: background-color 0.3s ease-in-out;
+    -ms-transition: background-color 0.3s ease-in-out;
 }
 
-.codeVisual.textBox{
+.codeVisual.textBox {
     display: block;
 
     background-color: rgba(247, 201, 131, 1);

@@ -20,7 +20,7 @@ import {
     VarOperationStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
-import { AugmentedAssignmentOperator, BinaryOperator, DataType, UnaryOp } from "../syntax-tree/consts";
+import { AugmentedAssignmentOperator, BinaryOperator, DataType, IdentifierRegex, UnaryOp } from "../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 
 export enum KeyPress {
@@ -729,7 +729,7 @@ export class Actions {
                 {},
                 ["="],
                 null,
-                new RegExp("^[^\\d\\W]\\w*$")
+                IdentifierRegex
             )
         );
 
