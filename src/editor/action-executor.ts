@@ -750,20 +750,14 @@ export class ActionExecutor {
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[1] });
 
-                    if (flashGreen) {
-                        this.flashGreen(code[0]);
-                        this.flashGreen(code[1]);
-                    }
+                    if (flashGreen) this.flashGreen(code[1]);
                 } else if (action.data.toLeft) {
                     const code = [new TypedEmptyExpr([DataType.Any]), new NonEditableTkn(", ")];
                     this.insertEmptyListItem(context.tokenToLeft, context.tokenToLeft.indexInRoot + 1, code);
                     this.module.editor.insertAtCurPos(code);
                     this.module.focus.updateContext({ tokenToSelect: code[0] });
 
-                    if (flashGreen) {
-                        this.flashGreen(code[0]);
-                        this.flashGreen(code[1]);
-                    }
+                    if (flashGreen) this.flashGreen(code[0]);
                 }
 
                 break;
