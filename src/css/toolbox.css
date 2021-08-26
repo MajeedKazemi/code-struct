@@ -29,13 +29,14 @@
     white-space: pre;
 }
 
-#editor-toolbox hole {
+hole {
     min-width: 18px;
     height: 18px;
     background: rgb(0 0 0 / 5%);
     border-radius: 2px;
     box-shadow: 0px 0px 0px 1px #0000005e inset;
     margin: 0px 8px;
+    display: inline-block;
 }
 
 ::-webkit-scrollbar {

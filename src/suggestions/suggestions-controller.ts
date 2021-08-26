@@ -266,6 +266,9 @@ class MenuOption {
         this.htmlElement.classList.add(MenuController.optionElementClass);
 
         let textNode;
+
+        text = text.replace(/---/g, "<hole></hole>");
+
         if (useInnerHTML) {
             textNode = document.createElement("div");
             textNode.innerHTML = text;
