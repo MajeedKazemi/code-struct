@@ -35,12 +35,18 @@
 
 .suggestionOptionText {
     color: black;
-    font-size: 9pt;
     width: fit-content;
+    font-family: Consolas, "Courier New", monospace;
+    font-weight: normal;
+    font-size: 18px;
+    font-feature-settings: "liga" 0, "calt" 0;
+    line-height: 22px;
+    letter-spacing: -0.5px;
 }
 
 .matchingText {
-    color: red;
+    color: #cc00ef;
+    font-weight: bold;
 }
 
 .selectedSuggestionOptionParent {
