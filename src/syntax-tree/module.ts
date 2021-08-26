@@ -18,6 +18,7 @@ import {
     EmptyLineStmt,
     Expression,
     ForStatement,
+    ListLiteralExpression,
     Statement,
     Token,
     TypedEmptyExpr,
@@ -316,6 +317,8 @@ export class Module {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
+            if (root instanceof ListLiteralExpression) replaceType = DataType.Any;
+
             const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
             this.recursiveNotify(item, CallbackType.delete);
 
