@@ -957,14 +957,18 @@ export class ActionExecutor {
     }
 
     private flashGreen(code: CodeConstruct) {
-        let highlight = new ConstructHighlight(this.module.editor, code, [148, 224, 161, 0.6]);
+        let highlight = new ConstructHighlight(this.module.editor, code, [109, 242, 162, 1]);
 
         setTimeout(() => {
             if (highlight) {
-                highlight.removeFromDOM();
-                highlight = null;
+                highlight.changeHighlightColour([255, 255, 255, 0]);
+
+                setTimeout(() => {
+                    highlight.removeFromDOM();
+                    highlight = null;
+                }, 500);
             }
-        }, 250);
+        }, 1);
     }
 
     private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
