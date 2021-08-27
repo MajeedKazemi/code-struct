@@ -31,9 +31,12 @@
     background-color: rgba(215, 215, 215, 0.7);
     cursor: pointer;
 
-    display: grid;
     height: fit-content;
     column-gap: 5px;
+
+    font-family: Consolas, "Courier New", monospace;
+    font-weight: normal;
+    font-feature-settings: "liga" 0, "calt" 0;
 }
 
 :hover.suggestionOptionParent {
@@ -43,12 +46,28 @@
 .suggestionOptionText {
     color: black;
     width: fit-content;
-    font-family: Consolas, "Courier New", monospace;
-    font-weight: normal;
     font-size: 18px;
-    font-feature-settings: "liga" 0, "calt" 0;
     line-height: 22px;
     letter-spacing: -0.5px;
+    float: left;
+}
+
+.suggestionOptionExtraInfo {
+    float: right;
+    margin-left: 30px;
+    margin-right: 5px;
+    color: #555;
+    position: relative;
+    top: 2px;
+}
+
+.highlighted-text {
+    background-color: #cc00ef;
+    color: #fff;
+    font-weight: bold;
+
+    padding: 0 5px;
+    border-radius: 3px;
 }
 
 .matchingText {
