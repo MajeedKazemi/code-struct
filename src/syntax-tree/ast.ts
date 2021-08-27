@@ -1762,13 +1762,7 @@ export class FunctionCallStmt extends Statement {
     private argumentsIndices = new Array<number>();
     functionName: string = "";
 
-    constructor(
-        functionName: string,
-        args: Array<Argument>,
-        returns: DataType,
-        root?: Statement | Module,
-        indexInRoot?: number
-    ) {
+    constructor(functionName: string, args: Array<Argument>, root?: Statement | Module, indexInRoot?: number) {
         super();
 
         this.rootNode = root;

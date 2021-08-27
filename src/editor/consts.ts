@@ -206,7 +206,7 @@ export class Actions {
             new EditCodeAction(
                 "print(---)",
                 "add-print-btn",
-                () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)], DataType.Void),
+                () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)]),
                 InsertActionType.InsertPrintFunctionStmt,
                 {},
                 ["("],
