@@ -6,9 +6,7 @@ import { Validator } from "../editor/validator";
 import { CodeConstruct, ListElementAssignment, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
 import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
-import { Reference } from "../syntax-tree/scope";
 import { TextEnhance } from "../utilities/text-enhance";
-import { ConstructKeys, Util } from "../utilities/util";
 import { ConstructDoc } from "./construct-doc";
 
 /*
@@ -254,7 +252,8 @@ class MenuOption {
         childMenu?: Menu,
         parentMenu?: Menu,
         doc?: ConstructDoc,
-        selectAction?: Function
+        selectAction?: Function,
+        extraInformation?: string
     ) {
         this.text = text;
         this.childMenu = childMenu;
@@ -279,6 +278,14 @@ class MenuOption {
 
         textNode.classList.add(MenuController.optionTextElementClass);
         this.htmlElement.appendChild(textNode);
+
+        if (extraInformation) {
+            let extra = document.createElement("div");
+            extra.innerHTML = extraInformation;
+            extra.classList.add(MenuController.suggestionOptionExtraInfo);
+
+            this.htmlElement.appendChild(extra);
+        }
 
         this.addArrowImg();
 
@@ -374,6 +381,7 @@ class MenuOption {
 export class MenuController {
     private static instance: MenuController;
 
+    static suggestionOptionExtraInfo: string = "suggestionOptionExtraInfo";
     static optionElementClass: string = "suggestionOptionParent";
     static menuElementClass: string = "suggestionMenuParent";
     static optionTextElementClass: string = "suggestionOptionText";
@@ -401,143 +409,6 @@ export class MenuController {
         this.editor = editor;
     }
 
-    //TODO: Remove later
-    buildSingleLevelConstructCategoryMenu(suggestions: Array<string | ConstructKeys>) {
-        if (this.menus.length > 0) this.removeMenus();
-        else {
-            const util = Util.getInstance(this.module);
-            const actionMap = new Map<string, Function>();
-
-            const menuMap = new Map<string, Array<string>>([
-                [
-                    "Top",
-                    ["Literals", "Function Calls", "Operators", "Control Statements", "Member Function Calls", "Other"],
-                ],
-                [
-                    "Literals",
-                    [
-                        ConstructKeys.StringLiteral,
-                        ConstructKeys.NumberLiteral,
-                        ConstructKeys.True,
-                        ConstructKeys.False,
-                        ConstructKeys.ListLiteral,
-                    ],
-                ],
-                [
-                    "Function Calls",
-                    [
-                        ConstructKeys.PrintCall,
-                        ConstructKeys.LenCall,
-                        ConstructKeys.RandintCall,
-                        ConstructKeys.RangeCall,
-                    ],
-                ],
-                ["Operators", ["Comparator", "Arithmetic", "Boolean"]],
-                [
-                    "Control Statements",
-                    [ConstructKeys.If, ConstructKeys.Elif, ConstructKeys.Else, ConstructKeys.While, ConstructKeys.For],
-                ],
-                [
-                    "Arithmetic",
-                    [
-                        ConstructKeys.Addition,
-                        ConstructKeys.Subtraction,
-                        ConstructKeys.Division,
-                        ConstructKeys.Multiplication,
-                    ],
-                ],
-                ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
-                [
-                    "Comparator",
-                    [
-                        ConstructKeys.Equals,
-                        ConstructKeys.NotEquals,
-                        ConstructKeys.GreaterThan,
-                        ConstructKeys.GreaterThanOrEqual,
-                        ConstructKeys.LessThan,
-                        ConstructKeys.LessThanOrEqual,
-                    ],
-                ],
-                [
-                    "Member Function Calls",
-                    [
-                        ConstructKeys.AppendCall,
-                        ConstructKeys.FindCall,
-                        ConstructKeys.SplitCall,
-                        ConstructKeys.ReplaceCall,
-                        ConstructKeys.JoinCall,
-                    ],
-                ],
-                [
-                    "Other",
-                    [ConstructKeys.VariableAssignment, ConstructKeys.ListElementAssignment, ConstructKeys.MemberCall],
-                ],
-            ]);
-
-            const keys = [
-                "Literals",
-                "Function Calls",
-                "Operators",
-                "Control Statements",
-                "Comparator",
-                "Arithmetic",
-                "Boolean",
-                "Member Function Calls",
-                "Other",
-                "Top",
-            ];
-            const categories = [];
-
-            //insert categories as options
-            const categorizedSuggestions = [];
-
-            keys.forEach((category) => {
-                categorizedSuggestions.push(category);
-
-                actionMap.set(category, () => {
-                    console.log(category);
-                });
-
-                categories.push(category);
-
-                let emptyCategory = true;
-
-                suggestions.forEach((suggestion) => {
-                    if (menuMap.get(category).indexOf(suggestion) > -1) {
-                        categorizedSuggestions.push(suggestion);
-                        emptyCategory = false;
-                    }
-                });
-
-                if (emptyCategory) {
-                    categorizedSuggestions.splice(categorizedSuggestions.length - 1, 1);
-                    categories.splice(categorizedSuggestions.length - 1, 1);
-                }
-            });
-
-            //add actions
-            keys.forEach((category) => {
-                menuMap.get(category).forEach((option) => {
-                    if (util.constructActions.has(option)) {
-                        //construct has an action
-                        actionMap.set(option, util.constructActions.get(option));
-                    }
-                });
-            });
-
-            this.buildSingleLevelMenu(categorizedSuggestions, actionMap);
-
-            //update options to have correct style
-            this.menus[0].options.forEach((option) => {
-                if (categories.indexOf(option.text) > -1) {
-                    option.htmlElement.classList.add("categoryHeading");
-                } else {
-                    option.htmlElement.classList.add("categoryOption");
-                }
-            });
-        }
-    }
-
     /**
      * Build a single-node menu that contains all options provided by suggestions.
      *
@@ -557,284 +428,6 @@ export class MenuController {
             this.focusedOptionIndex = 0;
             menu.editCodeActionsOptions = suggestions;
             this.focusOption(menu.options[this.focusedOptionIndex]);
-        }
-    }
-
-    /**
-     * Build a menu of code construct options available as provided by suggestions.
-     *
-     * @param suggestions options that should be available in the menu. Strings are treated as menu links if no action is specified for them.
-     *
-     * @param actionMap   map of option names to their selectActions.
-     *                    Provide an empty map if no custom actions are necessary.
-     *
-     * @param pos         Initial position of the menu's top-left corner.
-     */
-    buildAvailableInsertsMenu(
-        suggestions: Array<string | ConstructKeys>,
-        actionMap: Map<string, Function>,
-        pos: any = { left: 0, top: 0 }
-    ) {
-        if (this.menus.length > 0) this.removeMenus();
-        else {
-            const menuMap = new Map<string, Array<string>>([
-                [
-                    "Top",
-                    ["Literals", "Function Calls", "Operators", "Control Statements", "Member Function Calls", "Other"],
-                ],
-                [
-                    "Literals",
-                    [
-                        ConstructKeys.StringLiteral,
-                        ConstructKeys.NumberLiteral,
-                        ConstructKeys.True,
-                        ConstructKeys.False,
-                        ConstructKeys.ListLiteral,
-                    ],
-                ],
-                [
-                    "Function Calls",
-                    [
-                        ConstructKeys.PrintCall,
-                        ConstructKeys.LenCall,
-                        ConstructKeys.RandintCall,
-                        ConstructKeys.RangeCall,
-                    ],
-                ],
-                ["Operators", ["Comparator", "Arithmetic", "Boolean"]],
-                [
-                    "Control Statements",
-                    [ConstructKeys.If, ConstructKeys.Elif, ConstructKeys.Else, ConstructKeys.While, ConstructKeys.For],
-                ],
-                [
-                    "Arithmetic",
-                    [
-                        ConstructKeys.Addition,
-                        ConstructKeys.Subtraction,
-                        ConstructKeys.Division,
-                        ConstructKeys.Multiplication,
-                    ],
-                ],
-                ["Boolean", [ConstructKeys.And, ConstructKeys.Or, ConstructKeys.Not]],
-                [
-                    "Comparator",
-                    [
-                        ConstructKeys.Equals,
-                        ConstructKeys.NotEquals,
-                        ConstructKeys.GreaterThan,
-                        ConstructKeys.GreaterThanOrEqual,
-                        ConstructKeys.LessThan,
-                        ConstructKeys.LessThanOrEqual,
-                    ],
-                ],
-                [
-                    "Member Function Calls",
-                    [
-                        ConstructKeys.AppendCall,
-                        ConstructKeys.FindCall,
-                        ConstructKeys.SplitCall,
-                        ConstructKeys.ReplaceCall,
-                        ConstructKeys.JoinCall,
-                    ],
-                ],
-                [
-                    "Other",
-                    [ConstructKeys.VariableAssignment, ConstructKeys.ListElementAssignment, ConstructKeys.MemberCall],
-                ],
-            ]);
-
-            let keys = [
-                "Literals",
-                "Function Calls",
-                "Operators",
-                "Control Statements",
-                "Comparator",
-                "Arithmetic",
-                "Boolean",
-                "Member Function Calls",
-                "Other",
-                "Top",
-            ];
-
-            const context = this.module.focus.getContext();
-
-            //add variable references
-            const focusedNode = context.token && context.selected ? context.token : context.lineStatement;
-            const refs = Validator.getValidVariableReferences(focusedNode, this.module.variableController);
-            const identifiers = refs.map((ref) =>
-                ((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier()
-            );
-            refs.forEach((ref) => {
-                if ((ref[0] as Reference).statement instanceof VarAssignmentStmt) {
-                    menuMap.get("Other").push(((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier());
-                    actionMap.set(
-                        ((ref[0] as Reference).statement as VarAssignmentStmt).getIdentifier(),
-                        this.module
-                            .getVarRefHandler((ref[0] as Reference).statement as VarAssignmentStmt)
-                            .bind(this.module)
-                    );
-                }
-            });
-
-            //find all options that link to another menu
-            const links = [];
-            keys.forEach((menuKey) => {
-                menuMap.get(menuKey).forEach((option) => {
-                    if (menuMap.has(option)) links.push(option);
-                });
-            });
-
-            //menuMap.get(menuKey) is the array of options for that menu
-            keys.forEach((menuKey) => {
-                //add menu options based on suggestions, options that are not in suggestions will not be included
-                if (menuKey != "Top") {
-                    menuMap.set(
-                        menuKey,
-                        menuMap
-                            .get(menuKey)
-                            .filter(
-                                (option) =>
-                                    suggestions.indexOf(option) > -1 ||
-                                    links.indexOf(option) != -1 ||
-                                    identifiers.indexOf(option) > -1
-                            )
-                    );
-                }
-
-                //remove menus with empty options
-                //(this is not recursive so it won't catch an option that links to a menu whose options were all removed which exists within another menu)
-                if (menuMap.get(menuKey).length == 0) {
-                    menuMap.delete(menuKey);
-                    keys = keys.filter((keyToKeep) => keyToKeep != menuKey);
-
-                    //remove link options that link to empty menus from the top level
-                    if (menuMap.get("Top").indexOf(menuKey) > -1) {
-                        menuMap.set(
-                            "Top",
-                            menuMap.get("Top").filter((rootKey) => rootKey != menuKey)
-                        );
-                    }
-                }
-            });
-
-            this.buildMenuFromOptionMap(menuMap, keys, "Top", actionMap, pos);
-        }
-    }
-
-    /**
-     * Builds a menu from a map of links between options and menus.
-     *
-     * @param map       map of menu names to their option arrays. If an option of a menu is a key, then it serves as a link between those menus. Otherwise keys are just names of each menu.
-     * @param keys      map's keys.
-     * @param rootKey   key of the root menu in map. Should ALWAYS be included.
-     * @param actionMap map of option names to their selectActions.
-     *                  Provide an empty map if no custom actions are necessary.
-     * @param pos       Initial top-left corner of the menu.
-     */
-    private buildMenuFromOptionMap(
-        map: Map<string, Array<string | ConstructKeys>>,
-        keys: Array<string>,
-        rootKey: string,
-        actionMap: Map<string, Function>,
-        pos: any = { left: 0, top: 0 }
-    ) {
-        if (this.menus.length > 0) {
-            this.removeMenus();
-        } else {
-            //build menus with updated structure
-            const menus = new Map<string, Menu>();
-
-            keys.forEach((menuKey) => {
-                //menus.set(menuKey, this.buildMenu(map.get(menuKey), pos));
-
-                if (menuKey == rootKey) {
-                    this.indexOfRootMenu = this.menus.length - 1;
-                    this.focusedMenuIndex = this.indexOfRootMenu;
-                }
-            });
-
-            //TODO: Redesign of how building a menu works
-            /**
-             * 1. Need to make these methods accept a map returned from action-filter.ts
-             *  1.2. No need to run own validations here anymore. At most need to run the methods from aciton-filter.ts here and use their output
-             * 2. linkMenuThroughOption() is what creates the tree structure by assigning child menus to a parent
-             * 3. indentChildren() is what creates the tree structure visually when the menu is displayed
-             * 4. So all that has to be changed really is how the map argument of this function is generated in buildAvailableInsertsMenu()
-             */
-
-            //set actions
-            //for every menu
-            keys.forEach((menuKey) => {
-                //for every option within menu
-                map.get(menuKey).forEach((option) => {
-                    if (actionMap.has(option)) {
-                        menus.get(menuKey).getOptionByText(option).selectAction = actionMap.get(option);
-                    } else if (map.has(option)) {
-                        //if some menu's option is also a key within the map, that means it links two menus together
-                        menus.get(menuKey).linkMenuThroughOption(menus.get(option), option);
-                    }
-                });
-            });
-
-            //indents menu as necessary per structure
-            menus.get(rootKey).indentChildren(menus.get(rootKey).htmlElement.offsetLeft);
-            menus.set(rootKey, Menu.collapseSingleLinkMenus(menus.get(rootKey)));
-            menus.get(rootKey).removeEmptyChildren();
-
-            this.updateMenuArrayFromTree(menus.get(rootKey), true);
-            this.openRootMenu();
-        }
-    }
-
-    /**
-     *
-     * @param menus      options of every menu to be built. The root menu should ALWAYS be at index 0.
-     *
-     * @param linkageMap a manual way to link the menus.
-     *                   A key within the map maps an option to its parent and child menus in the form of an array [parentIndex, childIndex]
-     *                   where each index is into menus
-     *
-     * @param actionMap  map of option names to their selectActions.
-     *                   Provide an empty map if no custom actions are necessary.
-     *
-     * @param pos        Initial top-left corner of the menu.
-     */
-    private buildMenuFromLinkageMap(
-        menus: Array<ConstructKeys | string>[],
-        linkageMap: Map<string, number[]>,
-        actionMap: Map<string, Function>,
-        pos: any = { left: 0, top: 0 }
-    ) {
-        if (this.menus.length > 0) this.removeMenus();
-        else if (menus.length > 0) {
-            const menus = [];
-
-            menus.forEach((menuOptions) => {
-                const menu = this.buildMenu(menuOptions, pos);
-
-                //create menu tree
-                menuOptions.forEach((option) => {
-                    if (actionMap.has(option)) {
-                        menu.getOptionByText(option).selectAction = actionMap.get(option);
-                    } else if (linkageMap.has(option)) {
-                        menus[linkageMap.get(option)[0]].linkMenuThroughOption(
-                            menus[linkageMap.get(option)[1]],
-                            option
-                        );
-                    }
-                });
-            });
-
-            this.menus = menus;
-            this.indexOfRootMenu = 0;
-            this.focusedMenuIndex = 0;
-
-            menus[0].indentChildren(menus[0].htmlElement.offsetLeft);
-            menus[0] = Menu.collapseSingleLinkMenus(menus[0]);
-            menus[0].removeEmptyChildren();
-
-            this.updateMenuArrayFromTree(menus[0], true);
-            this.openRootMenu();
         }
     }
 
@@ -883,14 +476,6 @@ export class MenuController {
         }
 
         return null;
-    }
-
-    private openRootMenu() {
-        if (this.menus.length && this.indexOfRootMenu >= 0) {
-            if (!this.menus[this.indexOfRootMenu].isOpen()) {
-                this.menus[this.indexOfRootMenu].open();
-            } else this.menus[this.indexOfRootMenu].close();
-        }
     }
 
     removeMenus() {
@@ -1123,14 +708,29 @@ export class MenuController {
                         Object.keys(BuiltInFunctions).indexOf(optionText) == -1) ||
                     editAction.insertActionType !== InsertActionType.InsertNewVariableStmt
                 ) {
-                    option = new MenuOption(optionDisplayText, true, null, menu, null, () => {
-                        editAction.performAction(
-                            this.module.executer,
-                            this.module.eventRouter,
-                            this.module.focus.getContext(),
-                            {}
-                        );
-                    });
+                    let extraInfo = null;
+
+                    if (editAction.matchRegex?.test(optionText) || editAction.matchString == optionText)
+                        extraInfo = `press <span class="highlighted-text">${this.convertTerminatingChar(
+                            editAction.terminatingChars[0]
+                        )}</span> to insert`;
+
+                    option = new MenuOption(
+                        optionDisplayText,
+                        true,
+                        null,
+                        menu,
+                        null,
+                        () => {
+                            editAction.performAction(
+                                this.module.executer,
+                                this.module.eventRouter,
+                                this.module.focus.getContext(),
+                                {}
+                            );
+                        },
+                        extraInfo
+                    );
 
                     this.insertOptionIntoMenu(option, menu);
 
@@ -1180,6 +780,11 @@ export class MenuController {
             parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
 
         return pos;
+    }
+
+    private convertTerminatingChar(text: string): string {
+        if (text == " ") return "space";
+        else return text;
     }
 
     private insertOptionIntoMenu(option: MenuOption, menu: Menu) {
