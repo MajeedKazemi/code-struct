@@ -668,6 +668,7 @@ export class ActionExecutor {
 
             case EditActionType.InsertBinaryOperator: {
                 let binExpr: BinaryOperatorExpr;
+
                 if (action.data.toRight) {
                     binExpr = this.replaceWithBinaryOp(action.data.operator, context.expressionToLeft, {
                         toLeft: true,
@@ -1103,6 +1104,8 @@ export class ActionExecutor {
         expr: Expression,
         { toLeft = false, toRight = false }
     ): BinaryOperatorExpr {
+        if (expr instanceof Modifier) expr = expr.rootNode as Expression;
+
         const initialBoundary = this.getBoundaries(expr);
         const root = expr.rootNode as Statement;
         const index = expr.indexInRoot;
