@@ -5,9 +5,11 @@ export default new Promise(async $export => {
                 { 
                     indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/", 
                     stdout: (text) => {
-                        const console = document.getElementById("outputDiv")
-                        console.appendChild("<br/>")
-                        console.appendChild(text)
+                        const outputArea = document.getElementById("outputDiv")
+                        outputArea.appendChild(document.createElement("br"))
+                        const textEm = document.createElement("div");
+                        textEm.textContent = text
+                        outputArea.appendChild(textEm)
                     } 
                 }
            )

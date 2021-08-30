@@ -1,3 +1,4 @@
+import { nova } from "../index";
 
 const jsModule = {
 	inputPrompt: function(text){
@@ -17,6 +18,20 @@ let pyodideController;
 		console.error(err)
 	}).then((res) => {
 		pyodideController = res;
+
+		pyodideController.registerJsModule("jsModule", jsModule)
+
+		const runCodeBtn = document.getElementById("runCodeBtn")
+		runCodeBtn.addEventListener('click', () => {
+			const code = nova.editor.monaco.getValue();
+			console.log(pyodideController.runPython(
+`
+from jsModule import inputPrompt
+input = inputPrompt
+__builtins__.input = inputPrompt
+${code}
+`
+			))})
 		
 	}), (err) => {
 		console.error("Could not access pyodideController")
@@ -30,19 +45,7 @@ let pyodideController;
 	
 })()
 /*
-pyodideController.registerJsModule("jsModule", jsModule)
-
-		const runCodeBtn = document.getElementById("runCodeBtn")
-		runCodeBtn.addEventListener('click', () => {
-			const code = nova.editor.monaco.getValue();
-			console.log(pyodideController.runPython(
-`
-from jsModule import inputPrompt
-input = inputPrompt
-__builtins__.input = inputPrompt
-print('please run')
-`
-			))})*/
+*/
 
 //(async () => {
   /* const pyodide = await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/" }).catch(err => {
