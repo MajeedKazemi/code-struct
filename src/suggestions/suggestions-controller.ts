@@ -665,6 +665,9 @@ export class MenuController {
                 //TODO: If there are more constructs that need to have a custom performAction based on user input then consider changing this to be more general
                 const currentStmt = this.module.focus.getFocusedStatement();
                 const currentScope = currentStmt.hasScope() ? currentStmt.scope : currentStmt.rootNode.scope;
+
+                //This case is for displaying [userInput] = --- as a suggestion on empty lines when there are no previous assignments to
+                //a variable with the user input being the identifier
                 if (
                     editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
                     currentScope.getAllAssignmentsToVarAboveLine(optionText, this.module, currentStmt.lineNumber)
@@ -673,7 +676,9 @@ export class MenuController {
                     stringMatch = optionText + " = ---";
                     substringMatchRanges = [[[0, optionText.length - 1]]];
                     editAction.getCode = () => new VarAssignmentStmt("", optionText);
-                } else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
+                }
+                // for displaying the correct identifier for the ---[---] = --- option
+                else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
                     //TODO: Need to think about whether to remove this or not
                     stringMatch = optionText + "[---]= ---";
                     substringMatchRanges = [[[0, optionText.length - 1]]];
@@ -683,6 +688,18 @@ export class MenuController {
 
                         return code;
                     };
+                }
+                // Excludes var assignment because it would have been caught by the first case.
+                // If it wasn't then that means that this variable exists and we should offer
+                // only one option for its reassignment which will use a Modifier and turn into
+                // a VarAssignmentStmt in the end anyway.
+
+                // So this is simply for avoiding duplicate options between abc = --- (VarAssignmentStmt)
+                // and abc = --- (VarOperationStmt)
+
+                //The var assignment option cannot be removed any earlier than here because of case 1 of this if block
+                else if (editAction.insertActionType === InsertActionType.InsertNewVariableStmt) {
+                    continue;
                 } else {
                     stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
 
