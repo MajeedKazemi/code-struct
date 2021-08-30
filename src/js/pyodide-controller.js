@@ -6,6 +6,15 @@ const CONSOLE_TXT_CLASS = "consoleTxt"
 const CONSOLE_ERR_TXT_CLASS = "consoleErrTxt"
 const CONSOLE_WARN_TXT_CLASS = "consoleWarnTxt"
 
+const textInputCode = "size = int(input('Size of array: '))\
+arr = []\
+total = 0\
+while len(arr) < size:\
+    nextElement = input('please enter the next element')\
+    arr.append(nextElement)\
+	total += \
+print(total)"
+
 const jsModule = {
 	inputPrompt: function(text){
 		return prompt(text)
