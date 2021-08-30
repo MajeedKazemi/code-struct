@@ -83,3 +83,32 @@ body {
 #editor-toolbox .group:not(:last-child) {
     margin-bottom: 10px;
 }
+
+#console {
+    width: 81%;
+    height: 30%;
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 5px;
+    display: flex;
+    flex-flow: column;
+}
+
+#runCodeButton {
+    justify-self: start;
+}
+
+#runCodeButtonDiv {
+    padding: 2px;
+    margin-bottom: 5px;
+    height: fit-content;
+    max-height: 20%;
+}
+
+#outputDiv {
+    border-top: 1px solid black;
+    padding: 2px;
+    height: auto;
+    flex: 1 1 auto;
+}
