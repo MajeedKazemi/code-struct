@@ -7,6 +7,7 @@
 @import url("construct-doc.css");
 @import url("draft-mode.css");
 @import url("cascaded-menu.css");
+@import url("console.css");
 
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&display=swap");
 
@@ -82,40 +83,4 @@ body {
 
 #editor-toolbox .group:not(:last-child) {
     margin-bottom: 10px;
-}
-
-#console {
-    width: 80%;
-    height: 40%;
-    border-style: solid;
-    border-width: 1px;
-    border-color: black;
-    border-radius: 5px;
-    display: flex;
-    flex-flow: column;
-    margin-left: 0.5%;
-}
-
-#runCodeBtn {
-    justify-self: start;
-}
-
-#runCodeButtonDiv {
-    padding: 2px;
-    margin-bottom: 5px;
-    height: fit-content;
-    max-height: 20%;
-}
-
-#outputDiv {
-    border-top: 1px solid black;
-    padding: 2px;
-    height: auto;
-    flex: 1 1 auto;
-    overflow-y: scroll;
-    overflow-x: scroll;
-}
-
-#clearOutputBtn {
-    margin-left: 10px;
 }
