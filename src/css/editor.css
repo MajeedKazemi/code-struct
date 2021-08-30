@@ -6,7 +6,11 @@
 
 #editor {
     width: 100%;
-    height: 70%;
+    height: 50%;
+}
+
+monaco-editor.no-user-select.showUnused.showDeprecated.vs {
+    height: 100%;
 }
 
 .monaco-editor,
