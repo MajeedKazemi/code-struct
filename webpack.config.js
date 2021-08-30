@@ -11,6 +11,7 @@ module.exports = {
         "html.worker": "monaco-editor/esm/vs/language/html/html.worker",
         "ts.worker": "monaco-editor/esm/vs/language/typescript/ts.worker",
         "pyodide": "./src/js/load-pyodide.js",
+        "pyodideController": "./src/js/pyodide-controller.js"
     },
     resolve: {
         extensions: [".ts", ".js"],
