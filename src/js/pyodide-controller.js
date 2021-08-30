@@ -6,6 +6,20 @@ const jsModule = {
 	}
 }
 
+export const addTextToConsole = (text) => {
+	const outputArea = document.getElementById("outputDiv")
+	outputArea.appendChild(document.createElement("br"))
+	const textEm = document.createElement("div");
+	textEm.classList.add("consoleTxt")
+	textEm.textContent = text
+	outputArea.appendChild(textEm)
+}
+
+export const clearConsole = () => {
+	document.getElementById("outputDiv").innerHTML = "";
+	addTextToConsole("Cleared console.")
+}
+
 
 let pyodideController;
 (async () => {
@@ -24,14 +38,20 @@ let pyodideController;
 		const runCodeBtn = document.getElementById("runCodeBtn")
 		runCodeBtn.addEventListener('click', () => {
 			const code = nova.editor.monaco.getValue();
-			console.log(pyodideController.runPython(
+			try{
+				pyodideController.runPython(
 `
 from jsModule import inputPrompt
 input = inputPrompt
 __builtins__.input = inputPrompt
 ${code}
 `
-			))})
+				)
+			} catch(err){
+				console.error("Unable to run python code")
+				addTextToConsole(err)
+			}
+		})
 		
 	}), (err) => {
 		console.error("Could not access pyodideController")
@@ -39,7 +59,9 @@ ${code}
 	}
 
 
-	
+	document.getElementById("clearOutputBtn").addEventListener("click", () => {
+		clearConsole();
+	})
 	
 
 	
