@@ -10,6 +10,7 @@ module.exports = {
         "css.worker": "monaco-editor/esm/vs/language/css/css.worker",
         "html.worker": "monaco-editor/esm/vs/language/html/html.worker",
         "ts.worker": "monaco-editor/esm/vs/language/typescript/ts.worker",
+        "pyodide": "./src/js/load-pyodide.js",
     },
     resolve: {
         extensions: [".ts", ".js"],
