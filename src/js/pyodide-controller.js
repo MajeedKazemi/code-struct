@@ -1,4 +1,10 @@
+import { CodeStatus } from "../editor/consts";
 import { nova } from "../index";
+
+
+const CONSOLE_TXT_CLASS = "consoleTxt"
+const CONSOLE_ERR_TXT_CLASS = "consoleErrTxt"
+const CONSOLE_WARN_TXT_CLASS = "consoleWarnTxt"
 
 const jsModule = {
 	inputPrompt: function(text){
@@ -6,11 +12,12 @@ const jsModule = {
 	}
 }
 
-export const addTextToConsole = (text) => {
+export const addTextToConsole = (text, styleClass) => {
 	const outputArea = document.getElementById("outputDiv")
 	outputArea.appendChild(document.createElement("br"))
 	const textEm = document.createElement("div");
-	textEm.classList.add("consoleTxt")
+	textEm.classList.add(CONSOLE_TXT_CLASS)
+	textEm.classList.add(styleClass)
 	textEm.textContent = text
 	outputArea.appendChild(textEm)
 }
@@ -33,24 +40,54 @@ let pyodideController;
 	}).then((res) => {
 		pyodideController = res;
 
+
+		//Configuring actions and pyodide
+		//has to be done here otherwise no guarantee that pyodide has been loaded when the code below runs
+
 		pyodideController.registerJsModule("jsModule", jsModule)
 
 		const runCodeBtn = document.getElementById("runCodeBtn")
 		runCodeBtn.addEventListener('click', () => {
-			const code = nova.editor.monaco.getValue();
-			try{
-				pyodideController.runPython(
+			const codeStatus = nova.getCodeStatus(true)
+
+			switch(codeStatus){
+				case CodeStatus.Runnable: 
+					const code = nova.editor.monaco.getValue();
+					try{
+						pyodideController.runPython(
 `
 from jsModule import inputPrompt
 input = inputPrompt
 __builtins__.input = inputPrompt
 ${code}
 `
-				)
-			} catch(err){
-				console.error("Unable to run python code")
-				addTextToConsole(err)
+						)
+					} catch(err){
+						console.error("Unable to run python code")
+						addTextToConsole(err, CONSOLE_ERR_TXT_CLASS)
+					}
+
+					break;
+				
+
+				case CodeStatus.ContainsAutocompleteTkns: 
+					addTextToConsole("Your code contains unfinished autocompletes. Remove or complete them to be able to run your code.", CONSOLE_WARN_TXT_CLASS)
+					break;
+				
+				case CodeStatus.ContainsDraftMode: 
+					addTextToConsole("Your code contains unfinished constructs. Complete the constructs to be able to run your code.", CONSOLE_WARN_TXT_CLASS)
+					break;
+				
+				case CodeStatus.ContainsEmptyHoles: 
+					addTextToConsole("Your code contains empty parts that expect to be filled with values. Fill these in order to be able to run your code.", CONSOLE_WARN_TXT_CLASS)
+					break;
+
+				case CodeStatus.Empty:
+					addTextToConsole("Your code is empty! Try inputing something from the toolbox.", CONSOLE_WARN_TXT_CLASS)
+					break;
+				
 			}
+
 		})
 		
 	}), (err) => {
@@ -58,29 +95,9 @@ ${code}
 		console.error(err)
 	}
 
-
+	//OTHER CODE EXECUTION-RELATED FUNCTIONALITY
+	
 	document.getElementById("clearOutputBtn").addEventListener("click", () => {
 		clearConsole();
-	})
-	
-
-	
+	});
 })()
-/*
-*/
-
-//(async () => {
-  /* const pyodide = await loadPyodide({ indexURL : "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/" }).catch(err => {
-       console.error("Could not load pyodide");
-       console.error(err);
-   });*/
-
-   /*
-   console.log(pyodide.runPython(`
-   a = input('Enter a number')
-   print(a)
-`));*/
-
-
-   //console.log(pyodide)
-//})()

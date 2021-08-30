@@ -1,6 +1,7 @@
 import { Position, Range } from "monaco-editor";
 import { ActionExecutor } from "../editor/action-executor";
 import { ActionFilter } from "../editor/action-filter";
+import { CodeStatus } from "../editor/consts";
 import { DraftRecord } from "../editor/draft";
 import { Editor } from "../editor/editor";
 import { EventRouter } from "../editor/event-router";
@@ -9,6 +10,7 @@ import { Context, Focus } from "../editor/focus";
 import { Hole } from "../editor/hole";
 import { loadToolboxFromJson, updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
+import { ConstructHighlight } from "../notification-system/notification";
 import { NotificationSystemController } from "../notification-system/notification-system-controller";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
@@ -31,6 +33,8 @@ import { DataType, TAB_SPACES } from "./consts";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
+
+const ERROR_HIGHLIGHT_COLOUR: [number, number, number, number] = [255, 153, 153, 0.5];
 
 /**
  * The main body of the code which includes an array of statements.
@@ -520,5 +524,53 @@ export class Module {
         code.draftModeEnabled = true;
         this.draftExpressions.push(new DraftRecord(code, this));
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
+    }
+
+    addHighlightToConstruct(construct: CodeConstruct, rgbColour: [number, number, number, number]) {
+        const hl = new ConstructHighlight(this.editor, construct, rgbColour);
+    }
+
+    getCodeStatus(highlightConstructs: boolean = false) {
+        let ret = null;
+        if (this.body.length === 0 || (this.body.length === 1 && this.body[0] instanceof EmptyLineStmt)) {
+            return CodeStatus.Empty;
+        }
+        const Q: CodeConstruct[] = [];
+        Q.push(...this.body);
+
+        while (Q.length > 0) {
+            let curr: CodeConstruct = Q.splice(0, 1)[0];
+
+            if (curr instanceof TypedEmptyExpr) {
+                ret = ret ?? CodeStatus.ContainsEmptyHoles;
+
+                if (highlightConstructs) {
+                    this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
+                }
+            } else if (curr instanceof AutocompleteTkn) {
+                ret = ret ?? CodeStatus.ContainsAutocompleteTkns;
+
+                if (highlightConstructs) {
+                    this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
+                }
+            } else if (curr.draftModeEnabled) {
+                ret = ret ?? CodeStatus.ContainsDraftMode;
+
+                if (highlightConstructs) {
+                    this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
+                }
+            } else if (curr instanceof Expression && curr.tokens.length > 0) {
+                Q.push(...curr.tokens);
+            } else if (curr instanceof Statement) {
+                for (const tkn of curr.tokens) {
+                    Q.push(tkn);
+                }
+                if (curr.body.length > 0) {
+                    Q.push(...curr.body);
+                }
+            }
+        }
+
+        return ret ?? CodeStatus.Runnable;
     }
 }

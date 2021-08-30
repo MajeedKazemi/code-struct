@@ -894,3 +894,11 @@ export class Actions {
         return Actions.inst;
     }
 }
+
+export enum CodeStatus {
+    ContainsEmptyHoles,
+    ContainsAutocompleteTkns,
+    ContainsDraftMode,
+    Empty,
+    Runnable,
+}
