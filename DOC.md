@@ -68,7 +68,7 @@ Used for numbering menus with unique IDs in the DOM in case the menus form a tre
 __1.__ `constructor(options: Map<string, Function>)`
 ###### Summary:
 ###### Parameters:
-* __`options`__: this map is expected to contain a mapping from option name to the action that is to be executed when the option is selected.
+* __`options`__: </br> This map is expected to contain a mapping from option name to the action that is to be executed when the option is selected.
 
 __2.__ `closeChildren(): void`
 ###### Summary:
@@ -78,7 +78,7 @@ __3.__ `indentChildren(offset: number = 0): void`
 ###### Summary:
 Indent all children of this menu according to their depth. This method visualizes the tree structure of the nested menus in the browser.
 ###### Parameters:
-* __`offset`__: indentation value in px. All indents are made from left to right. If `offset > 0` this will be the initial offset used and the menus on the second level will appear that many px away from their parent. All subsequent menus will add to this offset. Keep this set to 0 if you want menus on each level to use their width as the indentation
+* __`offset`__: <br/> Indentation value in px. All indents are made from left to right. If `offset > 0` this will be the initial offset used and the menus on the second level will appear that many px away from their parent. All subsequent menus will add to this offset. Keep this set to 0 if you want menus on each level to use their width as the indentation
 amount.
 
 __4.__ `linkMenuThroughOption(child: Menu, optionInParent: string): void`
@@ -86,8 +86,8 @@ __4.__ `linkMenuThroughOption(child: Menu, optionInParent: string): void`
 Link `this` and `child` together in a parent-child relationship such that when `optionInParent` is focused, it opens `child`. `optionInParent` is a string and so its
 value is searched for inside the `options` array of this menu. This is for ease of use so that you don't need access to the menu option object itself when linking menus.
 ###### Parameters:
-* __`child`__: the menu to be opened when `optionInParent` is focused in this menu
-* __`optionInParent`__: the text of the option to be used to link the two menus
+* __`child`__: <br/> The menu to be opened when `optionInParent` is focused in this menu.
+* __`optionInParent`__: <br/> The text of the option to be used to link the two menus.
 
 __5.__ `removeChild(child: Menu): void`
 ###### Summary:
@@ -113,12 +113,12 @@ option2
 
 __7.__ `removeEmptyChildren(): void`
 ###### Summary:
-Remove all menus that are either completely empty or have options that don't perform any valid action. This is for cases such as the one below
+Remove all menus that are either completely empty or have options that don't perform any valid action. This is for cases such as the one below:
 ```
 option1 --> option3 --> Empty Menu
 option2     option4
 ```
-Will become
+Will become:
 ```
 option1 --> option4
 option2
@@ -140,13 +140,13 @@ __11.__ `setChildMenus(menus: Menu[]): void`
 ###### Summary:
 Replace this menus `children` list with `menus`.
 ###### Parameters:
-* __`menus`__: new menus that will be the children of this menu.
+* __`menus`__: <br/> New menus that will be the children of this menu.
    
 __12.__ `addChildMenu(menu: Menu): void`
 ###### Summary:
 Add a single child to this menu's children and update the parent of `menu` to be this.
 ###### Parameters:
-* __`menu`__: menu that will become the child of `this`
+* __`menu`__: <br/> Menu that will become the child of `this`.
 
 __13.__ `removeFromDOM(): void`
 ###### Summary:
@@ -156,14 +156,129 @@ __14.__ `getOptionByText(optionText: string): MenuOption`
 ###### Summary:
 Return the menu option with matching `optionText` within this menu's options. `undefined` if no options is found to have the given text.
 ###### Parameters:
-* __`optionText`__: option text to match options on
+* __`optionText`__: <br/> Option text to match options on.
 
 #### MenuOption
 Provides the definition of our menu options. This are placed within menu objects and are displayed as part of the menu in the editor. These offer functionality for linking options 
 to other menus allowing the user code to nest menus. 
 
+##### Attributes
+* __`parentMenu: Menu`__: <br/>
+The menu within which this option is contained.
+* __`text: string`__: <br/>
+Display text of this option.
+* __`doc: ConstructDoc`__: <br/>
+Documentation object associated with this option.
+* __`htmlElement: HTMLDivElement`__: <br/>
+DOM element of this option.
+* __`selectAction: Function`__: <br/>
+Action performed when this option is selected, null if this option links to another menu.
+
+##### Behaviours
+__1.__ `constructor(text: string = "Option Text",
+        useInnerHTML: boolean = false,
+        childMenu?: Menu,
+        parentMenu?: Menu,
+        doc?: ConstructDoc,
+        selectAction?: Function,
+        extraInformation?: string)`
+###### Summary:
+###### Parameters:
+* __`text`__: </br>
+Option text that will be used by the option.
+* __`useInnerHTML`__: </br>
+Set to True if you want `text` to be treated as HTML by the option.
+* __`childMenu`__: </br>
+The menu object that this option links to. Allows this option to open sub menus when focused.
+* __`parentMenu`__: </br>
+The menu within which this option is contained.
+* __`doc`__: </br>
+Documentation object associated with this option.
+* __`selectAction`__: </br>
+Callback that runs when this option is clicked.
+* __`extraInformation`__: </br>
+Tooltip that appears next to the option name in the menu.
+
+__2.__ `select(): void`
+###### Summary:
+Either runs this option's `selectAction` or opens the sub menu attached to this option
+
+__3.__ `linkToChildMenu(child: Menu): void`
+###### Summary:
+Add a menu that will be open when this option is focused.
+###### Parameters:
+* __`child`__: </br>
+Menu object representing the menu that will be opened when this option is focused.
+
+__4.__ `attachToParentMenu(menu: Menu): void`
+###### Summary:
+Attach this option to `menu` so that it is displayed as a potential selection in said menu.
+###### Parameters:
+* __`menu`__: </br>
+The menu that will contain this option.
+
+__5.__ `hasChild(): boolean`
+###### Summary:
+Return whether this option has a menu that it links to.
+
+__6.__ `getChildMenu(): Menu `
+###### Summary:
+Return the child object that is linked to by this option.
+
+__7.__ `setFocus(): void`
+###### Summary:
+Update the visuals of this option to indicate that it has been focused.
+
+__8__ `removeFocus(): void`
+###### Summary:
+Update the visuals of this option to indicate that it is not focused.
+
+__9__ `removeFromDOM(): void`
+###### Summary:
+Remove the DOM element of this option from the DOM. **NOTE: This does not remove it from the menu that it was a part of on the backend. That has to be done manually.**
+
+__10__ `setChildMenu(child: Menu): void`
+###### Summary:
+Update the menu object that this option links to. The current menu that is being linked to, if there is one, will be replaced.
+###### Parameters:
+* __`child`__: <br/>
+Menu to link to.
+
+__11.__ `setFocus(): void`
+###### Summary:
+###### Parameters:
+* __``__: 
+
+
 
 #### MenuController
 This class provides the main control logic for creating and controlling a menu and its options. 
+
+##### Attributes
+* __`static suggestionOptionExtraInfo: string`__: 
+* __`static optionElementClass: string`__: 
+* __`static menuElementClass: string`__: 
+* __`static optionTextElementClass: string`__: 
+* __`static selectedOptionElementClass: string`__: 
+These are all CSS class names used by the various elements of the menu.
+
+* __`module: Module`__: <br/>
+The global module instance of the entire program.
+
+* __`editor: Editor`__: <br/>
+The global editor instance of the entire program.
+
+* __`indexOfRootMenu: number`__: <br/>
+The index into `menus` indicating the location of the top-level menu. This is not necessarily always 0 for nested menus. It depends entirely on how it is constructed.
+
+* __`focusedMenuIndex: number`__: <br/>
+The index into `menus` of the currently open menu.
+
+* __`focusedOptionIndex: number`__: <br/>
+The index into `this.menus[this.focusedMenuIndex].options` indicating the location of the currently focused option within an open menu.
+
+* __`menus: Menu[]`__: <br/>
+The list of all menus currently controlled by this controller. Will usually contain a single element since we don't have nested menus anymore.
+
 
 
