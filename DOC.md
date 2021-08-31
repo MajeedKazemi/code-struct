@@ -7,6 +7,8 @@
 * [User Code Execution Doc](#user-code-execution-documentation)
 * [Variable Controller Doc](#variable-controller-documentation)
 * [Toolbox.ts Doc](#toolbox-documentation)
+* [Typechecker Doc](#typechecker-documentation)
+* [Construct Events Doc](#construct-events-documentation)
 * [Miscellanious Doc](#misc-documentation)
 
 ## Dev Notes
