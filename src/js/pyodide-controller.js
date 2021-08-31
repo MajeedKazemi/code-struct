@@ -56,13 +56,7 @@ let pyodideController;
                         const code = nova.editor.monaco.getValue();
                         try {
                             pyodideController.runPython(
-                                `
-								from jsModule import inputPrompt
-								input = inputPrompt
-								__builtins__.input = inputPrompt
-
-								${code}
-								`
+                                `from jsModule import inputPrompt\ninput = inputPrompt\n__builtins__.input = inputPrompt\n${code}\n`
                             );
                         } catch (err) {
                             console.error("Unable to run python code");
