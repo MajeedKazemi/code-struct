@@ -46,9 +46,9 @@ is built and the options are connected. This class also grants access to the DOM
 
 ##### Attributes
 * __`options: MenuOption[]`__: <br/>
-array of MenuOption objects that are displayed by the menu.
+List of MenuOption objects that are displayed by the menu.
 * __`editCodeActionsOptions: EditCodeAction[]`__: <br/>
-array of actions from which this menus options are created. These actions' `performAction` methods are executed when their 
+List of actions from which this menus options are created. These actions' `performAction` methods are executed when their 
 corresponding option is selected in the menu. 
 * __`openedLinkOptionIndex: number`__: <br/>
 Index into this.options of an option that is currently focused and links to another menu.
@@ -93,7 +93,8 @@ __5.__ `removeChild(child: Menu): void`
 ###### Summary:
 Remove a given child from the menu.
 ###### Parameters:
-* __`child`__: child to be removed
+* __`child`__: <br/>
+Child to be removed.
 
 __6.__ `static collapseSingleLinkMenus(root: Menu): void`
 ###### Summary:
@@ -175,13 +176,16 @@ DOM element of this option.
 Action performed when this option is selected, null if this option links to another menu.
 
 ##### Behaviours
-__1.__ `constructor(text: string = "Option Text",
+__1.__ 
+```
+constructor(text: string = "Option Text",
         useInnerHTML: boolean = false,
         childMenu?: Menu,
         parentMenu?: Menu,
         doc?: ConstructDoc,
         selectAction?: Function,
-        extraInformation?: string)`
+        extraInformation?: string)
+```
 ###### Summary:
 ###### Parameters:
 * __`text`__: </br>
@@ -244,22 +248,16 @@ Update the menu object that this option links to. The current menu that is being
 * __`child`__: <br/>
 Menu to link to.
 
-__11.__ `setFocus(): void`
-###### Summary:
-###### Parameters:
-* __``__: 
-
-
 
 #### MenuController
-This class provides the main control logic for creating and controlling a menu and its options. 
+This class provides the main control logic for creating and controlling a menu and its options. **Some parts of this class are documented within the code so this doc contains only those parts that are not documented in the code.**
 
 ##### Attributes
 * __`static suggestionOptionExtraInfo: string`__: 
 * __`static optionElementClass: string`__: 
 * __`static menuElementClass: string`__: 
 * __`static optionTextElementClass: string`__: 
-* __`static selectedOptionElementClass: string`__: 
+* __`static selectedOptionElementClass: string`__: <br/>
 These are all CSS class names used by the various elements of the menu.
 
 * __`module: Module`__: <br/>
@@ -279,6 +277,66 @@ The index into `this.menus[this.focusedMenuIndex].options` indicating the locati
 
 * __`menus: Menu[]`__: <br/>
 The list of all menus currently controlled by this controller. Will usually contain a single element since we don't have nested menus anymore.
+
+##### Behaviours
+__1.__ `static getInstance(): MenuController`
+###### Summary:
+`MenuController` is a singleton and this method should be used for obtaining its current instance. If not instance exists, a new one will be created.
+
+__2.__ `setInstance(module: Module, editor: Editor): void`
+###### Summary:
+Update the module and editor instances of the current `MenuController` instance.
+###### Parameters:
+* __`module`__: <br/> Module object to use.
+* __`editor`__: <br/> Editor object to use.
+
+
+__3.__ `removeMenus(): void`
+###### Summary:
+Close and remove all menus from the MenuController (both backend and DOM removal). Completely clears the `menus` list.
+
+
+__4.__ `isMenuOpen(): boolean`
+###### Summary:
+Return whether the top-level menu of this controller is currently open and visible in the editor or not. 
+
+__5.__ `updateMenuArrayFromTree(root: Menu, isRoot: boolean): void`
+###### Summary:
+Populate the `menus` list from a tree of menus. 
+
+###### Parameters:
+* __`root`__: <br/> The root of this menu.
+* __`isRoot`__: <br/> Whether `root` is the root of the overall menu tree. Should be false as long as `root.parentMenu` is not null.
+
+__6.__ `updateMenuOptions(optionText: string): void`
+###### Summary:
+Filter out options the text of which does not match optionText. Each menu has a list of edit actions originally associated with it. This function will filter those to only contain
+options whose text most closely matches optionText.
+###### Parameters:
+* __`optionText`__: <br/> Current user input from the AutocompleteTkn associated with this menu. 
+
+__7.__ `updatePosition(pos: { left: number; top: number }): void`
+###### Summary:
+Set the position of the menu to `pos`.
+###### Parameters:
+* __`pos`__: <br/> (x, y) position of the top left corner of the menu within the viewport.
+
+__8.__ `getNewMenuPosition(code: CodeConstruct): { left: number; top: number }`
+###### Summary:
+Update the position of the menu according to changes in the associated AutocompleteTkn. This ensures the menu moves to the end of the AutocompleteTkn as the user types.
+###### Parameters:
+* __`code`__: `AutocompleteTkn` or other `CodeConstruct` to which the menu is attached.
+
+
+
+
+__4.__ `isMenuOpen(): boolean`
+###### Summary:
+###### Parameters:
+* __``__: 
+
+
+
 
 
 
