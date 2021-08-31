@@ -35,6 +35,11 @@ This contains the old strings used for warning messages. Most of these are not u
 
 
 ### Suggestion Controller Documentation
+Overall the way this works is you create a `Menu` object which holds `MenuOption` objects which perform some action when selected. `Menu` objects can be nested in a tree to provided nested menu functionality. `MenuController` is a singleton controlling all existing menus. It keeps track of open/closed menus as well as the currently focused option within each open menu. 
+
+If you want to create a menu you should use `MenuController`, you should not have to interact with `Menu` and `MenuOption` directly. So before modifying those, check if `MenuController` already provides the functionality you want and if it does not, it is likely that it should be added there rather than the menus and the options.
+
+`Module` has a `MenuController` and that is how our code instantiates these menus. It calls `buldSingleLevelMenu()` each time a menu needs to be opened. If you want to see exactly how a menu is created by the calling code in various contexts, just search for usages of `buildSingleLevelMenu()`.
 #### Menu
 This is the main class that provides the functionality for our autocomplete and other menus. It can be used to create both a single-level and a tree menu. This only depends on how the menu
 is built and the options are connected. This class also grants access to the DOM object of the menu as well as methods for manipulating it.
