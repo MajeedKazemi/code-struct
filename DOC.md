@@ -23,7 +23,7 @@ to it inside the array under `app`. **Make sure to not add any scripts under a N
 * __`module: rules:`__: this lists how various file types are transpiled to code that can be ran by the browser. That's what the loaders are for. After adding a loader here, you need to 
 specify what types of files it processes and then just install it through npm. 
 
-### Notification Documentation
+### Notifications Documentation
 #### Notification.ts and NotificationController.ts
 These two are pretty well documented inside the code. Notification.ts provides class definitions for all warnings that we have in the editor. This includes the draft mode. It also contains
 the definition for `ConstructHighlight` an object that can be used to highlight a piece of code within the editor. 
@@ -58,6 +58,98 @@ Used for numbering menus with unique IDs in the DOM in case the menus form a tre
 
 
 ##### Behaviours
+__1.__ `constructor(options: Map<string, Function>)`
+###### Summary:
+###### Parameters:
+* __`options`__: this map is expected to contain a mapping from option name to the action that is to be executed when the option is selected.
+
+__2.__ `closeChildren(): void`
+###### Summary:
+Close all open descendants of this menu if it has any.
+
+__3.__ `indentChildren(offset: number = 0): void`
+###### Summary:
+Indent all children of this menu according to their depth. This method visualizes the tree structure of the nested menus in the browser.
+###### Parameters:
+* __`offset`__: indentation value in px. All indents are made from left to right. If `offset > 0` this will be the initial offset used and the menus on the second level will appear that many px away from their parent. All subsequent menus will add to this offset. Keep this set to 0 if you want menus on each level to use their width as the indentation
+amount.
+
+__4.__ `linkMenuThroughOption(child: Menu, optionInParent: string): void`
+###### Summary:
+Link `this` and `child` together in a parent-child relationship such that when `optionInParent` is focused, it opens `child`. `optionInParent` is a string and so its
+value is searched for inside the `options` array of this menu. This is for ease of use so that you don't need access to the menu option object itself when linking menus.
+###### Parameters:
+* __`child`__: the menu to be opened when `optionInParent` is focused in this menu
+* __`optionInParent`__: the text of the option to be used to link the two menus
+
+__5.__ `removeChild(child: Menu): void`
+###### Summary:
+Remove a given child from the menu.
+###### Parameters:
+* __`child`__: child to be removed
+
+__6.__ `static collapseSingleLinkMenus(root: Menu): void`
+###### Summary:
+Remove menu's that only serve as links (have a single option that links to another menu). In the example below option3 is not really necessary. These are the kinds of options this method will remove.
+```
+option1 --> option3 --> option4
+option2
+```
+Will become
+```
+option1 --> option4
+option2
+```
+###### Parameters:
+* __`root`__: the root of the menu structure
+
+
+__7.__ `removeEmptyChildren(): void`
+###### Summary:
+Remove all menus that are either completely empty or have options that don't perform any valid action. This is for cases such as the one below
+```
+option1 --> option3 --> Empty Menu
+option2     option4
+```
+Will become
+```
+option1 --> option4
+option2
+```
+
+__8.__ `open(): void`
+###### Summary:
+Display this menu in the editor.
+
+__9.__ `close(): void`
+###### Summary:
+Hide this menu in the editor.
+
+__10.__ `isOpen(): boolean`
+###### Summary:
+Return whether this menu is currently visible in the editor or not. 
+
+__11.__ `setChildMenus(menus: Menu[]): void`
+###### Summary:
+Replace this menus `children` list with `menus`.
+###### Parameters:
+* __`menus`__: new menus that will be the children of this menu.
+   
+__12.__ `addChildMenu(menu: Menu): void`
+###### Summary:
+Add a single child to this menu's children and update the parent of `menu` to be this.
+###### Parameters:
+* __`menu`__: menu that will become the child of `this`
+
+__13.__ `removeFromDOM(): void`
+###### Summary:
+Remove this menu from the DOM.
+
+__14.__ `getOptionByText(optionText: string): MenuOption`
+###### Summary:
+Return the menu option with matching `optionText` within this menu's options. `undefined` if no options is found to have the given text.
+###### Parameters:
+* __`optionText`__: option text to match options on
 
 #### MenuOption
 Provides the definition of our menu options. This are placed within menu objects and are displayed as part of the menu in the editor. These offer functionality for linking options 
