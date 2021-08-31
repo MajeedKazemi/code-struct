@@ -401,6 +401,7 @@ export class EventRouter {
                 return new EditAction(EditActionType.InsertModifier, { modifier: e.getCode() });
             }
 
+            case InsertActionType.InsertInputExpr:
             case InsertActionType.InsertLenExpr: {
                 if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertExpression, {

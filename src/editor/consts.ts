@@ -171,6 +171,7 @@ export enum InsertActionType {
     InsertRangeExpr,
     InsertLenExpr,
     InsertCastStrExpr,
+    InsertInputExpr,
 
     InsertListLiteral,
     InsertListItem,
@@ -274,6 +275,16 @@ export class Actions {
                 {},
                 ["("],
                 "len"
+            ),
+
+            new EditCodeAction(
+                "input(---)",
+                "add-input-btn",
+                () => new FunctionCallExpr("input", [new Argument([DataType.String], "prompt", true)], DataType.String),
+                InsertActionType.InsertInputExpr,
+                {},
+                ["("],
+                "input"
             ),
 
             new EditCodeAction(
