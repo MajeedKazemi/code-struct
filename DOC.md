@@ -328,15 +328,36 @@ Update the position of the menu according to changes in the associated Autocompl
 * __`code`__: `AutocompleteTkn` or other `CodeConstruct` to which the menu is attached.
 
 
+### User Code Execution Documentation
+To run the user code we are currently using `Pyodide` which enables us to run everything in the client's browser. Pyodide is loaded inside of `index.html` so if that ever needs to be updated just update the script tag inside of that file.
+<br/>
 
+The two scripts responsible for actually working with Pyodide are `load-pyodide.js` and `pyodide-controller.js`. The former simply loads Pyodide and exports the loaded object. **Note that this export is asynchronous and exports a Promise. See pyodide-controller.js for how to perform the corresponding import.** 
 
-__4.__ `isMenuOpen(): boolean`
-###### Summary:
-###### Parameters:
-* __``__: 
+#### Setting Pyodide Options
+Inside of `load-pyodide.js` there is a method `loadPyodide()` which accepts an options object. Here is where you would set any of the options from the Pyodide docs. The most useful ones are overriding the behaviours of `stderr`, `stdin` and `stdout`. You can also set where Pyodide is loaded from here.
 
+<br/>
+Here is a sample: <br/>
 
+```
+loadPyodide({
+   indexURL: "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/",
+   stdout: (text) => {
+       addTextToConsole(text);
+   },
+})
+```
 
+#### Working with Pyodide
+This is done in `pyodide-controller.js`. This script imports the Pyodide object loaded by `load-pyodide.js` and defines various useful functions for working with it. This module has one main anonymous function which contains the logic of using Pyodide. If you want to make any changes to the execution flow, here is the place. Here are some things that you might want to do with it:
 
+* **Running Python Code:** <br/>
+Simply call `pyodideControler.runPython()`. The first argument is a string with the code to be ran.
 
+* **Load JS functions into the user's Python script:** <br/>
+This can be done by simply adding the necessary functions to the `jsModule` object at the top of the script. This is already loaded into the Python script so all you have to do is use it inside the argument string to `runPython()`. See how the current input behaviour is modified for an example. 
 
+* **Good to Know:**
+    * If you want to add another script, don't forget to add it to the bundle within `webpack.config.js`.
+    * The anonymous function is called immediately on script load.
