@@ -1,0 +1,47 @@
+#console {
+    width: 80%;
+    height: 40%;
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 5px;
+    display: flex;
+    flex-flow: column;
+    margin-left: 0.5%;
+}
+
+#runCodeBtn {
+    justify-self: start;
+}
+
+#runCodeButtonDiv {
+    padding: 2px;
+    margin-bottom: 5px;
+    height: fit-content;
+    max-height: 20%;
+}
+
+#outputDiv {
+    border-top: 1px solid black;
+    padding: 2px;
+    height: auto;
+    flex: 1 1 auto;
+    overflow-y: scroll;
+    overflow-x: scroll;
+}
+
+#clearOutputBtn {
+    margin-left: 10px;
+}
+
+.consoleTxt {
+    font-weight: 10pt;
+}
+
+.consoleErrTxt {
+    color: red;
+}
+
+.consoleWarnTxt {
+    color: orange;
+}

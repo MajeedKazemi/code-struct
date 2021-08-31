@@ -4,13 +4,24 @@
         <meta charset="UTF-8" />
         <title>Nova: text-based programming for beginners</title>
     </head>
-
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.18.0/full/pyodide.js"></script>
     <body>
         <div id="editor-container">
             <div id="editor-toolbox">
                
             </div>
-            <div id="editor"></div>
+            <div id="editorArea">
+                <div id="editor"></div>
+                <div id="console">
+                    <div id="runCodeButtonDiv">
+                        <button id="runCodeBtn">RUN</button>
+                        <button id="clearOutputBtn">CLEAR</button>
+                    </div>
+                    <div id="outputDiv">
+                        Loading Python...
+                    </div>
+                </div>
+            </div>
         </div>
     </body>
 </html>

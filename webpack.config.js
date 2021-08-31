@@ -4,12 +4,12 @@ const HtmlWebPackPlugin = require("html-webpack-plugin");
 module.exports = {
     mode: "development",
     entry: {
-        app: "./src/index.ts",
+        app: ["./src/index.ts", "./src/js/load-pyodide.js", "./src/js/pyodide-controller.js"],
         "editor.worker": "monaco-editor/esm/vs/editor/editor.worker.js",
         "json.worker": "monaco-editor/esm/vs/language/json/json.worker",
         "css.worker": "monaco-editor/esm/vs/language/css/css.worker",
         "html.worker": "monaco-editor/esm/vs/language/html/html.worker",
-        "ts.worker": "monaco-editor/esm/vs/language/typescript/ts.worker",
+        "ts.worker": "monaco-editor/esm/vs/language/typescript/ts.worker"
     },
     resolve: {
         extensions: [".ts", ".js"],
@@ -43,5 +43,5 @@ module.exports = {
             filename: "./index.html",
         }),
     ],
-    devtool: "inline-source-map",
+    devtool: "inline-source-map"
 };

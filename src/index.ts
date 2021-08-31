@@ -20,4 +20,6 @@ self.MonacoEnvironment = {
     },
 };
 
-export const nova = new Module("editor");
+const nova = new Module("editor");
+
+export { nova as nova };
