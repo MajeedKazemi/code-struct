@@ -361,3 +361,78 @@ This can be done by simply adding the necessary functions to the `jsModule` obje
 * **Good to Know:**
     * If you want to add another script, don't forget to add it to the bundle within `webpack.config.js`.
     * The anonymous function is called immediately on script load.
+
+### Variable Controller Documentation
+This object deals with most variable-related logic such as determining variable type on a given line, finding references to a given variable, working with variable reference buttons in the toolbox, etc... It also deals with the creation and management of the cascaded menu. 
+
+##### Behaviours
+__1.__ `addVariableRefButton(assignmentStmt: VarAssignmentStmt)`
+###### Summary:
+Create a button within the toolbox's User-Defined Variables region for referencing the variable created with `assignmentStmt`. 
+###### Parameters:
+* __`assignmentStmt`__: <br/> Definition of the variable from which the reference button can be created.
+
+
+__2.__ `isVariableReferenceButton(buttonId: string): boolean`
+###### Summary:
+Return whether the DOM element with the id `buttonId` is a variable reference button or not.
+###### Parameters:
+* __`buttonId`__: <br/> DOM id to search the variable reference buttons for.
+
+__3.__ `removeVariableRefButton(varId: string)`
+###### Summary:
+Remove the variable reference button with a given id from the DOM and internal storage.
+###### Parameters:
+* __`varId`__: <br/> id of the button to remove. Should be `[VarAssignmentStmt Object].buttonId` unless the id is known from somewhere else.
+
+
+__4.__ `addWarningToVarRefs(varId: string, module: Module)`
+###### Summary:
+Highlight all references to the variable with id `varId` and provide a textual warning saying that all assingments of this variable have actually been deleted and therefore the variable cannot be referenced anymore. **Despite its name this method is only meant to be used SPECIFICALLY on variable references of variables that no longer exist.**
+###### Parameters:
+* __`varId`__: <br/> the id of the variable the references to which should be highlighted.
+* __`module`__: <br/> module objects passed in so that the method may access the notification system to create the warning.
+
+__5.__ `getVariableButtons(): HTMLDivElement[]`
+###### Summary:
+Return the list of all variable reference buttons that currently exist. Not all of these are necessarily shown in the toolbox since the toolbox displays them based on context and scope.
+
+__6.__ `getVariableButton(varId: string): HTMLDivElement`
+###### Summary:
+Return the button associated with the variable with a given `varId` (`buttonId` if this comes from a `VarAssignmentStmt`).
+###### Parameters:
+* __`varId`__: <br/> id of the button to search for.
+
+__7.__ `hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number): void`
+###### Summary:
+Remove all reference buttons for variables that cannot be referenced in the current context from the "User-Defined Variables" area in the toolbox.
+###### Parameters:
+* __`scope`__: <br/> The scope of the line that the cursor is currently on.
+* __`lineNumber`__: <br/> The line number of the line that the cursor is currently on. Any variable initialized below this line are considered to be unavailable.
+
+__8.__ `updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string): void`
+###### Summary:
+Updates the variable reference button with the given id with a text displaying the type the associated variable would have at line `lineNumber`.
+###### Parameters:
+* __`buttonId`__: <br/> id of the button/variable to determine the type of.
+* __`scope`__: <br/> The scope within which to search for the variable.
+* __`lineNumber`__: <br/> The line number at which to stop the search.
+* __`identifier`__: <br/> The identifier of the variable.
+
+__9.__ `getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true): DataType`
+###### Summary:
+Return the type of the variable with the given `identifier` within the given `scope` and above line `lineNumber`. Can optionally include line `lineNumber` in the search by setting `excludeCurrentLine` to false.
+###### Parameters:
+* __`scope`__: <br/> The current scope.
+* __`lineNumber`__: <br/> The line number at which to stop the search.
+* __`identifier`__: <br/> Identifier of the variable being searched for.
+
+__10.__ `getAllAssignmentsToVar(varId: string, module: Module): VarAssignmentStmt[]`
+###### Summary:
+Return a list of absolutely all assignments to the variable with id `varId` within the AST.
+###### Parameters:
+* __`varId`__: <br/> ID of the variable to search for.
+* __`module`__: <br/> Module holding the AST to search in.
+
+
+
