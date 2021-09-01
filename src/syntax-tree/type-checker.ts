@@ -24,16 +24,6 @@ export class TypeChecker {
     }
 
     /**
-     * Validates wether insertionCode can be inserted into the second hole of a for-loop/
-     *
-     * @param insertionCode expression to be inserted
-     * @returns T/F based on whether the insertion is allowed or not
-     */
-    validateForLoopIterableInsertionType(insertionCode: Expression) {
-        return TypeChecker.listTypes.indexOf(insertionCode.returns) > -1;
-    }
-
-    /**
      * Recursively set all empty holes (TypedEmptyExpr) in an expression to the provided type newTypes.
      *
      * @param parentConstruct parent Statement of the expression
@@ -99,19 +89,5 @@ export class TypeChecker {
             default:
                 return DataType.Any;
         }
-    }
-
-    //Variables need to get refactored anyway so might not need this for now
-
-    /**
-     * Replaces the record using an old identifier of a variable with a record using the new identifier.
-     *
-     * @param oldIdentifier the variable's old identifier
-     * @param newIdentifier the variable's new identifier
-     */
-    static updateVarIdentifierInMap(oldIdentifier: string, newIdentifier: string) {
-        const currentType = this.varTypeMap.get(oldIdentifier);
-        this.varTypeMap.delete(oldIdentifier);
-        this.varTypeMap.set(newIdentifier, currentType);
     }
 }
