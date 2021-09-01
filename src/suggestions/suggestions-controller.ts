@@ -794,7 +794,7 @@ export class MenuController {
 
         pos.top =
             this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
-            parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
+            document.getElementById(EDITOR_DOM_ID).offsetTop;
 
         return pos;
     }
