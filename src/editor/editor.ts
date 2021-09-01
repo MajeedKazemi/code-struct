@@ -1,4 +1,4 @@
-import { editor, Position, Range, Selection } from "monaco-editor";
+import { editor, Range, Selection } from "monaco-editor";
 import { CodeConstruct, EditableTextTkn, IdentifierTkn, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
@@ -10,7 +10,6 @@ export class Editor {
     cursor: Cursor;
     monaco: editor.IStandaloneCodeEditor;
     holes: Hole[];
-    mousePosMonaco: Position;
     mousePosWindow: number[] = [0, 0];
     scrollOffsetTop: number = 0;
     oldCursorLineNumber: number = 1;
