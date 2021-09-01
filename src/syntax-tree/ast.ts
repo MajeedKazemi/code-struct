@@ -1591,9 +1591,16 @@ export class MethodCallModifier extends Modifier {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        const doTypesMatch = this.leftExprTypes.some((type) =>
+        let doTypesMatch = this.leftExprTypes.some((type) =>
             areEqualTypes(providedContext?.expressionToLeft?.returns, type)
         );
+
+        //#260
+        if (this.returns === DataType.Void && providedContext?.lineStatement instanceof VarOperationStmt) {
+            doTypesMatch = true;
+        } else if (this.returns === DataType.Void) {
+            doTypesMatch = false;
+        }
 
         return validator.atRightOfExpression(providedContext) && doTypesMatch
             ? InsertionType.Valid
