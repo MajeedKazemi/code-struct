@@ -908,6 +908,10 @@ This method should implement the algorithm for modifying the identifier of an ex
 
 ### ForStatement
 The ForStatement implements its variable a bit differently. You can look at the differences between the implementations of the various `VariableContainer` methods in `ForStatement` and `VarAssignmentStmt`. **`ForStatement` uses the attribute `loopVar: VarAssignmentStmt` to keep track of its loop variable.** This dummy `VarAssignmentStmt` DOES NOT appear in the editor and it IS NOT part of the AST. It is used purely for being able to treat the `ForStatement` as a variable in cases where this is required. 
+<br/>
+<br/>
+<br/>
+
 
 
 ### Text Enhance
