@@ -8,7 +8,7 @@
 -   [Toolbox.ts Doc](#toolbox-documentation)
 -   [Typechecker Doc](#typechecker-documentation)
 -   [Construct Events Doc](#construct-events-documentation)
--   [Miscellanious Doc](#misc-documentation)
+-   [Miscellaneous Doc](#misc-documentation)
 
 # Dev Notes
 
@@ -523,7 +523,15 @@ Update the position of the menu according to changes in the associated Autocompl
 To run the user code we are currently using `Pyodide` which enables us to run everything in the client's browser. Pyodide is loaded inside of `index.html` so if that ever needs to be updated just update the script tag inside of that file.
 <br/>
 
-The two scripts responsible for actually working with Pyodide are `load-pyodide.js` and `pyodide-controller.js`. The former simply loads Pyodide and exports the loaded object. **Note that this export is asynchronous and exports a Promise. See pyodide-controller.js for how to perform the corresponding import.**
+The two scripts responsible for actually working with Pyodide are `load-pyodide.js` and `pyodide-controller.js`. The former simply loads Pyodide and exports the loaded object. **Note that this export is asynchronous and exports a Promise. See pyodide-controller.js for how to perform the corresponding import.** <br/>
+
+The user's code will only run if the following conditions are satisfied:
+1. There are no empty holes in the user's code.
+2. There are no unfinished autocompletes in the user's code.
+3. There are no open draft modes in the user's code
+
+If one of the above conditions is not satisfied, the user will be notified through the console. **NOTE: This does not protect from runtime errors completely. These are still possible and will be displayed in the console.**
+
 <br/>
 <br/>
 
@@ -803,5 +811,142 @@ This field specifies some information for creating the toolbox buttons. For now 
 This is the class we use for various type-related functionalities that did not fit into the code constructs. It is documented inside of the code. Mostly it is used for converting list types from one to another. It used to contain some other functionality, but after the refactoring of the `insert()` method and the code constructs themselves, most of that functionality was either removed or placed within the construct definitions. So if you are looking for some particular type functionality and it is not found inside of this class, it is likely within `Expression`, `Statement` or `Token` definitions.
 
 ## Construct Events Documentation
+Our code constructs had various methods added to them for performing numerous important updates. Particularly for types. This section will go over them. <br/> <br/>
+
+### 
+
 
 ## Misc Documentation
+
+### Draft Mode
+Draft mode is attached to the particular construct that triggered it. The current condition for opening the draft mode is:<br/>
+- The type of expression being inserted does not match the type of hole it is being inserted into, BUT it can be converted to that type. 
+
+The type conversion is specified by `typeConversionMap: Map<DataType, Array<DataType>>` in `util.ts`. It maps data types to a list of types each data type can be converted to. So `typeConversionMap.get(DataType.Number)` will return a list of all types that a number can be converted to. This should be equal to (subject to change in the future) `[DataType.String, DataType.NumberList, DataType.Boolean]`. **The map takes into account ALL possible ways of converting a type to another. This includes: casting, wrapping and using the expression as an operand of some larger expression.** <br/>
+<br/>
+The draft mode itself is controlled by two methods within `Module`. These are `closeConstructDraftRecord()` and `openDraftMode()`. They don't do anything special and their code is not difficult to understand. At least at the time of writing this. In summary, they simply add a highlight to the offending code in the editor and mark it internally as being in draft mode by setting `draftModeEnabled` to true. This variable is part of every code construct and can be used to identify constructs that are currently in draft mode.
+
+<br/>
+<br/>
+
+### Variables
+Variable functionality is split between `Scope`, `VariableContainer`, `variable-controller.ts` and `VarAssignmentStmt`. `ForStatement` also contains some specific functionality for for-loop vars. <br/>
+
+The basic life cycle of a variable is this. 
+1. A `VarAssignmentStmt` is created.
+2. The statement from step 1 is populated with an identifier and value at some point.
+3. **When the statement is focused OFF and IF it has an identifier, only then will a variable be created.** At this point a reference button for the variable will be added to the toolbox.
+4. The variable is used and either stays in the code or gets removed. 
+5. In the case that the variable is removed, its remaining references are highlighted to indicate that they should be fixed.
+
+<br/>
+
+#### VariableContainer
+This is an interface that specifies the behaviours that anything that contains a `VarAssignmentStmt` should implement. <br/>
+
+**1.** `assignId()`
+
+#### Summary:
+Every variable needs a **unique** id. This is also the ID used for its reference button in the toolbox. This method should implement the assignment process of this id.
+<br/>
+<br/>
+
+
+**2.** `assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should make use of 3. and 4. It should implement high level logic for how 3. and 4. interact. <br/>
+
+The way it is implemented for `VarAssignmentStmt` and `ForStatement` is that it decides whether `assignNewVariable()` or `assignExistingVariable` run. `assignVariable` itself should be called within the `onFocusOff` of the class that implements the container. Particularly in such a way that there is a decision step between running `assignVariable()` and `reassignVariable()`. 
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
+
+<br/>
+<br/>
+
+**3.** `assignNewVariable(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should implement the algorithm for assigning a completely new variable that does not exist within the current scope.
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
+
+<br/>
+<br/>
+
+**4.** `assignExistingVariable(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should implement the algorithm for assigning an existing variable using a new `VarAssignmentStmt` within the current scope.
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
+
+<br/>
+<br/>
+
+
+**5.** `reassignVar(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should implement the algorithm for modifying the identifier of an existing `VarAssignmentStmt`.
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
+
+<br/>
+<br/>
+
+### What are the Differences between the Methods above?
+3. and 4. are meant to be used on **completely new `VarAssignmentStmt`** objects. Ones were just created. 5. is meant to be used on **existing `VarAssignmentStmt`** that are being modified.
+
+### ForStatement
+The ForStatement implements its variable a bit differently. You can look at the differences between the implementations of the various `VariableContainer` methods in `ForStatement` and `VarAssignmentStmt`. **`ForStatement` uses the attribute `loopVar: VarAssignmentStmt` to keep track of its loop variable.** This dummy `VarAssignmentStmt` DOES NOT appear in the editor and it IS NOT part of the AST. It is used purely for being able to treat the `ForStatement` as a variable in cases where this is required. 
+<br/>
+<br/>
+<br/>
+
+
+
+### Text Enhance
+This class can be used to change the visuals of the text we are using in our editor and toolbox. It only has two methods.
+<br/>
+
+**1.** `getStyledSpan(content: string, styleClass: string): string`
+
+#### Summary:
+Wrap `content` into a `<span>` element with `className=styleClass` and return the resulting string. This returned string can then be assigned to `innerHTML` of various DOM elements to have styled text. 
+#### Parameters:
+
+-   **`content`**: <br/> The text to be styled.
+-   **`styleClass`**: <br/> Name of the CSS class used to style the text.
+<br/>
+<br/>
+
+**2.** `getStyledSpanAtSubstrings(content: string, styleClass: string, matches: [][]): string`
+
+#### Summary:
+Wrap substrings specified by `matches` within `content` with a `<span>` element with `className=styleClass` and return the resulting string. The result can be assigned to `innerHTML` of various DOM elements to have styled text. <br/>
+
+The structure of matches is very important for this. It is an array of tuples specifying the start and end indeces of each substring to be styled. **The end index is inclusive!**
+#### Parameters:
+
+-   **`content`**: <br/> Text to be styled.
+-   **`styleClass`**: <br/> Name of the CSS class used to style the text.
+-   **`matches`**: <br/> List specifying the substring ranges within `content` to be styled. <br/>
+Here is an example:
+```TypeScript
+content = "This is the text to be styled."
+styleClass = "styleClassName"
+matches = [[0, 4], [8, 9]]
+let res = getStyledSpanAtSubstrings(content, styleClass, matches)
+
+console.log(res)
+>>> "<span class='styleClassName'>This </span>is <span class='styleClassName'>th</span>e text to be styled."
+```
