@@ -16,6 +16,7 @@ export class EventRouter {
     getKeyAction(e: KeyboardEvent, providedContext?: Context): EditAction {
         const context = providedContext ? providedContext : this.module.focus.getContext();
         const inTextEditMode = this.module.focus.isTextEditable(context);
+        const inAutocompleteToken = this.module.validator.inAutocompleteToken(context);
 
         switch (e.key) {
             case KeyPress.ArrowUp: {
@@ -31,15 +32,7 @@ export class EventRouter {
             }
 
             case KeyPress.ArrowLeft: {
-                if (
-                    !inTextEditMode &&
-                    !(
-                        context.token instanceof ast.AutocompleteTkn ||
-                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
-                        context.tokenToRight instanceof ast.AutocompleteTkn
-                    ) &&
-                    this.module.menuController.isMenuOpen()
-                ) {
+                if (!inTextEditMode && !inAutocompleteToken && this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseSubMenu);
                 } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToPrevTokenAtTextEditable(context)) {
@@ -54,15 +47,7 @@ export class EventRouter {
             }
 
             case KeyPress.ArrowRight: {
-                if (
-                    !inTextEditMode &&
-                    !(
-                        context.token instanceof ast.AutocompleteTkn ||
-                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
-                        context.tokenToRight instanceof ast.AutocompleteTkn
-                    ) &&
-                    this.module.menuController.isMenuOpen()
-                ) {
+                if (!inTextEditMode && !inAutocompleteToken && this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.OpenSubMenu);
                 } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToNextTokenAtTextEditable(context)) {
