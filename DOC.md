@@ -826,8 +826,14 @@ The type conversion is specified by `typeConversionMap: Map<DataType, Array<Data
 <br/>
 The draft mode itself is controlled by two methods within `Module`. These are `closeConstructDraftRecord()` and `openDraftMode()`. They don't do anything special and their code is not difficult to understand. At least at the time of writing this. In summary, they simply add a highlight to the offending code in the editor and mark it internally as being in draft mode by setting `draftModeEnabled` to true. This variable is part of every code construct and can be used to identify constructs that are currently in draft mode.
 
+<br/>
+<br/>
 
 ### Variables
+
+<br/>
+<br/>
+
 
 ### Text Enhance
 This class can be used to change the visuals of the text we are using in our editor and toolbox. It only has two methods.
@@ -855,5 +861,13 @@ The structure of matches is very important for this. It is an array of tuples sp
 -   **`content`**: <br/> Text to be styled.
 -   **`styleClass`**: <br/> Name of the CSS class used to style the text.
 -   **`matches`**: <br/> List specifying the substring ranges within `content` to be styled.
-<br/>
-<br/>
+Here is an example:
+```TypeScript
+content = "This is the text to be styled."
+styleClass = "styleClassName"
+matches = [[0, 4], [8, 9]]
+let res = getStyledSpanAtSubstrings(content, styleClass, matches)
+
+console.log(res)
+>>> "<span class='styleClassName'>This </span>is <span class='styleClassName'>th</span>e text to be styled."
+```
