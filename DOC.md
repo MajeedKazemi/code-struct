@@ -585,3 +585,98 @@ Return a list of absolutely all assignments to the variable with id `varId` with
 
 -   **`varId`**: <br/> ID of the variable to search for.
 -   **`module`**: <br/> Module holding the AST to search in.
+
+#### Toolbox Documentation
+Our toolbox functionality is mostly contained within `toolbox.ts` and `toolbox.json`. Except for the `onClick` actions of the buttons themselves, those are in a different place.<br/>
+
+##### Toolbox.ts
+This file stores various functions that operate on the toolbox. 
+
+**1.** `addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement`
+
+###### Summary:
+Add a button the toolbox that can be used for inserting variable references of a particular variable. Returns the button object. Note that the button is actually a DIV and not an HTMLButton.
+###### Parameters:
+
+-   **`identifier`**: <br/> The identifier of the variable referenced by this button.
+-   **`buttonId`**: <br/> The id of the variable and the button itself.
+-   **`events`**: <br/> The event stack used to notify our system that this button was clicked. This is required since toolbox button clicks do not get processed through event listeners. Instead they go through our custom processing in the event stack.
+
+**2.** `removeVariableReferenceButton(buttonId: string): void`
+
+###### Summary:
+Remove a button used for referencing a variable. Could be used to remove any button in which case it should be renamed. Other buttons usually do not require removal however.
+###### Parameters:
+
+-   **`buttonId`**: <br/> The DOM id of the button to be removed.
+
+**3.** `addClassToButton(buttonId: string, className: string): void`
+
+###### Summary:
+Add a CSS class `className` to a button within the toolbox with DOM id `buttonId`.
+###### Parameters:
+
+-   **`buttonId`**: <br/> The DOM id of the button.
+-   **`className`**: <br/> Name of the CSS class to be attached to the button in the DOM.
+
+
+**4.** `removeClassFromButton(buttonId: string, className: string): void`
+
+###### Summary:
+Remove a CSS class `className`, if it exists, from the button with id `buttonId`.
+###### Parameters:
+
+-   **`buttonId`**: <br/> Id of the button to remove the class from.
+-   **`className`**: <br/> Name of the class to be removed.
+
+**5.** `updateButtonsVisualMode(insertionRecords: EditCodeAction[]): void`
+
+###### Summary:
+Change the visual look and possibly disable various buttons in the toolbox based on whether their corresponding `EditCodeAction` is currently `Valid`, `Invalid` or `Draft`. This operates on all buttons that we have in the toolbox and so should receive all of the EditCodeActions that are accessible from the toolbox.
+###### Parameters:
+
+-   **`insertionRecords`**: <br/> A list of `EditCodeActions` specifying the state of each action and by extension the state of the corresponding button.
+
+
+**6.** `loadToolboxFromJson(): void`
+
+###### Summary:
+Load constructs into the toolbox from `toolbox.json`. This is how our toolbox is populated with the various categories and individual constructs that we have. **This is only for static constructs.**
+<br/>
+<br/>
+This file also contains a small class `ToolboxButton` with the specification of a toolbox button and some useful methods. It is mostly used by `loadToolboxFromJson()`. The class methods are self-explanatory. The only useful thing to note is that it relies on the button text being supplied to it to contain `---` if we want to display holes as they appear in the editor itself. If the string has no such substrings, then it will be directly inserted into the button without any changes.
+
+##### Toolbox.json
+This file specifies the structure of the toolbox and which parts of it are available. It contains two main fields:<br/>
+
+* __`toolboxConstructGroupOptions:`__ <br/>
+This field specifies which construct groups are enabled and which items within said groups are enabled. For example: <br/>
+```TypeScript
+"functionCalls": {
+    "includeCategory": 1, //Whether this category is displayed in the toolbox. Set to 0 if you don't want any function call to be present in the toolbox.
+    "categoryDisplayName": "Function Calls", //The name of the category used by the toolbox group.
+    "includeCategoryItems": { //individual items from the category to be included. Set to 0 if you don't want the item to appear in the toolbox.
+        "print": 1,
+        "randint": 1,
+        "range": 1,
+        "len": 1,
+        "input": 1
+    }
+}
+```
+* __`toolboxDefaultButtonTemplates:`__ <br/>
+This field specifies some information for creating the toolbox buttons. For now it only includes a field for the DOM id of the button and the text the button should have.<br/>
+```TypeScript
+"print": {
+    "id": "add-print-btn", //id of the button in the DOM
+    "text": "print(---)" //the text of the print button
+},
+```
+
+
+
+#### Typechecker Documentation
+
+#### Construct Events Documentation
+
+#### Misc Documentation
