@@ -65,6 +65,8 @@ export interface CodeConstruct {
 
     codeConstructName: ConstructName;
 
+    callbacksToBeDeleted: Map<CallbackType, string>;
+
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
      * @param pos the left position to start building the nodes from
@@ -144,6 +146,8 @@ export interface CodeConstruct {
     onFocusOff(arg: any): void;
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
+
+    markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void;
 }
 
 /**
@@ -167,6 +171,7 @@ export abstract class Statement implements CodeConstruct {
     draftModeEnabled = false;
     draftRecord: DraftRecord = null;
     codeConstructName = ConstructName.Default;
+    callbacksToBeDeleted = new Map<CallbackType, string>();
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -251,6 +256,14 @@ export abstract class Statement implements CodeConstruct {
 
     notify(type: CallbackType) {
         for (const callback of this.callbacks[type]) callback.callback();
+
+        if (this.callbacksToBeDeleted.size > 0) {
+            for (const entry of this.callbacksToBeDeleted) {
+                this.unsubscribe(entry[0], entry[1]);
+            }
+
+            this.callbacksToBeDeleted.clear();
+        }
     }
 
     init(pos: Position) {
@@ -460,6 +473,10 @@ export abstract class Statement implements CodeConstruct {
     onFocusOff(arg: any): void {
         return;
     }
+
+    markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
+        this.callbacksToBeDeleted.set(callbackType, callbackId);
+    }
 }
 
 /**
@@ -596,6 +613,7 @@ export abstract class Token implements CodeConstruct {
     draftModeEnabled = false;
     draftRecord = null;
     codeConstructName = ConstructName.Default;
+    callbacksToBeDeleted = new Map<CallbackType, string>();
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -624,6 +642,14 @@ export abstract class Token implements CodeConstruct {
 
     notify(type: CallbackType) {
         for (const callback of this.callbacks[type]) callback.callback();
+
+        if (this.callbacksToBeDeleted.size > 0) {
+            for (const entry of this.callbacksToBeDeleted) {
+                this.unsubscribe(entry[0], entry[1]);
+            }
+
+            this.callbacksToBeDeleted.clear();
+        }
     }
 
     /**
@@ -690,6 +716,10 @@ export abstract class Token implements CodeConstruct {
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr) {
         return InsertionType.Invalid;
+    }
+
+    markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
+        this.callbacksToBeDeleted.set(callbackType, callbackId);
     }
 }
 

@@ -105,7 +105,7 @@ abstract class ConstructVisualElement {
         this.domElement.remove();
 
         for (const entry of this.callbacks) {
-            this.code.unsubscribe(entry[1], entry[0]);
+            this.code.markCallbackForDeletion(entry[1], entry[0]);
         }
     }
 
