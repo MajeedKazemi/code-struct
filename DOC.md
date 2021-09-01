@@ -830,9 +830,84 @@ The draft mode itself is controlled by two methods within `Module`. These are `c
 <br/>
 
 ### Variables
+Variable functionality is split between `Scope`, `VariableContainer`, `variable-controller.ts` and `VarAssignmentStmt`. `ForStatement` also contains some specific functionality for for-loop vars. <br/>
+
+The basic life cycle of a variable is this. 
+1. A `VarAssignmentStmt` is created.
+2. The statement from step 1 is populated with an identifier and value at some point.
+3. **When the statement is focused OFF and IF it has an identifier, only then will a variable be created.** At this point a reference button for the variable will be added to the toolbox.
+4. The variable is used and either stays in the code or gets removed. 
+5. In the case that the variable is removed, its remaining references are highlighted to indicate that they should be fixed.
+
+<br/>
+
+#### VariableContainer
+This is an interface that specifies the behaviours that anything that contains a `VarAssignmentStmt` should implement. <br/>
+
+**1.** `assignId()`
+
+#### Summary:
+Every variable needs a **unique** id. This is also the ID used for its reference button in the toolbox. This method should implement the assignment process of this id.
+<br/>
+<br/>
+
+
+**2.** `assignVariable(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should make use of 3. and 4. It should implement high level logic for how 3. and 4. interact. <br/>
+
+The way it is implemented for `VarAssignmentStmt` and `ForStatement` is that it decides whether `assignNewVariable()` or `assignExistingVariable` run. `assignVariable` itself should be called within the `onFocusOff` of the class that implements the container. Particularly in such a way that there is a decision step between running `assignVariable()` and `reassignVariable()`. 
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
 
 <br/>
 <br/>
+
+**3.** `assignNewVariable(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should implement the algorithm for assigning a completely new variable that does not exist within the current scope.
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
+
+<br/>
+<br/>
+
+**4.** `assignExistingVariable(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should implement the algorithm for assigning an existing variable using a new `VarAssignmentStmt` within the current scope.
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
+
+<br/>
+<br/>
+
+
+**5.** `reassignVar(varController: VariableController, currentIdentifierAssignments: Statement[])`
+
+#### Summary:
+This method should implement the algorithm for modifying the identifier of an existing `VarAssignmentStmt`.
+#### Parameters:
+
+-   **`varController`**: <br/> Current instance of the `VarController` object used by the `Module`.
+-   **`currentIdentifierAssignments`**: <br/> All current assignments (within a given scope) to the identifier of the variable we are about to create.
+
+<br/>
+<br/>
+
+### What are the Differences between the Methods above?
+3. and 4. are meant to be used on **completely new `VarAssignmentStmt`** objects. Ones were just created. 5. is meant to be used on **existing `VarAssignmentStmt`** that are being modified.
+
+### ForStatement
+The ForStatement implements its variable a bit differently. You can look at the differences between the implementations of the various `VariableContainer` methods in `ForStatement` and `VarAssignmentStmt`. **`ForStatement` uses the attribute `loopVar: VarAssignmentStmt` to keep track of its loop variable.** This dummy `VarAssignmentStmt` DOES NOT appear in the editor and it IS NOT part of the AST. It is used purely for being able to treat the `ForStatement` as a variable in cases where this is required. 
 
 
 ### Text Enhance
@@ -860,7 +935,7 @@ The structure of matches is very important for this. It is an array of tuples sp
 
 -   **`content`**: <br/> Text to be styled.
 -   **`styleClass`**: <br/> Name of the CSS class used to style the text.
--   **`matches`**: <br/> List specifying the substring ranges within `content` to be styled.
+-   **`matches`**: <br/> List specifying the substring ranges within `content` to be styled. <br/>
 Here is an example:
 ```TypeScript
 content = "This is the text to be styled."
