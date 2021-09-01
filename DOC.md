@@ -811,13 +811,49 @@ This field specifies some information for creating the toolbox buttons. For now 
 This is the class we use for various type-related functionalities that did not fit into the code constructs. It is documented inside of the code. Mostly it is used for converting list types from one to another. It used to contain some other functionality, but after the refactoring of the `insert()` method and the code constructs themselves, most of that functionality was either removed or placed within the construct definitions. So if you are looking for some particular type functionality and it is not found inside of this class, it is likely within `Expression`, `Statement` or `Token` definitions.
 
 ## Construct Events Documentation
+Our code constructs had various methods added to them for performing numerous important updates. Particularly for types. This section will go over them. <br/> <br/>
+
+### 
 
 
 ## Misc Documentation
 
 ### Draft Mode
+Draft mode is attached to the particular construct that triggered it. The current condition for opening the draft mode is:<br/>
+- The type of expression being inserted does not match the type of hole it is being inserted into, BUT it can be converted to that type. 
+
+The type conversion is specified by `typeConversionMap: Map<DataType, Array<DataType>>` in `util.ts`. It maps data types to a list of types each data type can be converted to. So `typeConversionMap.get(DataType.Number)` will return a list of all types that a number can be converted to. This should be equal to (subject to change in the future) `[DataType.String, DataType.NumberList, DataType.Boolean]`. **The map takes into account ALL possible ways of converting a type to another. This includes: casting, wrapping and using the expression as an operand of some larger expression.** <br/>
+<br/>
+The draft mode itself is controlled by two methods within `Module`. These are `closeConstructDraftRecord()` and `openDraftMode()`. They don't do anything special and their code is not difficult to understand. At least at the time of writing this. In summary, they simply add a highlight to the offending code in the editor and mark it internally as being in draft mode by setting `draftModeEnabled` to true. This variable is part of every code construct and can be used to identify constructs that are currently in draft mode.
+
 
 ### Variables
 
 ### Text Enhance
+This class can be used to change the visuals of the text we are using in our editor and toolbox. It only has two methods.
+<br/>
 
+**1.** `getStyledSpan(content: string, styleClass: string): string`
+
+#### Summary:
+Wrap `content` into a `<span>` element with `className=styleClass` and return the resulting string. This returned string can then be assigned to `innerHTML` of various DOM elements to have styled text. 
+#### Parameters:
+
+-   **`content`**: <br/> The text to be styled.
+-   **`styleClass`**: <br/> Name of the CSS class used to style the text.
+<br/>
+<br/>
+
+**2.** `getStyledSpanAtSubstrings(content: string, styleClass: string, matches: [][]): string`
+
+#### Summary:
+Wrap substrings specified by `matches` within `content` with a `<span>` element with `className=styleClass` and return the resulting string. The result can be assigned to `innerHTML` of various DOM elements to have styled text. <br/>
+
+The structure of matches is very important for this. It is an array of tuples specifying the start and end indeces of each substring to be styled. **The end index is inclusive!**
+#### Parameters:
+
+-   **`content`**: <br/> Text to be styled.
+-   **`styleClass`**: <br/> Name of the CSS class used to style the text.
+-   **`matches`**: <br/> List specifying the substring ranges within `content` to be styled.
+<br/>
+<br/>
