@@ -1,6 +1,5 @@
 import Fuse from "fuse.js";
 import {
-    AutocompleteTkn,
     CodeConstruct,
     EditableTextTkn,
     ElseStatement,
@@ -28,16 +27,6 @@ export class Validator {
 
     constructor(module: Module) {
         this.module = module;
-    }
-
-    inAutocompleteToken(providedContext?: Context): boolean {
-        const context = providedContext ? providedContext : this.module.focus.getContext();
-
-        return (
-            context.token instanceof AutocompleteTkn ||
-            context.tokenToLeft instanceof AutocompleteTkn ||
-            context.tokenToRight instanceof AutocompleteTkn
-        );
     }
 
     canSwitchLeftNumToAutocomplete(pressedKey: string, providedContext?: Context): boolean {
