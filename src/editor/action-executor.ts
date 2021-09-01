@@ -95,7 +95,7 @@ export class ActionExecutor {
                         break;
                 }
 
-                const match = autocompleteTkn.isMatch();
+                const match = autocompleteTkn.isTerminatingMatch();
 
                 if (match) this.performMatchAction(match, autocompleteTkn);
                 else {

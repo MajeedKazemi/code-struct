@@ -95,8 +95,8 @@ export class Focus {
     /**
      * Calculates and returns the current context based on the focused position, or selected code in the editor.
      */
-    getContext(): Context {
-        const curPosition = this.module.editor.monaco.getPosition();
+    getContext(position?: Position): Context {
+        const curPosition = position ? position : this.module.editor.monaco.getPosition();
         const curSelection = this.module.editor.monaco.getSelection();
         const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
         let context: Context;
@@ -142,6 +142,7 @@ export class Focus {
     }
 
     navigatePos(pos: Position) {
+        console.log("second");
         const focusedLineStatement = this.getStatementAtLineNumber(pos.lineNumber);
 
         // clicked at an empty statement => just update focusedStatement
@@ -723,6 +724,13 @@ export class Context {
 
     selected?: boolean = false; //this should not be nullable
     position?: Position = null;
+
+    getAutocompleteToken(): AutocompleteTkn {
+        if (this.token instanceof AutocompleteTkn) return this.token;
+        else if (this.tokenToLeft instanceof AutocompleteTkn) return this.tokenToLeft;
+        else if (this.tokenToRight instanceof AutocompleteTkn) return this.tokenToRight;
+        else return null;
+    }
 }
 
 export class UpdatableContext {
