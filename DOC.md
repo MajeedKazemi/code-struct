@@ -811,10 +811,100 @@ This field specifies some information for creating the toolbox buttons. For now 
 This is the class we use for various type-related functionalities that did not fit into the code constructs. It is documented inside of the code. Mostly it is used for converting list types from one to another. It used to contain some other functionality, but after the refactoring of the `insert()` method and the code constructs themselves, most of that functionality was either removed or placed within the construct definitions. So if you are looking for some particular type functionality and it is not found inside of this class, it is likely within `Expression`, `Statement` or `Token` definitions.
 
 ## Construct Events Documentation
-Our code constructs had various methods added to them for performing numerous important updates. Particularly for types. This section will go over them. <br/> <br/>
+Our code constructs had various methods added to them for performing numerous important updates. Particularly for types. This section will go over them. Some of these are documented in the code so this document will only contain brief explanations of what those actions do.<br/> <br/>
 
-### 
+### Code Construct-level Behaviours
+**1.** `typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType`
 
+#### Summary:
+Validates the insertion into a hole of a construct based on type of the code being inserted and the type of hole being inserted into. Should be implemented by ALL constructs that contain `TypedEmptyExpr`. **It is most often called by the construct that CONTAINS the hole being inserted into. That is why the `insertInto` parameter is necessary. Some constructs have multiple holes.**
+#### Parameters:
+
+-   **`insertCode`**: <br/> Code being inserted into.
+-   **`insertInto`**: <br/> The hole being inserted into.
+<br/>
+Example:<br/>
+```TypeScript
+if (--- + ---): //we are inserting an integer literal into the first operand of the binary expression
+
+//so the method would be called like this
+
+binaryOpExpr.typeValidateInsertionIntoHole(intLiteraObj, firstHoleObj)
+```
+<br/>
+<br/>
+
+**2.** `performPreInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void`
+
+#### Summary:
+This method contains  per-construct logic for actions that need to be performed right before a construct is inserted into the AST. This is meant to be used with holes and expressions.
+#### Parameters:
+
+-   **`insertInto`**: <br/> Hole being inserted into.
+-   **`insertCode`**: <br/> Expression gbeing inserted.
+
+<br/>
+<br/>
+
+**3.** `onFocusOff(arg: any): void`
+
+#### Summary:
+Callback that is called when a construct is focused off of in the editor. Should contain any actions that need to be executed at this point.
+#### Parameters:
+
+-   **`arg`**: <br/> Any data required by the action.
+
+<br/>
+<br/>
+
+**4.** `performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void`
+
+#### Summary:
+This method contains  per-construct logic for actions that need to be performed right after a construct is inserted into the AST. This is meant to be used with holes and expressions.
+#### Parameters:
+
+-   **`insertInto`**: <br/> Hole being inserted into.
+-   **`insertCode`**: <br/> Expression gbeing inserted.
+
+<br/>
+<br/>
+
+
+### Statement/Expression-level Behaviours
+**1.** `Statement -> onInsertInto(insertCode: CodeConstruct)`
+
+#### Summary:
+This is ran when a `Statement` or `Expression` are inserted into. So it runs in cases like any time you modify an operand of a binary operator expression or when you modify the condition of an if statement for the first time, etc...
+#### Parameters:
+
+-   **`insertCode`**: <br/> Construct being inserted.
+
+<br/>
+<br/>
+
+**2.** `Expression -> canReplaceWithConstruct(replaceWith: Expression): InsertionType`
+
+#### Summary:
+Return whether `replaceWith` can replace `this` in the AST. This is mostly based on type checks, but there are some structural considerations as well. See the individual implementations of this method for more information.
+#### Parameters:
+
+-   **`replaceWith`**: <br/> Code to replace `this` with in the AST.
+
+<br/>
+<br/>
+
+**3.** `Expression -> updateVariableType(dataType: DataType)`
+
+#### Summary:
+Update the type of variable with the given data type. This should run any time we insert into a `VarAssignmentStmt` or modify the second hole of a for loop.
+#### Parameters:
+
+-   **`dataType`**: <br/> The new data type of the variable. 
+
+<br/>
+<br/>
+<br/>
+<br/>
 
 ## Misc Documentation
 
