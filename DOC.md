@@ -800,6 +800,7 @@ This field specifies some information for creating the toolbox buttons. For now 
 
 
 ## Typechecker Documentation
+This is the class we use for various type-related functionalities that did not fit into the code constructs. It is documented inside of the code. Mostly it is used for converting list types from one to another. It used to contain some other functionality, but after the refactoring of the `insert()` method and the code constructs themselves, most of that functionality was either removed or placed within the construct definitions. So if you are looking for some particular type functionality and it is not found inside of this class, it is likely within `Expression`, `Statement` or `Token` definitions.
 
 ## Construct Events Documentation
 
