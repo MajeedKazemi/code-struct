@@ -8,7 +8,7 @@
 -   [Toolbox.ts Doc](#toolbox-documentation)
 -   [Typechecker Doc](#typechecker-documentation)
 -   [Construct Events Doc](#construct-events-documentation)
--   [Miscellanious Doc](#misc-documentation)
+-   [Miscellaneous Doc](#misc-documentation)
 
 # Dev Notes
 
