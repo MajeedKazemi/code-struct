@@ -322,7 +322,6 @@ export class EventRouter {
             this.module.focus.navigatePos(e.position);
         }
 
-        // this.module.focus.updateCurPosition(e.position);
         this.curPosition = e.position;
     }
 
