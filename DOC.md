@@ -1,6 +1,4 @@
-# Documentation
-
-## Links to Items within this Document
+# Links to Items within this Document
 
 -   [Webpack Notes](#webpack-notes)
 -   [Notifications Doc](#notifications-documentation)
@@ -12,9 +10,9 @@
 -   [Construct Events Doc](#construct-events-documentation)
 -   [Miscellanious Doc](#misc-documentation)
 
-## Dev Notes
+# Dev Notes
 
-### Webpack Notes
+## Webpack Notes
 
 These are mainly notes on the fields within `webpack.config.js`. <br/>
 
@@ -26,32 +24,43 @@ These are mainly notes on the fields within `webpack.config.js`. <br/>
 
 -   **`module: rules:`**: this lists how various file types are transpiled to code that can be ran by the browser. That's what the loaders are for. After adding a loader here, you need to
     specify what types of files it processes and then just install it through npm.
+<br/>
+<br/>
+<br/>
 
-### Notifications Documentation
+## Notifications Documentation
 
-#### Notification.ts and NotificationController.ts
+### Notification.ts and NotificationController.ts
 
 These two are pretty well documented inside the code. Notification.ts provides class definitions for all warnings that we have in the editor. This includes the draft mode. It also contains
 the definition for `ConstructHighlight` an object that can be used to highlight a piece of code within the editor.
+<br/>
+<br/>
 
-#### ErrorMsgGenerator.ts
+### ErrorMsgGenerator.ts
 
 This contains the old strings used for warning messages. Most of these are not used anymore, but they were left in the code in case some of the text can be used in the future.
+<br/>
+<br/>
 
-### Suggestion Controller Documentation
+## Suggestion Controller Documentation
 
 Overall the way this works is you create a `Menu` object which holds `MenuOption` objects which perform some action when selected. `Menu` objects can be nested in a tree to provided nested menu functionality. `MenuController` is a singleton controlling all existing menus. It keeps track of open/closed menus as well as the currently focused option within each open menu.
 
 If you want to create a menu you should use `MenuController`, you should not have to interact with `Menu` and `MenuOption` directly. So before modifying those, check if `MenuController` already provides the functionality you want and if it does not, it is likely that it should be added there rather than the menus and the options.
 
 `Module` has a `MenuController` and that is how our code instantiates these menus. It calls `buldSingleLevelMenu()` each time a menu needs to be opened. If you want to see exactly how a menu is created by the calling code in various contexts, just search for usages of `buildSingleLevelMenu()`.
+<br/>
+<br/>
+<br/>
 
-#### Menu
+### Menu
 
 This is the main class that provides the functionality for our autocomplete and other menus. It can be used to create both a single-level and a tree menu. This only depends on how the menu
 is built and the options are connected. This class also grants access to the DOM object of the menu as well as methods for manipulating it.
+<br/>
 
-##### Attributes
+### Attributes
 
 -   **`options: MenuOption[]`**: <br/>
     List of MenuOption objects that are displayed by the menu.
@@ -70,60 +79,71 @@ is built and the options are connected. This class also grants access to the DOM
 -   **`static menuCount: number`**: <br/>
 -   **`static idPrefix: string`**: <br/>
     Used for numbering menus with unique IDs in the DOM in case the menus form a tree.
+<br/>
 
-##### Behaviours
+### Behaviours
 
 **1.** `constructor(options: Map<string, Function>)`
 
-###### Summary:
+#### Summary:
 
-###### Parameters:
+#### Parameters:
 
 -   **`options`**: </br> This map is expected to contain a mapping from option name to the action that is to be executed when the option is selected.
+<br/>
+<br/>
 
 **2.** `closeChildren(): void`
 
-###### Summary:
+#### Summary:
 
 Close all open descendants of this menu if it has any.
+<br/>
+<br/>
 
 **3.** `indentChildren(offset: number = 0): void`
 
-###### Summary:
+#### Summary:
 
 Indent all children of this menu according to their depth. This method visualizes the tree structure of the nested menus in the browser.
 
-###### Parameters:
+#### Parameters:
 
 -   **`offset`**: <br/> Indentation value in px. All indents are made from left to right. If `offset > 0` this will be the initial offset used and the menus on the second level will appear that many px away from their parent. All subsequent menus will add to this offset. Keep this set to 0 if you want menus on each level to use their width as the indentation
     amount.
+<br/>
+<br/>
 
 **4.** `linkMenuThroughOption(child: Menu, optionInParent: string): void`
 
-###### Summary:
+#### Summary:
 
 Link `this` and `child` together in a parent-child relationship such that when `optionInParent` is focused, it opens `child`. `optionInParent` is a string and so its
 value is searched for inside the `options` array of this menu. This is for ease of use so that you don't need access to the menu option object itself when linking menus.
 
-###### Parameters:
+#### Parameters:
 
 -   **`child`**: <br/> The menu to be opened when `optionInParent` is focused in this menu.
 -   **`optionInParent`**: <br/> The text of the option to be used to link the two menus.
+<br/>
+<br/>
 
 **5.** `removeChild(child: Menu): void`
 
-###### Summary:
+#### Summary:
 
 Remove a given child from the menu.
 
-###### Parameters:
+#### Parameters:
 
 -   **`child`**: <br/>
     Child to be removed.
+<br/>
+<br/>
 
 **6.** `static collapseSingleLinkMenus(root: Menu): void`
 
-###### Summary:
+#### Summary:
 
 Remove menu's that only serve as links (have a single option that links to another menu). In the example below option3 is not really necessary. These are the kinds of options this method will remove.
 
@@ -139,13 +159,15 @@ option1 --> option4
 option2
 ```
 
-###### Parameters:
+#### Parameters:
 
 -   **`root`**: the root of the menu structure
+<br/>
+<br/>
 
 **7.** `removeEmptyChildren(): void`
 
-###### Summary:
+#### Summary:
 
 Remove all menus that are either completely empty or have options that don't perform any valid action. This is for cases such as the one below:
 
@@ -160,67 +182,85 @@ Will become:
 option1 --> option4
 option2
 ```
+<br/>
+<br/>
 
 **8.** `open(): void`
 
-###### Summary:
+#### Summary:
 
 Display this menu in the editor.
+<br/>
+<br/>
 
 **9.** `close(): void`
 
-###### Summary:
+#### Summary:
 
 Hide this menu in the editor.
+<br/>
+<br/>
 
 **10.** `isOpen(): boolean`
 
-###### Summary:
+#### Summary:
 
 Return whether this menu is currently visible in the editor or not.
+<br/>
+<br/>
 
 **11.** `setChildMenus(menus: Menu[]): void`
 
-###### Summary:
+#### Summary:
 
 Replace this menus `children` list with `menus`.
 
-###### Parameters:
+#### Parameters:
 
 -   **`menus`**: <br/> New menus that will be the children of this menu.
+<br/>
+<br/>
 
 **12.** `addChildMenu(menu: Menu): void`
 
-###### Summary:
+#### Summary:
 
 Add a single child to this menu's children and update the parent of `menu` to be this.
 
-###### Parameters:
+#### Parameters:
 
 -   **`menu`**: <br/> Menu that will become the child of `this`.
+<br/>
+<br/>
 
 **13.** `removeFromDOM(): void`
 
-###### Summary:
+#### Summary:
 
 Remove this menu from the DOM.
+<br/>
+<br/>
 
 **14.** `getOptionByText(optionText: string): MenuOption`
 
-###### Summary:
+#### Summary:
 
 Return the menu option with matching `optionText` within this menu's options. `undefined` if no options is found to have the given text.
 
-###### Parameters:
+#### Parameters:
 
 -   **`optionText`**: <br/> Option text to match options on.
+<br/>
+<br/>
+<br/>
 
-#### MenuOption
+### MenuOption
 
 Provides the definition of our menu options. This are placed within menu objects and are displayed as part of the menu in the editor. These offer functionality for linking options
 to other menus allowing the user code to nest menus.
+<br/>
 
-##### Attributes
+### Attributes
 
 -   **`parentMenu: Menu`**: <br/>
     The menu within which this option is contained.
@@ -232,8 +272,9 @@ to other menus allowing the user code to nest menus.
     DOM element of this option.
 -   **`selectAction: Function`**: <br/>
     Action performed when this option is selected, null if this option links to another menu.
+<br/>
 
-##### Behaviours
+### Behaviours
 
 **1.**
 
@@ -246,10 +287,9 @@ constructor(text: string = "Option Text",
         selectAction?: Function,
         extraInformation?: string)
 ```
+#### Summary:
 
-###### Summary:
-
-###### Parameters:
+#### Parameters:
 
 -   **`text`**: </br>
     Option text that will be used by the option.
@@ -265,81 +305,103 @@ constructor(text: string = "Option Text",
     Callback that runs when this option is clicked.
 -   **`extraInformation`**: </br>
     Tooltip that appears next to the option name in the menu.
+<br/>
+<br/>
 
 **2.** `select(): void`
 
-###### Summary:
+#### Summary:
 
 Either runs this option's `selectAction` or opens the sub menu attached to this option
+<br/>
+<br/>
 
 **3.** `linkToChildMenu(child: Menu): void`
 
-###### Summary:
+#### Summary:
 
 Add a menu that will be open when this option is focused.
 
-###### Parameters:
+#### Parameters:
 
 -   **`child`**: </br>
     Menu object representing the menu that will be opened when this option is focused.
+<br/>
+<br/>
 
 **4.** `attachToParentMenu(menu: Menu): void`
 
-###### Summary:
+#### Summary:
 
 Attach this option to `menu` so that it is displayed as a potential selection in said menu.
 
-###### Parameters:
+#### Parameters:
 
 -   **`menu`**: </br>
     The menu that will contain this option.
+<br/>
+<br/>
 
 **5.** `hasChild(): boolean`
 
-###### Summary:
+#### Summary:
 
 Return whether this option has a menu that it links to.
+<br/>
+<br/>
 
 **6.** `getChildMenu(): Menu `
 
-###### Summary:
+#### Summary:
 
 Return the child object that is linked to by this option.
+<br/>
+<br/>
 
 **7.** `setFocus(): void`
 
-###### Summary:
+#### Summary:
 
 Update the visuals of this option to indicate that it has been focused.
+<br/>
+<br/>
 
 **8** `removeFocus(): void`
 
-###### Summary:
+#### Summary:
 
 Update the visuals of this option to indicate that it is not focused.
+<br/>
+<br/>
 
 **9** `removeFromDOM(): void`
 
-###### Summary:
+#### Summary:
 
 Remove the DOM element of this option from the DOM. **NOTE: This does not remove it from the menu that it was a part of on the backend. That has to be done manually.**
+<br/>
+<br/>
 
 **10** `setChildMenu(child: Menu): void`
 
-###### Summary:
+#### Summary:
 
 Update the menu object that this option links to. The current menu that is being linked to, if there is one, will be replaced.
 
-###### Parameters:
+#### Parameters:
 
 -   **`child`**: <br/>
     Menu to link to.
+<br/>
+<br/>
+<br/>
 
-#### MenuController
+### MenuController
 
 This class provides the main control logic for creating and controlling a menu and its options. **Some parts of this class are documented within the code so this doc contains only those parts that are not documented in the code.**
+<br/>
 
-##### Attributes
+### Attributes
 
 -   **`static suggestionOptionExtraInfo: string`**:
 -   **`static optionElementClass: string`**:
@@ -365,88 +427,107 @@ This class provides the main control logic for creating and controlling a menu a
 
 -   **`menus: Menu[]`**: <br/>
     The list of all menus currently controlled by this controller. Will usually contain a single element since we don't have nested menus anymore.
+<br/>
 
-##### Behaviours
+### Behaviours
 
 **1.** `static getInstance(): MenuController`
 
-###### Summary:
+#### Summary:
 
 `MenuController` is a singleton and this method should be used for obtaining its current instance. If not instance exists, a new one will be created.
+<br/>
+<br/>
 
 **2.** `setInstance(module: Module, editor: Editor): void`
 
-###### Summary:
+#### Summary:
 
 Update the module and editor instances of the current `MenuController` instance.
 
-###### Parameters:
+#### Parameters:
 
 -   **`module`**: <br/> Module object to use.
 -   **`editor`**: <br/> Editor object to use.
+<br/>
+<br/>
 
 **3.** `removeMenus(): void`
 
-###### Summary:
-
+#### Summary:
 Close and remove all menus from the MenuController (both backend and DOM removal). Completely clears the `menus` list.
+<br/>
+<br/>
 
 **4.** `isMenuOpen(): boolean`
 
-###### Summary:
+#### Summary:
 
 Return whether the top-level menu of this controller is currently open and visible in the editor or not.
+<br/>
+<br/>
 
 **5.** `updateMenuArrayFromTree(root: Menu, isRoot: boolean): void`
 
-###### Summary:
+#### Summary:
 
 Populate the `menus` list from a tree of menus.
 
-###### Parameters:
+#### Parameters:
 
 -   **`root`**: <br/> The root of this menu.
 -   **`isRoot`**: <br/> Whether `root` is the root of the overall menu tree. Should be false as long as `root.parentMenu` is not null.
+<br/>
+<br/>
 
 **6.** `updateMenuOptions(optionText: string): void`
 
-###### Summary:
+#### Summary:
 
 Filter out options the text of which does not match optionText. Each menu has a list of edit actions originally associated with it. This function will filter those to only contain
 options whose text most closely matches optionText.
 
-###### Parameters:
+#### Parameters:
 
 -   **`optionText`**: <br/> Current user input from the AutocompleteTkn associated with this menu.
+<br/>
+<br/>
 
 **7.** `updatePosition(pos: { left: number; top: number }): void`
 
-###### Summary:
+#### Summary:
 
 Set the position of the menu to `pos`.
 
-###### Parameters:
+#### Parameters:
 
 -   **`pos`**: <br/> (x, y) position of the top left corner of the menu within the viewport.
+<br/>
+<br/>
 
 **8.** `getNewMenuPosition(code: CodeConstruct): { left: number; top: number }`
 
-###### Summary:
+#### Summary:
 
 Update the position of the menu according to changes in the associated AutocompleteTkn. This ensures the menu moves to the end of the AutocompleteTkn as the user types.
 
-###### Parameters:
+#### Parameters:
 
 -   **`code`**: `AutocompleteTkn` or other `CodeConstruct` to which the menu is attached.
+<br/>
+<br/>
+<br/>
 
-### User Code Execution Documentation
+## User Code Execution Documentation
 
 To run the user code we are currently using `Pyodide` which enables us to run everything in the client's browser. Pyodide is loaded inside of `index.html` so if that ever needs to be updated just update the script tag inside of that file.
 <br/>
 
 The two scripts responsible for actually working with Pyodide are `load-pyodide.js` and `pyodide-controller.js`. The former simply loads Pyodide and exports the loaded object. **Note that this export is asynchronous and exports a Promise. See pyodide-controller.js for how to perform the corresponding import.**
+<br/>
+<br/>
 
-#### Setting Pyodide Options
+### Setting Pyodide Options
 
 Inside of `load-pyodide.js` there is a method `loadPyodide()` which accepts an options object. Here is where you would set any of the options from the Pyodide docs. The most useful ones are overriding the behaviours of `stderr`, `stdin` and `stdout`. You can also set where Pyodide is loaded from here.
 
@@ -461,8 +542,10 @@ loadPyodide({
    },
 })
 ```
+<br/>
+<br/>
 
-#### Working with Pyodide
+### Working with Pyodide
 
 This is done in `pyodide-controller.js`. This script imports the Pyodide object loaded by `load-pyodide.js` and defines various useful functions for working with it. This module has one main anonymous function which contains the logic of using Pyodide. If you want to make any changes to the execution flow, here is the place. Here are some things that you might want to do with it:
 
@@ -475,113 +558,250 @@ This is done in `pyodide-controller.js`. This script imports the Pyodide object 
 -   **Good to Know:**
     -   If you want to add another script, don't forget to add it to the bundle within `webpack.config.js`.
     -   The anonymous function is called immediately on script load.
+<br/>
+<br/>
+<br/>
 
-### Variable Controller Documentation
+## Variable Controller Documentation
 
 This object deals with most variable-related logic such as determining variable type on a given line, finding references to a given variable, working with variable reference buttons in the toolbox, etc... It also deals with the creation and management of the cascaded menu.
+<br/>
 
-##### Behaviours
+### Behaviours
 
 **1.** `addVariableRefButton(assignmentStmt: VarAssignmentStmt)`
 
-###### Summary:
+#### Summary:
 
 Create a button within the toolbox's User-Defined Variables region for referencing the variable created with `assignmentStmt`.
 
-###### Parameters:
+#### Parameters:
 
 -   **`assignmentStmt`**: <br/> Definition of the variable from which the reference button can be created.
+<br/>
+<br/>
 
 **2.** `isVariableReferenceButton(buttonId: string): boolean`
 
-###### Summary:
+#### Summary:
 
 Return whether the DOM element with the id `buttonId` is a variable reference button or not.
 
-###### Parameters:
+#### Parameters:
 
 -   **`buttonId`**: <br/> DOM id to search the variable reference buttons for.
+<br/>
+<br/>
 
 **3.** `removeVariableRefButton(varId: string)`
 
-###### Summary:
+#### Summary:
 
 Remove the variable reference button with a given id from the DOM and internal storage.
 
-###### Parameters:
+#### Parameters:
 
 -   **`varId`**: <br/> id of the button to remove. Should be `[VarAssignmentStmt Object].buttonId` unless the id is known from somewhere else.
+<br/>
+<br/>
 
 **4.** `addWarningToVarRefs(varId: string, module: Module)`
 
-###### Summary:
+#### Summary:
 
 Highlight all references to the variable with id `varId` and provide a textual warning saying that all assingments of this variable have actually been deleted and therefore the variable cannot be referenced anymore. **Despite its name this method is only meant to be used SPECIFICALLY on variable references of variables that no longer exist.**
 
-###### Parameters:
+#### Parameters:
 
 -   **`varId`**: <br/> the id of the variable the references to which should be highlighted.
 -   **`module`**: <br/> module objects passed in so that the method may access the notification system to create the warning.
+<br/>
+<br/>
 
 **5.** `getVariableButtons(): HTMLDivElement[]`
 
-###### Summary:
+#### Summary:
 
 Return the list of all variable reference buttons that currently exist. Not all of these are necessarily shown in the toolbox since the toolbox displays them based on context and scope.
+<br/>
+<br/>
 
 **6.** `getVariableButton(varId: string): HTMLDivElement`
 
-###### Summary:
+#### Summary:
 
 Return the button associated with the variable with a given `varId` (`buttonId` if this comes from a `VarAssignmentStmt`).
 
-###### Parameters:
+#### Parameters:
 
 -   **`varId`**: <br/> id of the button to search for.
+<br/>
+<br/>
 
 **7.** `hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number): void`
 
-###### Summary:
+#### Summary:
 
 Remove all reference buttons for variables that cannot be referenced in the current context from the "User-Defined Variables" area in the toolbox.
 
-###### Parameters:
-
+#### Parameters:
 -   **`scope`**: <br/> The scope of the line that the cursor is currently on.
 -   **`lineNumber`**: <br/> The line number of the line that the cursor is currently on. Any variable initialized below this line are considered to be unavailable.
+<br/>
+<br/>
 
 **8.** `updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string): void`
 
-###### Summary:
+#### Summary:
 
 Updates the variable reference button with the given id with a text displaying the type the associated variable would have at line `lineNumber`.
 
-###### Parameters:
+#### Parameters:
 
 -   **`buttonId`**: <br/> id of the button/variable to determine the type of.
 -   **`scope`**: <br/> The scope within which to search for the variable.
 -   **`lineNumber`**: <br/> The line number at which to stop the search.
 -   **`identifier`**: <br/> The identifier of the variable.
+<br/>
+<br/>
 
 **9.** `getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true): DataType`
 
-###### Summary:
+#### Summary:
 
 Return the type of the variable with the given `identifier` within the given `scope` and above line `lineNumber`. Can optionally include line `lineNumber` in the search by setting `excludeCurrentLine` to false.
 
-###### Parameters:
+#### Parameters:
 
 -   **`scope`**: <br/> The current scope.
 -   **`lineNumber`**: <br/> The line number at which to stop the search.
 -   **`identifier`**: <br/> Identifier of the variable being searched for.
+<br/>
+<br/>
 
 **10.** `getAllAssignmentsToVar(varId: string, module: Module): VarAssignmentStmt[]`
 
-###### Summary:
+#### Summary:
 
 Return a list of absolutely all assignments to the variable with id `varId` within the AST.
 
-###### Parameters:
+#### Parameters:
 
 -   **`varId`**: <br/> ID of the variable to search for.
 -   **`module`**: <br/> Module holding the AST to search in.
+<br/>
+<br/>
+<br/>
+
+## Toolbox Documentation
+Our toolbox functionality is mostly contained within `toolbox.ts` and `toolbox.json`. Except for the `onClick` actions of the buttons themselves, those are in a different place.<br/>
+<br/>
+<br/>
+
+### Toolbox.ts
+This file stores various functions that operate on the toolbox. 
+
+**1.** `addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement`
+
+#### Summary:
+Add a button the toolbox that can be used for inserting variable references of a particular variable. Returns the button object. Note that the button is actually a DIV and not an HTMLButton.
+#### Parameters:
+
+-   **`identifier`**: <br/> The identifier of the variable referenced by this button.
+-   **`buttonId`**: <br/> The id of the variable and the button itself.
+-   **`events`**: <br/> The event stack used to notify our system that this button was clicked. This is required since toolbox button clicks do not get processed through event listeners. Instead they go through our custom processing in the event stack.
+<br/>
+<br/>
+
+**2.** `removeVariableReferenceButton(buttonId: string): void`
+
+#### Summary:
+Remove a button used for referencing a variable. Could be used to remove any button in which case it should be renamed. Other buttons usually do not require removal however.
+#### Parameters:
+
+-   **`buttonId`**: <br/> The DOM id of the button to be removed.
+<br/>
+<br/>
+
+**3.** `addClassToButton(buttonId: string, className: string): void`
+
+#### Summary:
+Add a CSS class `className` to a button within the toolbox with DOM id `buttonId`.
+#### Parameters:
+
+-   **`buttonId`**: <br/> The DOM id of the button.
+-   **`className`**: <br/> Name of the CSS class to be attached to the button in the DOM.
+
+<br/>
+<br/>
+
+**4.** `removeClassFromButton(buttonId: string, className: string): void`
+
+#### Summary:
+Remove a CSS class `className`, if it exists, from the button with id `buttonId`.
+#### Parameters:
+
+-   **`buttonId`**: <br/> Id of the button to remove the class from.
+-   **`className`**: <br/> Name of the class to be removed.
+<br/>
+<br/>
+
+**5.** `updateButtonsVisualMode(insertionRecords: EditCodeAction[]): void`
+
+#### Summary:
+Change the visual look and possibly disable various buttons in the toolbox based on whether their corresponding `EditCodeAction` is currently `Valid`, `Invalid` or `Draft`. This operates on all buttons that we have in the toolbox and so should receive all of the EditCodeActions that are accessible from the toolbox.
+#### Parameters:
+
+-   **`insertionRecords`**: <br/> A list of `EditCodeActions` specifying the state of each action and by extension the state of the corresponding button.
+<br/>
+<br/>
+
+
+**6.** `loadToolboxFromJson(): void`
+
+#### Summary:
+Load constructs into the toolbox from `toolbox.json`. This is how our toolbox is populated with the various categories and individual constructs that we have. **This is only for static constructs.**
+<br/>
+<br/>
+This file also contains a small class `ToolboxButton` with the specification of a toolbox button and some useful methods. It is mostly used by `loadToolboxFromJson()`. The class methods are self-explanatory. The only useful thing to note is that it relies on the button text being supplied to it to contain `---` if we want to display holes as they appear in the editor itself. If the string has no such substrings, then it will be directly inserted into the button without any changes.
+<br/>
+<br/>
+
+### Toolbox.json
+This file specifies the structure of the toolbox and which parts of it are available. It contains two main fields:<br/>
+
+* __`toolboxConstructGroupOptions:`__ <br/>
+This field specifies which construct groups are enabled and which items within said groups are enabled. For example: <br/>
+```TypeScript
+"functionCalls": {
+    "includeCategory": 1, //Whether this category is displayed in the toolbox. Set to 0 if you don't want any function call to be present in the toolbox.
+    "categoryDisplayName": "Function Calls", //The name of the category used by the toolbox group.
+    "includeCategoryItems": { //individual items from the category to be included. Set to 0 if you don't want the item to appear in the toolbox.
+        "print": 1,
+        "randint": 1,
+        "range": 1,
+        "len": 1,
+        "input": 1
+    }
+}
+```
+* __`toolboxDefaultButtonTemplates:`__ <br/>
+This field specifies some information for creating the toolbox buttons. For now it only includes a field for the DOM id of the button and the text the button should have.<br/>
+```TypeScript
+"print": {
+    "id": "add-print-btn", //id of the button in the DOM
+    "text": "print(---)" //the text of the print button
+},
+```
+<br/>
+<br/>
+<br/>
+
+
+
+## Typechecker Documentation
+This is the class we use for various type-related functionalities that did not fit into the code constructs. It is documented inside of the code. Mostly it is used for converting list types from one to another. It used to contain some other functionality, but after the refactoring of the `insert()` method and the code constructs themselves, most of that functionality was either removed or placed within the construct definitions. So if you are looking for some particular type functionality and it is not found inside of this class, it is likely within `Expression`, `Statement` or `Token` definitions.
+
+## Construct Events Documentation
+
+## Misc Documentation
