@@ -523,7 +523,15 @@ Update the position of the menu according to changes in the associated Autocompl
 To run the user code we are currently using `Pyodide` which enables us to run everything in the client's browser. Pyodide is loaded inside of `index.html` so if that ever needs to be updated just update the script tag inside of that file.
 <br/>
 
-The two scripts responsible for actually working with Pyodide are `load-pyodide.js` and `pyodide-controller.js`. The former simply loads Pyodide and exports the loaded object. **Note that this export is asynchronous and exports a Promise. See pyodide-controller.js for how to perform the corresponding import.**
+The two scripts responsible for actually working with Pyodide are `load-pyodide.js` and `pyodide-controller.js`. The former simply loads Pyodide and exports the loaded object. **Note that this export is asynchronous and exports a Promise. See pyodide-controller.js for how to perform the corresponding import.** <br/>
+
+The user's code will only run if the following conditions are satisfied:
+1. There are no empty holes in the user's code.
+2. There are no unfinished autocompletes in the user's code.
+3. There are no open draft modes in the user's code
+
+If one of the above conditions is not satisfied, the user will be notified through the console. **NOTE: This does not protect from runtime errors completely. These are still possible and will be displayed in the console.**
+
 <br/>
 <br/>
 
@@ -804,4 +812,12 @@ This is the class we use for various type-related functionalities that did not f
 
 ## Construct Events Documentation
 
+
 ## Misc Documentation
+
+### Draft Mode
+
+### Variables
+
+### Text Enhance
+
