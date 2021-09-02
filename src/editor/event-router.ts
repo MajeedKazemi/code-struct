@@ -182,6 +182,8 @@ export class EventRouter {
 
             case KeyPress.Escape: {
                 if (this.module.menuController.isMenuOpen()) {
+                    this.executeMatchOnNavigation(contextAutocompleteTkn);
+
                     return new EditAction(EditActionType.CloseValidInsertMenu);
                 } else {
                     const draftModeNode = this.module.focus.getContainingDraftNode(context);
@@ -320,6 +322,7 @@ export class EventRouter {
             this.module.focus.navigatePos(e.position);
         }
 
+        // this.module.focus.updateCurPosition(e.position);
         this.curPosition = e.position;
     }
 
@@ -540,7 +543,9 @@ export class EventRouter {
         return new EditAction(EditActionType.None);
     }
 
-    private executeMatchOnNavigation(token: ast.Token, context?: Context) {
+    private executeMatchOnNavigation(token: ast.Token, providedContext?: Context) {
+        const context = providedContext ?? this.module.focus.getContext();
+
         if (token && token instanceof ast.AutocompleteTkn) {
             const match = token.isMatch();
 
