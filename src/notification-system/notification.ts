@@ -105,7 +105,7 @@ abstract class ConstructVisualElement {
         this.domElement.remove();
 
         for (const entry of this.callbacks) {
-            this.code.markCallbackForDeletion(entry[1], entry[0]);
+            this.code.unsubscribe(entry[1], entry[0]);
         }
     }
 
@@ -193,10 +193,10 @@ export class ConstructHighlight extends ConstructVisualElement {
             const text = this.code.getRenderText();
 
             top = transform.y + 5;
-            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidth(lineNumber);
+            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible();
 
             width =
-                text.length * this.editor.computeCharWidth(lineNumber) > 0
+                text.length * this.editor.computeCharWidthInvisible() > 0
                     ? text.length * this.editor.computeCharWidth(lineNumber)
                     : HIGHLIGHT_DEFAULT_WIDTH;
             height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
@@ -207,7 +207,7 @@ export class ConstructHighlight extends ConstructVisualElement {
             top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
             left = transform.x;
             height = Math.floor(this.editor.computeCharHeight() * 0.95);
-            width = text.length * this.editor.computeCharWidth(lineNumber);
+            width = text.length * this.editor.computeCharWidthInvisible();
         }
 
         if (firstInsertion) {
@@ -369,7 +369,9 @@ export class HoverNotification extends Notification {
                     .getElementsByClassName("margin")[0] as HTMLElement
             ).offsetWidth;
 
-        this.mouseTopOffset = document.getElementById(EDITOR_DOM_ID).offsetTop;
+        //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
+        //wrong from time to time...
+        this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
     }
 
     private scheduleCollisionCheck() {
