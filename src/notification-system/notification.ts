@@ -165,7 +165,10 @@ export class ConstructHighlight extends ConstructVisualElement {
 
             this.selection = newSelection;
 
-            this.domElement.style.left = `${this.domElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
+            this.domElement.style.left = `${
+                this.domElement.offsetLeft +
+                diff * this.editor.computeCharWidthInvisible(this.selection.startLineNumber)
+            }px`;
         }
     }
 
@@ -193,11 +196,11 @@ export class ConstructHighlight extends ConstructVisualElement {
             const text = this.code.getRenderText();
 
             top = transform.y + 5;
-            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible();
+            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible(lineNumber);
 
             width =
-                text.length * this.editor.computeCharWidthInvisible() > 0
-                    ? text.length * this.editor.computeCharWidth(lineNumber)
+                text.length * this.editor.computeCharWidthInvisible(lineNumber) > 0
+                    ? text.length * this.editor.computeCharWidthInvisible(lineNumber)
                     : HIGHLIGHT_DEFAULT_WIDTH;
             height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
         } else {
@@ -207,7 +210,7 @@ export class ConstructHighlight extends ConstructVisualElement {
             top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
             left = transform.x;
             height = Math.floor(this.editor.computeCharHeight() * 0.95);
-            width = text.length * this.editor.computeCharWidthInvisible();
+            width = text.length * this.editor.computeCharWidthInvisible(lineNumber);
         }
 
         if (firstInsertion) {
