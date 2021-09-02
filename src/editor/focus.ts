@@ -142,7 +142,6 @@ export class Focus {
     }
 
     navigatePos(pos: Position) {
-        console.log("second");
         const focusedLineStatement = this.getStatementAtLineNumber(pos.lineNumber);
 
         // clicked at an empty statement => just update focusedStatement
