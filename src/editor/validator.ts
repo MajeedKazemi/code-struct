@@ -255,7 +255,8 @@ export class Validator {
             return (
                 (context.lineStatement.rootNode instanceof Statement ||
                     context.lineStatement.rootNode instanceof Module) &&
-                context.lineStatement.rootNode.body.length != 1
+                context.lineStatement.rootNode.body.length != 1 &&
+                context.lineStatement.lineNumber != 1
             );
         }
 
