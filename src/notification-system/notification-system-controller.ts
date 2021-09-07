@@ -1,5 +1,5 @@
 import { Editor } from "../editor/editor";
-import { BinaryOperatorExpr, CodeConstruct, Expression, FunctionCallStmt, TypedEmptyExpr } from "../syntax-tree/ast";
+import { CodeConstruct } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { ErrorMessage, ErrorMessageGenerator } from "./error-msg-generator";
 import { HoverNotification, Notification, PopUpNotification } from "./notification";
@@ -146,92 +146,14 @@ export class NotificationSystemController {
         }
     }
 
+    /**
+     * Remove all currently open notifications from the editor.
+     */
     clearAllNotifications() {
         this.notifications.forEach((notification) => {
             notification.removeFromDOM();
         });
 
         this.notifications = [];
-    }
-
-    addBinBoolOpOperandInsertionTypeMismatchWarning(
-        codeToHighlight: CodeConstruct,
-        insertInto: TypedEmptyExpr,
-        codeInserted: Expression
-    ) {
-        this.addHoverNotification(
-            codeToHighlight,
-            { binOp: (insertInto.rootNode as BinaryOperatorExpr).operator, argType1: codeInserted.returns },
-            "",
-            ErrorMessage.boolOpArgTypeMismatch
-        );
-    }
-
-    addFunctionCallArgumentTypeMismatchWarning(
-        codeToHighlight: CodeConstruct,
-        insertInto: TypedEmptyExpr,
-        insertCode: Expression
-    ) {
-        this.addHoverNotification(
-            codeToHighlight,
-            {
-                argType1: insertInto.type,
-                argType2: insertCode.returns,
-                methodName: (insertInto.rootNode as FunctionCallStmt).getFunctionName(),
-            },
-            "",
-            ErrorMessage.methodArgTypeMismatch
-        );
-    }
-
-    addStatementHoleTypeMismatchWarning(
-        codeToHighlight: CodeConstruct,
-        insertInto: TypedEmptyExpr,
-        insertCode: Expression
-    ) {
-        this.addHoverNotification(
-            codeToHighlight,
-            {
-                addedType: insertCode.returns,
-                constructName: insertInto.getParentStatement().getKeyword(),
-                expectedType: insertInto.type,
-            },
-            "",
-            ErrorMessage.exprTypeMismatch
-        );
-    }
-
-    addBinOpOperandTypeMismatchWarning(
-        codeToHightlight: CodeConstruct,
-        insertInto: TypedEmptyExpr,
-        insertCode: Expression
-    ) {
-        this.addHoverNotification(
-            codeToHightlight,
-            {
-                binOp: (insertInto.rootNode as BinaryOperatorExpr).operator,
-                argType1: insertInto.type,
-                argType2: insertCode.returns,
-            },
-            "",
-            ErrorMessage.binOpArgTypeMismatch
-        );
-    }
-
-    addCompOpOperandTypeMismatchWarning(
-        codeToHightlight: CodeConstruct,
-        insertInto: TypedEmptyExpr,
-        insertCode: Expression
-    ) {
-        this.addHoverNotification(
-            codeToHightlight,
-            {
-                binOp: (insertInto.rootNode as BinaryOperatorExpr).operator,
-                argType1: insertInto.type,
-                argType2: insertCode.returns,
-            },
-            "",
-            ErrorMessage.compOpArgTypeMismatch
-        );
     }
 }
