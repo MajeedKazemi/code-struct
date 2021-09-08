@@ -43,7 +43,8 @@ export class ActionExecutor {
         this.module = module;
     }
 
-    execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
+    execute(action: EditAction, providedContext?: Context, e?: KeyboardEvent): boolean {
+        const pressedKey = e?.key;
         let context = providedContext ? providedContext : this.module.focus.getContext();
 
         let preventDefaultEvent = true;
@@ -438,15 +439,7 @@ export class ActionExecutor {
                     if (match) {
                         this.performMatchAction(match, token);
 
-                        this.execute(
-                            new EditAction(EditActionType.OpenAutocomplete, {
-                                autocompleteType: AutoCompleteType.RightOfExpression,
-                                firstChar: pressedKey,
-                                validMatches: this.module.actionFilter
-                                    .getProcessedInsertionsList()
-                                    .filter((item) => item.insertionType != InsertionType.Invalid),
-                            })
-                        );
+                        this.execute(this.module.eventRouter.getKeyAction(e));
 
                         break;
                     }
