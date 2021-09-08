@@ -1484,6 +1484,10 @@ export class VarOperationStmt extends Statement {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
+
+    getVarRef(): VariableReferenceExpr {
+        return this.tokens[0] as VariableReferenceExpr;
+    }
 }
 
 export class ListAccessModifier extends Modifier {
@@ -1595,8 +1599,12 @@ export class MethodCallModifier extends Modifier {
             areEqualTypes(providedContext?.expressionToLeft?.returns, type)
         );
 
-        //#260
-        if (this.returns === DataType.Void && providedContext?.lineStatement instanceof VarOperationStmt) {
+        //#260/#341
+        if (
+            this.returns === DataType.Void &&
+            providedContext?.lineStatement instanceof VarOperationStmt &&
+            ListTypes.indexOf(providedContext?.lineStatement.getVarRef().returns) > -1
+        ) {
             doTypesMatch = true;
         } else if (this.returns === DataType.Void) {
             doTypesMatch = false;
