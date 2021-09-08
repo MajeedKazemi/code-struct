@@ -23,7 +23,7 @@ import {
     NumberRegex,
     StringRegex,
     TAB_SPACES,
-    UnaryOp,
+    UnaryOp
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -1311,11 +1311,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     onInsertInto(insertCode: Expression) {
-        if (insertCode instanceof ListLiteralExpression) {
-            this.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
-        } else {
-            this.dataType = insertCode.returns;
-        }
+        this.dataType = insertCode.returns; //#344
     }
 
     removeAssignment() {
