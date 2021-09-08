@@ -16,6 +16,8 @@
 		"build": "node node_modules/webpack/bin/webpack.js --progress"
 	},
 	"dependencies": {
+		"dotenv": "^10.0.0",
+		"dotenv-webpack": "^7.0.3",
 		"fuse.js": "^6.4.6",
 		"monaco-editor": "^0.25.2"
 	},
