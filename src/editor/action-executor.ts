@@ -425,10 +425,28 @@ export class ActionExecutor {
                 }
 
                 if (token instanceof AutocompleteTkn) {
-                    const match = token.checkMatch(pressedKey);
+                    let match = token.checkMatch(pressedKey);
 
                     if (match) {
                         this.performMatchAction(match, token);
+
+                        break;
+                    }
+
+                    match = token.isInsertableTerminatingMatch(pressedKey);
+
+                    if (match) {
+                        this.performMatchAction(match, token);
+
+                        this.execute(
+                            new EditAction(EditActionType.OpenAutocomplete, {
+                                autocompleteType: AutoCompleteType.RightOfExpression,
+                                firstChar: pressedKey,
+                                validMatches: this.module.actionFilter
+                                    .getProcessedInsertionsList()
+                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                            })
+                        );
 
                         break;
                     }
