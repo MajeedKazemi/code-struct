@@ -2509,6 +2509,18 @@ export class AutocompleteTkn extends Token implements TextEditable {
         return null;
     }
 
+    isInsertableTerminatingMatch(newChar: string): EditCodeAction {
+        for (const match of this.validMatches) {
+            if (match.insertableTerminatingCharRegex) {
+                for (const matchReg of match.insertableTerminatingCharRegex) {
+                    if (this.text == match.matchString && matchReg.test(newChar)) return match;
+                }
+            }
+        }
+
+        return null;
+    }
+
     isTerminatingMatch(): EditCodeAction {
         const newChar = this.text[this.text.length - 1];
         const curText = this.text.substring(0, this.text.length - 1);
