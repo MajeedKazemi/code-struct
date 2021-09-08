@@ -571,16 +571,18 @@ export class ActionExecutor {
 
                         this.module.editor.executeEdits(initialBoundary, varAssignStmt);
                         this.module.focus.updateContext(varAssignStmt.getInitialFocus());
+
+                        if (flashGreen) this.flashGreen(varAssignStmt);
                     } else {
                         varOpStmt.appendModifier(action.data.modifier);
                         varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
 
                         this.module.editor.insertAtCurPos([action.data.modifier]);
                         this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+
+                        if (flashGreen) this.flashGreen(action.data.modifier);
                     }
                 }
-
-                if (flashGreen) this.flashGreen(action.data.modifier);
 
                 break;
             }
