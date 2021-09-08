@@ -1998,10 +1998,12 @@ export class BinaryOperatorExpr extends Expression {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
             (validator.atLeftOfExpression(providedContext) &&
+                !(providedContext.expressionToRight.rootNode instanceof VarOperationStmt) &&
                 getAllowedBinaryOperators(providedContext?.expressionToRight?.returns).some(
                     (x) => x === this.operator
                 )) ||
             (validator.atRightOfExpression(providedContext) &&
+                !(providedContext.expressionToLeft.rootNode instanceof VarOperationStmt) &&
                 getAllowedBinaryOperators(providedContext?.expressionToLeft?.returns).some((x) => x === this.operator))
             ? InsertionType.Valid
             : InsertionType.Invalid;
