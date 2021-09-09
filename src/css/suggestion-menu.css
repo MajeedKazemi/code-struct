@@ -76,7 +76,11 @@
 }
 
 .selectedSuggestionOptionParent {
-    background-color: rgba(93, 149, 240, 0.9);
+    background-color: rgba(93, 149, 240, 0.9) !important;
+}
+
+.draftModeOptionElementClass {
+    background-color: rgba(230, 233, 202, 0.7);
 }
 
 .optionArrowImage {

@@ -4,7 +4,7 @@ import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeConstruct, ListElementAssignment, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
-import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
+import { BuiltInFunctions, InsertionType, PythonKeywords } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { TextEnhance } from "../utilities/text-enhance";
 import { ConstructDoc } from "./construct-doc";
@@ -242,6 +242,7 @@ class MenuOption {
     text: string;
     doc: ConstructDoc;
     htmlElement: HTMLDivElement;
+    draftMode: boolean;
 
     //action performed when this option is selected, null if this option links to another menu
     selectAction: Function;
@@ -253,7 +254,8 @@ class MenuOption {
         parentMenu?: Menu,
         doc?: ConstructDoc,
         selectAction?: Function,
-        extraInformation?: string
+        extraInformation?: string,
+        draftMode: boolean = false
     ) {
         this.text = text;
         this.childMenu = childMenu;
@@ -263,6 +265,9 @@ class MenuOption {
 
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
+        this.draftMode = draftMode;
+
+        if (draftMode) this.htmlElement.classList.add(MenuController.draftModeOptionElementClass);
 
         let textNode;
 
@@ -383,6 +388,7 @@ export class MenuController {
 
     static suggestionOptionExtraInfo: string = "suggestionOptionExtraInfo";
     static optionElementClass: string = "suggestionOptionParent";
+    static draftModeOptionElementClass: string = "draftModeOptionElementClass";
     static menuElementClass: string = "suggestionMenuParent";
     static optionTextElementClass: string = "suggestionOptionText";
     static selectedOptionElementClass: string = "selectedSuggestionOptionParent";
@@ -439,7 +445,7 @@ export class MenuController {
      *
      * @returns the constructed menu. Null if no options was empty.
      */
-    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
+    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }): Menu {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
@@ -746,7 +752,8 @@ export class MenuController {
                                 {}
                             );
                         },
-                        extraInfo
+                        extraInfo,
+                        editAction.insertionType == InsertionType.DraftMode
                     );
 
                     this.insertOptionIntoMenu(option, menu);
