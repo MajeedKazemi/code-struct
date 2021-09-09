@@ -2111,7 +2111,7 @@ export class BinaryOperatorExpr extends Expression {
             //if existingLiteralType is null then both operands are still empty holes and since we are inserting
             //into one of them, the types need to be updated
             if (!existingLiteralType && (this.returns === DataType.Any || this.returns === DataType.Boolean)) {
-                this.returns = insertCode.returns;
+                // this.returns = insertCode.returns;
 
                 (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
                 (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
@@ -2171,7 +2171,7 @@ export class BinaryOperatorExpr extends Expression {
         // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
         // into one when a more type restricted bin op such as - is inserted inside of them
 
-        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
+        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the insertion type
         if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
             if (this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic) {
                 TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);

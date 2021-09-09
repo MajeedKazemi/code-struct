@@ -1172,6 +1172,8 @@ export class ActionExecutor {
                     this.module.openDraftMode(newCode);
                 }
 
+                if (newCode.rootNode instanceof Statement) newCode.rootNode.onInsertInto(newCode);
+
                 return newCode;
             }
         }
