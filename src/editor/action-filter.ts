@@ -42,7 +42,8 @@ export class ActionFilter {
                     action.validateAction(this.module.validator, context),
                     action.terminatingChars,
                     action.matchString,
-                    action.matchRegex
+                    action.matchRegex,
+                    action.insertableTerminatingCharRegex
                 )
             );
         }
@@ -76,9 +77,10 @@ export class ActionFilter {
                 null,
                 {},
                 varRecord[1],
-                [""], //TODO: The terminating char needs to be updated,
-                varStmt.getIdentifier(), //TODO: The match string needs to be updated
-                null //TODO: The match regex needs to be updated,
+                [""],
+                varStmt.getIdentifier(),
+                null,
+                [new RegExp("^[\\\\*\\+\\>\\-\\/\\<\\=\\ \\.\\!\\[]$")]
             );
             editAction.performAction = ((
                 executor: ActionExecutor,
@@ -137,9 +139,9 @@ export class ActionFilter {
                         ? InsertActionType.InsertVarOperationStmt
                         : InsertActionType.InsertValOperationExpr,
                     {},
-                    [""], //TODO: The terminating char needs to be updated
-                    "", //TODO: The match string needs to be updated
-                    null //TODO: The match regex needs to be updated,
+                    [""],
+                    "",
+                    null
                 );
                 codeAction.insertionType = codeAction.validateAction(this.module.validator, context);
 
@@ -258,6 +260,7 @@ export class EditCodeAction extends UserAction {
     insertionType: InsertionType;
     matchString: string;
     matchRegex: RegExp;
+    insertableTerminatingCharRegex: RegExp[];
 
     constructor(
         optionName: string,
@@ -267,7 +270,8 @@ export class EditCodeAction extends UserAction {
         insertData: any = {},
         terminatingChars: string[],
         matchString: string,
-        matchRegex?: RegExp
+        matchRegex: RegExp,
+        insertableTerminatingCharRegex?: RegExp[]
     ) {
         super(optionName, cssId);
 
@@ -277,6 +281,7 @@ export class EditCodeAction extends UserAction {
         this.terminatingChars = terminatingChars;
         this.matchString = matchString;
         this.matchRegex = matchRegex;
+        this.insertableTerminatingCharRegex = insertableTerminatingCharRegex;
     }
 
     static createDynamicEditCodeAction(
@@ -288,7 +293,8 @@ export class EditCodeAction extends UserAction {
         insertionType: InsertionType,
         terminatingChars: string[],
         matchString: string,
-        matchRegex?: RegExp
+        matchRegex: RegExp,
+        insertableTerminatingCharRegex?: RegExp[]
     ) {
         const action = new EditCodeAction(
             optionName,
@@ -298,8 +304,10 @@ export class EditCodeAction extends UserAction {
             insertData,
             terminatingChars,
             matchString,
-            matchRegex
+            matchRegex,
+            insertableTerminatingCharRegex
         );
+
         action.insertionType = insertionType;
 
         return action;

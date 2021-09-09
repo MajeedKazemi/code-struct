@@ -43,7 +43,8 @@ export class ActionExecutor {
         this.module = module;
     }
 
-    execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
+    execute(action: EditAction, providedContext?: Context, e?: KeyboardEvent): boolean {
+        const pressedKey = e?.key;
         let context = providedContext ? providedContext : this.module.focus.getContext();
 
         let preventDefaultEvent = true;
@@ -95,7 +96,7 @@ export class ActionExecutor {
                         break;
                 }
 
-                const match = autocompleteTkn.isMatch();
+                const match = autocompleteTkn.isTerminatingMatch();
 
                 if (match) this.performMatchAction(match, autocompleteTkn);
                 else {
@@ -425,10 +426,20 @@ export class ActionExecutor {
                 }
 
                 if (token instanceof AutocompleteTkn) {
-                    const match = token.checkMatch(pressedKey);
+                    let match = token.checkMatch(pressedKey);
 
                     if (match) {
                         this.performMatchAction(match, token);
+
+                        break;
+                    }
+
+                    match = token.isInsertableTerminatingMatch(pressedKey);
+
+                    if (match) {
+                        this.performMatchAction(match, token);
+
+                        this.execute(this.module.eventRouter.getKeyAction(e));
 
                         break;
                     }
@@ -571,16 +582,18 @@ export class ActionExecutor {
 
                         this.module.editor.executeEdits(initialBoundary, varAssignStmt);
                         this.module.focus.updateContext(varAssignStmt.getInitialFocus());
+
+                        if (flashGreen) this.flashGreen(varAssignStmt);
                     } else {
                         varOpStmt.appendModifier(action.data.modifier);
                         varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
 
                         this.module.editor.insertAtCurPos([action.data.modifier]);
                         this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+
+                        if (flashGreen) this.flashGreen(action.data.modifier);
                     }
                 }
-
-                if (flashGreen) this.flashGreen(action.data.modifier);
 
                 break;
             }
@@ -739,7 +752,10 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyList: {
-                this.insertExpression(context, new ListLiteralExpression());
+                const newLiteral = new ListLiteralExpression();
+                this.insertExpression(context, newLiteral);
+
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 break;
             }
@@ -819,7 +835,10 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                this.insertExpression(context, new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
+                const newLiteral = new LiteralValExpr(action.data?.literalType, action.data?.initialValue);
+                this.insertExpression(context, newLiteral);
+
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 break;
             }
@@ -958,18 +977,20 @@ export class ActionExecutor {
     }
 
     private flashGreen(code: CodeConstruct) {
-        let highlight = new ConstructHighlight(this.module.editor, code, [109, 242, 162, 1]);
+        if (code) {
+            let highlight = new ConstructHighlight(this.module.editor, code, [109, 242, 162, 1]);
 
-        setTimeout(() => {
-            if (highlight) {
-                highlight.changeHighlightColour([255, 255, 255, 0]);
+            setTimeout(() => {
+                if (highlight) {
+                    highlight.changeHighlightColour([255, 255, 255, 0]);
 
-                setTimeout(() => {
-                    highlight.removeFromDOM();
-                    highlight = null;
-                }, 500);
-            }
-        }, 1);
+                    setTimeout(() => {
+                        highlight.removeFromDOM();
+                        highlight = null;
+                    }, 500);
+                }
+            }, 1);
+        }
     }
 
     private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
@@ -1152,6 +1173,8 @@ export class ActionExecutor {
                 } else {
                     this.module.openDraftMode(newCode);
                 }
+
+                if (newCode.rootNode instanceof Statement) newCode.rootNode.onInsertInto(newCode);
 
                 return newCode;
             }

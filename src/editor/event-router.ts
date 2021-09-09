@@ -1,6 +1,7 @@
+import { editor, IKeyboardEvent, IScrollEvent, Position } from "monaco-editor";
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { AutoCompleteType, BinaryOperator, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
+import { AutoCompleteType, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
 import { EditAction } from "./data-types";
@@ -8,38 +9,42 @@ import { Context } from "./focus";
 
 export class EventRouter {
     module: Module;
+    curPosition: Position;
 
     constructor(module: Module) {
         this.module = module;
+        this.curPosition = module.editor.monaco.getPosition();
     }
 
     getKeyAction(e: KeyboardEvent, providedContext?: Context): EditAction {
         const context = providedContext ? providedContext : this.module.focus.getContext();
         const inTextEditMode = this.module.focus.isTextEditable(context);
+        const contextAutocompleteTkn = context.getAutocompleteToken();
+        const inAutocompleteToken = contextAutocompleteTkn != null;
 
         switch (e.key) {
             case KeyPress.ArrowUp: {
                 if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.SelectMenuSuggestionAbove);
-                } else return new EditAction(EditActionType.SelectClosestTokenAbove);
+                } else {
+                    this.executeMatchOnNavigation(contextAutocompleteTkn);
+
+                    return new EditAction(EditActionType.SelectClosestTokenAbove);
+                }
             }
 
             case KeyPress.ArrowDown: {
                 if (this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.SelectMenuSuggestionBelow);
-                } else return new EditAction(EditActionType.SelectClosestTokenBelow);
+                } else {
+                    this.executeMatchOnNavigation(contextAutocompleteTkn);
+
+                    return new EditAction(EditActionType.SelectClosestTokenBelow);
+                }
             }
 
             case KeyPress.ArrowLeft: {
-                if (
-                    !inTextEditMode &&
-                    !(
-                        context.token instanceof ast.AutocompleteTkn ||
-                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
-                        context.tokenToRight instanceof ast.AutocompleteTkn
-                    ) &&
-                    this.module.menuController.isMenuOpen()
-                ) {
+                if (!inTextEditMode && !inAutocompleteToken && this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.CloseSubMenu);
                 } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToPrevTokenAtTextEditable(context)) {
@@ -49,20 +54,16 @@ export class EventRouter {
                     if (e.shiftKey && e.ctrlKey) return new EditAction(EditActionType.SelectToStart);
                     else if (e.shiftKey) return new EditAction(EditActionType.SelectLeft);
                     else if (e.ctrlKey) return new EditAction(EditActionType.MoveCursorStart);
-                    else return new EditAction(EditActionType.MoveCursorLeft);
+                    else {
+                        this.executeMatchOnNavigation(context.tokenToRight);
+
+                        return new EditAction(EditActionType.MoveCursorLeft);
+                    }
                 } else return new EditAction(EditActionType.SelectPrevToken);
             }
 
             case KeyPress.ArrowRight: {
-                if (
-                    !inTextEditMode &&
-                    !(
-                        context.token instanceof ast.AutocompleteTkn ||
-                        context.tokenToLeft instanceof ast.AutocompleteTkn ||
-                        context.tokenToRight instanceof ast.AutocompleteTkn
-                    ) &&
-                    this.module.menuController.isMenuOpen()
-                ) {
+                if (!inTextEditMode && !inAutocompleteToken && this.module.menuController.isMenuOpen()) {
                     return new EditAction(EditActionType.OpenSubMenu);
                 } else if (inTextEditMode) {
                     if (this.module.validator.canMoveToNextTokenAtTextEditable(context)) {
@@ -72,7 +73,11 @@ export class EventRouter {
                     if (e.shiftKey && e.ctrlKey) return new EditAction(EditActionType.SelectToEnd);
                     else if (e.shiftKey) return new EditAction(EditActionType.SelectRight);
                     else if (e.ctrlKey) return new EditAction(EditActionType.MoveCursorEnd);
-                    else return new EditAction(EditActionType.MoveCursorRight);
+                    else {
+                        this.executeMatchOnNavigation(context.tokenToLeft);
+
+                        return new EditAction(EditActionType.MoveCursorRight);
+                    }
                 } else return new EditAction(EditActionType.SelectNextToken);
             }
 
@@ -177,6 +182,8 @@ export class EventRouter {
 
             case KeyPress.Escape: {
                 if (this.module.menuController.isMenuOpen()) {
+                    this.executeMatchOnNavigation(contextAutocompleteTkn);
+
                     return new EditAction(EditActionType.CloseValidInsertMenu);
                 } else {
                     const draftModeNode = this.module.focus.getContainingDraftNode(context);
@@ -294,10 +301,10 @@ export class EventRouter {
         return new EditAction(EditActionType.None);
     }
 
-    onKeyDown(e) {
+    onKeyDown(e: IKeyboardEvent) {
         const context = this.module.focus.getContext();
         const action = this.getKeyAction(e.browserEvent, context);
-        const preventDefaultEvent = this.module.executer.execute(action, context, e.browserEvent.key);
+        const preventDefaultEvent = this.module.executer.execute(action, context, e.browserEvent);
 
         if (preventDefaultEvent) {
             e.preventDefault();
@@ -305,16 +312,36 @@ export class EventRouter {
         }
     }
 
-    onMouseDown(e) {
-        this.module.focus.navigatePos(e.target.position);
+    onCursorPosChange(e: editor.ICursorPositionChangedEvent) {
+        if (e.source === "mouse") {
+            const context = this.module.focus.getContext(this.curPosition);
+            const contextAutocompleteTkn = context.getAutocompleteToken();
+
+            this.executeMatchOnNavigation(contextAutocompleteTkn, context);
+
+            this.module.focus.navigatePos(e.position);
+        }
+
+        // this.module.focus.updateCurPosition(e.position);
+        this.curPosition = e.position;
     }
 
-    onMouseMove(e) {
-        this.module.editor.mousePosMonaco = e.target.position;
-    }
-
-    onDidScrollChange(e) {
+    onDidScrollChange(e: IScrollEvent) {
         this.module.editor.scrollOffsetTop = e.scrollTop;
+    }
+
+    onButtonDown(id: string) {
+        const context = this.module.focus.getContext();
+
+        if ((document.getElementById(id) as HTMLButtonElement).disabled) return;
+
+        if (this.module.variableController.isVariableReferenceButton(id)) {
+            this.module.executer.insertVariableReference(id, context);
+        } else {
+            const action = Actions.instance().actionsMap.get(id);
+
+            if (action) this.module.executer.execute(this.routeToolboxEvents(action, context), context);
+        }
     }
 
     routeToolboxEvents(e: EditCodeAction, context: Context): EditAction {
@@ -516,45 +543,17 @@ export class EventRouter {
         return new EditAction(EditActionType.None);
     }
 
-    onButtonDown(id: string) {
-        const context = this.module.focus.getContext();
+    private executeMatchOnNavigation(token: ast.Token, providedContext?: Context) {
+        const context = providedContext ?? this.module.focus.getContext();
 
-        if ((document.getElementById(id) as HTMLButtonElement).disabled) return;
+        if (token && token instanceof ast.AutocompleteTkn) {
+            const match = token.isMatch();
 
-        if (this.module.variableController.isVariableReferenceButton(id)) {
-            this.module.executer.insertVariableReference(id, context);
-        } else {
-            const action = Actions.instance().actionsMap.get(id);
-
-            if (action) this.module.executer.execute(this.routeToolboxEvents(action, context), context);
-        }
-    }
-
-    private getBinaryOperatorFromKey(key: string): BinaryOperator {
-        switch (key) {
-            case KeyPress.GreaterThan:
-                return BinaryOperator.GreaterThan;
-
-            case KeyPress.LessThan:
-                return BinaryOperator.LessThan;
-
-            case KeyPress.Equals:
-                return BinaryOperator.Equal;
-
-            case KeyPress.ForwardSlash:
-                return BinaryOperator.Divide;
-
-            case KeyPress.Plus:
-                return BinaryOperator.Add;
-
-            case KeyPress.Minus:
-                return BinaryOperator.Subtract;
-
-            case KeyPress.Star:
-                return BinaryOperator.Multiply;
-
-            default:
-                return null;
+            if (match) {
+                match.performAction(this.module.executer, this.module.eventRouter, context, {
+                    identifier: token.text,
+                });
+            }
         }
     }
 }

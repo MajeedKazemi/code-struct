@@ -535,7 +535,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
         //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
 
-        if (this.rootNode instanceof Expression) {
+        if (this.rootNode instanceof Expression && !this.draftModeEnabled) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
             if (replaceWith.returns === this.returns || this.returns === DataType.Any) {
                 return InsertionType.Valid;
@@ -2002,10 +2002,12 @@ export class BinaryOperatorExpr extends Expression {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
             (validator.atLeftOfExpression(providedContext) &&
+                !(providedContext.expressionToRight.rootNode instanceof VarOperationStmt) &&
                 getAllowedBinaryOperators(providedContext?.expressionToRight?.returns).some(
                     (x) => x === this.operator
                 )) ||
             (validator.atRightOfExpression(providedContext) &&
+                !(providedContext.expressionToLeft.rootNode instanceof VarOperationStmt) &&
                 getAllowedBinaryOperators(providedContext?.expressionToLeft?.returns).some((x) => x === this.operator))
             ? InsertionType.Valid
             : InsertionType.Invalid;
@@ -2113,7 +2115,7 @@ export class BinaryOperatorExpr extends Expression {
             //if existingLiteralType is null then both operands are still empty holes and since we are inserting
             //into one of them, the types need to be updated
             if (!existingLiteralType && (this.returns === DataType.Any || this.returns === DataType.Boolean)) {
-                this.returns = insertCode.returns;
+                // this.returns = insertCode.returns;
 
                 (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
                 (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
@@ -2173,7 +2175,7 @@ export class BinaryOperatorExpr extends Expression {
         // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
         // into one when a more type restricted bin op such as - is inserted inside of them
 
-        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
+        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the insertion type
         if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
             if (this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic) {
                 TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
@@ -2508,8 +2510,26 @@ export class AutocompleteTkn extends Token implements TextEditable {
     }
 
     isMatch(): EditCodeAction {
+        for (const match of this.validMatches) if (this.text == match.matchString) return match;
+
+        return null;
+    }
+
+    isInsertableTerminatingMatch(newChar: string): EditCodeAction {
+        for (const match of this.validMatches) {
+            if (match.insertableTerminatingCharRegex) {
+                for (const matchReg of match.insertableTerminatingCharRegex) {
+                    if (this.text == match.matchString && matchReg.test(newChar)) return match;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    isTerminatingMatch(): EditCodeAction {
         const newChar = this.text[this.text.length - 1];
-        const curText = this.text.substring(0, this.text.length - 2);
+        const curText = this.text.substring(0, this.text.length - 1);
 
         return this.checkMatch(newChar, curText);
     }
