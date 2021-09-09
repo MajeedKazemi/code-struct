@@ -23,7 +23,7 @@ import {
     NumberRegex,
     StringRegex,
     TAB_SPACES,
-    UnaryOp,
+    UnaryOp
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -1311,11 +1311,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     onInsertInto(insertCode: Expression) {
-        if (insertCode instanceof ListLiteralExpression) {
-            this.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
-        } else {
-            this.dataType = insertCode.returns;
-        }
+        this.dataType = insertCode.returns; //#344
     }
 
     removeAssignment() {
@@ -1484,6 +1480,10 @@ export class VarOperationStmt extends Statement {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
+
+    getVarRef(): VariableReferenceExpr {
+        return this.tokens[0] as VariableReferenceExpr;
+    }
 }
 
 export class ListAccessModifier extends Modifier {
@@ -1595,8 +1595,12 @@ export class MethodCallModifier extends Modifier {
             areEqualTypes(providedContext?.expressionToLeft?.returns, type)
         );
 
-        //#260
-        if (this.returns === DataType.Void && providedContext?.lineStatement instanceof VarOperationStmt) {
+        //#260/#341
+        if (
+            this.returns === DataType.Void &&
+            providedContext?.lineStatement instanceof VarOperationStmt &&
+            ListTypes.indexOf(providedContext?.lineStatement.getVarRef().returns) > -1
+        ) {
             doTypesMatch = true;
         } else if (this.returns === DataType.Void) {
             doTypesMatch = false;

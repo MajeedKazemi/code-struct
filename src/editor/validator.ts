@@ -20,6 +20,7 @@ import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
 import { DataType, InsertionType, NumberRegex, TAB_SPACES } from "./../syntax-tree/consts";
+import { EditCodeAction } from "./action-filter";
 import { Context } from "./focus";
 
 export class Validator {
@@ -632,13 +633,14 @@ export class Validator {
         }
     }
 
-    static matchString(searchString: string, possibilities: string[]) {
+    static matchEditCodeAction(searchString: string, possibilities: EditCodeAction[], searchKeys: string[]) {
         const options = {
             includeScore: true,
             includeMatches: true,
             shouldSort: true,
             findAllMatches: true,
             threshold: 0.4,
+            keys: searchKeys,
         };
         const fuse = new Fuse(possibilities, options);
 

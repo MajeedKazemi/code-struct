@@ -141,3 +141,99 @@ export class ToolboxButton {
         return new ToolboxButton(obj.text, obj?.id);
     }
 }
+
+/**
+ * Create the cascaded menu div object and its options along with their action handlers.
+ */
+function constructCascadedMenuObj(
+    optionToAction: Map<string, Function>,
+    buttonId: string,
+    module: Module
+): HTMLDivElement {
+    const context = module.focus.getContext();
+    const menu = document.createElement("div");
+    menu.id = `${buttonId}-cascadedMenu`;
+    menu.className = "cascadedMenuMainDiv";
+
+    menu.addEventListener("mouseover", () => {
+        setTimeout(() => {
+            const element = document.getElementById(`${buttonId}-cascadedMenu`);
+            const button = document.getElementById(buttonId);
+
+            if (element && !element.matches(":hover") && !button.matches(":hover")) {
+                element.remove();
+            }
+        }, 50);
+    });
+
+    for (const [key, value] of optionToAction) {
+        const menuItem = document.createElement("div");
+        menuItem.classList.add("cascadedMenuContent");
+
+        const menuText = document.createElement("span");
+        menuText.classList.add("cascadedMenuOptionTooltip");
+
+        const menuButton = ToolboxButton.createToolboxButtonFromJsonObj({
+            text: key,
+        }).domElement;
+        menuButton.classList.add("cascadedMenuItem");
+
+        console.log(module.executer);
+        console.log(module.eventRouter);
+        console.log(context);
+        menuButton.addEventListener("click", () => {
+            value(module.executer, module.eventRouter, context);
+        });
+
+        menuItem.appendChild(menuButton);
+        menuItem.appendChild(menuText);
+
+        menu.appendChild(menuItem);
+    }
+
+    return menu;
+}
+
+/**
+ * Attach a cascaded menu to DOM element with id buttonId and options from optionToAction map. See constructCascadedMenuObj() for further details.
+ *
+ * @param buttonId id of the DOM object to which the cascaded menu will be attached
+ * @param optionToAction a map of action names to their executor function
+ * @param module the main Module object of this program
+ */
+export function createCascadedMenuForToolboxButton(
+    buttonId: string,
+    optionToAction: Map<string, Function>,
+    module: Module
+) {
+    const button = document.getElementById(buttonId);
+
+    button.addEventListener("mouseover", () => {
+        if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
+            const menuElement = constructCascadedMenuObj(optionToAction, buttonId, module);
+
+            if (menuElement.children.length > 0) {
+                const content = document.createElement("div");
+                content.classList.add("cascadedMenuContent");
+                document.getElementById("editor-toolbox").appendChild(menuElement);
+
+                const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
+                const leftPos = button.offsetLeft;
+                const topPos =
+                    button.offsetTop - document.getElementById("editor-toolbox").scrollTop + button.offsetHeight;
+
+                domMenuElement.style.left = `${leftPos}px`;
+                domMenuElement.style.top = `${topPos + 2}px`;
+            }
+        }
+    });
+
+    button.addEventListener("mouseleave", () => {
+        setTimeout(() => {
+            const element = document.getElementById(`${buttonId}-cascadedMenu`);
+            if (element && !element.matches(":hover") && !button.matches(":hover")) {
+                element.remove();
+            }
+        }, 50);
+    });
+}
