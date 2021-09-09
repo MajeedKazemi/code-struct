@@ -535,7 +535,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
         //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
 
-        if (this.rootNode instanceof Expression) {
+        if (this.rootNode instanceof Expression && !this.draftModeEnabled) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
             if (replaceWith.returns === this.returns || this.returns === DataType.Any) {
                 return InsertionType.Valid;
