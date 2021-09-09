@@ -143,8 +143,7 @@ export class ToolboxButton {
 }
 
 /**
- * Create a cascaded menu with the given options on the toolbox button with id buttonId.
- * The module is required to supply arguments to performAction
+ * Create the cascaded menu div object and its options along with their action handlers.
  */
 function constructCascadedMenuObj(
     optionToAction: Map<string, Function>,
@@ -195,6 +194,13 @@ function constructCascadedMenuObj(
     return menu;
 }
 
+/**
+ * Attach a cascaded menu to DOM element with id buttonId and options from optionToAction map. See constructCascadedMenuObj() for further details.
+ *
+ * @param buttonId id of the DOM object to which the cascaded menu will be attached
+ * @param optionToAction a map of action names to their executor function
+ * @param module the main Module object of this program
+ */
 export function createCascadedMenuForToolboxButton(
     buttonId: string,
     optionToAction: Map<string, Function>,
