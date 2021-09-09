@@ -337,7 +337,8 @@ export class Actions {
                 },
                 [" "],
                 "True",
-                null
+                null,
+                [new RegExp("^[\\=\\!\\ ]$")]
             ),
 
             new EditCodeAction(
@@ -349,9 +350,10 @@ export class Actions {
                     literalType: DataType.Boolean,
                     initialValue: "False",
                 },
-                [""],
+                [" "],
                 "False",
-                null
+                null,
+                [new RegExp("^[\\=\\!\\ ]$")]
             ),
 
             new EditCodeAction(
