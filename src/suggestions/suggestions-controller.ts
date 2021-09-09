@@ -628,39 +628,61 @@ export class MenuController {
             const textEnhance = new TextEnhance();
             const menu = this.menus[this.focusedMenuIndex];
 
-            //get matches from fuse
-            const searchResult = Validator.matchString(
-                optionText,
-                menu.editCodeActionsOptions.map((action) => action.optionName)
-            );
+            //------UPDATE MATCH STRING FOR ACTIONS THAT DEPEND ON USER INPUT------------
 
-            //filter EditCodeAction options based on what strings matched
-            const searchResultStrings = searchResult.map((result) => result.item);
-            let optionsToKeep = menu.editCodeActionsOptions.filter((action) =>
-                action.matchRegex ? true : searchResultStrings.indexOf(action.optionName) > -1
-            );
+            /*The default text for var assignment is 'var = ---'
+              Change it here so that fuse matches on 'user_input = ---'
+              Same goes for ---[---] = --- ==> user_input[---] = ---
+            */
+            const assignNewVarAction = menu.editCodeActionsOptions.filter(
+                (action) => action.insertActionType === InsertActionType.InsertNewVariableStmt
+            )[0];
+            if (assignNewVarAction) {
+                assignNewVarAction.optionName = optionText + " = ---";
+            }
+
+            const assignListElementAction = menu.editCodeActionsOptions.filter(
+                (action) => action.insertActionType === InsertActionType.InsertListIndexAssignment
+            )[0];
+            if (assignListElementAction) {
+                assignListElementAction.optionName = optionText + "[---] = ---";
+            }
+
+            //------FILTER------
+            //get matching options from fuse
+            let actionsToKeep = Validator.matchEditCodeAction(optionText, menu.editCodeActionsOptions, ["optionName"]);
 
             /*Second round of filtering for regex-based items
               Currently only used by variable assignment
             */
-            optionsToKeep = optionsToKeep.filter((editCodeAction) =>
-                editCodeAction.matchRegex ? editCodeAction.matchRegex.test(optionText) : true
+            actionsToKeep = actionsToKeep.filter((editCodeAction) =>
+                editCodeAction.item.matchRegex ? editCodeAction.item.matchRegex.test(optionText) : true
             );
 
-            //recreate options
+            //var assignment option has to be moved to the end manually
+            const indexOfVarAssignment = actionsToKeep
+                .map((result) => result.item.insertActionType)
+                .indexOf(InsertActionType.InsertNewVariableStmt);
+            if (indexOfVarAssignment > -1) {
+                const varAssignmentRes = actionsToKeep.splice(indexOfVarAssignment, 1)[0];
+                actionsToKeep.push(varAssignmentRes);
+            }
+
+            //------RECREATE OPTIONS------
             let focusedOptionText = "";
             if (this.focusedOptionIndex > -1) {
                 focusedOptionText = menu.options[this.focusedOptionIndex].text;
             }
 
+            //clear old options since some of them might not be valid anymore
             menu.options.forEach((option) => {
                 option.removeFromDOM();
             });
             menu.options = [];
 
-            for (const editAction of optionsToKeep) {
-                let stringMatch; //user input if editAction has a matchRegex; a Fuse match object otherwise
+            for (const fuseResult of actionsToKeep) {
                 let substringMatchRanges = [];
+                const editAction = fuseResult.item;
 
                 //TODO: If there are more constructs that need to have a custom performAction based on user input then consider changing this to be more general
                 const currentStmt = this.module.focus.getFocusedStatement();
@@ -673,14 +695,11 @@ export class MenuController {
                     currentScope.getAllAssignmentsToVarAboveLine(optionText, this.module, currentStmt.lineNumber)
                         .length === 0
                 ) {
-                    stringMatch = optionText + " = ---";
-                    substringMatchRanges = [[[0, optionText.length - 1]]];
+                    substringMatchRanges = [[[0, optionText.length - 1]]]; //It will always exactly match the user input.
                     editAction.getCode = () => new VarAssignmentStmt("", optionText);
                 }
                 // for displaying the correct identifier for the ---[---] = --- option
                 else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
-                    //TODO: Need to think about whether to remove this or not
-                    stringMatch = optionText + "[---]= ---";
                     substringMatchRanges = [[[0, optionText.length - 1]]];
                     editAction.getCode = () => {
                         const code = new ListElementAssignment();
@@ -701,24 +720,20 @@ export class MenuController {
                 else if (editAction.insertActionType === InsertActionType.InsertNewVariableStmt) {
                     continue;
                 } else {
-                    stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
-
-                    if (stringMatch) {
-                        for (const match of stringMatch.matches) {
-                            substringMatchRanges.push(match.indices);
-                        }
+                    for (const match of fuseResult.matches) {
+                        substringMatchRanges.push(match.indices);
                     }
                 }
 
                 const optionDisplayText = textEnhance.getStyledSpanAtSubstrings(
-                    stringMatch?.item ?? stringMatch,
+                    editAction.optionName,
                     "matchingText",
                     substringMatchRanges
                 );
 
-                //necessary so that we don't create variables with keywords as identifiers
+                //Create new option from above info
                 let option: MenuOption;
-
+                //necessary so that we don't create variables with keywords as identifiers
                 if (
                     (editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
                         Object.keys(PythonKeywords).indexOf(optionText) == -1 &&
@@ -760,6 +775,7 @@ export class MenuController {
                 }
             }
 
+            //------UPDATE FOCUSED OPTION------
             if (menu.options.length == 0) {
                 const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
                 this.insertOptionIntoMenu(option, menu);
