@@ -1,5 +1,6 @@
 import Fuse from "fuse.js";
 import {
+    AutocompleteTkn,
     CodeConstruct,
     EditableTextTkn,
     ElseStatement,
@@ -34,6 +35,7 @@ export class Validator {
 
         return (
             context.expressionToLeft instanceof LiteralValExpr &&
+            !(context.tokenToRight instanceof AutocompleteTkn) &&
             !NumberRegex.test(context.expressionToLeft.getValue() + pressedKey)
         );
     }
@@ -43,6 +45,7 @@ export class Validator {
 
         return (
             context.expressionToRight instanceof LiteralValExpr &&
+            !(context.tokenToLeft instanceof AutocompleteTkn) &&
             !NumberRegex.test(context.expressionToRight.getValue() + pressedKey)
         );
     }
