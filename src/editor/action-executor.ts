@@ -752,7 +752,10 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyList: {
-                this.insertExpression(context, new ListLiteralExpression());
+                const newLiteral = new ListLiteralExpression();
+                this.insertExpression(context, newLiteral);
+
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 break;
             }
@@ -832,7 +835,10 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                this.insertExpression(context, new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
+                const newLiteral = new LiteralValExpr(action.data?.literalType, action.data?.initialValue);
+                this.insertExpression(context, newLiteral);
+
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 break;
             }
