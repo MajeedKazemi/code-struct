@@ -294,6 +294,12 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.DeleteSelectedModifier: {
+                this.deleteModifier(context.token.rootNode as Modifier, { deleting: true });
+
+                break;
+            }
+
             case EditActionType.DeletePrevLine: {
                 const prevLine = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
                 const deleteRange = new Range(

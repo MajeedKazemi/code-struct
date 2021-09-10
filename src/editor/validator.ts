@@ -1,5 +1,7 @@
 import Fuse from "fuse.js";
 import {
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
     AutocompleteTkn,
     CodeConstruct,
     EditableTextTkn,
@@ -336,6 +338,32 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.expressionToLeft != null && !this.module.focus.isTextEditable(providedContext);
+    }
+
+    shouldDeleteVarAssignmentOnHole(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.token instanceof TypedEmptyExpr && context.selected) {
+            const root = context.token.rootNode;
+
+            if (root instanceof VarAssignmentStmt) {
+                return true; // this.module.variableController.isVarStmtReassignment(root, this.module);
+            }
+        }
+
+        return false;
+    }
+
+    shouldDeleteHole(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.token instanceof TypedEmptyExpr && context.selected) {
+            const root = context.token.rootNode;
+
+            if (root instanceof AugmentedAssignmentModifier || root instanceof AssignmentModifier) return true;
+        }
+
+        return false;
     }
 
     canIndentBackIfStatement(providedContext?: Context): boolean {
