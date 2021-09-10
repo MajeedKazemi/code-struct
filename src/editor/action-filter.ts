@@ -261,6 +261,7 @@ export class EditCodeAction extends UserAction {
     matchString: string;
     matchRegex: RegExp;
     insertableTerminatingCharRegex: RegExp[];
+    trimSpacesBeforeTermChar: boolean;
 
     constructor(
         optionName: string,
@@ -271,7 +272,8 @@ export class EditCodeAction extends UserAction {
         terminatingChars: string[],
         matchString: string,
         matchRegex: RegExp,
-        insertableTerminatingCharRegex?: RegExp[]
+        insertableTerminatingCharRegex?: RegExp[],
+        trimSpacesBeforeTermChar: boolean = false
     ) {
         super(optionName, cssId);
 
@@ -282,6 +284,7 @@ export class EditCodeAction extends UserAction {
         this.matchString = matchString;
         this.matchRegex = matchRegex;
         this.insertableTerminatingCharRegex = insertableTerminatingCharRegex;
+        this.trimSpacesBeforeTermChar = trimSpacesBeforeTermChar;
     }
 
     static createDynamicEditCodeAction(

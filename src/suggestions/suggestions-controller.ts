@@ -765,6 +765,7 @@ export class MenuController {
                 ) {
                     substringMatchRanges = [[[0, optionText.length - 1]]]; //It will always exactly match the user input.
                     editAction.getCode = () => new VarAssignmentStmt("", optionText);
+                    editAction.trimSpacesBeforeTermChar = true;
                 }
                 // for displaying the correct identifier for the ---[---] = --- option
                 else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
