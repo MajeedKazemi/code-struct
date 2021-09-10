@@ -324,13 +324,6 @@ class MenuOption {
 
         this.addArrowImg();
 
-        this.htmlElement.addEventListener(
-            "mouseenter",
-            (() => {
-                MenuController.getInstance().focusOption(this);
-            }).bind(this)
-        );
-
         this.htmlElement.addEventListener("click", () => {
             this.select();
             MenuController.getInstance().removeMenus();
@@ -415,6 +408,8 @@ class MenuOption {
  */
 export class MenuController {
     private static instance: MenuController;
+    private topOptionIndex: number = 0;
+    private bottomOptionIndex: number = 0;
 
     static suggestionOptionExtraInfo: string = "suggestionOptionExtraInfo";
     static optionElementClass: string = "suggestionOptionParent";
@@ -463,6 +458,7 @@ export class MenuController {
             menu.open();
             this.indexOfRootMenu = 0;
             this.focusedOptionIndex = 0;
+            this.bottomOptionIndex = menu.getOptionsInViewport() - 1;
             menu.editCodeActionsOptions = suggestions;
             this.focusOption(menu.options[this.focusedOptionIndex]);
         }
@@ -533,27 +529,31 @@ export class MenuController {
             MenuController.optionElementClass
         );
 
-        if (this.focusedOptionIndex != -1 && this.focusedOptionIndex != optionDomElements.length) {
-            options[this.focusedOptionIndex].removeFocus();
-        }
-
+        //Updates
+        options[this.focusedOptionIndex].removeFocus();
         this.focusedOptionIndex++;
 
         if (this.focusedOptionIndex == optionDomElements.length) {
             this.focusedOptionIndex = 0;
         }
 
-        options[this.focusedOptionIndex].setFocus();
-        if (options[this.focusedOptionIndex].hasChild()) {
-            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
-        }
-
         if (this.focusedOptionIndex == 0) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop = 0;
-        } else {
+            this.topOptionIndex = 0;
+            this.bottomOptionIndex = this.menus[this.focusedMenuIndex].getOptionsInViewport();
+        } else if (this.focusedOptionIndex > this.bottomOptionIndex) {
+            this.topOptionIndex++;
+            this.bottomOptionIndex++;
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop += (
                 optionDomElements[0] as HTMLDivElement
             ).offsetHeight;
+        }
+
+        options[this.focusedOptionIndex].setFocus();
+
+        //Open sub-menu if there is one
+        if (options[this.focusedOptionIndex].hasChild()) {
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
     }
 
@@ -564,26 +564,30 @@ export class MenuController {
             MenuController.optionElementClass
         );
 
-        if (this.focusedOptionIndex != -1 && this.focusedOptionIndex != options.length) {
-            options[this.focusedOptionIndex].removeFocus();
-        }
-
+        //Updates
+        options[this.focusedOptionIndex].removeFocus();
         this.focusedOptionIndex--;
 
         if (this.focusedOptionIndex < 0) this.focusedOptionIndex = options.length - 1;
 
-        options[this.focusedOptionIndex].setFocus();
-        if (options[this.focusedOptionIndex].hasChild()) {
-            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
-        }
-
         if (this.focusedOptionIndex == options.length - 1) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop =
                 (optionDomElements[0] as HTMLDivElement).offsetHeight * options.length;
-        } else {
+            this.topOptionIndex = options.length - this.menus[this.focusedMenuIndex].getOptionsInViewport();
+            this.bottomOptionIndex = options.length - 1;
+        } else if (this.focusedOptionIndex < this.topOptionIndex) {
+            this.topOptionIndex--;
+            this.bottomOptionIndex--;
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop -= (
                 optionDomElements[0] as HTMLDivElement
             ).offsetHeight;
+        }
+
+        options[this.focusedOptionIndex].setFocus();
+
+        //Open sub-menu if there is one
+        if (options[this.focusedOptionIndex].hasChild()) {
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
     }
 
@@ -617,7 +621,7 @@ export class MenuController {
                 this.selectFocusedOption();
 
                 this.focusedMenuIndex = this.menus.indexOf(newFocusedMenu);
-                this.focusedOptionIndex = 0;
+                this.focusedOptionIndex = 0; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
                 this.focusOption(this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex]);
             }
         }
@@ -628,7 +632,7 @@ export class MenuController {
         if (this.menus[this.focusedMenuIndex].parentMenu) {
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].removeFocus();
             this.focusedMenuIndex = this.menus.indexOf(this.menus[this.focusedMenuIndex].parentMenu);
-            this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex;
+            this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].setFocus();
             this.menus[this.focusedMenuIndex].closeChildren();
         }
@@ -649,7 +653,7 @@ export class MenuController {
         if (isRoot) {
             this.indexOfRootMenu = 0;
             this.menus = [];
-            this.focusedOptionIndex = 0;
+            this.focusedOptionIndex = 0; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
             this.focusedMenuIndex = 0;
         }
 
@@ -803,15 +807,13 @@ export class MenuController {
                     );
 
                     this.insertOptionIntoMenu(option, menu);
-
-                    if (option.text === focusedOptionText) {
-                        this.focusedOptionIndex = menu.options.length - 1;
-                        option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
-                    } else {
-                        this.focusedOptionIndex = 0;
-                    }
                 }
             }
+
+            //focus top option if one exists
+            this.focusedOptionIndex = 0;
+            this.topOptionIndex = 0;
+            this.bottomOptionIndex = menu.getOptionsInViewport() > 0 ? menu.getOptionsInViewport() - 1 : 0;
 
             //------UPDATE FOCUSED OPTION------
             if (menu.options.length == 0) {
