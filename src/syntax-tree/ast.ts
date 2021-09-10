@@ -23,7 +23,7 @@ import {
     NumberRegex,
     StringRegex,
     TAB_SPACES,
-    UnaryOp
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -2535,10 +2535,12 @@ export class AutocompleteTkn extends Token implements TextEditable {
     }
 
     checkMatch(newChar: string, text?: string): EditCodeAction {
-        const curText = text !== undefined ? text : this.text;
+        let curText = text !== undefined ? text : this.text;
 
         for (const match of this.validMatches) {
             if (match.terminatingChars.indexOf(newChar) >= 0) {
+                if (match.trimSpacesBeforeTermChar) curText = curText.trim();
+
                 if (curText == match.matchString) return match;
                 else if (match.matchRegex != null && match.matchRegex.test(curText)) return match;
             }
