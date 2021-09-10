@@ -32,6 +32,8 @@ class Menu {
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
 
+    private optionsInViewPort;
+
     constructor(options: Map<string, Function>) {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.menuElementClass);
@@ -228,6 +230,33 @@ class Menu {
     getOptionByText(optionText: string) {
         return this.options.filter((option) => option.text == optionText)[0];
     }
+
+    setOptionsInViewport(n: number) {
+        this.optionsInViewPort = n;
+    }
+
+    getOptionsInViewport() {
+        return this.optionsInViewPort;
+    }
+
+    /**
+     * This should only be called on menus with > 0 options. Otherwise it will have no effect.
+     */
+    updateDimensions() {
+        if (this.options.length > 0) {
+            const optionHeight = this.options[0].htmlElement.offsetHeight;
+            const totalOptionHeight = optionHeight * this.options.length;
+            const vh = window.innerHeight;
+
+            if (totalOptionHeight <= 0.3 * vh) {
+                this.optionsInViewPort = this.options.length;
+                this.htmlElement.style.height = `${totalOptionHeight}px`;
+            } else {
+                this.optionsInViewPort = Math.floor((0.3 * vh) / optionHeight);
+                this.htmlElement.style.height = `${this.optionsInViewPort * optionHeight}px`;
+            }
+        }
+    }
 }
 
 /**
@@ -265,6 +294,7 @@ class MenuOption {
 
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
+
         this.draftMode = draftMode;
 
         if (draftMode) this.htmlElement.classList.add(MenuController.draftModeOptionElementClass);
@@ -429,6 +459,7 @@ export class MenuController {
         if (this.menus.length > 0) this.removeMenus();
         else if (suggestions.length > 0) {
             const menu = this.module.menuController.buildMenu(suggestions, pos);
+            menu.updateDimensions();
             menu.open();
             this.indexOfRootMenu = 0;
             this.focusedOptionIndex = 0;
