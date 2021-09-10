@@ -1,3 +1,4 @@
+import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
 import { InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
@@ -629,6 +630,67 @@ export class MenuController {
         });
     }
 
+    styleMenuOptions() {
+        if (this.isMenuOpen()) {
+            const textEnhance = new TextEnhance();
+            const menu = this.menus[this.focusedMenuIndex];
+
+            let actionsToKeep = menu.editCodeActionsOptions;
+
+            //------RECREATE OPTIONS------
+            let focusedOptionText = "";
+            if (this.focusedOptionIndex > -1) {
+                focusedOptionText = menu.options[this.focusedOptionIndex].text;
+            }
+
+            //clear old options since some of them might not be valid anymore
+            menu.options.forEach((option) => {
+                option.removeFromDOM();
+            });
+            menu.options = [];
+
+            for (const action of actionsToKeep) {
+                let option = new MenuOption(
+                    action.optionName,
+                    true,
+                    null,
+                    menu,
+                    null,
+                    () => {
+                        action.performAction(
+                            this.module.executer,
+                            this.module.eventRouter,
+                            this.module.focus.getContext(),
+                            {}
+                        );
+                    },
+                    null,
+                    action.insertionType == InsertionType.DraftMode
+                );
+
+                this.insertOptionIntoMenu(option, menu);
+
+                if (option.text === focusedOptionText) {
+                    this.focusedOptionIndex = menu.options.length - 1;
+                    option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
+                } else {
+                    this.focusedOptionIndex = 0;
+                }
+            }
+
+            //------UPDATE FOCUSED OPTION------
+            if (menu.options.length == 0) {
+                const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
+                this.insertOptionIntoMenu(option, menu);
+                this.focusedOptionIndex = 0;
+            } else if (this.focusedOptionIndex < menu.options.length) {
+                this.focusOption(menu.options[this.focusedOptionIndex]);
+            } else {
+                console.error("suggestion-controller: this.focusedOptionIndex >= menu.options.length");
+            }
+        }
+    }
+
     updateMenuOptions(optionText: string) {
         if (this.isMenuOpen()) {
             const textEnhance = new TextEnhance();
@@ -800,7 +862,27 @@ export class MenuController {
         this.menus[this.focusedMenuIndex].htmlElement.style.top = `${pos.top}px`;
     }
 
-    getNewMenuPosition(code: CodeConstruct): { left: number; top: number } {
+    getNewMenuPositionFromPosition(position: Position): { left: number; top: number } {
+        const pos = { left: 0, top: 0 };
+        pos.left =
+            document.getElementById(EDITOR_DOM_ID).offsetLeft +
+            (
+                document
+                    .getElementById(EDITOR_DOM_ID)
+                    .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                    .getElementsByClassName("overflow-guard")[0]
+                    .getElementsByClassName("margin")[0] as HTMLElement
+            ).offsetWidth +
+            (this.module.editor.computeCharWidth() ? position.column * this.module.editor.computeCharWidth() : 0);
+
+        pos.top =
+            this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
+            document.getElementById(EDITOR_DOM_ID).offsetTop;
+
+        return pos;
+    }
+
+    getNewMenuPositionFromCode(code: CodeConstruct): { left: number; top: number } {
         const pos = { left: 0, top: 0 };
         pos.left =
             document.getElementById(EDITOR_DOM_ID).offsetLeft +

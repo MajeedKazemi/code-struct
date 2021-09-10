@@ -844,7 +844,12 @@ export class ActionExecutor {
             }
 
             case EditActionType.OpenValidInsertMenu:
-                this.openAutocompleteMenu(this.module.actionFilter.getProcessedInsertionsList());
+                this.openAutocompleteMenu(
+                    this.module.actionFilter
+                        .getProcessedInsertionsList()
+                        .filter((item) => item.insertionType != InsertionType.Invalid)
+                );
+                this.styleAutocompleteMenu(context.position);
 
                 break;
 
@@ -1325,6 +1330,13 @@ export class ActionExecutor {
 
     private updateAutocompleteMenu(autocompleteTkn: AutocompleteTkn) {
         this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
-        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPosition(autocompleteTkn));
+        this.module.menuController.updatePosition(
+            this.module.menuController.getNewMenuPositionFromCode(autocompleteTkn)
+        );
+    }
+
+    private styleAutocompleteMenu(pos: Position) {
+        this.module.menuController.styleMenuOptions();
+        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPositionFromPosition(pos));
     }
 }

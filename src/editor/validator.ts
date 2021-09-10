@@ -637,7 +637,11 @@ export class Validator {
         }
     }
 
-    static matchEditCodeAction(searchString: string, possibilities: EditCodeAction[], searchKeys: string[]) {
+    static matchEditCodeAction(
+        searchString: string,
+        possibilities: EditCodeAction[],
+        searchKeys: string[]
+    ): Fuse.FuseResult<EditCodeAction>[] {
         const options = {
             includeScore: true,
             includeMatches: true,
