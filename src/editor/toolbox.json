@@ -1,5 +1,12 @@
 {
     "toolboxConstructGroupOptions": {
+        "imports": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Imports",
+            "includeCategoryItems": {
+                "import": 1
+            }
+        },
         "functionCalls": {
             "includeCategory": 1,
             "categoryDisplayName": "Function Calls",
@@ -290,6 +297,10 @@
         "comptGte": {
             "id": "add-comp-gte-expr-btn",
             "text": "--- >= ---"
+        },
+        "import": {
+            "id": "add-import-btn",
+            "text": "from --- import ---"
         }
     }
 }

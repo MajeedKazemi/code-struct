@@ -23,7 +23,7 @@ import {
     NumberRegex,
     StringRegex,
     TAB_SPACES,
-    UnaryOp
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -855,6 +855,22 @@ export class ElseStatement extends Statement {
                   validator.canInsertElseStmtAtPrevIndent(providedContext))
             ? InsertionType.Valid
             : InsertionType.Invalid;
+    }
+}
+
+export class ImportStatement extends Statement {
+    constructor() {
+        super();
+
+        this.tokens.push(new NonEditableTkn("from ", this, this.tokens.length));
+        this.tokens.push(new EditableTextTkn("   ", /[a-zA-Z]/g, this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" import ", this, this.tokens.length));
+        this.tokens.push(new EditableTextTkn("   ", /[a-zA-Z]/g, this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        //TODO: This is the same for most Statements so should probably move this functionality into the parent class
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 

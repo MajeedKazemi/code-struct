@@ -8,6 +8,7 @@ import {
     FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
+    ImportStatement,
     ListAccessModifier,
     ListComma,
     ListLiteralExpression,
@@ -172,6 +173,7 @@ export enum InsertActionType {
     InsertElifStmt,
     InsertElseStmt,
     InsertForStmt,
+    InsertImportStmt,
 
     InsertPrintFunctionStmt,
     InsertRandintExpr,
@@ -597,6 +599,17 @@ export class Actions {
                 {},
                 [" "],
                 "for",
+                null
+            ),
+
+            new EditCodeAction(
+                "from --- import --- :",
+                "add-import-btn",
+                () => new ImportStatement(),
+                InsertActionType.InsertImportStmt,
+                {},
+                [" "],
+                "import",
                 null
             ),
 
