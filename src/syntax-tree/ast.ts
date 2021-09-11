@@ -6,7 +6,7 @@ import { Context, UpdatableContext } from "../editor/focus";
 import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { Notification } from "../notification-system/notification";
-import { areEqualTypes, hasMatch, Util } from "../utilities/util";
+import { areEqualTypes, hasMatch, isImportable, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
     arithmeticOps,
@@ -870,6 +870,13 @@ export class ImportStatement extends Statement {
         this.tokens.push(new NonEditableTkn(" import ", this, this.tokens.length));
         this.itemNameIndex = this.tokens.length;
         this.tokens.push(new EditableTextTkn("   ", /[a-zA-Z]/g, this, this.tokens.length));
+
+        this.subscribe(
+            CallbackType.onFocusOff,
+            new Callback(() => {
+                this.onFocusOff({ module: this.getModule() });
+            })
+        );
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -877,11 +884,33 @@ export class ImportStatement extends Statement {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
-    getImportModule(): string {
+    getImportModuleName(): string {
         return this.tokens[this.moduleNameIndex].getRenderText();
     }
     getImportItemName(): string {
         return this.tokens[this.itemNameIndex].getRenderText();
+    }
+
+    onFocusOff(args: any): void {
+        if (this.getImportModuleName() !== "" && this.getImportItemName() !== "") {
+            const action = (code: CodeConstruct) => {
+                let closeDraftMode = false;
+                if (code instanceof Statement && isImportable(code) && code.draftModeEnabled) {
+                    closeDraftMode =
+                        code.getKeyword() === this.getImportItemName()
+                            ? (code as Importable).requiredModule === this.getImportModuleName()
+                                ? true
+                                : false
+                            : false;
+                }
+
+                if (closeDraftMode) {
+                    args.module.closeConstructDraftRecord(code);
+                }
+            };
+
+            args.module.performActionOnBFS(action);
+        }
     }
 }
 

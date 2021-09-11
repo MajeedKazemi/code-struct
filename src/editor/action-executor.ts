@@ -1109,13 +1109,13 @@ export class ActionExecutor {
                     insertedCode instanceof Statement &&
                     insertedCode.requiredModule !== "" &&
                     (insertedCode.getKeyword() !== construct.getImportItemName() ||
-                        insertedCode.requiredModule !== construct.getImportModule())
+                        insertedCode.requiredModule !== construct.getImportModuleName())
                 ) {
                     console.log(
                         insertedCode.requiredModule + "-",
                         insertedCode.getKeyword() + "+",
                         construct.getImportItemName() + "/",
-                        construct.getImportModule() + "*"
+                        construct.getImportModuleName() + "*"
                     );
                     insertionType = InsertionType.DraftMode;
                 }
