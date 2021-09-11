@@ -859,18 +859,29 @@ export class ElseStatement extends Statement {
 }
 
 export class ImportStatement extends Statement {
+    private moduleNameIndex: number = -1;
+    private itemNameIndex: number = -1;
     constructor() {
         super();
 
         this.tokens.push(new NonEditableTkn("from ", this, this.tokens.length));
+        this.moduleNameIndex = this.tokens.length;
         this.tokens.push(new EditableTextTkn("   ", /[a-zA-Z]/g, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" import ", this, this.tokens.length));
+        this.itemNameIndex = this.tokens.length;
         this.tokens.push(new EditableTextTkn("   ", /[a-zA-Z]/g, this, this.tokens.length));
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         //TODO: This is the same for most Statements so should probably move this functionality into the parent class
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    getImportModule(): string {
+        return this.tokens[this.moduleNameIndex].getRenderText();
+    }
+    getImportItemName(): string {
+        return this.tokens[this.itemNameIndex].getRenderText();
     }
 }
 
@@ -1728,20 +1739,22 @@ export class AugmentedAssignmentModifier extends Modifier {
     }
 }
 
-export class FunctionCallExpr extends Expression {
+export class FunctionCallExpr extends Expression implements Importable {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
     functionName: string = "";
     args: Array<Argument>;
+    requiredModule: string;
 
     constructor(
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
         root?: Statement,
-        indexInRoot?: number
+        indexInRoot?: number,
+        requiredModule: string = ""
     ) {
         super(returns);
 
@@ -1749,6 +1762,7 @@ export class FunctionCallExpr extends Expression {
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
         this.args = args;
+        this.requiredModule = requiredModule;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1810,21 +1824,37 @@ export class FunctionCallExpr extends Expression {
     getFunctionName(): string {
         return this.functionName;
     }
+
+    getKeyword(): string {
+        return this.functionName;
+    }
 }
 
-export class FunctionCallStmt extends Statement {
+export interface Importable {
+    requiredModule: string;
+}
+
+export class FunctionCallStmt extends Statement implements Importable {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
     functionName: string = "";
+    requiredModule: string;
 
-    constructor(functionName: string, args: Array<Argument>, root?: Statement | Module, indexInRoot?: number) {
+    constructor(
+        functionName: string,
+        args: Array<Argument>,
+        root?: Statement | Module,
+        indexInRoot?: number,
+        requiredModule: string = ""
+    ) {
         super();
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
+        this.requiredModule = requiredModule;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1856,6 +1886,10 @@ export class FunctionCallStmt extends Statement {
     }
 
     getFunctionName(): string {
+        return this.functionName;
+    }
+
+    getKeyword(): string {
         return this.functionName;
     }
 }

@@ -520,7 +520,7 @@ export class Module {
         }
     }
 
-    openDraftMode(code: Expression) {
+    openDraftMode(code: Statement) {
         code.draftModeEnabled = true;
         this.draftExpressions.push(new DraftRecord(code, this));
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
@@ -572,5 +572,27 @@ export class Module {
         }
 
         return ret ?? CodeStatus.Runnable;
+    }
+
+    performActionOnBFS(duringAction: (code: CodeConstruct) => void) {
+        const Q: CodeConstruct[] = [];
+        Q.push(...this.body);
+
+        while (Q.length > 0) {
+            let curr: CodeConstruct = Q.splice(0, 1)[0];
+
+            if (curr instanceof Expression && curr.tokens.length > 0) {
+                Q.push(...curr.tokens);
+            } else if (curr instanceof Statement) {
+                for (const tkn of curr.tokens) {
+                    Q.push(tkn);
+                }
+                if (curr.body.length > 0) {
+                    Q.push(...curr.body);
+                }
+            }
+
+            duringAction(curr);
+        }
     }
 }

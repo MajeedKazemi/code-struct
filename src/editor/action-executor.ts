@@ -10,6 +10,8 @@ import {
     EmptyLineStmt,
     Expression,
     IdentifierTkn,
+    Importable,
+    ImportStatement,
     ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
@@ -30,6 +32,7 @@ import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
+import { isImportable } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { EditActionType } from "./consts";
@@ -1053,7 +1056,7 @@ export class ActionExecutor {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr) {
-            const insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+            let insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
             if (insertionType != InsertionType.Invalid) {
                 code.performPreInsertionUpdates(context.token);
@@ -1087,8 +1090,45 @@ export class ActionExecutor {
                 }
             }
 
+            if (isImportable(code)) {
+                insertionType = this.checkImports(code, insertionType);
+            }
+
             if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
         }
+    }
+
+    private checkImports(insertedCode: Importable, currentInsertionType: InsertionType): InsertionType {
+        let insertionType = currentInsertionType;
+        let stmtsCount = 0;
+        const checker = (construct: CodeConstruct) => {
+            if (construct instanceof ImportStatement) {
+                stmtsCount++;
+
+                if (
+                    insertedCode instanceof Statement &&
+                    insertedCode.requiredModule !== "" &&
+                    (insertedCode.getKeyword() !== construct.getImportItemName() ||
+                        insertedCode.requiredModule !== construct.getImportModule())
+                ) {
+                    console.log(
+                        insertedCode.requiredModule + "-",
+                        insertedCode.getKeyword() + "+",
+                        construct.getImportItemName() + "/",
+                        construct.getImportModule() + "*"
+                    );
+                    insertionType = InsertionType.DraftMode;
+                }
+            }
+        };
+
+        this.module.performActionOnBFS(checker);
+
+        if (stmtsCount === 0 && insertedCode.requiredModule !== "") {
+            insertionType = InsertionType.DraftMode;
+        }
+
+        return insertionType;
     }
 
     private openAutocompleteMenu(inserts: EditCodeAction[]) {
@@ -1114,6 +1154,15 @@ export class ActionExecutor {
 
         if (context.lineStatement.notification && context.selected) {
             this.module.notificationSystem.removeNotificationFromConstruct(context.lineStatement);
+        }
+
+        let insertionType: InsertionType = InsertionType.Valid;
+        if (isImportable(statement)) {
+            insertionType = this.checkImports(statement, insertionType);
+        }
+
+        if (insertionType === InsertionType.DraftMode) {
+            this.module.openDraftMode(statement);
         }
 
         this.module.editor.executeEdits(range, statement);

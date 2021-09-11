@@ -234,7 +234,10 @@ export class Actions {
                             new Argument([DataType.Number], "start", false),
                             new Argument([DataType.Number], "end", false),
                         ],
-                        DataType.Number
+                        DataType.Number,
+                        null,
+                        null,
+                        "random"
                     ),
                 InsertActionType.InsertRandintExpr,
                 {},
