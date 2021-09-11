@@ -893,28 +893,27 @@ export class ImportStatement extends Statement {
 
     onFocusOff(args: any): void {
         if (this.getImportModuleName() !== "" && this.getImportItemName() !== "") {
-            const action = (code: CodeConstruct) => {
-                let closeDraftMode = false;
-                let openDraftMode = false;
-                if (code instanceof Statement && isImportable(code) && code.requiredModule !== "") {
-                    closeDraftMode =
-                        code.getKeyword() === this.getImportItemName()
-                            ? (code as Importable).requiredModule === this.getImportModuleName()
-                                ? true
-                                : false
-                            : false;
+            //TODO: Not efficient, but the only way to improve this is to constantly maintain an updated "imported" status
+            //on the construct requiring an import, which is tedious so I left it for now. If this ever becomes an issue, that is the solution.
+            const stmts: ImportStatement[] = [];
 
-                    openDraftMode = !code.draftModeEnabled && !closeDraftMode;
+            args.module.performActionOnBFS((code: CodeConstruct) => {
+                if (code instanceof ImportStatement) {
+                    stmts.push(code);
                 }
+            });
 
-                if (closeDraftMode) {
-                    args.module.closeConstructDraftRecord(code);
-                } else if (openDraftMode) {
-                    args.module.openDraftMode(code);
+            args.module.performActionOnBFS((code: CodeConstruct) => {
+                if (isImportable(code) && code.requiresImport()) {
+                    const importStatus = code.validateImportFromImportList(stmts);
+
+                    if (importStatus && code.draftModeEnabled) {
+                        args.module.closeConstructDraftRecord(code);
+                    } else if (!importStatus && !code.draftModeEnabled) {
+                        args.module.openDraftMode(code);
+                    }
                 }
-            };
-
-            args.module.performActionOnBFS(action);
+            });
         }
     }
 }
@@ -1862,10 +1861,62 @@ export class FunctionCallExpr extends Expression implements Importable {
     getKeyword(): string {
         return this.functionName;
     }
+
+    validateImport(importedModule: string, importedItem: string): boolean {
+        return this.requiredModule === importedModule && this.getFunctionName() === importedItem;
+    }
+
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType) {
+        let insertionType = currentInsertionType;
+        let importsOfThisConstruct: ImportStatement[] = [];
+        const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
+            if (construct instanceof ImportStatement) {
+                if (this.requiredModule === construct.getImportModuleName()) {
+                    stmts.push(construct);
+                }
+            }
+        };
+
+        module.performActionOnBFS((code) => checker(code, importsOfThisConstruct));
+
+        if (importsOfThisConstruct.length === 0 && this.requiresImport()) {
+            //imports of required module don't exist and this item requires an import
+            insertionType = InsertionType.DraftMode;
+        } else if (importsOfThisConstruct.length > 0 && this.requiresImport()) {
+            //imports of required module exist and this item requires an import
+            insertionType =
+                importsOfThisConstruct.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+                    ? currentInsertionType
+                    : InsertionType.DraftMode;
+        }
+
+        return insertionType;
+    }
+
+    validateImportFromImportList(imports: ImportStatement[]): boolean {
+        const relevantImports = imports.filter((stmt) => stmt.getImportModuleName() === this.requiredModule);
+
+        if (relevantImports.length === 0) {
+            return false;
+        }
+
+        return relevantImports.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+            ? true
+            : false;
+    }
+
+    requiresImport(): boolean {
+        return this.requiredModule !== "";
+    }
 }
 
 export interface Importable {
     requiredModule: string;
+
+    validateImport(importedModule: string, importedItem: string): boolean;
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType): InsertionType;
+    validateImportFromImportList(imports: ImportStatement[]): boolean;
+    requiresImport(): boolean;
 }
 
 export class FunctionCallStmt extends Statement implements Importable {
@@ -1925,6 +1976,53 @@ export class FunctionCallStmt extends Statement implements Importable {
 
     getKeyword(): string {
         return this.functionName;
+    }
+
+    validateImport(importedModule: string, importedItem: string): boolean {
+        return this.requiredModule === importedModule && this.getFunctionName() === importedItem;
+    }
+
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType) {
+        let insertionType = currentInsertionType;
+        let importsOfThisConstruct: ImportStatement[] = [];
+        const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
+            if (construct instanceof ImportStatement) {
+                if (this.requiredModule === construct.getImportModuleName()) {
+                    stmts.push(construct);
+                }
+            }
+        };
+
+        module.performActionOnBFS((code) => checker(code, importsOfThisConstruct));
+
+        if (importsOfThisConstruct.length === 0 && this.requiresImport()) {
+            //imports of required module don't exist and this item requires an import
+            insertionType = InsertionType.DraftMode;
+        } else if (importsOfThisConstruct.length > 0 && this.requiresImport()) {
+            //imports of required module exist and this item requires an import
+            insertionType =
+                importsOfThisConstruct.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+                    ? currentInsertionType
+                    : InsertionType.DraftMode;
+        }
+
+        return insertionType;
+    }
+
+    validateImportFromImportList(imports: ImportStatement[]): boolean {
+        const relevantImports = imports.filter((stmt) => stmt.getImportModuleName() === this.requiredModule);
+
+        if (relevantImports.length === 0) {
+            return false;
+        }
+
+        return relevantImports.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+            ? true
+            : false;
+    }
+
+    requiresImport(): boolean {
+        return this.requiredModule !== "";
     }
 }
 

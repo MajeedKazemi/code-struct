@@ -11,7 +11,6 @@ import {
     Expression,
     IdentifierTkn,
     Importable,
-    ImportStatement,
     ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
@@ -1099,36 +1098,7 @@ export class ActionExecutor {
     }
 
     private checkImports(insertedCode: Importable, currentInsertionType: InsertionType): InsertionType {
-        let insertionType = currentInsertionType;
-        let stmtsCount = 0;
-        const checker = (construct: CodeConstruct) => {
-            if (construct instanceof ImportStatement) {
-                stmtsCount++;
-
-                if (
-                    insertedCode instanceof Statement &&
-                    insertedCode.requiredModule !== "" &&
-                    (insertedCode.getKeyword() !== construct.getImportItemName() ||
-                        insertedCode.requiredModule !== construct.getImportModuleName())
-                ) {
-                    console.log(
-                        insertedCode.requiredModule + "-",
-                        insertedCode.getKeyword() + "+",
-                        construct.getImportItemName() + "/",
-                        construct.getImportModuleName() + "*"
-                    );
-                    insertionType = InsertionType.DraftMode;
-                }
-            }
-        };
-
-        this.module.performActionOnBFS(checker);
-
-        if (stmtsCount === 0 && insertedCode.requiredModule !== "") {
-            insertionType = InsertionType.DraftMode;
-        }
-
-        return insertionType;
+        return insertedCode.validateImportOnInsertion(this.module, currentInsertionType);
     }
 
     private openAutocompleteMenu(inserts: EditCodeAction[]) {
