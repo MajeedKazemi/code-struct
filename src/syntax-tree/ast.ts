@@ -895,17 +895,22 @@ export class ImportStatement extends Statement {
         if (this.getImportModuleName() !== "" && this.getImportItemName() !== "") {
             const action = (code: CodeConstruct) => {
                 let closeDraftMode = false;
-                if (code instanceof Statement && isImportable(code) && code.draftModeEnabled) {
+                let openDraftMode = false;
+                if (code instanceof Statement && isImportable(code) && code.requiredModule !== "") {
                     closeDraftMode =
                         code.getKeyword() === this.getImportItemName()
                             ? (code as Importable).requiredModule === this.getImportModuleName()
                                 ? true
                                 : false
                             : false;
+
+                    openDraftMode = !code.draftModeEnabled && !closeDraftMode;
                 }
 
                 if (closeDraftMode) {
                     args.module.closeConstructDraftRecord(code);
+                } else if (openDraftMode) {
+                    args.module.openDraftMode(code);
                 }
             };
 
