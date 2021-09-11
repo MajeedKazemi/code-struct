@@ -141,7 +141,7 @@ export class Focus {
         this.fireOnNavChangeCallbacks();
     }
 
-    navigatePos(pos: Position) {
+    navigatePos(pos: Position, runNavOffCallbacks: boolean = true) {
         const focusedLineStatement = this.getStatementAtLineNumber(pos.lineNumber);
 
         // clicked at an empty statement => just update focusedStatement
@@ -200,7 +200,7 @@ export class Focus {
 
         const curPos = this.module.editor.monaco.getPosition();
 
-        if (this.prevPosition != null && this.prevPosition.lineNumber != curPos.lineNumber) {
+        if (runNavOffCallbacks && this.prevPosition != null && this.prevPosition.lineNumber != curPos.lineNumber) {
             this.fireOnNavOffCallbacks(
                 this.getStatementAtLineNumber(this.prevPosition.lineNumber),
                 this.getStatementAtLineNumber(curPos.lineNumber)
@@ -221,7 +221,8 @@ export class Focus {
             this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
         );
 
-        if (curPosition.lineNumber > 1) this.navigatePos(new Position(curPosition.lineNumber - 1, curPosition.column));
+        if (curPosition.lineNumber > 1)
+            this.navigatePos(new Position(curPosition.lineNumber - 1, curPosition.column), false);
         else {
             this.module.editor.monaco.setPosition(new Position(curPosition.lineNumber, 1));
 
@@ -237,7 +238,7 @@ export class Focus {
         this.fireOnNavOffCallbacks(focusedLineStatement, lineBelow);
 
         if (lineBelow != null) {
-            this.navigatePos(new Position(curPosition.lineNumber + 1, curPosition.column));
+            this.navigatePos(new Position(curPosition.lineNumber + 1, curPosition.column), false);
         } else {
             // navigate to the end of current line
             const curLine = this.getStatementAtLineNumber(curPosition.lineNumber);
