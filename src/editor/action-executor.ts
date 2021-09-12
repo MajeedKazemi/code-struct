@@ -32,7 +32,7 @@ import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
-import { EditActionType } from "./consts";
+import { EditActionType, InsertActionType } from "./consts";
 import { EditAction } from "./data-types";
 import { Context } from "./focus";
 
@@ -1022,9 +1022,14 @@ export class ActionExecutor {
     }
 
     private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
-        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
-            identifier: token.text,
-        });
+        if (
+            match.insertActionType == InsertActionType.InsertNewVariableStmt &&
+            Object.keys(PythonKeywords).indexOf(token.text.trim()) == -1
+        ) {
+            match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
+                identifier: token.text,
+            });
+        }
     }
 
     private insertToken(context: Context, code: Token, { toLeft = false, toRight = false } = {}) {
