@@ -626,8 +626,7 @@ export class Module {
                     this.focus.getContext()
                 );
 
-                const stmts = this.getAllImportStmts();
-                this.validator.validateImports(stmts);
+                this.validator.validateImports();
             }).bind(this)
         );
     }

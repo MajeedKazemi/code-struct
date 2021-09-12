@@ -902,8 +902,7 @@ export class ImportStatement extends Statement {
         if (this.getImportModuleName() !== "" && this.getImportItemName() !== "") {
             //TODO: Not efficient, but the only way to improve this is to constantly maintain an updated "imported" status
             //on the construct requiring an import, which is tedious so I left it for now. If this ever becomes an issue, that is the solution.
-            const stmts = args.module.getAllImportStmts();
-            args.module.validator.validateImports(stmts);
+            args.module.validator.validateImports();
         }
     }
 

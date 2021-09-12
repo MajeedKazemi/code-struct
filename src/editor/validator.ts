@@ -653,7 +653,10 @@ export class Validator {
         return fuse.search(searchString);
     }
 
-    validateImports(stmts: ImportStatement[]) {
+    validateImports(stmts?: ImportStatement[]) {
+        if (!stmts) {
+            stmts = this.module.getAllImportStmts();
+        }
         this.module.performActionOnBFS((code: CodeConstruct) => {
             if (isImportable(code) && code.requiresImport()) {
                 const importStatus = code.validateImportFromImportList(stmts);
