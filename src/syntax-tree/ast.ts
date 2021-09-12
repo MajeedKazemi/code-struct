@@ -861,15 +861,15 @@ export class ElseStatement extends Statement {
 export class ImportStatement extends Statement {
     private moduleNameIndex: number = -1;
     private itemNameIndex: number = -1;
-    constructor() {
+    constructor(moduleName: string = "   ", itemName: string = "   ") {
         super();
 
         this.tokens.push(new NonEditableTkn("from ", this, this.tokens.length));
         this.moduleNameIndex = this.tokens.length;
-        this.tokens.push(new EditableTextTkn("   ", /[a-zA-Z]/g, this, this.tokens.length));
+        this.tokens.push(new EditableTextTkn(moduleName, /[a-zA-Z]/g, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" import ", this, this.tokens.length));
         this.itemNameIndex = this.tokens.length;
-        this.tokens.push(new EditableTextTkn("   ", /[a-zA-Z]/g, this, this.tokens.length));
+        this.tokens.push(new EditableTextTkn(itemName, /[a-zA-Z]/g, this, this.tokens.length));
 
         this.subscribe(
             CallbackType.onFocusOff,
@@ -905,6 +905,14 @@ export class ImportStatement extends Statement {
             const stmts = args.module.getAllImportStmts();
             args.module.validator.validateImports(stmts);
         }
+    }
+
+    setImportModule(txt: string) {
+        (this.tokens[this.moduleNameIndex] as EditableTextTkn).setEditedText(txt);
+    }
+
+    setImportItem(txt: string) {
+        (this.tokens[this.itemNameIndex] as EditableTextTkn).setEditedText(txt);
     }
 
     private onDelete(module: Module) {

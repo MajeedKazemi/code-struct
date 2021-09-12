@@ -1,7 +1,8 @@
 import { Position, Range } from "monaco-editor";
 import { ActionExecutor } from "../editor/action-executor";
 import { ActionFilter } from "../editor/action-filter";
-import { CodeStatus } from "../editor/consts";
+import { CodeStatus, EditActionType } from "../editor/consts";
+import { EditAction } from "../editor/data-types";
 import { DraftRecord } from "../editor/draft";
 import { Editor } from "../editor/editor";
 import { EventRouter } from "../editor/event-router";
@@ -613,6 +614,21 @@ export class Module {
     openImportDraftMode(code: Statement & Importable) {
         this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule));
 
-        code.notification.addButton(`import ${code.requiredModule}`);
+        const button = code.notification.addButton(`import ${code.requiredModule}`);
+        button.addEventListener(
+            "click",
+            (() => {
+                this.executer.execute(
+                    new EditAction(EditActionType.InsertImportFromDraftMode, {
+                        moduleName: code.requiredModule,
+                        itemName: code.getKeyword(),
+                    }),
+                    this.focus.getContext()
+                );
+
+                const stmts = this.getAllImportStmts();
+                this.validator.validateImports(stmts);
+            }).bind(this)
+        );
     }
 }

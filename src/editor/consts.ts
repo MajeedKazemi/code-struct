@@ -158,6 +158,7 @@ export enum EditActionType {
     InsertAssignmentModifier,
 
     OpenAutocomplete,
+    InsertImportFromDraftMode,
 }
 
 export enum ConstructName {

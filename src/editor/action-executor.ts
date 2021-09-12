@@ -11,6 +11,7 @@ import {
     Expression,
     IdentifierTkn,
     Importable,
+    ImportStatement,
     ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
@@ -34,7 +35,7 @@ import { TypeChecker } from "../syntax-tree/type-checker";
 import { isImportable } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
-import { EditActionType } from "./consts";
+import { EditActionType, InsertActionType } from "./consts";
 import { EditAction } from "./data-types";
 import { Context } from "./focus";
 
@@ -790,6 +791,29 @@ export class ActionExecutor {
                     const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot - 1, 2);
                     this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
                 }
+
+                break;
+            }
+
+            case EditActionType.InsertImportFromDraftMode: {
+                let currContext = context;
+                this.module.editor.monaco.setPosition(new Position(1, 1));
+                this.module.insertEmptyLine();
+                this.module.editor.monaco.setPosition(new Position(1, 1));
+                currContext = this.module.focus.getContext();
+
+                const stmt = new ImportStatement(action.data?.moduleName, action.data?.itemName);
+                const insertAction = new EditCodeAction(
+                    "from --- import --- :",
+                    "add-import-btn",
+                    () => stmt,
+                    InsertActionType.InsertImportStmt,
+                    {},
+                    [" "],
+                    "import",
+                    null
+                );
+                insertAction.performAction(this, this.module.eventRouter, currContext);
 
                 break;
             }
