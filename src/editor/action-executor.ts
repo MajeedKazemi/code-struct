@@ -27,13 +27,7 @@ import {
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
-import {
-    AutoCompleteType,
-    BuiltInFunctions,
-    MISSING_IMPORT_DRAFT_MODE_STR,
-    PythonKeywords,
-    TAB_SPACES,
-} from "../syntax-tree/consts";
+import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
@@ -1107,10 +1101,7 @@ export class ActionExecutor {
 
         const insertionType = insertedCode.validateImportOnInsertion(this.module, currentInsertionType);
         if (insertionType === InsertionType.DraftMode && insertedCode instanceof Statement) {
-            this.module.openDraftMode(
-                insertedCode,
-                MISSING_IMPORT_DRAFT_MODE_STR(insertedCode.getKeyword(), insertedCode.requiredModule)
-            );
+            this.module.openImportDraftMode(insertedCode);
         }
     }
 

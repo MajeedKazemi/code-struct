@@ -20,6 +20,7 @@ import {
     EmptyLineStmt,
     Expression,
     ForStatement,
+    Importable,
     ImportStatement,
     ListLiteralExpression,
     Statement,
@@ -30,7 +31,7 @@ import {
 } from "./ast";
 import { rebuildBody } from "./body";
 import { CallbackType } from "./callback";
-import { DataType, TAB_SPACES } from "./consts";
+import { DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
@@ -607,5 +608,11 @@ export class Module {
         });
 
         return stmts;
+    }
+
+    openImportDraftMode(code: Statement & Importable) {
+        this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule));
+
+        code.notification.addButton(`import ${code.requiredModule}`);
     }
 }
