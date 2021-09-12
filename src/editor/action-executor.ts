@@ -27,7 +27,13 @@ import {
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
-import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
+import {
+    AutoCompleteType,
+    BuiltInFunctions,
+    MISSING_IMPORT_DRAFT_MODE_STR,
+    PythonKeywords,
+    TAB_SPACES,
+} from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
@@ -1089,16 +1095,23 @@ export class ActionExecutor {
                 }
             }
 
-            if (isImportable(code)) {
-                insertionType = this.checkImports(code, insertionType);
-            }
-
             if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
+            else if (isImportable(code)) {
+                this.checkImports(code, insertionType);
+            }
         }
     }
 
-    private checkImports(insertedCode: Importable, currentInsertionType: InsertionType): InsertionType {
-        return insertedCode.validateImportOnInsertion(this.module, currentInsertionType);
+    private checkImports(insertedCode: Importable, currentInsertionType: InsertionType) {
+        if (currentInsertionType === InsertionType.Invalid) return;
+
+        const insertionType = insertedCode.validateImportOnInsertion(this.module, currentInsertionType);
+        if (insertionType === InsertionType.DraftMode && insertedCode instanceof Statement) {
+            this.module.openDraftMode(
+                insertedCode,
+                MISSING_IMPORT_DRAFT_MODE_STR(insertedCode.getKeyword(), insertedCode.requiredModule)
+            );
+        }
     }
 
     private openAutocompleteMenu(inserts: EditCodeAction[]) {
@@ -1126,13 +1139,8 @@ export class ActionExecutor {
             this.module.notificationSystem.removeNotificationFromConstruct(context.lineStatement);
         }
 
-        let insertionType: InsertionType = InsertionType.Valid;
         if (isImportable(statement)) {
-            insertionType = this.checkImports(statement, insertionType);
-        }
-
-        if (insertionType === InsertionType.DraftMode) {
-            this.module.openDraftMode(statement);
+            this.checkImports(statement, InsertionType.Valid);
         }
 
         this.module.editor.executeEdits(range, statement);
