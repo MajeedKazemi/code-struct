@@ -7,6 +7,7 @@ import {
     EmptyLineStmt,
     IdentifierTkn,
     IfStatement,
+    ImportStatement,
     ListLiteralExpression,
     LiteralValExpr,
     Modifier,
@@ -20,6 +21,7 @@ import {
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
+import { isImportable } from "../utilities/util";
 import { DataType, InsertionType, NumberRegex, TAB_SPACES } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Context } from "./focus";
@@ -649,5 +651,22 @@ export class Validator {
         const fuse = new Fuse(possibilities, options);
 
         return fuse.search(searchString);
+    }
+
+    validateImports(stmts: ImportStatement[]) {
+        this.module.performActionOnBFS((code: CodeConstruct) => {
+            if (isImportable(code) && code.requiresImport()) {
+                const importStatus = code.validateImportFromImportList(stmts);
+
+                //This check is required otherwise it won't compile. In practice, it will always be a Statement becuase tokens are not importables
+                if (code instanceof Statement) {
+                    if (importStatus && code.draftModeEnabled) {
+                        this.module.closeConstructDraftRecord(code);
+                    } else if (!importStatus && !code.draftModeEnabled) {
+                        this.module.openDraftMode(code);
+                    }
+                }
+            }
+        });
     }
 }

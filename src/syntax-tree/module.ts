@@ -20,6 +20,7 @@ import {
     EmptyLineStmt,
     Expression,
     ForStatement,
+    ImportStatement,
     ListLiteralExpression,
     Statement,
     Token,
@@ -594,5 +595,17 @@ export class Module {
 
             duringAction(curr);
         }
+    }
+
+    getAllImportStmts(): ImportStatement[] {
+        const stmts: ImportStatement[] = [];
+
+        this.performActionOnBFS((code: CodeConstruct) => {
+            if (code instanceof ImportStatement) {
+                stmts.push(code);
+            }
+        });
+
+        return stmts;
     }
 }
