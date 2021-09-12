@@ -262,6 +262,8 @@ export class HoverNotification extends Notification {
     private notificationHighlightCollisionCheckInterval = 500;
     private notificationFadeTime = 100;
 
+    private buttons = [];
+
     constructor(
         editor: Editor,
         code: CodeConstruct,
@@ -275,6 +277,17 @@ export class HoverNotification extends Notification {
 
         this.updateMouseOffsets();
         this.scheduleCollisionCheck();
+    }
+
+    addButton(txt: string): HTMLDivElement {
+        const button = document.createElement("div");
+        button.classList.add("button");
+        button.textContent = txt;
+
+        this.domElement.appendChild(button);
+        this.buttons.push(button);
+
+        return button;
     }
 
     protected createDomElement() {

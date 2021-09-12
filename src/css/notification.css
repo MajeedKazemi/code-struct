@@ -63,3 +63,10 @@
 .emph {
     font-weight: 700;
 }
+
+.codeVisual.textBox .button {
+    background-color: #d1d3d6;
+    max-width: 20%;
+    height: 5%;
+    padding: 2px;
+}
