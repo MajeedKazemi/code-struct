@@ -6,7 +6,7 @@ import { Context, UpdatableContext } from "../editor/focus";
 import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { Notification } from "../notification-system/notification";
-import { areEqualTypes, hasMatch, isImportable, Util } from "../utilities/util";
+import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
     arithmeticOps,
@@ -877,6 +877,13 @@ export class ImportStatement extends Statement {
                 this.onFocusOff({ module: this.getModule() });
             })
         );
+
+        this.subscribe(
+            CallbackType.delete,
+            new Callback(() => {
+                this.onDelete(this.getModule()); //TODO: I don't like this either, but we need the module there
+            })
+        );
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -895,26 +902,15 @@ export class ImportStatement extends Statement {
         if (this.getImportModuleName() !== "" && this.getImportItemName() !== "") {
             //TODO: Not efficient, but the only way to improve this is to constantly maintain an updated "imported" status
             //on the construct requiring an import, which is tedious so I left it for now. If this ever becomes an issue, that is the solution.
-            const stmts: ImportStatement[] = [];
-
-            args.module.performActionOnBFS((code: CodeConstruct) => {
-                if (code instanceof ImportStatement) {
-                    stmts.push(code);
-                }
-            });
-
-            args.module.performActionOnBFS((code: CodeConstruct) => {
-                if (isImportable(code) && code.requiresImport()) {
-                    const importStatus = code.validateImportFromImportList(stmts);
-
-                    if (importStatus && code.draftModeEnabled) {
-                        args.module.closeConstructDraftRecord(code);
-                    } else if (!importStatus && !code.draftModeEnabled) {
-                        args.module.openDraftMode(code);
-                    }
-                }
-            });
+            const stmts = args.module.getAllImportStmts();
+            args.module.validator.validateImports(stmts);
         }
+    }
+
+    private onDelete(module: Module) {
+        let stmts = module.getAllImportStmts();
+        stmts = stmts.filter((stmt) => stmt !== this);
+        module.validator.validateImports(stmts);
     }
 }
 
@@ -2011,7 +2007,7 @@ export class FunctionCallStmt extends Statement implements Importable {
 
     validateImportFromImportList(imports: ImportStatement[]): boolean {
         const relevantImports = imports.filter((stmt) => stmt.getImportModuleName() === this.requiredModule);
-
+        console.log(relevantImports);
         if (relevantImports.length === 0) {
             return false;
         }
