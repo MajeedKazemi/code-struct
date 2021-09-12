@@ -1,3 +1,5 @@
+import { CSSClasses, TextEnhance } from "../utilities/text-enhance";
+
 export const TAB_SPACES = 4;
 
 export enum InsertionType {
@@ -234,3 +236,17 @@ export enum AutoCompleteType {
 export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");
 export const NumberRegex = RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$");
 export const StringRegex = RegExp('^([^\\r\\n\\"]*)$');
+
+export const MISSING_IMPORT_DRAFT_MODE_STR = (requiredItem, requiredModule) => {
+    const te = new TextEnhance();
+    return (
+        te.getStyledSpan(requiredItem, CSSClasses.identifier) +
+        " does not exist in this program. It is part of the " +
+        te.getStyledSpan(requiredModule, CSSClasses.emphasize) +
+        " module. " +
+        te.getStyledSpan(requiredModule, CSSClasses.emphasize) +
+        " has to be imported before " +
+        te.getStyledSpan(requiredItem, CSSClasses.identifier) +
+        " can be used."
+    );
+};

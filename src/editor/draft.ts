@@ -8,10 +8,10 @@ export class DraftRecord {
 
     private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
 
-    constructor(code: Statement, module: Module) {
+    constructor(code: Statement, module: Module, txt?: string) {
         this.code = code;
         this.module = module;
-        this.module.notificationSystem.addHoverNotification(code, {}, "Draft Mode");
+        this.module.notificationSystem.addHoverNotification(code, {}, txt ?? "");
         this.warning = code.notification;
         this.code.notification = this.warning;
     }

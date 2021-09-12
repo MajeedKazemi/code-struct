@@ -42,6 +42,7 @@
 }
 
 .identifier {
+    color: blueviolet;
     font-weight: bold;
 }
 
@@ -57,4 +58,8 @@
 
 .other {
     font-weight: 600;
+}
+
+.emph {
+    font-weight: 700;
 }

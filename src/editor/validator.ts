@@ -22,7 +22,13 @@ import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
 import { isImportable } from "../utilities/util";
-import { DataType, InsertionType, NumberRegex, TAB_SPACES } from "./../syntax-tree/consts";
+import {
+    DataType,
+    InsertionType,
+    MISSING_IMPORT_DRAFT_MODE_STR,
+    NumberRegex,
+    TAB_SPACES,
+} from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Context } from "./focus";
 
@@ -663,7 +669,10 @@ export class Validator {
                     if (importStatus && code.draftModeEnabled) {
                         this.module.closeConstructDraftRecord(code);
                     } else if (!importStatus && !code.draftModeEnabled) {
-                        this.module.openDraftMode(code);
+                        this.module.openDraftMode(
+                            code,
+                            MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule)
+                        );
                     }
                 }
             }

@@ -521,9 +521,9 @@ export class Module {
         }
     }
 
-    openDraftMode(code: Statement) {
+    openDraftMode(code: Statement, txt: string = "Draft Mode Placeholder Txt") {
         code.draftModeEnabled = true;
-        this.draftExpressions.push(new DraftRecord(code, this));
+        this.draftExpressions.push(new DraftRecord(code, this, txt));
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
     }
 
