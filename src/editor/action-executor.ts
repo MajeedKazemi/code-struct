@@ -1024,12 +1024,16 @@ export class ActionExecutor {
     private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
         if (
             match.insertActionType == InsertActionType.InsertNewVariableStmt &&
-            Object.keys(PythonKeywords).indexOf(token.text.trim()) == -1
+            (Object.keys(PythonKeywords).indexOf(token.text.trim()) >= 0 ||
+                Object.keys(BuiltInFunctions).indexOf(token.text.trim()) >= 0)
         ) {
-            match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
-                identifier: token.text,
-            });
+            // TODO: can insert an interesting warning
+            return;
         }
+
+        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
+            identifier: token.text,
+        });
     }
 
     private insertToken(context: Context, code: Token, { toLeft = false, toRight = false } = {}) {
