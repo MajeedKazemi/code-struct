@@ -178,9 +178,6 @@ function constructCascadedMenuObj(
         }).domElement;
         menuButton.classList.add("cascadedMenuItem");
 
-        console.log(module.executer);
-        console.log(module.eventRouter);
-        console.log(context);
         menuButton.addEventListener("click", () => {
             value(module.executer, module.eventRouter, context);
         });

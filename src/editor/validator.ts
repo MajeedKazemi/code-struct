@@ -1,5 +1,7 @@
 import Fuse from "fuse.js";
 import {
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
     AutocompleteTkn,
     CodeConstruct,
     EditableTextTkn,
@@ -340,6 +342,32 @@ export class Validator {
         return context.expressionToLeft != null && !this.module.focus.isTextEditable(providedContext);
     }
 
+    shouldDeleteVarAssignmentOnHole(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.token instanceof TypedEmptyExpr && context.selected) {
+            const root = context.token.rootNode;
+
+            if (root instanceof VarAssignmentStmt) {
+                return true; // this.module.variableController.isVarStmtReassignment(root, this.module);
+            }
+        }
+
+        return false;
+    }
+
+    shouldDeleteHole(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.token instanceof TypedEmptyExpr && context.selected) {
+            const root = context.token.rootNode;
+
+            if (root instanceof AugmentedAssignmentModifier || root instanceof AssignmentModifier) return true;
+        }
+
+        return false;
+    }
+
     canIndentBackIfStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
@@ -639,13 +667,17 @@ export class Validator {
         }
     }
 
-    static matchEditCodeAction(searchString: string, possibilities: EditCodeAction[], searchKeys: string[]) {
+    static matchEditCodeAction(
+        searchString: string,
+        possibilities: EditCodeAction[],
+        searchKeys: string[]
+    ): Fuse.FuseResult<EditCodeAction>[] {
         const options = {
             includeScore: true,
             includeMatches: true,
             shouldSort: true,
             findAllMatches: true,
-            threshold: 0.4,
+            threshold: 0.5,
             keys: searchKeys,
         };
         const fuse = new Fuse(possibilities, options);

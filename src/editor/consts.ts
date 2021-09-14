@@ -112,6 +112,7 @@ export enum EditActionType {
     DeletePrevLine,
     DeleteCurLine,
     DeleteStatement,
+    DeleteSelectedModifier,
 
     IndentBackwards,
     IndentBackwardsIfStmt,

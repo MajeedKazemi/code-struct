@@ -1,3 +1,4 @@
+import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
 import { InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
@@ -31,6 +32,8 @@ class Menu {
     static menuCount = 0;
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
+
+    private optionsInViewPort;
 
     constructor(options: Map<string, Function>) {
         this.htmlElement = document.createElement("div");
@@ -228,6 +231,33 @@ class Menu {
     getOptionByText(optionText: string) {
         return this.options.filter((option) => option.text == optionText)[0];
     }
+
+    setOptionsInViewport(n: number) {
+        this.optionsInViewPort = n;
+    }
+
+    getOptionsInViewport() {
+        return this.optionsInViewPort;
+    }
+
+    /**
+     * This should only be called on menus with > 0 options. Otherwise it will have no effect.
+     */
+    updateDimensions() {
+        if (this.options.length > 0) {
+            const optionHeight = this.options[0].htmlElement.offsetHeight;
+            const totalOptionHeight = optionHeight * this.options.length;
+            const vh = window.innerHeight;
+
+            if (totalOptionHeight <= 0.3 * vh) {
+                this.optionsInViewPort = this.options.length;
+                this.htmlElement.style.height = `${totalOptionHeight}px`;
+            } else {
+                this.optionsInViewPort = Math.floor((0.3 * vh) / optionHeight);
+                this.htmlElement.style.height = `${this.optionsInViewPort * optionHeight}px`;
+            }
+        }
+    }
 }
 
 /**
@@ -265,6 +295,7 @@ class MenuOption {
 
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
+
         this.draftMode = draftMode;
 
         if (draftMode) this.htmlElement.classList.add(MenuController.draftModeOptionElementClass);
@@ -293,13 +324,6 @@ class MenuOption {
         }
 
         this.addArrowImg();
-
-        this.htmlElement.addEventListener(
-            "mouseenter",
-            (() => {
-                MenuController.getInstance().focusOption(this);
-            }).bind(this)
-        );
 
         this.htmlElement.addEventListener("click", () => {
             this.select();
@@ -385,6 +409,8 @@ class MenuOption {
  */
 export class MenuController {
     private static instance: MenuController;
+    private topOptionIndex: number = 0;
+    private bottomOptionIndex: number = 0;
 
     static suggestionOptionExtraInfo: string = "suggestionOptionExtraInfo";
     static optionElementClass: string = "suggestionOptionParent";
@@ -429,9 +455,11 @@ export class MenuController {
         if (this.menus.length > 0) this.removeMenus();
         else if (suggestions.length > 0) {
             const menu = this.module.menuController.buildMenu(suggestions, pos);
+            menu.updateDimensions();
             menu.open();
             this.indexOfRootMenu = 0;
             this.focusedOptionIndex = 0;
+            this.bottomOptionIndex = menu.getOptionsInViewport() - 1;
             menu.editCodeActionsOptions = suggestions;
             this.focusOption(menu.options[this.focusedOptionIndex]);
         }
@@ -502,27 +530,31 @@ export class MenuController {
             MenuController.optionElementClass
         );
 
-        if (this.focusedOptionIndex != -1 && this.focusedOptionIndex != optionDomElements.length) {
-            options[this.focusedOptionIndex].removeFocus();
-        }
-
+        //Updates
+        options[this.focusedOptionIndex].removeFocus();
         this.focusedOptionIndex++;
 
         if (this.focusedOptionIndex == optionDomElements.length) {
             this.focusedOptionIndex = 0;
         }
 
-        options[this.focusedOptionIndex].setFocus();
-        if (options[this.focusedOptionIndex].hasChild()) {
-            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
-        }
-
         if (this.focusedOptionIndex == 0) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop = 0;
-        } else {
+            this.topOptionIndex = 0;
+            this.bottomOptionIndex = this.menus[this.focusedMenuIndex].getOptionsInViewport();
+        } else if (this.focusedOptionIndex > this.bottomOptionIndex) {
+            this.topOptionIndex++;
+            this.bottomOptionIndex++;
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop += (
                 optionDomElements[0] as HTMLDivElement
             ).offsetHeight;
+        }
+
+        options[this.focusedOptionIndex].setFocus();
+
+        //Open sub-menu if there is one
+        if (options[this.focusedOptionIndex].hasChild()) {
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
     }
 
@@ -533,26 +565,30 @@ export class MenuController {
             MenuController.optionElementClass
         );
 
-        if (this.focusedOptionIndex != -1 && this.focusedOptionIndex != options.length) {
-            options[this.focusedOptionIndex].removeFocus();
-        }
-
+        //Updates
+        options[this.focusedOptionIndex].removeFocus();
         this.focusedOptionIndex--;
 
         if (this.focusedOptionIndex < 0) this.focusedOptionIndex = options.length - 1;
 
-        options[this.focusedOptionIndex].setFocus();
-        if (options[this.focusedOptionIndex].hasChild()) {
-            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
-        }
-
         if (this.focusedOptionIndex == options.length - 1) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop =
                 (optionDomElements[0] as HTMLDivElement).offsetHeight * options.length;
-        } else {
+            this.topOptionIndex = options.length - this.menus[this.focusedMenuIndex].getOptionsInViewport();
+            this.bottomOptionIndex = options.length - 1;
+        } else if (this.focusedOptionIndex < this.topOptionIndex) {
+            this.topOptionIndex--;
+            this.bottomOptionIndex--;
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop -= (
                 optionDomElements[0] as HTMLDivElement
             ).offsetHeight;
+        }
+
+        options[this.focusedOptionIndex].setFocus();
+
+        //Open sub-menu if there is one
+        if (options[this.focusedOptionIndex].hasChild()) {
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
     }
 
@@ -586,7 +622,7 @@ export class MenuController {
                 this.selectFocusedOption();
 
                 this.focusedMenuIndex = this.menus.indexOf(newFocusedMenu);
-                this.focusedOptionIndex = 0;
+                this.focusedOptionIndex = 0; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
                 this.focusOption(this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex]);
             }
         }
@@ -597,7 +633,7 @@ export class MenuController {
         if (this.menus[this.focusedMenuIndex].parentMenu) {
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].removeFocus();
             this.focusedMenuIndex = this.menus.indexOf(this.menus[this.focusedMenuIndex].parentMenu);
-            this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex;
+            this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].setFocus();
             this.menus[this.focusedMenuIndex].closeChildren();
         }
@@ -618,7 +654,7 @@ export class MenuController {
         if (isRoot) {
             this.indexOfRootMenu = 0;
             this.menus = [];
-            this.focusedOptionIndex = 0;
+            this.focusedOptionIndex = 0; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
             this.focusedMenuIndex = 0;
         }
 
@@ -627,6 +663,67 @@ export class MenuController {
         root.children.forEach((child) => {
             this.updateMenuArrayFromTree(child, false);
         });
+    }
+
+    styleMenuOptions() {
+        if (this.isMenuOpen()) {
+            const textEnhance = new TextEnhance();
+            const menu = this.menus[this.focusedMenuIndex];
+
+            let actionsToKeep = menu.editCodeActionsOptions;
+
+            //------RECREATE OPTIONS------
+            let focusedOptionText = "";
+            if (this.focusedOptionIndex > -1) {
+                focusedOptionText = menu.options[this.focusedOptionIndex].text;
+            }
+
+            //clear old options since some of them might not be valid anymore
+            menu.options.forEach((option) => {
+                option.removeFromDOM();
+            });
+            menu.options = [];
+
+            for (const action of actionsToKeep) {
+                let option = new MenuOption(
+                    action.optionName,
+                    true,
+                    null,
+                    menu,
+                    null,
+                    () => {
+                        action.performAction(
+                            this.module.executer,
+                            this.module.eventRouter,
+                            this.module.focus.getContext(),
+                            {}
+                        );
+                    },
+                    null,
+                    action.insertionType == InsertionType.DraftMode
+                );
+
+                this.insertOptionIntoMenu(option, menu);
+
+                if (option.text === focusedOptionText) {
+                    this.focusedOptionIndex = menu.options.length - 1;
+                    option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
+                } else {
+                    this.focusedOptionIndex = 0;
+                }
+            }
+
+            //------UPDATE FOCUSED OPTION------
+            if (menu.options.length == 0) {
+                const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
+                this.insertOptionIntoMenu(option, menu);
+                this.focusedOptionIndex = 0;
+            } else if (this.focusedOptionIndex < menu.options.length) {
+                this.focusOption(menu.options[this.focusedOptionIndex]);
+            } else {
+                console.error("suggestion-controller: this.focusedOptionIndex >= menu.options.length");
+            }
+        }
     }
 
     updateMenuOptions(optionText: string) {
@@ -703,6 +800,7 @@ export class MenuController {
                 ) {
                     substringMatchRanges = [[[0, optionText.length - 1]]]; //It will always exactly match the user input.
                     editAction.getCode = () => new VarAssignmentStmt("", optionText);
+                    editAction.trimSpacesBeforeTermChar = true;
                 }
                 // for displaying the correct identifier for the ---[---] = --- option
                 else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
@@ -772,15 +870,13 @@ export class MenuController {
                     );
 
                     this.insertOptionIntoMenu(option, menu);
-
-                    if (option.text === focusedOptionText) {
-                        this.focusedOptionIndex = menu.options.length - 1;
-                        option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
-                    } else {
-                        this.focusedOptionIndex = 0;
-                    }
                 }
             }
+
+            //focus top option if one exists
+            this.focusedOptionIndex = 0;
+            this.topOptionIndex = 0;
+            this.bottomOptionIndex = menu.getOptionsInViewport() > 0 ? menu.getOptionsInViewport() - 1 : 0;
 
             //------UPDATE FOCUSED OPTION------
             if (menu.options.length == 0) {
@@ -800,7 +896,27 @@ export class MenuController {
         this.menus[this.focusedMenuIndex].htmlElement.style.top = `${pos.top}px`;
     }
 
-    getNewMenuPosition(code: CodeConstruct): { left: number; top: number } {
+    getNewMenuPositionFromPosition(position: Position): { left: number; top: number } {
+        const pos = { left: 0, top: 0 };
+        pos.left =
+            document.getElementById(EDITOR_DOM_ID).offsetLeft +
+            (
+                document
+                    .getElementById(EDITOR_DOM_ID)
+                    .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                    .getElementsByClassName("overflow-guard")[0]
+                    .getElementsByClassName("margin")[0] as HTMLElement
+            ).offsetWidth +
+            (this.module.editor.computeCharWidth() ? position.column * this.module.editor.computeCharWidth() : 0);
+
+        pos.top =
+            this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
+            document.getElementById(EDITOR_DOM_ID).offsetTop;
+
+        return pos;
+    }
+
+    getNewMenuPositionFromCode(code: CodeConstruct): { left: number; top: number } {
         const pos = { left: 0, top: 0 };
         pos.left =
             document.getElementById(EDITOR_DOM_ID).offsetLeft +

@@ -156,6 +156,10 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteListItem, {
                         toRight: true,
                     });
+                } else if (this.module.validator.shouldDeleteVarAssignmentOnHole(context)) {
+                    return new EditAction(EditActionType.DeleteStatement);
+                } else if (this.module.validator.shouldDeleteHole(context)) {
+                    return new EditAction(EditActionType.DeleteSelectedModifier);
                 }
 
                 break;

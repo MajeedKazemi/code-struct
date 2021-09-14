@@ -218,8 +218,8 @@ export class ActionExecutor {
                 //TODO: Might want to change back to use the case above if no new logic is added
                 const statement = action.data?.statement;
 
-                if (statement instanceof VarAssignmentStmt && action.data?.autocompleteData?.identifier) {
-                    statement.setIdentifier(action.data?.autocompleteData?.identifier);
+                if (statement instanceof VarAssignmentStmt && action.data?.autocompleteData?.identifier.trim()) {
+                    statement.setIdentifier(action.data?.autocompleteData?.identifier.trim());
                 }
 
                 this.insertStatement(context, action.data?.statement as Statement);
@@ -293,6 +293,12 @@ export class ActionExecutor {
                 }
 
                 this.module.editor.executeEdits(range, null, "");
+
+                break;
+            }
+
+            case EditActionType.DeleteSelectedModifier: {
+                this.deleteModifier(context.token.rootNode as Modifier, { deleting: true });
 
                 break;
             }
@@ -870,7 +876,12 @@ export class ActionExecutor {
             }
 
             case EditActionType.OpenValidInsertMenu:
-                this.openAutocompleteMenu(this.module.actionFilter.getProcessedInsertionsList());
+                this.openAutocompleteMenu(
+                    this.module.actionFilter
+                        .getProcessedInsertionsList()
+                        .filter((item) => item.insertionType != InsertionType.Invalid)
+                );
+                this.styleAutocompleteMenu(context.position);
 
                 break;
 
@@ -1037,6 +1048,15 @@ export class ActionExecutor {
     }
 
     private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
+        if (
+            match.insertActionType == InsertActionType.InsertNewVariableStmt &&
+            (Object.keys(PythonKeywords).indexOf(token.text.trim()) >= 0 ||
+                Object.keys(BuiltInFunctions).indexOf(token.text.trim()) >= 0)
+        ) {
+            // TODO: can insert an interesting warning
+            return;
+        }
+
         match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
             identifier: token.text,
         });
@@ -1367,6 +1387,13 @@ export class ActionExecutor {
 
     private updateAutocompleteMenu(autocompleteTkn: AutocompleteTkn) {
         this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
-        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPosition(autocompleteTkn));
+        this.module.menuController.updatePosition(
+            this.module.menuController.getNewMenuPositionFromCode(autocompleteTkn)
+        );
+    }
+
+    private styleAutocompleteMenu(pos: Position) {
+        this.module.menuController.styleMenuOptions();
+        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPositionFromPosition(pos));
     }
 }

@@ -561,7 +561,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
                     return InsertionType.DraftMode;
                 } else if (
-                    typesOfParentHole.some((t) => t == DataType.Any) ||
+                    typesOfParentHole?.some((t) => t == DataType.Any) ||
                     hasMatch(typesOfParentHole, [replaceWith.returns])
                 ) {
                     return InsertionType.Valid;
@@ -2720,10 +2720,12 @@ export class AutocompleteTkn extends Token implements TextEditable {
     }
 
     checkMatch(newChar: string, text?: string): EditCodeAction {
-        const curText = text !== undefined ? text : this.text;
+        let curText = text !== undefined ? text : this.text;
 
         for (const match of this.validMatches) {
             if (match.terminatingChars.indexOf(newChar) >= 0) {
+                if (match.trimSpacesBeforeTermChar) curText = curText.trim();
+
                 if (curText == match.matchString) return match;
                 else if (match.matchRegex != null && match.matchRegex.test(curText)) return match;
             }

@@ -1,5 +1,18 @@
 {
     "toolboxConstructGroupOptions": {
+        "variables": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Variables",
+            "includeCategoryItems": {
+                "addVar": 1
+            }
+        },  "userDefinedVariables": {
+            "includeCategory": 1,
+            "categoryDisplayName": "User Defined Variables",
+            "categoryHtml": "<div id=\"user-variables\"><h2 id=\"user-defined-vars-heading\">User-Defined Variables</h2><div id=\"vars-button-grid\"></div>",
+            "includeCategoryItems": {
+            }
+        },
         "imports": {
             "includeCategory": 1,
             "categoryDisplayName": "Imports",
@@ -39,21 +52,8 @@
                 "replace": 1
             }
         },
-        "variables": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Variables",
-            "includeCategoryItems": {
-                "addVar": 1
-            }
-        },
-        "userDefinedVariables": {
-            "includeCategory": 1,
-            "categoryDisplayName": "User Defined Variables",
-            "categoryHtml": "<div id=\"user-variables\"><h2 id=\"user-defined-vars-heading\">User-Defined Variables</h2><div id=\"vars-button-grid\"></div>",
-            "includeCategoryItems": {
-                
-            }
-        },
+      
+       
         "assignmentOperations": {
             "includeCategory": 1,
             "categoryDisplayName": "Assignment Operations",
@@ -71,9 +71,9 @@
             "includeCategoryItems": {
                 "listLiteral": 1,
                 "listItem": 1,
-                "listAppend": 1,
                 "listIndex": 1,
-                "listElementAssign": 1
+                "listAppend": 1,
+                "listElementAssign": 0
             }
         },
         "literals": {
@@ -188,7 +188,7 @@
         },
         "assign": {
             "id": "add-assign-mod-btn",
-            "text": "--- = ---"
+            "text": "= ---"
         },
         "assignAdd": {
             "id": "add-aug-assign-add-mod-btn",
@@ -220,7 +220,7 @@
         },
         "listIndex": {
             "id": "add-list-index-btn",
-            "text": "---[---]"
+            "text": "[---]"
         },
         "listElementAssign": {
             "id": "add-list-elem-assign-btn",

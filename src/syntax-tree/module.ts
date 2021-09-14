@@ -108,22 +108,22 @@ export class Module {
             Hole.highlightValidVarHoles(c);
         });
 
-        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to rafactor this one to
+        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to refactor this one to
         //use methods like above code
         this.focus.subscribeOnNavChangeCallback(
             ((c: Context) => {
-                if (
-                    !(
-                        c.tokenToLeft instanceof AutocompleteTkn ||
-                        c.tokenToRight instanceof AutocompleteTkn ||
-                        c.token instanceof AutocompleteTkn
-                    )
-                ) {
-                    const inserts = this.actionFilter.getProcessedInsertionsList();
+                // if (
+                //     !(
+                //         c.tokenToLeft instanceof AutocompleteTkn ||
+                //         c.tokenToRight instanceof AutocompleteTkn ||
+                //         c.token instanceof AutocompleteTkn
+                //     )
+                // ) {
+                const inserts = this.actionFilter.getProcessedInsertionsList();
 
-                    //mark draft mode buttons
-                    updateButtonsVisualMode(inserts);
-                }
+                //mark draft mode buttons
+                updateButtonsVisualMode(inserts);
+                // }
             }).bind(this)
         );
 

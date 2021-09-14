@@ -186,18 +186,39 @@ export class VariableController {
         }
     }
 
-    getAllAssignmentsToVar(varId: string, module: Module) {
+    isVarStmtReassignment(varStmt: VarAssignmentStmt, module: Module): boolean {
+        const Q: CodeConstruct[] = [];
+        Q.unshift(...module.body.filter((stmt) => stmt.lineNumber < varStmt.lineNumber));
+
+        while (Q.length > 0) {
+            const currCodeConstruct = Q.pop();
+
+            if (currCodeConstruct instanceof Statement) {
+                Q.unshift(...currCodeConstruct.body);
+
+                if (
+                    currCodeConstruct instanceof VarAssignmentStmt &&
+                    currCodeConstruct.getIdentifier() === varStmt.getIdentifier() &&
+                    currCodeConstruct.lineNumber < varStmt.lineNumber
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    getAllAssignmentsToVar(varId: string, module: Module): VarAssignmentStmt[] {
         const Q: CodeConstruct[] = [];
         const result: VarAssignmentStmt[] = [];
         Q.push(...module.body);
 
         while (Q.length > 0) {
-            const currCodeConstruct = Q.splice(0, 1)[0];
-            if (currCodeConstruct instanceof Expression) {
-                Q.push(...currCodeConstruct.tokens);
-            } else if (currCodeConstruct instanceof Statement) {
+            const currCodeConstruct = Q.pop();
+
+            if (currCodeConstruct instanceof Statement) {
                 Q.push(...currCodeConstruct.body);
-                Q.push(...currCodeConstruct.tokens);
 
                 if (currCodeConstruct instanceof VarAssignmentStmt && currCodeConstruct.buttonId === varId) {
                     result.push(currCodeConstruct);
@@ -210,13 +231,14 @@ export class VariableController {
         return result;
     }
 
-    private getVarRefsBFS(varId: string, module: Module) {
+    private getVarRefsBFS(varId: string, module: Module): VariableReferenceExpr[] {
         const Q: CodeConstruct[] = [];
         const result: VariableReferenceExpr[] = [];
         Q.push(...module.body);
 
         while (Q.length > 0) {
-            const currCodeConstruct = Q.splice(0, 1)[0];
+            const currCodeConstruct = Q.pop();
+
             if (currCodeConstruct instanceof Expression) {
                 Q.push(...currCodeConstruct.tokens);
 
