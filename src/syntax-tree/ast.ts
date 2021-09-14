@@ -861,15 +861,15 @@ export class ElseStatement extends Statement {
 export class ImportStatement extends Statement {
     private moduleNameIndex: number = -1;
     private itemNameIndex: number = -1;
-    constructor(moduleName: string = "   ", itemName: string = "   ") {
+    constructor(moduleName: string = "", itemName: string = "") {
         super();
 
         this.tokens.push(new NonEditableTkn("from ", this, this.tokens.length));
         this.moduleNameIndex = this.tokens.length;
-        this.tokens.push(new EditableTextTkn(moduleName, /[a-zA-Z]/g, this, this.tokens.length));
+        this.tokens.push(new EditableTextTkn(moduleName, new RegExp("^[a-zA-Z]*$"), this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" import ", this, this.tokens.length));
         this.itemNameIndex = this.tokens.length;
-        this.tokens.push(new EditableTextTkn(itemName, /[a-zA-Z]/g, this, this.tokens.length));
+        this.tokens.push(new EditableTextTkn(itemName, new RegExp("^[a-zA-Z]*$"), this, this.tokens.length));
 
         this.subscribe(
             CallbackType.onFocusOff,
