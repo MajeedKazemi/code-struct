@@ -858,6 +858,69 @@ export class ElseStatement extends Statement {
     }
 }
 
+export class ImportStatement extends Statement {
+    private moduleNameIndex: number = -1;
+    private itemNameIndex: number = -1;
+    constructor(moduleName: string = "", itemName: string = "") {
+        super();
+
+        this.tokens.push(new NonEditableTkn("from ", this, this.tokens.length));
+        this.moduleNameIndex = this.tokens.length;
+        this.tokens.push(new EditableTextTkn(moduleName, new RegExp("^[a-zA-Z]*$"), this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" import ", this, this.tokens.length));
+        this.itemNameIndex = this.tokens.length;
+        this.tokens.push(new EditableTextTkn(itemName, new RegExp("^[a-zA-Z]*$"), this, this.tokens.length));
+
+        this.subscribe(
+            CallbackType.onFocusOff,
+            new Callback(() => {
+                this.onFocusOff({ module: this.getModule() });
+            })
+        );
+
+        this.subscribe(
+            CallbackType.delete,
+            new Callback(() => {
+                this.onDelete(this.getModule()); //TODO: I don't like this either, but we need the module there
+            })
+        );
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        //TODO: This is the same for most Statements so should probably move this functionality into the parent class
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    getImportModuleName(): string {
+        return this.tokens[this.moduleNameIndex].getRenderText();
+    }
+    getImportItemName(): string {
+        return this.tokens[this.itemNameIndex].getRenderText();
+    }
+
+    onFocusOff(args: any): void {
+        if (this.getImportModuleName() !== "" && this.getImportItemName() !== "") {
+            //TODO: Not efficient, but the only way to improve this is to constantly maintain an updated "imported" status
+            //on the construct requiring an import, which is tedious so I left it for now. If this ever becomes an issue, that is the solution.
+            args.module.validator.validateImports();
+        }
+    }
+
+    setImportModule(txt: string) {
+        (this.tokens[this.moduleNameIndex] as EditableTextTkn).setEditedText(txt);
+    }
+
+    setImportItem(txt: string) {
+        (this.tokens[this.itemNameIndex] as EditableTextTkn).setEditedText(txt);
+    }
+
+    private onDelete(module: Module) {
+        let stmts = module.getAllImportStmts();
+        stmts = stmts.filter((stmt) => stmt !== this);
+        module.validator.validateImports(stmts);
+    }
+}
+
 export class ForStatement extends Statement implements VariableContainer {
     buttonId: string;
     private counterIndex: number;
@@ -1712,20 +1775,22 @@ export class AugmentedAssignmentModifier extends Modifier {
     }
 }
 
-export class FunctionCallExpr extends Expression {
+export class FunctionCallExpr extends Expression implements Importable {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
     functionName: string = "";
     args: Array<Argument>;
+    requiredModule: string;
 
     constructor(
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
         root?: Statement,
-        indexInRoot?: number
+        indexInRoot?: number,
+        requiredModule: string = ""
     ) {
         super(returns);
 
@@ -1733,6 +1798,7 @@ export class FunctionCallExpr extends Expression {
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
         this.args = args;
+        this.requiredModule = requiredModule;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1794,21 +1860,89 @@ export class FunctionCallExpr extends Expression {
     getFunctionName(): string {
         return this.functionName;
     }
+
+    getKeyword(): string {
+        return this.functionName;
+    }
+
+    validateImport(importedModule: string, importedItem: string): boolean {
+        return this.requiredModule === importedModule && this.getFunctionName() === importedItem;
+    }
+
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType) {
+        let insertionType = currentInsertionType;
+        let importsOfThisConstruct: ImportStatement[] = [];
+        const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
+            if (construct instanceof ImportStatement) {
+                if (this.requiredModule === construct.getImportModuleName()) {
+                    stmts.push(construct);
+                }
+            }
+        };
+
+        module.performActionOnBFS((code) => checker(code, importsOfThisConstruct));
+
+        if (importsOfThisConstruct.length === 0 && this.requiresImport()) {
+            //imports of required module don't exist and this item requires an import
+            insertionType = InsertionType.DraftMode;
+        } else if (importsOfThisConstruct.length > 0 && this.requiresImport()) {
+            //imports of required module exist and this item requires an import
+            insertionType =
+                importsOfThisConstruct.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+                    ? currentInsertionType
+                    : InsertionType.DraftMode;
+        }
+
+        return insertionType;
+    }
+
+    validateImportFromImportList(imports: ImportStatement[]): boolean {
+        const relevantImports = imports.filter((stmt) => stmt.getImportModuleName() === this.requiredModule);
+
+        if (relevantImports.length === 0) {
+            return false;
+        }
+
+        return relevantImports.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+            ? true
+            : false;
+    }
+
+    requiresImport(): boolean {
+        return this.requiredModule !== "";
+    }
 }
 
-export class FunctionCallStmt extends Statement {
+export interface Importable {
+    requiredModule: string;
+
+    validateImport(importedModule: string, importedItem: string): boolean;
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType): InsertionType;
+    validateImportFromImportList(imports: ImportStatement[]): boolean;
+    requiresImport(): boolean;
+}
+
+export class FunctionCallStmt extends Statement implements Importable {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
     functionName: string = "";
+    requiredModule: string;
 
-    constructor(functionName: string, args: Array<Argument>, root?: Statement | Module, indexInRoot?: number) {
+    constructor(
+        functionName: string,
+        args: Array<Argument>,
+        root?: Statement | Module,
+        indexInRoot?: number,
+        requiredModule: string = ""
+    ) {
         super();
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
+        this.requiredModule = requiredModule;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1841,6 +1975,57 @@ export class FunctionCallStmt extends Statement {
 
     getFunctionName(): string {
         return this.functionName;
+    }
+
+    getKeyword(): string {
+        return this.functionName;
+    }
+
+    validateImport(importedModule: string, importedItem: string): boolean {
+        return this.requiredModule === importedModule && this.getFunctionName() === importedItem;
+    }
+
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType) {
+        let insertionType = currentInsertionType;
+        let importsOfThisConstruct: ImportStatement[] = [];
+        const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
+            if (construct instanceof ImportStatement) {
+                if (this.requiredModule === construct.getImportModuleName()) {
+                    stmts.push(construct);
+                }
+            }
+        };
+
+        module.performActionOnBFS((code) => checker(code, importsOfThisConstruct));
+
+        if (importsOfThisConstruct.length === 0 && this.requiresImport()) {
+            //imports of required module don't exist and this item requires an import
+            insertionType = InsertionType.DraftMode;
+        } else if (importsOfThisConstruct.length > 0 && this.requiresImport()) {
+            //imports of required module exist and this item requires an import
+            insertionType =
+                importsOfThisConstruct.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+                    ? currentInsertionType
+                    : InsertionType.DraftMode;
+        }
+
+        return insertionType;
+    }
+
+    validateImportFromImportList(imports: ImportStatement[]): boolean {
+        const relevantImports = imports.filter((stmt) => stmt.getImportModuleName() === this.requiredModule);
+        console.log(relevantImports);
+        if (relevantImports.length === 0) {
+            return false;
+        }
+
+        return relevantImports.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+            ? true
+            : false;
+    }
+
+    requiresImport(): boolean {
+        return this.requiredModule !== "";
     }
 }
 

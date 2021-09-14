@@ -386,6 +386,7 @@ export class EventRouter {
                 break;
             }
 
+            case InsertActionType.InsertImportStmt:
             case InsertActionType.InsertWhileStmt:
             case InsertActionType.InsertIfStmt:
             case InsertActionType.InsertForStmt:

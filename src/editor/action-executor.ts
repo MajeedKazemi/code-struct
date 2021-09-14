@@ -10,6 +10,8 @@ import {
     EmptyLineStmt,
     Expression,
     IdentifierTkn,
+    Importable,
+    ImportStatement,
     ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
@@ -30,6 +32,7 @@ import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
+import { isImportable } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { EditActionType, InsertActionType } from "./consts";
@@ -798,6 +801,29 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.InsertImportFromDraftMode: {
+                let currContext = context;
+                this.module.editor.monaco.setPosition(new Position(1, 1));
+                this.module.insertEmptyLine();
+                this.module.editor.monaco.setPosition(new Position(1, 1));
+                currContext = this.module.focus.getContext();
+
+                const stmt = new ImportStatement(action.data?.moduleName, action.data?.itemName);
+                const insertAction = new EditCodeAction(
+                    "from --- import --- :",
+                    "add-import-btn",
+                    () => stmt,
+                    InsertActionType.InsertImportStmt,
+                    {},
+                    [" "],
+                    "import",
+                    null
+                );
+                insertAction.performAction(this, this.module.eventRouter, currContext);
+
+                break;
+            }
+
             case EditActionType.SelectClosestTokenAbove: {
                 this.module.focus.navigateUp();
 
@@ -1073,7 +1099,7 @@ export class ActionExecutor {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr) {
-            const insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+            let insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
             if (insertionType != InsertionType.Invalid) {
                 code.performPreInsertionUpdates(context.token);
@@ -1108,6 +1134,18 @@ export class ActionExecutor {
             }
 
             if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
+            else if (isImportable(code)) {
+                this.checkImports(code, insertionType);
+            }
+        }
+    }
+
+    private checkImports(insertedCode: Importable, currentInsertionType: InsertionType) {
+        if (currentInsertionType === InsertionType.Invalid) return;
+
+        const insertionType = insertedCode.validateImportOnInsertion(this.module, currentInsertionType);
+        if (insertionType === InsertionType.DraftMode && insertedCode instanceof Statement) {
+            this.module.openImportDraftMode(insertedCode);
         }
     }
 
@@ -1134,6 +1172,10 @@ export class ActionExecutor {
 
         if (context.lineStatement.notification && context.selected) {
             this.module.notificationSystem.removeNotificationFromConstruct(context.lineStatement);
+        }
+
+        if (isImportable(statement)) {
+            this.checkImports(statement, InsertionType.Valid);
         }
 
         this.module.editor.executeEdits(range, statement);

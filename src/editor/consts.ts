@@ -8,6 +8,7 @@ import {
     FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
+    ImportStatement,
     ListAccessModifier,
     ListComma,
     ListLiteralExpression,
@@ -158,6 +159,7 @@ export enum EditActionType {
     InsertAssignmentModifier,
 
     OpenAutocomplete,
+    InsertImportFromDraftMode,
 }
 
 export enum ConstructName {
@@ -173,6 +175,7 @@ export enum InsertActionType {
     InsertElifStmt,
     InsertElseStmt,
     InsertForStmt,
+    InsertImportStmt,
 
     InsertPrintFunctionStmt,
     InsertRandintExpr,
@@ -233,7 +236,10 @@ export class Actions {
                             new Argument([DataType.Number], "start", false),
                             new Argument([DataType.Number], "end", false),
                         ],
-                        DataType.Number
+                        DataType.Number,
+                        null,
+                        null,
+                        "random"
                     ),
                 InsertActionType.InsertRandintExpr,
                 {},
@@ -598,6 +604,17 @@ export class Actions {
                 {},
                 [" "],
                 "for",
+                null
+            ),
+
+            new EditCodeAction(
+                "from --- import --- :",
+                "add-import-btn",
+                () => new ImportStatement(),
+                InsertActionType.InsertImportStmt,
+                {},
+                [" "],
+                "import",
                 null
             ),
 

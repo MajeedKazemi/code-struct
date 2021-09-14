@@ -1,4 +1,5 @@
 import { ConstructDoc } from "../suggestions/construct-doc";
+import { Importable } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { DataType, ListTypes } from "./../syntax-tree/consts";
 
@@ -133,4 +134,8 @@ export function hasMatchWithIndex<T>(list1: T[], list2: T[]): [number, number] {
     }
 
     return matchingIndices;
+}
+
+export function isImportable(object: unknown): object is Importable {
+    return Object.prototype.hasOwnProperty.call(object, "requiredModule"); //calling hasOwnProperty with call() because 'object' is not necessarily an object
 }

@@ -11,7 +11,13 @@
             "categoryDisplayName": "User Defined Variables",
             "categoryHtml": "<div id=\"user-variables\"><h2 id=\"user-defined-vars-heading\">User-Defined Variables</h2><div id=\"vars-button-grid\"></div>",
             "includeCategoryItems": {
-                
+            }
+        },
+        "imports": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Imports",
+            "includeCategoryItems": {
+                "import": 1
             }
         },
         "functionCalls": {
@@ -291,6 +297,10 @@
         "comptGte": {
             "id": "add-comp-gte-expr-btn",
             "text": "--- >= ---"
+        },
+        "import": {
+            "id": "add-import-btn",
+            "text": "from --- import ---"
         }
     }
 }
