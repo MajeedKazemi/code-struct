@@ -561,7 +561,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
                     return InsertionType.DraftMode;
                 } else if (
-                    typesOfParentHole.some((t) => t == DataType.Any) ||
+                    typesOfParentHole?.some((t) => t == DataType.Any) ||
                     hasMatch(typesOfParentHole, [replaceWith.returns])
                 ) {
                     return InsertionType.Valid;
