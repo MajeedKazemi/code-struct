@@ -1,15 +1,15 @@
 #editor-toolbox {
-    padding: 2rem;
+    padding: 0 1rem;
     display: flex;
     flex-direction: column;
-
-    border-right: 1px solid #00000018;
 
     overflow-y: scroll;
     overflow-x: hidden;
     min-width: -webkit-fit-content;
     min-width: -moz-fit-content;
     min-width: fit-content;
+
+    box-shadow: 10px 0px 20px 0px #ccc;
 }
 
 #editor-toolbox .button {
