@@ -88,7 +88,7 @@ export class VariableController {
                     button.parentElement.style.display = "none";
                 } else {
                     button.parentElement.style.display = "grid";
-                    button.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
+                    button.parentElement.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
                         scope,
                         lineNumber,
                         button.textContent
@@ -99,8 +99,14 @@ export class VariableController {
     }
 
     updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string) {
-        this.variableButtons.filter((button) => button.id === buttonId)[0].parentElement.children[1].innerHTML =
-            this.getVariableTypeNearLine(scope, lineNumber, identifier, false);
+        this.variableButtons.filter(
+            (button) => button.id === buttonId
+        )[0].parentElement.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
+            scope,
+            lineNumber,
+            identifier,
+            false
+        );
     }
 
     getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true) {

@@ -11,14 +11,20 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
     const container = document.createElement("grid");
     container.classList.add("var-button-container");
 
+    const wrapperDiv = document.createElement("div");
+    wrapperDiv.classList.add("hoverable");
+
+    container.appendChild(wrapperDiv);
+
     const button = document.createElement("div");
     button.classList.add("button");
     button.id = buttonId;
 
+    wrapperDiv.appendChild(button);
+
     const typeText = document.createElement("div");
     typeText.classList.add("var-type-text");
 
-    container.appendChild(button);
     container.appendChild(typeText);
 
     document.getElementById("vars-button-grid").appendChild(container);
@@ -202,14 +208,14 @@ function createAndAttachCascadedMenu(buttonId: string, optionToAction: Map<strin
         if (menuElement.children.length > 0) {
             const content = document.createElement("div");
             content.classList.add("cascadedMenuContent");
-            document.getElementById("editor-toolbox").appendChild(menuElement);
+            button.parentElement.appendChild(menuElement);
 
             const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
             const leftPos = button.offsetLeft;
             const topPos = button.offsetTop - document.getElementById("editor-toolbox").scrollTop + button.offsetHeight;
 
             domMenuElement.style.left = `${leftPos}px`;
-            domMenuElement.style.top = `${topPos + 2}px`;
+            domMenuElement.style.top = `${topPos}px`;
         }
     }
 }
@@ -258,15 +264,6 @@ export function createCascadedMenuForToolboxButton(
     button.addEventListener("mouseover", () => {
         createAndAttachCascadedMenu(buttonId, optionToAction, module);
     });
-
-    button.addEventListener("mouseleave", () => {
-        setTimeout(() => {
-            const element = document.getElementById(`${buttonId}-cascadedMenu`);
-            if (element && !element.matches(":hover") && !button.matches(":hover")) {
-                element.remove();
-            }
-        }, 50);
-    });
 }
 
 export function createCascadedMenuForVarRef(buttonId: string, identifier: string, module: Module) {
@@ -277,11 +274,9 @@ export function createCascadedMenuForVarRef(buttonId: string, identifier: string
     });
 
     button.addEventListener("mouseleave", () => {
-        setTimeout(() => {
-            const element = document.getElementById(`${buttonId}-cascadedMenu`);
-            if (element && !element.matches(":hover") && !button.matches(":hover")) {
-                element.remove();
-            }
-        }, 50);
+        const element = document.getElementById(`${buttonId}-cascadedMenu`);
+        if (element && !element.matches(":hover") && !button.matches(":hover")) {
+            element.remove();
+        }
     });
 }
