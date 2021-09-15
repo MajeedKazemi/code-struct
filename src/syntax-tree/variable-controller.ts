@@ -1,11 +1,11 @@
 var controller;
 import {
     addVariableReferenceButton,
-    createCascadedMenuForToolboxButton,
+    createCascadedMenuForVarRef,
     removeVariableReferenceButton,
 } from "../editor/toolbox";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
-import { DataType, InsertionType } from "./consts";
+import { DataType } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
 
@@ -26,31 +26,7 @@ export class VariableController {
         );
         this.variableButtons.push(button);
 
-        this.createCascadedMenuForVar(assignmentStmt.getIdentifier(), assignmentStmt.buttonId);
-    }
-
-    private createCascadedMenuForVar(identifier: string, buttonId: string) {
-        const dataType = this.getVariableTypeNearLine(
-            this.module.focus.getFocusedStatement().scope ??
-                (
-                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-                        .rootNode as Statement | Module
-                ).scope,
-            this.module.editor.monaco.getPosition().lineNumber,
-            identifier,
-            false
-        );
-        const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
-        const validActions = this.module.actionFilter.validateVariableOperations(varRef);
-        const optionToAction = new Map<string, Function>();
-
-        for (const [key, value] of validActions) {
-            if (value.insertionType !== InsertionType.Invalid) {
-                optionToAction.set(value.optionName, value.performAction.bind(value)); //NOTE: Important to always bind the function to its EditCodeAction since performAction uses 'this' to route events
-            }
-        }
-
-        createCascadedMenuForToolboxButton(buttonId, optionToAction, this.module);
+        createCascadedMenuForVarRef(assignmentStmt.buttonId, assignmentStmt.getIdentifier(), this.module);
     }
 
     isVariableReferenceButton(buttonId: string) {
@@ -113,7 +89,7 @@ export class VariableController {
                     button.parentElement.style.display = "none";
                 } else {
                     button.parentElement.style.display = "grid";
-                    button.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
+                    button.parentElement.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
                         scope,
                         lineNumber,
                         button.textContent
@@ -124,8 +100,14 @@ export class VariableController {
     }
 
     updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string) {
-        this.variableButtons.filter((button) => button.id === buttonId)[0].parentElement.children[1].innerHTML =
-            this.getVariableTypeNearLine(scope, lineNumber, identifier, false);
+        this.variableButtons.filter(
+            (button) => button.id === buttonId
+        )[0].parentElement.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
+            scope,
+            lineNumber,
+            identifier,
+            false
+        );
     }
 
     getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true) {
@@ -215,10 +197,12 @@ export class VariableController {
         Q.push(...module.body);
 
         while (Q.length > 0) {
-            const currCodeConstruct = Q.pop();
-
-            if (currCodeConstruct instanceof Statement) {
+            const currCodeConstruct = Q.splice(0, 1)[0];
+            if (currCodeConstruct instanceof Expression) {
+                Q.push(...currCodeConstruct.tokens);
+            } else if (currCodeConstruct instanceof Statement) {
                 Q.push(...currCodeConstruct.body);
+                Q.push(...currCodeConstruct.tokens);
 
                 if (currCodeConstruct instanceof VarAssignmentStmt && currCodeConstruct.buttonId === varId) {
                     result.push(currCodeConstruct);
