@@ -110,7 +110,10 @@ export function loadToolboxFromJson() {
                         const button = ToolboxButton.createToolboxButtonFromJsonObj(
                             options.toolboxDefaultButtonTemplates[item]
                         );
-                        categoryDiv.appendChild(button.domElement);
+                        const wrapper = document.createElement("div");
+                        wrapper.classList.add("hoverable");
+                        wrapper.appendChild(button.domElement);
+                        categoryDiv.appendChild(wrapper);
                     }
                 }
             }
@@ -244,26 +247,6 @@ function getVarOptions(identifier: string, buttonId: string, module: Module): Ma
     }
 
     return optionToAction;
-}
-
-/**
- * Attach a cascaded menu to DOM element with id buttonId and options from optionToAction map. See constructCascadedMenuObj() for further details.
- * This should be used for static menus only that don't have their options change dynamically.
- *
- * @param buttonId id of the DOM object to which the cascaded menu will be attached
- * @param optionToAction a map of action names to their executor function
- * @param module the main Module object of this program
- */
-export function createCascadedMenuForToolboxButton(
-    buttonId: string,
-    optionToAction: Map<string, Function>,
-    module: Module
-) {
-    const button = document.getElementById(buttonId);
-
-    button.addEventListener("mouseover", () => {
-        createAndAttachCascadedMenu(buttonId, optionToAction, module);
-    });
 }
 
 export function createCascadedMenuForVarRef(buttonId: string, identifier: string, module: Module) {
