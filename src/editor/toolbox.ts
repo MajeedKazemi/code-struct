@@ -1,3 +1,4 @@
+import { Statement, VariableReferenceExpr } from "../syntax-tree/ast";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { EditCodeAction } from "./action-filter";
@@ -191,8 +192,57 @@ function constructCascadedMenuObj(
     return menu;
 }
 
+//creates a cascaded menu dom object with the given options and attaches it to button with id = buttonId.
+//also updates its position according to the button it is being attached to.
+function createAndAttachCascadedMenu(buttonId: string, optionToAction: Map<string, Function>, module: Module) {
+    const button = document.getElementById(buttonId);
+    if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
+        const menuElement = constructCascadedMenuObj(optionToAction, buttonId, module);
+
+        if (menuElement.children.length > 0) {
+            const content = document.createElement("div");
+            content.classList.add("cascadedMenuContent");
+            document.getElementById("editor-toolbox").appendChild(menuElement);
+
+            const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
+            const leftPos = button.offsetLeft;
+            const topPos = button.offsetTop - document.getElementById("editor-toolbox").scrollTop + button.offsetHeight;
+
+            domMenuElement.style.left = `${leftPos}px`;
+            domMenuElement.style.top = `${topPos + 2}px`;
+        }
+    }
+}
+
+//helper for creating options for a variable's cascaded menu
+function getVarOptions(identifier: string, buttonId: string, module: Module): Map<string, Function> {
+    const dataType = module.variableController.getVariableTypeNearLine(
+        module.focus.getFocusedStatement().scope ??
+            (
+                module.focus.getStatementAtLineNumber(module.editor.monaco.getPosition().lineNumber).rootNode as
+                    | Statement
+                    | Module
+            ).scope,
+        module.editor.monaco.getPosition().lineNumber,
+        identifier,
+        false
+    );
+    const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
+    const validActions = module.actionFilter.validateVariableOperations(varRef);
+    const optionToAction = new Map<string, Function>();
+
+    for (const [key, value] of validActions) {
+        if (value.insertionType !== InsertionType.Invalid) {
+            optionToAction.set(value.optionName, value.performAction.bind(value)); //NOTE: Important to always bind the function to its EditCodeAction since performAction uses 'this' to route events
+        }
+    }
+
+    return optionToAction;
+}
+
 /**
  * Attach a cascaded menu to DOM element with id buttonId and options from optionToAction map. See constructCascadedMenuObj() for further details.
+ * This should be used for static menus only that don't have their options change dynamically.
  *
  * @param buttonId id of the DOM object to which the cascaded menu will be attached
  * @param optionToAction a map of action names to their executor function
@@ -206,23 +256,24 @@ export function createCascadedMenuForToolboxButton(
     const button = document.getElementById(buttonId);
 
     button.addEventListener("mouseover", () => {
-        if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
-            const menuElement = constructCascadedMenuObj(optionToAction, buttonId, module);
+        createAndAttachCascadedMenu(buttonId, optionToAction, module);
+    });
 
-            if (menuElement.children.length > 0) {
-                const content = document.createElement("div");
-                content.classList.add("cascadedMenuContent");
-                document.getElementById("editor-toolbox").appendChild(menuElement);
-
-                const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
-                const leftPos = button.offsetLeft;
-                const topPos =
-                    button.offsetTop - document.getElementById("editor-toolbox").scrollTop + button.offsetHeight;
-
-                domMenuElement.style.left = `${leftPos}px`;
-                domMenuElement.style.top = `${topPos + 2}px`;
+    button.addEventListener("mouseleave", () => {
+        setTimeout(() => {
+            const element = document.getElementById(`${buttonId}-cascadedMenu`);
+            if (element && !element.matches(":hover") && !button.matches(":hover")) {
+                element.remove();
             }
-        }
+        }, 50);
+    });
+}
+
+export function createCascadedMenuForVarRef(buttonId: string, identifier: string, module: Module) {
+    const button = document.getElementById(buttonId);
+
+    button.addEventListener("mouseover", () => {
+        createAndAttachCascadedMenu(buttonId, getVarOptions(identifier, buttonId, module), module); //it is important that these options are regenerated on each mouseover
     });
 
     button.addEventListener("mouseleave", () => {

@@ -1,11 +1,10 @@
-var controller;
 import {
     addVariableReferenceButton,
-    createCascadedMenuForToolboxButton,
+    createCascadedMenuForVarRef,
     removeVariableReferenceButton,
 } from "../editor/toolbox";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
-import { DataType, InsertionType } from "./consts";
+import { DataType } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
 
@@ -26,31 +25,7 @@ export class VariableController {
         );
         this.variableButtons.push(button);
 
-        this.createCascadedMenuForVar(assignmentStmt.getIdentifier(), assignmentStmt.buttonId);
-    }
-
-    private createCascadedMenuForVar(identifier: string, buttonId: string) {
-        const dataType = this.getVariableTypeNearLine(
-            this.module.focus.getFocusedStatement().scope ??
-                (
-                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-                        .rootNode as Statement | Module
-                ).scope,
-            this.module.editor.monaco.getPosition().lineNumber,
-            identifier,
-            false
-        );
-        const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
-        const validActions = this.module.actionFilter.validateVariableOperations(varRef);
-        const optionToAction = new Map<string, Function>();
-
-        for (const [key, value] of validActions) {
-            if (value.insertionType !== InsertionType.Invalid) {
-                optionToAction.set(value.optionName, value.performAction.bind(value)); //NOTE: Important to always bind the function to its EditCodeAction since performAction uses 'this' to route events
-            }
-        }
-
-        createCascadedMenuForToolboxButton(buttonId, optionToAction, this.module);
+        createCascadedMenuForVarRef(assignmentStmt.buttonId, assignmentStmt.getIdentifier(), this.module);
     }
 
     isVariableReferenceButton(buttonId: string) {
@@ -186,39 +161,18 @@ export class VariableController {
         }
     }
 
-    isVarStmtReassignment(varStmt: VarAssignmentStmt, module: Module): boolean {
-        const Q: CodeConstruct[] = [];
-        Q.unshift(...module.body.filter((stmt) => stmt.lineNumber < varStmt.lineNumber));
-
-        while (Q.length > 0) {
-            const currCodeConstruct = Q.pop();
-
-            if (currCodeConstruct instanceof Statement) {
-                Q.unshift(...currCodeConstruct.body);
-
-                if (
-                    currCodeConstruct instanceof VarAssignmentStmt &&
-                    currCodeConstruct.getIdentifier() === varStmt.getIdentifier() &&
-                    currCodeConstruct.lineNumber < varStmt.lineNumber
-                ) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }
-
-    getAllAssignmentsToVar(varId: string, module: Module): VarAssignmentStmt[] {
+    getAllAssignmentsToVar(varId: string, module: Module) {
         const Q: CodeConstruct[] = [];
         const result: VarAssignmentStmt[] = [];
         Q.push(...module.body);
 
         while (Q.length > 0) {
-            const currCodeConstruct = Q.pop();
-
-            if (currCodeConstruct instanceof Statement) {
+            const currCodeConstruct = Q.splice(0, 1)[0];
+            if (currCodeConstruct instanceof Expression) {
+                Q.push(...currCodeConstruct.tokens);
+            } else if (currCodeConstruct instanceof Statement) {
                 Q.push(...currCodeConstruct.body);
+                Q.push(...currCodeConstruct.tokens);
 
                 if (currCodeConstruct instanceof VarAssignmentStmt && currCodeConstruct.buttonId === varId) {
                     result.push(currCodeConstruct);
@@ -231,14 +185,13 @@ export class VariableController {
         return result;
     }
 
-    private getVarRefsBFS(varId: string, module: Module): VariableReferenceExpr[] {
+    private getVarRefsBFS(varId: string, module: Module) {
         const Q: CodeConstruct[] = [];
         const result: VariableReferenceExpr[] = [];
         Q.push(...module.body);
 
         while (Q.length > 0) {
-            const currCodeConstruct = Q.pop();
-
+            const currCodeConstruct = Q.splice(0, 1)[0];
             if (currCodeConstruct instanceof Expression) {
                 Q.push(...currCodeConstruct.tokens);
 
