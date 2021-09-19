@@ -1,32 +1,37 @@
+#toolbox-container {
+    display: flex;
+    flex-direction: column;
+
+    box-shadow: 8px 0px 50px 4px #ccc;
+
+    min-width: 300px;
+}
+
+#dynamic-toolbox {
+    display: none;
+    min-width: fit-content;
+    box-shadow: 0px 5px 20px 0px #ccc;
+}
+
 #editor-toolbox {
-    padding: 0 1rem;
+    padding: 20px;
     display: flex;
     flex-direction: column;
 
     overflow-y: scroll;
     overflow-x: hidden;
-    min-width: -webkit-fit-content;
-    min-width: -moz-fit-content;
-    min-width: fit-content;
-
-    box-shadow: 10px 0px 20px 0px #ccc;
 }
 
 #editor-toolbox .button {
     font-family: Consolas, "Courier New", monospace;
-    font-size: 16px;
-    margin: 10px 0px;
+    font-size: 13px;
+    margin: 8px 0px;
     padding: 7px 8px;
 
     white-space: nowrap;
-}
 
-#editor-toolbox .group:not(:last-child) {
-    margin-bottom: 3rem;
-}
-
-#editor-toolbox .group > p {
-    white-space: pre;
+    box-shadow: 0px 1px 5px 2px #ddd;
+    border: solid 1px #ccc;
 }
 
 hole {
@@ -55,30 +60,26 @@ hole {
 
 #user-variables {
     display: block;
-    border-style: solid;
-    border-color: black;
-    border-width: 1px;
-    border-radius: 5px;
     padding: 0% 5% 5% 1%;
-    margin-top: 3%;
-    margin-bottom: 3%;
-    padding: 10px;
+    padding: 20px;
 }
 
 #user-defined-vars-heading {
     display: block;
     margin-block-end: 0px;
     margin-block-start: 0px;
-    font-size: 16pt;
+    font-size: 16px;
     font-weight: bold;
     margin-bottom: 5px;
 }
 
+#vars-button-grid .button {
+    font-weight: bold;
+    padding: 7px 8px;
+}
+
 #vars-button-grid {
-    display: grid;
-    grid-template-columns: 50% 50%;
-    grid-template-rows: auto;
-    grid-auto-flow: row;
+    font-family: Consolas, "Courier New", monospace;
 }
 
 .var-button-container {
@@ -87,6 +88,7 @@ hole {
     grid-auto-flow: row;
     column-gap: 3%;
     display: grid;
+    margin-top: 8px;
 }
 
 .var-type-text {
@@ -96,4 +98,38 @@ hole {
     grid-column-end: 3;
 
     align-self: center;
+    font-size: 14px;
+}
+
+#editor-toolbox .group {
+    justify-items: start;
+}
+
+#editor-toolbox .group > p {
+    grid-column: 1 / span 2;
+    grid-row: 1 / span 1;
+    font-weight: bold;
+    font-size: 16px;
+
+    margin: 10px 0 0 0;
+}
+
+#editor-toolbox .group:not(:last-child) {
+    margin-bottom: 10px;
+}
+
+#editor-toolbox::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+#editor-toolbox::-webkit-scrollbar-track {
+    background: #ebebeb;
+}
+
+#editor-toolbox::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #d1d1d1;
+    border-radius: 0px;
 }
