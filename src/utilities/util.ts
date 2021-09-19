@@ -139,3 +139,28 @@ export function hasMatchWithIndex<T>(list1: T[], list2: T[]): [number, number] {
 export function isImportable(object: unknown): object is Importable {
     return Object.prototype.hasOwnProperty.call(object, "requiredModule"); //calling hasOwnProperty with call() because 'object' is not necessarily an object
 }
+
+export function getUserFriendlyType(type: DataType): string {
+    switch (type) {
+        case DataType.Any:
+            return "any/unknown";
+        case DataType.AnyList:
+            return "list[any]";
+        case DataType.Boolean:
+            return "boolean";
+        case DataType.BooleanList:
+            return "list[boolean]";
+        case DataType.Number:
+            return "number";
+        case DataType.NumberList:
+            return "list[number]";
+        case DataType.String:
+            return "text";
+        case DataType.StringList:
+            return "list[text]";
+        case DataType.Iterator:
+            return "iterator";
+        default:
+            return type;
+    }
+}
