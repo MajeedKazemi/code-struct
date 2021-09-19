@@ -7,19 +7,24 @@
     <script src="https://cdn.jsdelivr.net/pyodide/v0.18.0/full/pyodide.js"></script>
     <body>
         <div id="editor-container">
-            <div id="editor-toolbox">
-               
+            <div id="toolbox-container">
+                <div id="dynamic-toolbox">
+                    <div id="user-variables">
+                        <h2 id="user-defined-vars-heading">User-Defined Variables</h2>
+                        <div id="vars-button-grid"></div>
+                    </div>
+                </div>
+
+                <div id="editor-toolbox"></div>
             </div>
             <div id="editorArea">
                 <div id="editor"></div>
                 <div id="console">
                     <div id="runCodeButtonDiv">
-                        <button id="runCodeBtn">RUN</button>
-                        <button id="clearOutputBtn">CLEAR</button>
+                        <div class="console-button" id="runCodeBtn">> Run Code</div>
+                        <div class="console-button" id="clearOutputBtn">Clear Console</div>
                     </div>
-                    <div id="outputDiv">
-                        Loading Python...
-                    </div>
+                    <div id="outputDiv">Loading Python ...</div>
                 </div>
             </div>
         </div>

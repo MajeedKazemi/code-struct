@@ -30,6 +30,12 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
         events.apply(action);
     });
 
+    if (document.getElementById("vars-button-grid").children.length == 0) {
+        document.getElementById("dynamic-toolbox").style.display = "none";
+    } else {
+        document.getElementById("dynamic-toolbox").style.display = "block";
+    }
+
     return button;
 }
 
@@ -37,6 +43,12 @@ export function removeVariableReferenceButton(buttonId: string): void {
     const button = document.getElementById(buttonId);
     const parent = button.parentElement;
     document.getElementById("vars-button-grid").removeChild(parent);
+
+    if (document.getElementById("vars-button-grid").children.length == 0) {
+        document.getElementById("dynamic-toolbox").style.display = "none";
+    } else {
+        document.getElementById("dynamic-toolbox").style.display = "block";
+    }
 }
 
 export function addClassToButton(buttonId: string, className: string) {
