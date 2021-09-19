@@ -19,14 +19,19 @@ export class Editor {
 
     constructor(parentEl: HTMLElement, module: Module) {
         this.monaco = editor.create(parentEl, {
+            dimension: { height: 500, width: 700 },
             value: "",
             language: "python",
             minimap: {
                 enabled: false,
             },
             overviewRulerLanes: 0,
+            automaticLayout: true,
             scrollbar: {
-                vertical: "hidden",
+                vertical: "auto",
+                horizontal: "auto",
+                verticalSliderSize: 5,
+                scrollByPage: false,
             },
             overviewRulerBorder: false,
             fontSize: FONT_SIZE,
