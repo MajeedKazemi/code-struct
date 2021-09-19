@@ -1,13 +1,17 @@
 #console {
-    width: 80%;
-    height: 40%;
-    border-style: solid;
-    border-width: 1px;
-    border-color: black;
-    border-radius: 5px;
+    font-family: Consolas, "Courier New", monospace;
+
+    flex-shrink: 0;
+    flex-grow: 0;
+    flex-basis: 30%;
+    height: 30%;
+    width: 100%;
+
     display: flex;
     flex-flow: column;
-    margin-left: 0.5%;
+
+    background-color: #ccc;
+    box-shadow: 10px 0px 20px 0px #ccc;
 }
 
 #runCodeBtn {
@@ -15,23 +19,22 @@
 }
 
 #runCodeButtonDiv {
-    padding: 2px;
-    margin-bottom: 5px;
-    height: fit-content;
-    max-height: 20%;
+    margin: 10px 0px 0px 20px;
 }
 
 #outputDiv {
-    border-top: 1px solid black;
-    padding: 2px;
-    height: auto;
-    flex: 1 1 auto;
-    overflow-y: scroll;
-    overflow-x: scroll;
+    color: #000;
+    font-size: 14px;
+    font-weight: bold;
+
+    overflow-y: auto;
+    border-top: solid #bcbcbc 1px;
+
+    margin-top: 10px;
+    padding-left: 20px;
 }
 
 #clearOutputBtn {
-    margin-left: 10px;
 }
 
 .consoleTxt {
@@ -44,4 +47,73 @@
 
 .consoleWarnTxt {
     color: orange;
+}
+
+#runCodeBtn {
+    background-color: rgb(24 200 120);
+    color: #fff;
+}
+
+#clearOutputBtn {
+    box-shadow: none;
+    border: solid #4f4f4f 0.5px;
+}
+
+.console-button {
+    cursor: pointer;
+    border-radius: 4px;
+
+    display: inline-block;
+    align-items: center;
+    justify-content: center;
+
+    opacity: 1;
+
+    height: -webkit-fit-content;
+    height: -moz-fit-content;
+    height: fit-content;
+
+    margin-right: 10px;
+    box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+
+    font-size: 14px;
+    font-weight: bold;
+
+    padding: 8px 10px;
+
+    width: -webkit-fit-content;
+    width: -moz-fit-content;
+    width: fit-content;
+
+    transition: 0.2s ease-in-out;
+    -webkit-transition: 0.2s ease-in-out;
+    -moz-transition: 0.2s ease-in-out;
+    -o-transition: 0.2s ease-in-out;
+    -ms-transition: 0.2s ease-in-out;
+}
+
+#runCodeBtn:hover {
+    background-color: rgb(21 173 110);
+    box-shadow: rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px;
+}
+
+#clearOutputBtn:hover {
+    background-color: #4f4f4f;
+    color: #fff;
+}
+
+#outputDiv::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+#outputDiv::-webkit-scrollbar-track {
+    background: #c1c1c1;
+}
+
+#outputDiv::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #8c8c8c;
+    border-radius: 0px;
 }
