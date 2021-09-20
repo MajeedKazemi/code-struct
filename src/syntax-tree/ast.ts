@@ -2577,6 +2577,25 @@ export class ListLiteralExpression extends Expression {
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
 
+    isHolePlacementValid(): boolean {
+        const emptyHolePlacements = this.getEmptyHolesWIndex();
+        return emptyHolePlacements.length === 0
+            ? true
+            : emptyHolePlacements.length === 1 && emptyHolePlacements[0][1] === this.tokens.length - 2;
+    }
+
+    private getEmptyHolesWIndex(): [TypedEmptyExpr, number][] {
+        const holes = [];
+
+        for (let i = 0; i < this.tokens.length; i++) {
+            if (this.tokens[i] instanceof TypedEmptyExpr) {
+                holes.push([this.tokens[i], this.tokens[i].indexInRoot]);
+            }
+        }
+
+        return holes;
+    }
+
     private getFilledHolesType(): DataType {
         const elements = this.tokens.filter(
             (tkn) => !(tkn instanceof TypedEmptyExpr) && !(tkn instanceof NonEditableTkn)
@@ -2761,6 +2780,10 @@ export class TypedEmptyExpr extends Token {
         }
 
         return InsertionType.Invalid;
+    }
+
+    isListElement(): boolean {
+        return this.rootNode && this.rootNode instanceof ListLiteralExpression;
     }
 }
 
