@@ -130,6 +130,14 @@ export function loadToolboxFromJson() {
             toolboxMenu.appendChild(menuButton);
         }
     }
+
+    const dummySpace = document.createElement("div");
+    dummySpace.id = "dummy-space";
+    toolboxDiv.appendChild(dummySpace);
+
+    dummySpace.style.minHeight = `${
+        window.innerHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
+    }px`;
 }
 
 export class ToolboxButton {
@@ -253,3 +261,12 @@ export function createCascadedMenuForToolboxButton(
         }, 50);
     });
 }
+
+window.onresize = () => {
+    const toolbox = document.getElementById("editor-toolbox");
+    const dummySpace = document.getElementById("dummy-space");
+
+    dummySpace.style.minHeight = `${
+        window.innerHeight - toolbox.children[toolbox.children.length - 2].clientHeight - 20
+    }px`;
+};
