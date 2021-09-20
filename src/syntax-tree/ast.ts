@@ -1873,10 +1873,12 @@ export class FunctionCallExpr extends Expression implements Importable {
         let insertionType = currentInsertionType;
         let importsOfThisConstruct: ImportStatement[] = [];
         const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
-            if (construct instanceof ImportStatement) {
-                if (this.requiredModule === construct.getImportModuleName()) {
-                    stmts.push(construct);
-                }
+            if (
+                construct instanceof ImportStatement &&
+                this.getLineNumber() > construct.getLineNumber() &&
+                this.requiredModule === construct.getImportModuleName()
+            ) {
+                stmts.push(construct);
             }
         };
 
@@ -1897,7 +1899,9 @@ export class FunctionCallExpr extends Expression implements Importable {
     }
 
     validateImportFromImportList(imports: ImportStatement[]): boolean {
-        const relevantImports = imports.filter((stmt) => stmt.getImportModuleName() === this.requiredModule);
+        const relevantImports = imports.filter(
+            (stmt) => stmt.getImportModuleName() === this.requiredModule && this.getLineNumber() > stmt.getLineNumber()
+        );
 
         if (relevantImports.length === 0) {
             return false;
@@ -1989,10 +1993,12 @@ export class FunctionCallStmt extends Statement implements Importable {
         let insertionType = currentInsertionType;
         let importsOfThisConstruct: ImportStatement[] = [];
         const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
-            if (construct instanceof ImportStatement) {
-                if (this.requiredModule === construct.getImportModuleName()) {
-                    stmts.push(construct);
-                }
+            if (
+                construct instanceof ImportStatement &&
+                this.getLineNumber() > construct.getLineNumber() &&
+                this.requiredModule === construct.getImportModuleName()
+            ) {
+                stmts.push(construct);
             }
         };
 
@@ -2013,8 +2019,10 @@ export class FunctionCallStmt extends Statement implements Importable {
     }
 
     validateImportFromImportList(imports: ImportStatement[]): boolean {
-        const relevantImports = imports.filter((stmt) => stmt.getImportModuleName() === this.requiredModule);
-        console.log(relevantImports);
+        const relevantImports = imports.filter(
+            (stmt) => stmt.getImportModuleName() === this.requiredModule && this.getLineNumber() > stmt.getLineNumber()
+        );
+
         if (relevantImports.length === 0) {
             return false;
         }
@@ -2577,6 +2585,25 @@ export class ListLiteralExpression extends Expression {
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
 
+    isHolePlacementValid(): boolean {
+        const emptyHolePlacements = this.getEmptyHolesWIndex();
+        return emptyHolePlacements.length === 0
+            ? true
+            : emptyHolePlacements.length === 1 && emptyHolePlacements[0][1] === this.tokens.length - 2;
+    }
+
+    private getEmptyHolesWIndex(): [TypedEmptyExpr, number][] {
+        const holes = [];
+
+        for (let i = 0; i < this.tokens.length; i++) {
+            if (this.tokens[i] instanceof TypedEmptyExpr) {
+                holes.push([this.tokens[i], this.tokens[i].indexInRoot]);
+            }
+        }
+
+        return holes;
+    }
+
     private getFilledHolesType(): DataType {
         const elements = this.tokens.filter(
             (tkn) => !(tkn instanceof TypedEmptyExpr) && !(tkn instanceof NonEditableTkn)
@@ -2761,6 +2788,10 @@ export class TypedEmptyExpr extends Token {
         }
 
         return InsertionType.Invalid;
+    }
+
+    isListElement(): boolean {
+        return this.rootNode && this.rootNode instanceof ListLiteralExpression;
     }
 }
 

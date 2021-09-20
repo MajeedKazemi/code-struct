@@ -544,7 +544,7 @@ export class Module {
         while (Q.length > 0) {
             let curr: CodeConstruct = Q.splice(0, 1)[0];
 
-            if (curr instanceof TypedEmptyExpr) {
+            if (curr instanceof TypedEmptyExpr && !curr.isListElement()) {
                 ret = ret ?? CodeStatus.ContainsEmptyHoles;
 
                 if (highlightConstructs) {
@@ -563,7 +563,15 @@ export class Module {
                     this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
                 }
             } else if (curr instanceof Expression && curr.tokens.length > 0) {
-                Q.push(...curr.tokens);
+                const addHighlight = curr instanceof ListLiteralExpression && !curr.isHolePlacementValid();
+                ret = addHighlight ? CodeStatus.ContainsEmptyHoles : ret;
+
+                for (let i = 0; i < curr.tokens.length; i++) {
+                    if (curr.tokens[i] instanceof TypedEmptyExpr && addHighlight && i < curr.tokens.length - 2) {
+                        this.addHighlightToConstruct(curr.tokens[i], ERROR_HIGHLIGHT_COLOUR);
+                    }
+                    Q.push(curr.tokens[i]);
+                }
             } else if (curr instanceof Statement) {
                 for (const tkn of curr.tokens) {
                     Q.push(tkn);

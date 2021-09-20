@@ -1,5 +1,5 @@
 .cascadedMenuMainDiv {
-    display: block; /*Cannot be a grid as that completely ignores the postion: absolute*/
+    display: none; /*Cannot be a grid as that completely ignores the postion: absolute*/
     grid-template-columns: 50% 50%;
     grid-template-rows: auto;
     grid-auto-flow: row;
@@ -20,7 +20,9 @@
     border-color: rgba(0, 0, 0, 0.3);
 
     overflow-y: scroll;
+}
 
+.cascadedMenuItem {
     cursor: pointer;
 }
 
@@ -45,4 +47,8 @@
     align-self: center;
     font-size: 11px;
     color: rgba(0, 0, 0, 0.7);
+}
+
+.hoverable:hover .cascadedMenuMainDiv {
+    display: block;
 }

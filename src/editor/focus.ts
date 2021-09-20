@@ -215,11 +215,9 @@ export class Focus {
     navigateUp() {
         const curPosition = this.module.editor.monaco.getPosition();
         const focusedLineStatement = this.getStatementAtLineNumber(curPosition.lineNumber);
+        const lineAbove = this.getStatementAtLineNumber(curPosition.lineNumber - 1);
 
-        this.fireOnNavOffCallbacks(
-            focusedLineStatement,
-            this.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-        );
+        this.fireOnNavOffCallbacks(focusedLineStatement, lineAbove);
 
         if (curPosition.lineNumber > 1)
             this.navigatePos(new Position(curPosition.lineNumber - 1, curPosition.column), false);
