@@ -91,36 +91,43 @@ export function updateButtonsVisualMode(insertionRecords: EditCodeAction[]) {
 
 export function loadToolboxFromJson() {
     const toolboxDiv = document.getElementById("editor-toolbox");
+    const toolboxMenu = document.getElementById("toolbox-menu");
 
     const toolboxGroupOptions = options.toolboxConstructGroupOptions;
 
     for (const constructGroup in toolboxGroupOptions) {
         if (toolboxGroupOptions.hasOwnProperty(constructGroup) && toolboxGroupOptions[constructGroup].includeCategory) {
-            let categoryDiv;
-            if (toolboxGroupOptions[constructGroup].hasOwnProperty("categoryHtml")) {
-                const template = document.createElement("template");
-                template.innerHTML = toolboxGroupOptions[constructGroup].categoryHtml;
-                categoryDiv = template.content.firstChild;
-            } else {
-                categoryDiv = document.createElement("div");
-                categoryDiv.classList.add("group");
+            const categoryDiv = document.createElement("div");
+            categoryDiv.id = toolboxGroupOptions[constructGroup].categoryId;
+            categoryDiv.classList.add("group");
 
-                const p = document.createElement("p");
-                p.textContent = toolboxGroupOptions[constructGroup].categoryDisplayName;
-                categoryDiv.appendChild(p);
+            const p = document.createElement("p");
+            p.textContent = toolboxGroupOptions[constructGroup].categoryDisplayName;
+            categoryDiv.appendChild(p);
 
-                const itemOpts = toolboxGroupOptions[constructGroup].includeCategoryItems;
-                for (const item in itemOpts) {
-                    if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
-                        const button = ToolboxButton.createToolboxButtonFromJsonObj(
-                            options.toolboxDefaultButtonTemplates[item]
-                        );
-                        categoryDiv.appendChild(button.domElement);
-                    }
+            const itemOpts = toolboxGroupOptions[constructGroup].includeCategoryItems;
+            for (const item in itemOpts) {
+                if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
+                    const button = ToolboxButton.createToolboxButtonFromJsonObj(
+                        options.toolboxDefaultButtonTemplates[item]
+                    );
+                    categoryDiv.appendChild(button.domElement);
                 }
             }
 
             toolboxDiv.appendChild(categoryDiv);
+
+            const menuButton = document.createElement("div");
+            menuButton.classList.add("menu-button");
+            menuButton.innerText = toolboxGroupOptions[constructGroup].categoryDisplayName;
+
+            menuButton.addEventListener("click", () => {
+                document
+                    .getElementById(toolboxGroupOptions[constructGroup].categoryId)
+                    .scrollIntoView({ behavior: "smooth" });
+            });
+
+            toolboxMenu.appendChild(menuButton);
         }
     }
 }
