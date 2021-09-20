@@ -1,11 +1,122 @@
 {
     "toolboxConstructGroupOptions": {
+        "loops": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Loops",
+            "categoryId": "loops-toolbox-group",
+            "includeCategoryItems": {
+                "while": 1,
+                "for": 1,
+                "range": 1
+            }
+        },
+        "conditionals": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Conditionals",
+            "categoryId": "conditionals-toolbox-group",
+            "includeCategoryItems": {
+                "if": 1,
+                "elif": 1,
+                "else": 1
+            }
+        },
+        "generalFunctions": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Functions",
+            "categoryId": "functions-toolbox-group",
+            "includeCategoryItems": {
+                "print": 1,
+                "input": 1,
+                "len": 1
+            }
+        },
         "variables": {
             "includeCategory": 1,
             "categoryDisplayName": "Variables",
             "categoryId": "create-var-toolbox-group",
             "includeCategoryItems": {
-                "addVar": 1
+                "addVar": 1,
+                "assign": 1,
+                "assignAdd": 1,
+                "assignSub": 1,
+                "assignMult": 1,
+                "assignDiv": 1,
+                "customHtml": "<div id=\"user-variables\"><h2 id=\"user-defined-vars-heading\">Defined Variables:</h2><div id=\"vars-button-grid\"></div>"
+            }
+        },
+        "numbers": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Numbers",
+            "categoryId": "numbers-toolbox-group",
+            "includeCategoryItems": {
+                "num": 1,
+                "randint": 1
+            }
+        },
+        "texts": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Text",
+            "categoryId": "text-toolbox-group",
+            "includeCategoryItems": {
+                "str": 1,
+                "split": 1,
+                "join": 1,
+                "find": 1,
+                "replace": 1
+            }
+        },
+        "list": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Lists",
+            "categoryId": "list-ops-toolbox-group",
+            "includeCategoryItems": {
+                "listLiteral": 1,
+                "listItem": 1,
+                "listIndex": 1,
+                "listAppend": 1
+            }
+        },
+        "arithmetics": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Arithmetics",
+            "categoryId": "arithmetics-toolbox-group",
+            "includeCategoryItems": {
+                "binAdd": 1,
+                "binSub": 1,
+                "binMult": 1,
+                "binDiv": 1
+            }
+        },
+        "comparisons": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Comparisons",
+            "categoryId": "comparison-ops-toolbox-group",
+            "includeCategoryItems": {
+                "compEq": 1,
+                "compNeq": 1,
+                "compLt": 1,
+                "compLte": 1,
+                "compGt": 1,
+                "comptGte": 1
+            }
+        }       , "booleans": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Booleans",
+            "categoryId": "boolean-ops-toolbox-group",
+            "includeCategoryItems": {
+                "and": 1,
+                "or": 1,
+                "unaryNot": 1,
+                "boolT": 1,
+                "boolF": 1
+            }
+        },
+        "castingFunctions": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Casting",
+            "categoryId": "casting-toolbox-group",
+            "includeCategoryItems": {
+                "toStr": 1
             }
         },
         "imports": {
@@ -14,120 +125,6 @@
             "categoryId": "import-toolbox-group",
             "includeCategoryItems": {
                 "import": 1
-            }
-        },
-        "functionCalls": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Functions",
-            "categoryId": "function-calls-toolbox-group",
-            "includeCategoryItems": {
-                "print": 1,
-                "randint": 1,
-                "range": 1,
-                "len": 1,
-                "input": 1
-            }
-        },
-        "controlFlow": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Conditionals",
-            "categoryId": "control-flow-toolbox-group",
-            "includeCategoryItems": {
-                "while": 1,
-                "if": 1,
-                "elif": 1,
-                "else": 1,
-                "for": 1
-            }
-        },
-        "methods": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Methods",
-            "categoryId": "methods-toolbox-group",
-            "includeCategoryItems": {
-                "split": 1,
-                "join": 1,
-                "find": 1,
-                "replace": 1
-            }
-        },
-      
-       
-        "assignmentOperations": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Assignments",
-            "categoryId": "assignment-ops-group",
-            "includeCategoryItems": {
-                "assign": 1,
-                "assignAdd": 1,
-                "assignSub": 1,
-                "assignMult": 1,
-                "assignDiv": 1
-            }
-        },
-        "list": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Lists",
-            "categoryId": "list-ops-group",
-            "includeCategoryItems": {
-                "listLiteral": 1,
-                "listItem": 1,
-                "listIndex": 1,
-                "listAppend": 1,
-                "listElementAssign": 0
-            }
-        },
-        "literals": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Literals",
-            "categoryId": "literal-ops-group",
-            "includeCategoryItems": {
-                "str": 1,
-                "num": 1,
-                "boolT": 1,
-                "boolF": 1
-            }
-        },
-        "casting": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Casting",
-            "categoryId": "casting-ops-group",
-            "includeCategoryItems": {
-                "toStr": 1
-            }
-        },
-        "operations": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Operations",
-            "categoryId": "arithmetic-ops-group",
-            "includeCategoryItems": {
-                "binAdd": 1,
-                "binSub": 1,
-                "binMult": 1,
-                "binDiv": 1
-            }
-        },
-        "booleans": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Booleans",
-            "categoryId": "boolean-ops-group",
-            "includeCategoryItems": {
-                "and": 1,
-                "or": 1,
-                "unaryNot": 1
-            }
-        },
-        "comparisons": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Comparisons",
-            "categoryId": "comparison-ops-group",
-            "includeCategoryItems": {
-                "compEq": 1,
-                "compNeq": 1,
-                "compLt": 1,
-                "compLte": 1,
-                "compGt": 1,
-                "comptGte": 1
             }
         }
     },

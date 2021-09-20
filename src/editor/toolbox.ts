@@ -31,9 +31,13 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
     });
 
     if (document.getElementById("vars-button-grid").children.length == 0) {
-        document.getElementById("dynamic-toolbox").style.display = "none";
+        document.getElementById("user-variables").style.display = "none";
     } else {
-        document.getElementById("dynamic-toolbox").style.display = "block";
+        document.getElementById("user-variables").style.display = "block";
+
+        document.getElementById("user-variables").style.backgroundColor = "#48e2b1";
+        document.getElementById("create-var-toolbox-group").scrollIntoView({ behavior: "smooth" });
+        document.getElementById("user-variables").style.backgroundColor = "#eaeaea";
     }
 
     return button;
@@ -45,9 +49,9 @@ export function removeVariableReferenceButton(buttonId: string): void {
     document.getElementById("vars-button-grid").removeChild(parent);
 
     if (document.getElementById("vars-button-grid").children.length == 0) {
-        document.getElementById("dynamic-toolbox").style.display = "none";
+        document.getElementById("user-variables").style.display = "none";
     } else {
-        document.getElementById("dynamic-toolbox").style.display = "block";
+        document.getElementById("user-variables").style.display = "block";
     }
 }
 
@@ -97,7 +101,9 @@ export function loadToolboxFromJson() {
 
     for (const constructGroup in toolboxGroupOptions) {
         if (toolboxGroupOptions.hasOwnProperty(constructGroup) && toolboxGroupOptions[constructGroup].includeCategory) {
-            const categoryDiv = document.createElement("div");
+            let categoryDiv;
+
+            categoryDiv = document.createElement("div");
             categoryDiv.id = toolboxGroupOptions[constructGroup].categoryId;
             categoryDiv.classList.add("group");
 
@@ -107,7 +113,12 @@ export function loadToolboxFromJson() {
 
             const itemOpts = toolboxGroupOptions[constructGroup].includeCategoryItems;
             for (const item in itemOpts) {
-                if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
+                if (item == "customHtml") {
+                    const template = document.createElement("div");
+                    template.innerHTML = itemOpts[item];
+
+                    categoryDiv.appendChild(template);
+                } else if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
                     const button = ToolboxButton.createToolboxButtonFromJsonObj(
                         options.toolboxDefaultButtonTemplates[item]
                     );
@@ -136,7 +147,7 @@ export function loadToolboxFromJson() {
     toolboxDiv.appendChild(dummySpace);
 
     dummySpace.style.minHeight = `${
-        window.innerHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
+        toolboxDiv.clientHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
     }px`;
 }
 
@@ -267,6 +278,6 @@ window.onresize = () => {
     const dummySpace = document.getElementById("dummy-space");
 
     dummySpace.style.minHeight = `${
-        window.innerHeight - toolbox.children[toolbox.children.length - 2].clientHeight - 20
+        toolbox.clientHeight - toolbox.children[toolbox.children.length - 2].clientHeight - 20
     }px`;
 };

@@ -2,16 +2,18 @@
     display: flex;
     flex-direction: column;
 
-    box-shadow: 20px -50px 50px -15px #bbb;
+    box-shadow: 20px -50px 50px -15px #ccc;
 
     min-width: 400px;
+
+    font-family: Consolas, "Courier New", monospace;
 }
 
-#dynamic-toolbox {
+/* #dynamic-toolbox {
     display: none;
     min-width: fit-content;
     box-shadow: 0px 5px 20px 0px #ccc;
-}
+} */
 
 #editor-toolbox {
     display: flex;
@@ -20,11 +22,12 @@
     overflow-x: hidden;
     overflow-y: scroll;
 
+    border-left: solid 1px #ddd;
+
     height: 100%;
 }
 
 #editor-toolbox .button {
-    font-family: Consolas, "Courier New", monospace;
     font-size: 13px;
     margin: 8px 0px;
     padding: 7px 8px;
@@ -33,6 +36,16 @@
 
     box-shadow: 0px 1px 5px 2px #ddd;
     border: solid 1px #ccc;
+
+    transition: 0.15s ease-in-out;
+    -webkit-transition: 0.15s ease-in-out;
+    -moz-transition: 0.15s ease-in-out;
+    -o-transition: 0.15s ease-in-out;
+    -ms-transition: 0.15s ease-in-out;
+}
+
+#editor-toolbox .button:hover {
+    box-shadow: 0px 1px 5px 2px #ccc;
 }
 
 hole {
@@ -60,9 +73,19 @@ hole {
 }
 
 #user-variables {
-    display: block;
-    padding: 0% 5% 5% 1%;
-    padding: 20px;
+    display: none;
+    padding: 10px;
+    border: solid 1px #ddd;
+    border-radius: 3px;
+    margin-right: 10px;
+    background-color: #eaeaea;
+    box-shadow: 0px 0px 10px 3px #ddd;
+
+    transition: background-color 1s ease-in-out;
+    -webkit-transition: background-color 1s ease-in-out;
+    -moz-transition: background-color 1s ease-in-out;
+    -o-transition: background-color 1s ease-in-out;
+    -ms-transition: background-color 1s ease-in-out;
 }
 
 #user-defined-vars-heading {
@@ -77,10 +100,6 @@ hole {
 #vars-button-grid .button {
     font-weight: bold;
     padding: 7px 8px;
-}
-
-#vars-button-grid {
-    font-family: Consolas, "Courier New", monospace;
 }
 
 .var-button-container {
@@ -111,9 +130,9 @@ hole {
     grid-column: 1 / span 2;
     grid-row: 1 / span 1;
     font-weight: bold;
-    font-size: 16px;
+    font-size: 20px;
 
-    margin: 10px 0 0 0;
+    margin: 15px 0 10px 0;
 }
 
 #editor-toolbox::-webkit-scrollbar {
@@ -137,16 +156,22 @@ hole {
 }
 
 #toolbox-menu .menu-button {
-    border-radius: 7px;
-    margin: 10px;
-    padding: 5px 10px;
-    border: solid 1px #ccc;
-    box-shadow: 0px 1px 5px 2px #ddd;
+    border-radius: 3px;
+    padding: 5px 10px 5px 10px;
     cursor: pointer;
+    color: #26265a;
+    font-size: 16px;
+
+    transition: 0.15s ease-in-out;
+    -webkit-transition: 0.15s ease-in-out;
+    -moz-transition: 0.15s ease-in-out;
+    -o-transition: 0.15s ease-in-out;
+    -ms-transition: 0.15s ease-in-out;
 }
 
 #toolbox-menu .menu-button:hover {
-    box-shadow: 0px 2px 7px 2px #ccc;
+    background-color: #e0efff;
+    font-weight: bold;
 }
 
 #static-toolbox {
