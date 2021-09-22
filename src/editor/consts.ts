@@ -911,8 +911,8 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
@@ -928,15 +928,14 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
                 DataType.NumberList,
                 [
                     () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
-
                     () =>
                         new VarOperationStmt(null, [
                             new MethodCallModifier(
@@ -946,8 +945,8 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
@@ -963,8 +962,8 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
         ]);

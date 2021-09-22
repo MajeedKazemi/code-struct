@@ -36,21 +36,15 @@ body {
     align-items: center;
     justify-content: center;
     opacity: 1;
-    transition: 0.1s ease;
     height: -webkit-fit-content;
     height: -moz-fit-content;
     height: fit-content;
     margin-right: 10px;
-    box-shadow: 0px 0px 0px 1px #e7e7e9 inset;
     font-size: 14px;
     padding: 10px 14px;
     width: -webkit-fit-content;
     width: -moz-fit-content;
     width: fit-content;
-}
-
-.button:hover {
-    box-shadow: 0px 0px 0px 1px #b2b2b6 inset;
 }
 
 .button:active {
@@ -65,22 +59,4 @@ body {
 
 .button.draftModeButton {
     background-color: rgb(255, 255, 230);
-}
-
-#editor-toolbox .group {
-    display: grid;
-    grid-template-columns: auto auto;
-    column-gap: 20px;
-    justify-items: start;
-}
-
-#editor-toolbox .group > p {
-    grid-column: 1 / span 2;
-    grid-row: 1 / span 1;
-    font-weight: bold;
-    font-size: 16pt;
-}
-
-#editor-toolbox .group:not(:last-child) {
-    margin-bottom: 10px;
 }

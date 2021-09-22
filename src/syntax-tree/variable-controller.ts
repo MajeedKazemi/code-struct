@@ -4,6 +4,7 @@ import {
     createCascadedMenuForVarRef,
     removeVariableReferenceButton,
 } from "../editor/toolbox";
+import { getUserFriendlyType } from "../utilities/util";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
 import { DataType } from "./consts";
 import { Module } from "./module";
@@ -86,14 +87,13 @@ export class VariableController {
         if (availableRefs) {
             for (const button of this.variableButtons) {
                 if (availableRefs.indexOf(button.id) === -1) {
-                    button.parentElement.style.display = "none";
+                    button.parentElement.parentElement.style.display = "none";
                 } else {
-                    button.parentElement.style.display = "grid";
-                    button.parentElement.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
-                        scope,
-                        lineNumber,
-                        button.textContent
-                    );
+                    button.parentElement.parentElement.style.display = "grid";
+
+                    button.parentElement.parentElement.children[1].innerHTML =
+                        "-> " +
+                        getUserFriendlyType(this.getVariableTypeNearLine(scope, lineNumber, button.textContent));
                 }
             }
         }
@@ -102,15 +102,16 @@ export class VariableController {
     updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string) {
         this.variableButtons.filter(
             (button) => button.id === buttonId
-        )[0].parentElement.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
-            scope,
-            lineNumber,
-            identifier,
-            false
-        );
+        )[0].parentElement.parentElement.children[1].innerHTML =
+            "-> " + getUserFriendlyType(this.getVariableTypeNearLine(scope, lineNumber, identifier, false));
     }
 
-    getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true) {
+    getVariableTypeNearLine(
+        scope: Scope,
+        lineNumber: number,
+        identifier: string,
+        excludeCurrentLine: boolean = true
+    ): DataType {
         const focus = this.module.focus;
         const assignmentsToVar = scope.getAllAssignmentsToVarAboveLine(
             identifier,
