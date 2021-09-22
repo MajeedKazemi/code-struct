@@ -54,7 +54,7 @@ hole {
 
 #user-variables {
     height: calc(100% - 30px);
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 #user-defined-vars-heading {
