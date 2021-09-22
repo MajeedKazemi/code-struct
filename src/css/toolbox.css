@@ -18,7 +18,7 @@
 
     border-left: solid 1px #ddd;
 
-    height: 100%;
+    height: calc(100% - 25px);
 }
 
 #editor-toolbox .button {
@@ -52,17 +52,8 @@ hole {
 }
 
 #user-variables {
-    height: calc(100% - 30px);
+    height: calc(100% - 25px);
     overflow-y: auto;
-}
-
-#user-defined-vars-heading {
-    display: block;
-    margin-block-end: 0px;
-    margin-block-start: 0px;
-    font-size: 18px;
-    font-weight: bold;
-    margin-left: 10px;
 }
 
 #vars-button-grid .button {
@@ -109,7 +100,7 @@ hole {
     font-weight: bold;
     font-size: 20px;
 
-    margin: 15px 0 10px 0;
+    margin: 5px 0 5px 0;
 }
 
 #editor-toolbox::-webkit-scrollbar {
@@ -124,7 +115,7 @@ hole {
 
 #editor-toolbox::-webkit-scrollbar-thumb {
     border: none;
-    background-color: #d1d1d1;
+    background-color: #b8ccd1;
     border-radius: 0px;
 }
 
@@ -175,14 +166,23 @@ hole {
     height: 30%;
 }
 
-#dynamic-toolbox-header {
-    height: 30px;
-    background-color: #7ca5ad;
+.box-header {
+    height: 25px;
+    background-color: #69a;
     color: #fff;
 
     display: flex;
     flex-direction: column;
     justify-content: center;
+}
+
+.box-header h2 {
+    display: block;
+    margin-block-end: 0px;
+    margin-block-start: 0px;
+    font-size: 18px;
+    font-weight: bold;
+    margin-left: 10px;
 }
 
 #vars-button-grid {
