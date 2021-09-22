@@ -170,7 +170,7 @@ export class ToolboxButton {
         this.container.remove();
     }
 
-    static createToolboxButtonFromJsonObj(obj: { id?: string; text: string; returnType: string }) {
+    static createToolboxButtonFromJsonObj(obj: { id?: string; text: string; returnType?: string }) {
         return new ToolboxButton(obj.text, obj?.id, obj?.returnType);
     }
 }
