@@ -40,8 +40,7 @@
                 "assignAdd": 1,
                 "assignSub": 1,
                 "assignMult": 1,
-                "assignDiv": 1,
-                "customHtml": "<div id=\"user-variables\"><h2 id=\"user-defined-vars-heading\">Defined Variables:</h2><div id=\"vars-button-grid\"></div>"
+                "assignDiv": 1                
             }
         },
         "numbers": {

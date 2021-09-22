@@ -9,12 +9,6 @@
     font-family: Consolas, "Courier New", monospace;
 }
 
-/* #dynamic-toolbox {
-    display: none;
-    min-width: fit-content;
-    box-shadow: 0px 5px 20px 0px #ccc;
-} */
-
 #editor-toolbox {
     display: flex;
     flex-direction: column;
@@ -58,43 +52,18 @@ hole {
     display: inline-block;
 }
 
-::-webkit-scrollbar {
-    width: 10px;
-}
-
-::-webkit-scrollbar-track {
-    background: white;
-}
-
-::-webkit-scrollbar-thumb {
-    background-color: #d1d3d6;
-    border-radius: 6px;
-    border: 3px solid white;
-}
-
 #user-variables {
-    display: none;
-    padding: 10px;
-    border: solid 1px #ddd;
-    border-radius: 3px;
-    margin-right: 10px;
-    background-color: #eaeaea;
-    box-shadow: 0px 0px 10px 3px #ddd;
-
-    transition: background-color 1s ease-in-out;
-    -webkit-transition: background-color 1s ease-in-out;
-    -moz-transition: background-color 1s ease-in-out;
-    -o-transition: background-color 1s ease-in-out;
-    -ms-transition: background-color 1s ease-in-out;
+    height: calc(100% - 30px);
+    overflow-y: scroll;
 }
 
 #user-defined-vars-heading {
     display: block;
     margin-block-end: 0px;
     margin-block-start: 0px;
-    font-size: 16px;
+    font-size: 18px;
     font-weight: bold;
-    margin-bottom: 5px;
+    margin-left: 10px;
 }
 
 #vars-button-grid .button {
@@ -151,6 +120,22 @@ hole {
     border-radius: 0px;
 }
 
+#user-variables::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+#user-variables::-webkit-scrollbar-track {
+    background: #ebebeb;
+}
+
+#user-variables::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #b8ccd1;
+    border-radius: 0px;
+}
+
 #toolbox-menu {
     float: left;
 }
@@ -175,5 +160,23 @@ hole {
 }
 
 #static-toolbox {
-    height: 100%;
+    height: 70%;
+}
+
+#dynamic-toolbox {
+    height: 30%;
+}
+
+#dynamic-toolbox-header {
+    height: 30px;
+    background-color: #7ca5ad;
+    color: #fff;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#vars-button-grid {
+    margin: 10px 10px;
 }

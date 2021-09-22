@@ -37,16 +37,6 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
         events.apply(action);
     });
 
-    if (document.getElementById("vars-button-grid").children.length == 0) {
-        document.getElementById("user-variables").style.display = "none";
-    } else {
-        document.getElementById("user-variables").style.display = "block";
-
-        document.getElementById("user-variables").style.backgroundColor = "#48e2b1";
-        document.getElementById("create-var-toolbox-group").scrollIntoView({ behavior: "smooth" });
-        document.getElementById("user-variables").style.backgroundColor = "#eaeaea";
-    }
-
     return button;
 }
 
@@ -54,12 +44,6 @@ export function removeVariableReferenceButton(buttonId: string): void {
     const button = document.getElementById(buttonId);
     const parent = button.parentElement;
     document.getElementById("vars-button-grid").removeChild(parent);
-
-    if (document.getElementById("vars-button-grid").children.length == 0) {
-        document.getElementById("user-variables").style.display = "none";
-    } else {
-        document.getElementById("user-variables").style.display = "block";
-    }
 }
 
 export function addClassToButton(buttonId: string, className: string) {
@@ -103,6 +87,7 @@ export function updateButtonsVisualMode(insertionRecords: EditCodeAction[]) {
 export function loadToolboxFromJson() {
     const toolboxDiv = document.getElementById("editor-toolbox");
     const toolboxMenu = document.getElementById("toolbox-menu");
+    const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
 
     const toolboxGroupOptions = options.toolboxConstructGroupOptions;
 
@@ -133,7 +118,7 @@ export function loadToolboxFromJson() {
                 }
             }
 
-            toolboxDiv.appendChild(categoryDiv);
+            toolboxDiv.insertBefore(categoryDiv, staticDummySpace);
 
             const menuButton = document.createElement("div");
             menuButton.classList.add("menu-button");
@@ -149,11 +134,7 @@ export function loadToolboxFromJson() {
         }
     }
 
-    const dummySpace = document.createElement("div");
-    dummySpace.id = "dummy-space";
-    toolboxDiv.appendChild(dummySpace);
-
-    dummySpace.style.minHeight = `${
+    staticDummySpace.style.minHeight = `${
         toolboxDiv.clientHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
     }px`;
 }
@@ -300,10 +281,11 @@ export function createCascadedMenuForVarRef(buttonId: string, identifier: string
 }
 
 window.onresize = () => {
-    const toolbox = document.getElementById("editor-toolbox");
-    const dummySpace = document.getElementById("dummy-space");
+    const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
 
-    dummySpace.style.minHeight = `${
-        toolbox.clientHeight - toolbox.children[toolbox.children.length - 2].clientHeight - 20
+    staticDummySpace.style.minHeight = `${
+        staticDummySpace.parentElement.clientHeight -
+        staticDummySpace.parentElement.children[staticDummySpace.parentElement.children.length - 2].clientHeight -
+        20
     }px`;
 };
