@@ -43,7 +43,7 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
 export function removeVariableReferenceButton(buttonId: string): void {
     const button = document.getElementById(buttonId);
     const parent = button.parentElement;
-    document.getElementById("vars-button-grid").removeChild(parent);
+    document.getElementById("vars-button-grid").removeChild(parent.parentElement);
 }
 
 export function addClassToButton(buttonId: string, className: string) {
