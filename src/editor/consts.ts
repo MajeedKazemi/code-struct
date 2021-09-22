@@ -936,7 +936,6 @@ export class Actions {
                 DataType.NumberList,
                 [
                     () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
-
                     () =>
                         new VarOperationStmt(null, [
                             new MethodCallModifier(
