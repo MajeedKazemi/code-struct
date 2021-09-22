@@ -1,3 +1,19 @@
+.cascadedMenuMainDiv::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+.cascadedMenuMainDiv::-webkit-scrollbar-track {
+    background: #ebebeb;
+}
+
+.cascadedMenuMainDiv::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #d1d1d1;
+    border-radius: 0px;
+}
+
 .cascadedMenuMainDiv {
     display: none; /*Cannot be a grid as that completely ignores the postion: absolute*/
     grid-template-columns: 50% 50%;
@@ -5,9 +21,6 @@
     grid-auto-flow: row;
 
     width: fit-content;
-    min-width: 15%;
-    height: 0vh;
-    min-height: 35%;
 
     position: absolute;
 
@@ -19,16 +32,18 @@
     border-style: solid;
     border-color: rgba(0, 0, 0, 0.3);
 
-    overflow-y: scroll;
+    padding-top: 8px;
+
+    overflow-y: auto;
 }
 
 .cascadedMenuItem {
     cursor: pointer;
 }
 
-.cascadedMenuMainDiv .cascadedMenuItem:hover {
+/* .cascadedMenuMainDiv .cascadedMenuItem:hover {
     background-color: rgba(116, 116, 116, 0.3);
-}
+} */
 
 .cascadedMenuMainDiv .cascadedMenuItem :not(:hover) {
     background-color: white;
@@ -51,4 +66,8 @@
 
 .hoverable:hover .cascadedMenuMainDiv {
     display: block;
+}
+
+.cascadedMenuMainDiv .button {
+    margin-bottom: 8px;
 }

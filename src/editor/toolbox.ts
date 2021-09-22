@@ -189,7 +189,7 @@ function constructCascadedMenuObj(
             if (element && !element.matches(":hover") && !button.matches(":hover")) {
                 element.remove();
             }
-        }, 50);
+        }, 1000);
     });
 
     for (const [key, value] of optionToAction) {
@@ -230,11 +230,14 @@ function createAndAttachCascadedMenu(buttonId: string, optionToAction: Map<strin
             button.parentElement.appendChild(menuElement);
 
             const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
-            const leftPos = button.offsetLeft;
-            const topPos = button.offsetTop - document.getElementById("editor-toolbox").scrollTop + button.offsetHeight;
+            const buttonRect = button.getBoundingClientRect();
+            const bodyRect = document.body.getBoundingClientRect();
+
+            const leftPos = buttonRect.left - bodyRect.left + buttonRect.width;
+            const topPos = buttonRect.top - bodyRect.top + buttonRect.height;
 
             domMenuElement.style.left = `${leftPos}px`;
-            domMenuElement.style.top = `${topPos}px`;
+            domMenuElement.style.bottom = `${bodyRect.bottom - buttonRect.bottom}px`;
         }
     }
 }
