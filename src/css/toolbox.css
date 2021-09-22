@@ -68,7 +68,17 @@ hole {
 
 #vars-button-grid .button {
     font-weight: bold;
+    font-size: 13px;
     padding: 7px 8px;
+    white-space: nowrap;
+    box-shadow: 0px 1px 5px 2px #ddd;
+    border: solid 1px #ccc;
+    transition: 0.15s ease-in-out;
+    -webkit-transition: 0.15s ease-in-out;
+}
+
+#vars-button-grid .button:hover {
+    box-shadow: 0px 1px 5px 2px #ccc;
 }
 
 .var-button-container {
