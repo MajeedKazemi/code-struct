@@ -87,9 +87,9 @@ export class VariableController {
         if (availableRefs) {
             for (const button of this.variableButtons) {
                 if (availableRefs.indexOf(button.id) === -1) {
-                    button.parentElement.style.display = "none";
+                    button.parentElement.parentElement.style.display = "none";
                 } else {
-                    button.parentElement.style.display = "grid";
+                    button.parentElement.parentElement.style.display = "grid";
 
                     button.parentElement.parentElement.children[1].innerHTML =
                         "-> " +
