@@ -16,21 +16,13 @@
 
 .cascadedMenuMainDiv {
     display: none;
-    grid-template-columns: 50% 50%;
-    grid-template-rows: auto;
-    grid-auto-flow: row;
 
-    width: fit-content;
     min-width: 375px;
-
     position: absolute;
-
     background-color: white;
+    box-shadow: 0px 8px 16px 0px rgb(0 0 0 / 20%);
 
-    box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
-    border: solid 1px #e0e0e0;
     border-radius: 3px;
-
     padding-bottom: 10px;
 
     overflow-y: auto;
