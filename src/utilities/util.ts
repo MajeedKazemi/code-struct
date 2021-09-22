@@ -143,7 +143,7 @@ export function isImportable(object: unknown): object is Importable {
 export function getUserFriendlyType(type: DataType): string {
     switch (type) {
         case DataType.Any:
-            return "any/unknown";
+            return "any";
         case DataType.AnyList:
             return "list[any]";
         case DataType.Boolean:

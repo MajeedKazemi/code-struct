@@ -4,7 +4,7 @@
 
     box-shadow: 20px -50px 50px -15px #ccc;
 
-    min-width: 400px;
+    min-width: 450px;
 
     font-family: Consolas, "Courier New", monospace;
 }
@@ -23,7 +23,6 @@
 
 #editor-toolbox .button {
     font-size: 13px;
-    margin: 8px 0px;
     padding: 7px 8px;
 
     white-space: nowrap;
@@ -67,7 +66,6 @@ hole {
 }
 
 #vars-button-grid .button {
-    font-weight: bold;
     font-size: 13px;
     padding: 7px 8px;
     white-space: nowrap;

@@ -114,7 +114,7 @@ export function loadToolboxFromJson() {
                     const button = ToolboxButton.createToolboxButtonFromJsonObj(
                         options.toolboxDefaultButtonTemplates[item]
                     );
-                    categoryDiv.appendChild(button.domElement);
+                    categoryDiv.appendChild(button.container);
                 }
             }
 
@@ -140,31 +140,38 @@ export function loadToolboxFromJson() {
 }
 
 export class ToolboxButton {
-    domElement: HTMLDivElement;
+    container: HTMLDivElement;
 
-    constructor(text: string, domId?: string, onClickAction?: Function) {
-        if (onClickAction) {
-            this.domElement.addEventListener("click", () => {
-                onClickAction();
-            });
+    constructor(text: string, domId?: string, returnType?: string) {
+        this.container = document.createElement("div");
+        this.container.classList.add("var-button-container");
+
+        const button = document.createElement("div");
+        button.classList.add("button");
+
+        this.container.appendChild(button);
+
+        if (returnType) {
+            const typeText = document.createElement("div");
+            typeText.classList.add("var-type-text");
+            typeText.innerText = returnType;
+
+            this.container.appendChild(typeText);
         }
-
-        this.domElement = document.createElement("div");
-        this.domElement.classList.add("button");
 
         if (domId) {
-            this.domElement.id = domId;
+            button.id = domId;
         }
 
-        this.domElement.innerHTML = text.replace(/---/g, "<hole></hole>");
+        button.innerHTML = text.replace(/---/g, "<hole></hole>");
     }
 
     removeFromDOM() {
-        this.domElement.remove();
+        this.container.remove();
     }
 
-    static createToolboxButtonFromJsonObj(obj: { id?: string; text: string }) {
-        return new ToolboxButton(obj.text, obj?.id);
+    static createToolboxButtonFromJsonObj(obj: { id?: string; text: string; returnType: string }) {
+        return new ToolboxButton(obj.text, obj?.id, obj?.returnType);
     }
 }
 
@@ -201,7 +208,7 @@ function constructCascadedMenuObj(
 
         const menuButton = ToolboxButton.createToolboxButtonFromJsonObj({
             text: key,
-        }).domElement;
+        }).container;
         menuButton.classList.add("cascadedMenuItem");
 
         menuButton.addEventListener("click", () => {
