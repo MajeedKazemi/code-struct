@@ -3,6 +3,7 @@ import { DataType, InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
 import { EditCodeAction } from "./action-filter";
+import { DocumentationBox } from "./doc-box";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import * as options from "./toolbox.json";
 
@@ -165,11 +166,15 @@ export class ToolboxButton {
 
         button.innerHTML = text.replace(/---/g, "<hole></hole>");
 
-        const helpButton = document.createElement("div");
-        helpButton.classList.add("help-button");
-        helpButton.innerText = "learn";
+        const learnButton = document.createElement("div");
+        learnButton.classList.add("learn-button");
+        learnButton.innerText = "learn";
 
-        this.container.appendChild(helpButton);
+        learnButton.onclick = () => {
+            const doc = new DocumentationBox(domId);
+        };
+
+        this.container.appendChild(learnButton);
     }
 
     getButtonElement(): Element {
@@ -352,6 +357,7 @@ export function createCascadedMenuForVarRef(buttonId: string, identifier: string
 
     button.addEventListener("mouseleave", () => {
         const element = document.getElementById(`${buttonId}-cascadedMenu`);
+
         if (element && !element.matches(":hover") && !button.matches(":hover")) {
             element.remove();
         }

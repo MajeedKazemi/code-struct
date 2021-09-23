@@ -187,7 +187,7 @@ hole {
     margin: 10px 10px;
 }
 
-.help-button {
+.learn-button {
     border-radius: 6px;
     border: solid 1px #d9d9d9;
     padding: 0px 10px;
@@ -209,11 +209,11 @@ hole {
     -ms-transition: background-color 0.15s ease-in-out;
 }
 
-.help-button:hover {
+.learn-button:hover {
     background-color: #05c8ac;
     color: #fff;
 }
 
-.var-button-container:hover > .help-button {
+.var-button-container:hover > .learn-button {
     visibility: visible;
 }
