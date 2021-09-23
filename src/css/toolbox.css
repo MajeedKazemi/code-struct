@@ -4,7 +4,7 @@
 
     box-shadow: 20px -50px 50px -15px #ccc;
 
-    min-width: 450px;
+    min-width: 480px;
 
     font-family: Consolas, "Courier New", monospace;
 }
@@ -71,12 +71,10 @@ hole {
 }
 
 .var-button-container {
-    grid-template-columns: fit-content(50%) fit-content(50%);
-    grid-template-rows: 100%;
-    grid-auto-flow: row;
-    column-gap: 3%;
-    display: grid;
+    display: flex;
     margin-top: 8px;
+    align-items: center;
+    justify-content: left;
 }
 
 .var-type-text {
@@ -187,4 +185,35 @@ hole {
 
 #vars-button-grid {
     margin: 10px 10px;
+}
+
+.help-button {
+    border-radius: 6px;
+    border: solid 1px #d9d9d9;
+    padding: 0px 10px;
+    visibility: hidden;
+    margin-left: auto;
+    margin-right: 10px;
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 25px;
+    cursor: pointer;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+}
+
+.help-button:hover {
+    background-color: #05c8ac;
+    color: #fff;
+}
+
+.var-button-container:hover > .help-button {
+    visibility: visible;
 }

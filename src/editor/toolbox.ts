@@ -164,6 +164,12 @@ export class ToolboxButton {
         }
 
         button.innerHTML = text.replace(/---/g, "<hole></hole>");
+
+        const helpButton = document.createElement("div");
+        helpButton.classList.add("help-button");
+        helpButton.innerText = "learn";
+
+        this.container.appendChild(helpButton);
     }
 
     getButtonElement(): Element {
