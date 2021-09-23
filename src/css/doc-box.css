@@ -1,10 +1,55 @@
 .doc-box-container {
     position: absolute;
-    box-shadow: 0px 0px 20px 5px #b8b8b8;
+    box-shadow: 0px 0px 20px 0px #5d5d5d;
     width: 30%;
     height: 50%;
     left: calc(30%);
     top: calc(25%);
     background-color: #fff;
     border-radius: 7px;
+    overflow: hidden;
+
+    font-family: "Courier New", Courier, monospace;
+}
+
+.doc-box-header {
+    height: 25px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    background-color: #6699aa;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+
+    cursor: grab;
+}
+
+.doc-box-header:hover {
+    background-color: #578;
+}
+
+.close-button {
+    margin-left: auto;
+    margin-top: 1px;
+    font-weight: bold;
+    color: #fff;
+    font-size: 27px;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+
+    cursor: pointer;
+    padding: 0px 10px;
+}
+
+.close-button:hover {
+    color: #000;
 }
