@@ -923,8 +923,8 @@ export class ImportStatement extends Statement {
 
 export class ForStatement extends Statement implements VariableContainer {
     buttonId: string;
-    private counterIndex: number;
-    private rangeIndex: number;
+    private identifierIndex: number;
+    private iteratorIndex: number;
 
     loopVar: VarAssignmentStmt = null;
 
@@ -937,10 +937,10 @@ export class ForStatement extends Statement implements VariableContainer {
         this.buttonId = "";
 
         this.tokens.push(new NonEditableTkn("for ", this, this.tokens.length));
-        this.counterIndex = this.tokens.length;
+        this.identifierIndex = this.tokens.length;
         this.tokens.push(new IdentifierTkn(undefined, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" in ", this, this.tokens.length));
-        this.rangeIndex = this.tokens.length;
+        this.iteratorIndex = this.tokens.length;
         this.tokens.push(
             new TypedEmptyExpr(
                 [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String],
@@ -981,6 +981,11 @@ export class ForStatement extends Statement implements VariableContainer {
         );
     }
 
+    setIterator(iterator: Expression) {
+        this.tokens[this.iteratorIndex] = iterator;
+        this.onInsertInto(iterator);
+    }
+
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
@@ -990,7 +995,7 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 
     getIdentifier(): string {
-        return this.tokens[this.counterIndex].getRenderText();
+        return this.tokens[this.identifierIndex].getRenderText();
     }
 
     onFocusOff(): void {

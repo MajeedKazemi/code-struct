@@ -896,6 +896,7 @@ export class Actions {
                                 DataType.String
                             ),
                         ]),
+                    () => new ForStatement(),
                 ],
             ],
             [
@@ -913,6 +914,7 @@ export class Actions {
                         ]),
                     () => new VarAssignmentStmt(),
                     () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new ForStatement(),
                 ],
             ],
             [
@@ -930,6 +932,7 @@ export class Actions {
                         ]),
                     () => new VarAssignmentStmt(),
                     () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new ForStatement(),
                 ],
             ],
             [
@@ -947,6 +950,7 @@ export class Actions {
                         ]),
                     () => new VarAssignmentStmt(),
                     () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new ForStatement(),
                 ],
             ],
             [
@@ -964,6 +968,7 @@ export class Actions {
                         ]),
                     () => new VarAssignmentStmt(),
                     () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    () => new ForStatement(),
                 ],
             ],
         ]);
