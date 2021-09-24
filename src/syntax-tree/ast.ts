@@ -1052,8 +1052,8 @@ export class ForStatement extends Statement implements VariableContainer {
 
     assignNewVariable(varController: VariableController) {
         this.assignId();
+        this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier(), false);
         varController.addVariableRefButton(this.loopVar);
-        this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier());
         this.getModule().processNewVariable(
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
@@ -1223,12 +1223,12 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         document.getElementById(this.buttonId).innerHTML = this.getIdentifier();
     }
 
-    updateIdentifier(identifier: string, oldIdentifier?: string) {
+    updateIdentifier(identifier: string, oldIdentifier?: string, updateButton: boolean = true) {
         this.oldIdentifier = oldIdentifier ?? this.getIdentifier();
 
         (this.tokens[this.identifierIndex] as IdentifierTkn).setIdentifierText(identifier);
 
-        if (this.buttonId && this.buttonId !== "") {
+        if (this.buttonId && this.buttonId !== "" && updateButton) {
             this.updateButton();
         }
     }
