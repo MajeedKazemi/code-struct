@@ -1,5 +1,5 @@
 export class DocumentationBox {
-    constructor(uniqueId: string) {
+    constructor(uniqueId: string, documentation: any) {
         const container = document.createElement("div");
         container.classList.add("doc-box-container");
         container.id = uniqueId;
@@ -20,6 +20,24 @@ export class DocumentationBox {
 
         document.body.appendChild(container);
         makeDraggable(headerDiv);
+
+        const docTitle = document.createElement("h3");
+        docTitle.innerText = documentation.title;
+        container.appendChild(docTitle);
+
+        for (const item of documentation.body) {
+            if (item.hasOwnProperty("paragraph")) {
+                const p = document.createElement("p");
+                p.innerHTML = item.paragraph;
+
+                container.appendChild(p);
+            } else if (item.hasOwnProperty("example")) {
+                const exampleDivContainer = document.createElement("div");
+                exampleDivContainer.innerText = item.example;
+
+                container.appendChild(exampleDivContainer);
+            }
+        }
     }
 }
 

@@ -1,0 +1,8 @@
+{
+    "title": "while loop",
+    "body": [
+        { "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true" },
+        { "example": "while True :\t\nprint(\"an infinite loop\")" },
+        { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" }
+    ]
+}

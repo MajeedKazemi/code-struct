@@ -40,7 +40,7 @@
                 "assignAdd": 1,
                 "assignSub": 1,
                 "assignMult": 1,
-                "assignDiv": 1                
+                "assignDiv": 1
             }
         },
         "numbers": {
@@ -98,7 +98,8 @@
                 "compGt": 1,
                 "comptGte": 1
             }
-        }       , "booleans": {
+        },
+        "booleans": {
             "includeCategory": 1,
             "categoryDisplayName": "Booleans",
             "categoryId": "boolean-ops-toolbox-group",
@@ -155,9 +156,18 @@
         },
         "while": {
             "id": "add-while-expr-btn",
-            "text": "while ---:"
-            ,
-            "returnType": null
+            "text": "while ---:",
+            "returnType": null,
+            "documentation": {
+                "title": "while loop",
+                "body": [
+                    {
+                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true"
+                    },
+                    { "example": "while True :\t\nprint(\"an infinite loop\")" },
+                    { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" }
+                ]
+            }
         },
         "if": {
             "id": "add-if-expr-btn",
