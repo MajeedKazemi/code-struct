@@ -845,7 +845,7 @@ export class Actions {
                     () => new VarAssignmentStmt(),
                     () =>
                         new VarOperationStmt(null, [new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add)]),
-
+                    () => new ForStatement(),
                     () =>
                         new ValueOperationExpr(null, [
                             new MethodCallModifier(
@@ -896,7 +896,6 @@ export class Actions {
                                 DataType.String
                             ),
                         ]),
-                    () => new ForStatement(),
                 ],
             ],
             [
@@ -913,8 +912,8 @@ export class Actions {
                             ),
                         ]),
                     () => new VarAssignmentStmt(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
@@ -931,8 +930,8 @@ export class Actions {
                             ),
                         ]),
                     () => new VarAssignmentStmt(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
@@ -949,8 +948,8 @@ export class Actions {
                             ),
                         ]),
                     () => new VarAssignmentStmt(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
@@ -967,8 +966,8 @@ export class Actions {
                             ),
                         ]),
                     () => new VarAssignmentStmt(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
         ]);
