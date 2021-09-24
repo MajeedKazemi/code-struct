@@ -332,6 +332,7 @@ export class EventRouter {
 
     onDidScrollChange(e: IScrollEvent) {
         this.module.editor.scrollOffsetTop = e.scrollTop;
+        this.module.menuController.updateFocusedMenuScroll(e.scrollTop);
     }
 
     onButtonDown(id: string) {
