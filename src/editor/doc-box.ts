@@ -1,3 +1,5 @@
+import { editor } from "monaco-editor";
+
 export class DocumentationBox {
     constructor(uniqueId: string, documentation: any) {
         const container = document.createElement("div");
@@ -21,21 +23,42 @@ export class DocumentationBox {
         document.body.appendChild(container);
         makeDraggable(headerDiv);
 
+        // the documentation:
+        const docBody = document.createElement("div");
+        docBody.classList.add("doc-body");
+        container.appendChild(docBody);
+
         const docTitle = document.createElement("h3");
         docTitle.innerText = documentation.title;
-        container.appendChild(docTitle);
+        docBody.appendChild(docTitle);
 
         for (const item of documentation.body) {
             if (item.hasOwnProperty("paragraph")) {
                 const p = document.createElement("p");
                 p.innerHTML = item.paragraph;
 
-                container.appendChild(p);
+                docBody.appendChild(p);
             } else if (item.hasOwnProperty("example")) {
-                const exampleDivContainer = document.createElement("div");
-                exampleDivContainer.innerText = item.example;
+                const exampleEditor = document.createElement("div");
+                exampleEditor.classList.add("doc-editor");
 
-                container.appendChild(exampleDivContainer);
+                docBody.appendChild(exampleEditor);
+
+                editor.create(exampleEditor, {
+                    value: item.example,
+                    language: "python",
+                    dimension: { width: 200, height: 100 },
+                    minimap: {
+                        enabled: false,
+                    },
+                    automaticLayout: true,
+                    scrollbar: {
+                        vertical: "auto",
+                        horizontal: "auto",
+                    },
+                    fontSize: 14,
+                    lineHeight: 20,
+                });
             }
         }
     }
