@@ -82,3 +82,15 @@
     background-color: #b8ccd1;
     border-radius: 0px;
 }
+
+div.doc-body p span.italics {
+    font-style: italic;
+}
+
+div.doc-body p span.bold {
+    font-weight: bold;
+}
+
+div.doc-body > div.doc-editor:nth-last-child(1) {
+    margin-bottom: 7%;
+}
