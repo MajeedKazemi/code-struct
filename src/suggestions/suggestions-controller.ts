@@ -419,6 +419,8 @@ export class MenuController {
     static optionTextElementClass: string = "suggestionOptionText";
     static selectedOptionElementClass: string = "selectedSuggestionOptionParent";
 
+    private oldScrollOffset: number = 0;
+
     module: Module;
     editor: Editor;
     indexOfRootMenu: number = -1;
@@ -936,6 +938,16 @@ export class MenuController {
             document.getElementById(EDITOR_DOM_ID).offsetTop;
 
         return pos;
+    }
+
+    updateFocusedMenuScroll(scrollOffset: number) {
+        if (this.isMenuOpen()) {
+            this.menus[this.focusedMenuIndex].htmlElement.style.top = `${
+                this.menus[this.focusedMenuIndex].htmlElement.offsetTop + (this.oldScrollOffset - scrollOffset)
+            }px`;
+        }
+
+        this.oldScrollOffset = scrollOffset;
     }
 
     private convertTerminatingChar(text: string): string {
