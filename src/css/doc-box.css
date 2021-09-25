@@ -8,6 +8,7 @@
     background-color: #fff;
     border-radius: 7px;
     overflow: hidden;
+    resize: both;
 
     font-family: "Courier New", Courier, monospace;
 }
