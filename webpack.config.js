@@ -1,5 +1,7 @@
 const path = require("path");
 const HtmlWebPackPlugin = require("html-webpack-plugin");
+const Dotenv = require('dotenv-webpack');
+require('dotenv').config({ path: './.env' }); 
 
 module.exports = {
     mode: "development",
@@ -39,9 +41,10 @@ module.exports = {
     plugins: [
         new HtmlWebPackPlugin({
             hash: true,
-            template: "./src/index.html",
+            template: JSON.parse(process.env.EXECUTE_CODE) ? "./src/index.html" : "./src/index_ne.html",
             filename: "./index.html",
         }),
+        new Dotenv()
     ],
     devtool: "inline-source-map"
 };

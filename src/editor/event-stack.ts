@@ -1,13 +1,14 @@
+import { editor, IKeyboardEvent, IScrollEvent } from "monaco-editor";
 import { Module } from "../syntax-tree/module";
 
 const navigationKeys = ["ArrowRight", "ArrowLeft", "ArrowUp", "ArrowDown"];
 
 export enum EventType {
     OnKeyDown,
-    OnMouseDown,
     OnButtonDown,
     OnMouseMove,
     OnDidScrollChange,
+    OnCursorPosChange,
 }
 
 export class EventAction {
@@ -27,11 +28,11 @@ export class EventStack {
     constructor(module: Module) {
         this.module = module;
 
-        this.attachOnMouseDownListener();
         this.attachOnKeyDownListener();
         this.attachOnButtonPress();
         this.attachOnMouseMoveListener();
         this.attachOnDidScrollChangeListener();
+        this.attachOnCursorPosChange();
     }
 
     undo() {
@@ -69,12 +70,11 @@ export class EventStack {
         }
     }
 
-    attachOnMouseDownListener() {
+    attachOnCursorPosChange() {
         const module = this.module;
 
-        module.editor.monaco.onMouseDown((e) => {
-            const action = new EventAction(EventType.OnMouseDown, e);
-            this.stack.push(action);
+        module.editor.monaco.onDidChangeCursorPosition((e: editor.ICursorPositionChangedEvent) => {
+            const action = new EventAction(EventType.OnCursorPosChange, e);
             this.apply(action);
         });
     }
@@ -82,7 +82,7 @@ export class EventStack {
     attachOnKeyDownListener() {
         const module = this.module;
 
-        module.editor.monaco.onKeyDown((e) => {
+        module.editor.monaco.onKeyDown((e: IKeyboardEvent) => {
             if (e.ctrlKey && e.code == "KeyZ") {
                 this.undo();
 
@@ -101,12 +101,6 @@ export class EventStack {
     attachOnMouseMoveListener() {
         const module = this.module;
 
-        //position of mouse inside of editor (line + column)
-        module.editor.monaco.onMouseMove((e) => {
-            const action = new EventAction(EventType.OnMouseMove, e);
-            this.apply(action);
-        });
-
         //x,y pos of mouse within window
         document.onmousemove = function (e) {
             module.editor.mousePosWindow[0] = e.x;
@@ -117,13 +111,13 @@ export class EventStack {
     attachOnDidScrollChangeListener() {
         const module = this.module;
 
-        module.editor.monaco.onDidScrollChange((e) => {
+        module.editor.monaco.onDidScrollChange((e: IScrollEvent) => {
             const action = new EventAction(EventType.OnDidScrollChange, e);
             this.apply(action);
         });
     }
 
-    apply(action) {
+    apply(action: EventAction) {
         switch (action.type) {
             case EventType.OnKeyDown:
                 this.module.eventRouter.onKeyDown(action.event);
@@ -135,13 +129,8 @@ export class EventStack {
 
                 break;
 
-            case EventType.OnMouseDown:
-                this.module.eventRouter.onMouseDown(action.event);
-
-                break;
-
-            case EventType.OnMouseMove:
-                this.module.eventRouter.onMouseMove(action.event);
+            case EventType.OnCursorPosChange:
+                this.module.eventRouter.onCursorPosChange(action.event);
 
                 break;
 

@@ -8,6 +8,7 @@ import {
     FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
+    ImportStatement,
     ListAccessModifier,
     ListComma,
     ListLiteralExpression,
@@ -20,7 +21,14 @@ import {
     VarOperationStmt,
     WhileStatement,
 } from "../syntax-tree/ast";
-import { AugmentedAssignmentOperator, BinaryOperator, DataType, IdentifierRegex, UnaryOp } from "../syntax-tree/consts";
+import {
+    AugmentedAssignmentOperator,
+    BinaryOperator,
+    DataType,
+    IdentifierRegex,
+    NumberRegex,
+    UnaryOp,
+} from "../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 
 export enum KeyPress {
@@ -104,6 +112,7 @@ export enum EditActionType {
     DeletePrevLine,
     DeleteCurLine,
     DeleteStatement,
+    DeleteSelectedModifier,
 
     IndentBackwards,
     IndentBackwardsIfStmt,
@@ -150,6 +159,7 @@ export enum EditActionType {
     InsertAssignmentModifier,
 
     OpenAutocomplete,
+    InsertImportFromDraftMode,
 }
 
 export enum ConstructName {
@@ -165,6 +175,7 @@ export enum InsertActionType {
     InsertElifStmt,
     InsertElseStmt,
     InsertForStmt,
+    InsertImportStmt,
 
     InsertPrintFunctionStmt,
     InsertRandintExpr,
@@ -211,7 +222,8 @@ export class Actions {
                 InsertActionType.InsertPrintFunctionStmt,
                 {},
                 ["("],
-                "print"
+                "print",
+                null
             ),
 
             new EditCodeAction(
@@ -224,12 +236,16 @@ export class Actions {
                             new Argument([DataType.Number], "start", false),
                             new Argument([DataType.Number], "end", false),
                         ],
-                        DataType.Number
+                        DataType.Number,
+                        null,
+                        null,
+                        "random"
                     ),
                 InsertActionType.InsertRandintExpr,
                 {},
                 ["("],
-                "randint"
+                "randint",
+                null
             ),
 
             new EditCodeAction(
@@ -247,7 +263,8 @@ export class Actions {
                 InsertActionType.InsertRangeExpr,
                 {},
                 ["("],
-                "range"
+                "range",
+                null
             ),
 
             new EditCodeAction(
@@ -274,7 +291,8 @@ export class Actions {
                 InsertActionType.InsertLenExpr,
                 {},
                 ["("],
-                "len"
+                "len",
+                null
             ),
 
             new EditCodeAction(
@@ -284,7 +302,8 @@ export class Actions {
                 InsertActionType.InsertInputExpr,
                 {},
                 ["("],
-                "input"
+                "input",
+                null
             ),
 
             new EditCodeAction(
@@ -297,7 +316,8 @@ export class Actions {
                     initialValue: "",
                 },
                 [],
-                ""
+                "",
+                null
             ),
             new EditCodeAction(
                 "0",
@@ -309,7 +329,8 @@ export class Actions {
                     initialValue: "0",
                 },
                 [],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -321,8 +342,10 @@ export class Actions {
                     literalType: DataType.Boolean,
                     initialValue: "True",
                 },
-                ["e"],
-                "Tru"
+                [" "],
+                "True",
+                null,
+                [new RegExp("^[\\=\\!\\ ]$")]
             ),
 
             new EditCodeAction(
@@ -334,8 +357,10 @@ export class Actions {
                     literalType: DataType.Boolean,
                     initialValue: "False",
                 },
-                ["e"],
-                "Fals"
+                [" "],
+                "False",
+                null,
+                [new RegExp("^[\\=\\!\\ ]$")]
             ),
 
             new EditCodeAction(
@@ -347,7 +372,8 @@ export class Actions {
                     operator: BinaryOperator.Add,
                 },
                 ["+"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -359,7 +385,8 @@ export class Actions {
                     operator: BinaryOperator.Subtract,
                 },
                 ["-"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -371,7 +398,8 @@ export class Actions {
                     operator: BinaryOperator.Multiply,
                 },
                 ["*"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -383,7 +411,8 @@ export class Actions {
                     operator: BinaryOperator.Divide,
                 },
                 ["/"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -395,7 +424,8 @@ export class Actions {
                     operator: BinaryOperator.And,
                 },
                 ["d"],
-                "an"
+                "an",
+                null
             ),
 
             new EditCodeAction(
@@ -407,7 +437,8 @@ export class Actions {
                     operator: BinaryOperator.Or,
                 },
                 ["r"],
-                "o"
+                "o",
+                null
             ),
 
             new EditCodeAction(
@@ -419,7 +450,8 @@ export class Actions {
                     operator: BinaryOperator.Equal,
                 },
                 ["="],
-                "="
+                "=",
+                null
             ),
 
             new EditCodeAction(
@@ -431,7 +463,8 @@ export class Actions {
                     operator: BinaryOperator.NotEqual,
                 },
                 ["="],
-                "!"
+                "!",
+                null
             ),
 
             new EditCodeAction(
@@ -443,7 +476,9 @@ export class Actions {
                     operator: BinaryOperator.LessThan,
                 },
                 [" "],
-                "<"
+                "<",
+                null,
+                [IdentifierRegex, NumberRegex, new RegExp('^[\\"]$')]
             ),
 
             new EditCodeAction(
@@ -455,7 +490,8 @@ export class Actions {
                     operator: BinaryOperator.LessThanEqual,
                 },
                 ["="],
-                "<"
+                "<",
+                null
             ),
 
             new EditCodeAction(
@@ -467,7 +503,9 @@ export class Actions {
                     operator: BinaryOperator.GreaterThan,
                 },
                 [" "],
-                ">"
+                ">",
+                null,
+                [IdentifierRegex, NumberRegex, new RegExp('^[\\"]$')]
             ),
 
             new EditCodeAction(
@@ -479,7 +517,8 @@ export class Actions {
                     operator: BinaryOperator.GreaterThanEqual,
                 },
                 ["="],
-                ">"
+                ">",
+                null
             ),
 
             // TODO: this has ambiguity with not in binary exp
@@ -492,7 +531,8 @@ export class Actions {
                     operator: UnaryOp.Not,
                 },
                 ["t"],
-                "no"
+                "no",
+                null
             ),
 
             new EditCodeAction(
@@ -508,7 +548,8 @@ export class Actions {
                 InsertActionType.InsertStringFindMethod,
                 {},
                 ["("],
-                ".find"
+                ".find",
+                null
             ),
 
             new EditCodeAction(
@@ -518,7 +559,8 @@ export class Actions {
                 InsertActionType.InsertWhileStmt,
                 {},
                 [" "],
-                "while"
+                "while",
+                null
             ),
 
             new EditCodeAction(
@@ -528,7 +570,8 @@ export class Actions {
                 InsertActionType.InsertIfStmt,
                 {},
                 [" "],
-                "if"
+                "if",
+                null
             ),
 
             new EditCodeAction(
@@ -538,7 +581,8 @@ export class Actions {
                 InsertActionType.InsertElifStmt,
                 {},
                 [" "],
-                "elif"
+                "elif",
+                null
             ),
 
             new EditCodeAction(
@@ -548,7 +592,8 @@ export class Actions {
                 InsertActionType.InsertElseStmt,
                 {},
                 [" "],
-                "else"
+                "else",
+                null
             ),
 
             new EditCodeAction(
@@ -558,7 +603,19 @@ export class Actions {
                 InsertActionType.InsertForStmt,
                 {},
                 [" "],
-                "for"
+                "for",
+                null
+            ),
+
+            new EditCodeAction(
+                "from --- import --- :",
+                "add-import-btn",
+                () => new ImportStatement(),
+                InsertActionType.InsertImportStmt,
+                {},
+                [" "],
+                "import",
+                null
             ),
 
             new EditCodeAction(
@@ -568,7 +625,8 @@ export class Actions {
                 InsertActionType.InsertListLiteral,
                 {},
                 ["["],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -578,7 +636,8 @@ export class Actions {
                 InsertActionType.InsertListItem,
                 {},
                 [","],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -588,7 +647,8 @@ export class Actions {
                 InsertActionType.InsertListIndexAccessor,
                 {},
                 ["["],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -598,7 +658,8 @@ export class Actions {
                 InsertActionType.InsertAssignmentModifier,
                 {},
                 ["="],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -608,7 +669,8 @@ export class Actions {
                 InsertActionType.InsertAugmentedAssignmentModifier,
                 {},
                 ["+"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -618,7 +680,8 @@ export class Actions {
                 InsertActionType.InsertAugmentedAssignmentModifier,
                 {},
                 ["-"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -628,7 +691,8 @@ export class Actions {
                 InsertActionType.InsertAugmentedAssignmentModifier,
                 {},
                 ["*"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -638,7 +702,8 @@ export class Actions {
                 InsertActionType.InsertAugmentedAssignmentModifier,
                 {},
                 ["/"],
-                ""
+                "",
+                null
             ),
 
             new EditCodeAction(
@@ -654,7 +719,8 @@ export class Actions {
                 InsertActionType.InsertListAppendMethod,
                 {},
                 ["("],
-                ".append"
+                ".append",
+                null
             ),
 
             new EditCodeAction(
@@ -670,7 +736,8 @@ export class Actions {
                 InsertActionType.InsertStringReplaceMethod,
                 {},
                 ["("],
-                ".replace"
+                ".replace",
+                null
             ),
 
             new EditCodeAction(
@@ -704,7 +771,8 @@ export class Actions {
                     exprType: DataType.String,
                 },
                 ["("],
-                ".join"
+                ".join",
+                null
             ),
 
             new EditCodeAction(
@@ -720,7 +788,8 @@ export class Actions {
                 InsertActionType.InsertStringSplitMethod,
                 {},
                 ["("],
-                ".split"
+                ".split",
+                null
             ),
 
             new EditCodeAction(
@@ -730,8 +799,10 @@ export class Actions {
                 InsertActionType.InsertCastStrExpr,
                 {},
                 ["("],
-                "str"
+                "str",
+                null
             ),
+
             new EditCodeAction(
                 "var = ---",
                 "add-var-btn",
@@ -774,7 +845,7 @@ export class Actions {
                     () => new VarAssignmentStmt(),
                     () =>
                         new VarOperationStmt(null, [new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add)]),
-
+                    () => new ForStatement(),
                     () =>
                         new ValueOperationExpr(null, [
                             new MethodCallModifier(
@@ -840,8 +911,9 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
@@ -857,15 +929,15 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
                 DataType.NumberList,
                 [
                     () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
-
                     () =>
                         new VarOperationStmt(null, [
                             new MethodCallModifier(
@@ -875,8 +947,9 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
             [
@@ -892,8 +965,9 @@ export class Actions {
                                 DataType.AnyList
                             ),
                         ]),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                     () => new VarAssignmentStmt(),
+                    () => new ForStatement(),
+                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
                 ],
             ],
         ]);

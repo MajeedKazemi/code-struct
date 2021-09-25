@@ -65,6 +65,8 @@ export interface CodeConstruct {
 
     codeConstructName: ConstructName;
 
+    callbacksToBeDeleted: Map<CallbackType, string>;
+
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
      * @param pos the left position to start building the nodes from
@@ -144,6 +146,8 @@ export interface CodeConstruct {
     onFocusOff(arg: any): void;
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
+
+    markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void;
 }
 
 /**
@@ -167,6 +171,7 @@ export abstract class Statement implements CodeConstruct {
     draftModeEnabled = false;
     draftRecord: DraftRecord = null;
     codeConstructName = ConstructName.Default;
+    callbacksToBeDeleted = new Map<CallbackType, string>();
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -251,6 +256,14 @@ export abstract class Statement implements CodeConstruct {
 
     notify(type: CallbackType) {
         for (const callback of this.callbacks[type]) callback.callback();
+
+        if (this.callbacksToBeDeleted.size > 0) {
+            for (const entry of this.callbacksToBeDeleted) {
+                this.unsubscribe(entry[0], entry[1]);
+            }
+
+            this.callbacksToBeDeleted.clear();
+        }
     }
 
     init(pos: Position) {
@@ -460,6 +473,10 @@ export abstract class Statement implements CodeConstruct {
     onFocusOff(arg: any): void {
         return;
     }
+
+    markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
+        this.callbacksToBeDeleted.set(callbackType, callbackId);
+    }
 }
 
 /**
@@ -518,7 +535,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
         //Might need the same fix for MemberCallStmt in the future, but it does not work right now so cannot check
 
-        if (this.rootNode instanceof Expression) {
+        if (this.rootNode instanceof Expression && !this.draftModeEnabled) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
             if (replaceWith.returns === this.returns || this.returns === DataType.Any) {
                 return InsertionType.Valid;
@@ -544,7 +561,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
                     return InsertionType.DraftMode;
                 } else if (
-                    typesOfParentHole.some((t) => t == DataType.Any) ||
+                    typesOfParentHole?.some((t) => t == DataType.Any) ||
                     hasMatch(typesOfParentHole, [replaceWith.returns])
                 ) {
                     return InsertionType.Valid;
@@ -596,6 +613,7 @@ export abstract class Token implements CodeConstruct {
     draftModeEnabled = false;
     draftRecord = null;
     codeConstructName = ConstructName.Default;
+    callbacksToBeDeleted = new Map<CallbackType, string>();
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -624,6 +642,14 @@ export abstract class Token implements CodeConstruct {
 
     notify(type: CallbackType) {
         for (const callback of this.callbacks[type]) callback.callback();
+
+        if (this.callbacksToBeDeleted.size > 0) {
+            for (const entry of this.callbacksToBeDeleted) {
+                this.unsubscribe(entry[0], entry[1]);
+            }
+
+            this.callbacksToBeDeleted.clear();
+        }
     }
 
     /**
@@ -690,6 +716,10 @@ export abstract class Token implements CodeConstruct {
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr) {
         return InsertionType.Invalid;
+    }
+
+    markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
+        this.callbacksToBeDeleted.set(callbackType, callbackId);
     }
 }
 
@@ -828,10 +858,73 @@ export class ElseStatement extends Statement {
     }
 }
 
+export class ImportStatement extends Statement {
+    private moduleNameIndex: number = -1;
+    private itemNameIndex: number = -1;
+    constructor(moduleName: string = "", itemName: string = "") {
+        super();
+
+        this.tokens.push(new NonEditableTkn("from ", this, this.tokens.length));
+        this.moduleNameIndex = this.tokens.length;
+        this.tokens.push(new EditableTextTkn(moduleName, new RegExp("^[a-zA-Z]*$"), this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(" import ", this, this.tokens.length));
+        this.itemNameIndex = this.tokens.length;
+        this.tokens.push(new EditableTextTkn(itemName, new RegExp("^[a-zA-Z]*$"), this, this.tokens.length));
+
+        this.subscribe(
+            CallbackType.onFocusOff,
+            new Callback(() => {
+                this.onFocusOff({ module: this.getModule() });
+            })
+        );
+
+        this.subscribe(
+            CallbackType.delete,
+            new Callback(() => {
+                this.onDelete(this.getModule()); //TODO: I don't like this either, but we need the module there
+            })
+        );
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        //TODO: This is the same for most Statements so should probably move this functionality into the parent class
+        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    getImportModuleName(): string {
+        return this.tokens[this.moduleNameIndex].getRenderText();
+    }
+    getImportItemName(): string {
+        return this.tokens[this.itemNameIndex].getRenderText();
+    }
+
+    onFocusOff(args: any): void {
+        if (this.getImportModuleName() !== "" && this.getImportItemName() !== "") {
+            //TODO: Not efficient, but the only way to improve this is to constantly maintain an updated "imported" status
+            //on the construct requiring an import, which is tedious so I left it for now. If this ever becomes an issue, that is the solution.
+            args.module.validator.validateImports();
+        }
+    }
+
+    setImportModule(txt: string) {
+        (this.tokens[this.moduleNameIndex] as EditableTextTkn).setEditedText(txt);
+    }
+
+    setImportItem(txt: string) {
+        (this.tokens[this.itemNameIndex] as EditableTextTkn).setEditedText(txt);
+    }
+
+    private onDelete(module: Module) {
+        let stmts = module.getAllImportStmts();
+        stmts = stmts.filter((stmt) => stmt !== this);
+        module.validator.validateImports(stmts);
+    }
+}
+
 export class ForStatement extends Statement implements VariableContainer {
     buttonId: string;
-    private counterIndex: number;
-    private rangeIndex: number;
+    private identifierIndex: number;
+    private iteratorIndex: number;
 
     loopVar: VarAssignmentStmt = null;
 
@@ -844,10 +937,10 @@ export class ForStatement extends Statement implements VariableContainer {
         this.buttonId = "";
 
         this.tokens.push(new NonEditableTkn("for ", this, this.tokens.length));
-        this.counterIndex = this.tokens.length;
+        this.identifierIndex = this.tokens.length;
         this.tokens.push(new IdentifierTkn(undefined, this, this.tokens.length));
         this.tokens.push(new NonEditableTkn(" in ", this, this.tokens.length));
-        this.rangeIndex = this.tokens.length;
+        this.iteratorIndex = this.tokens.length;
         this.tokens.push(
             new TypedEmptyExpr(
                 [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList, DataType.String],
@@ -888,6 +981,11 @@ export class ForStatement extends Statement implements VariableContainer {
         );
     }
 
+    setIterator(iterator: Expression) {
+        this.tokens[this.iteratorIndex] = iterator;
+        this.onInsertInto(iterator);
+    }
+
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
@@ -897,7 +995,7 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 
     getIdentifier(): string {
-        return this.tokens[this.counterIndex].getRenderText();
+        return this.tokens[this.identifierIndex].getRenderText();
     }
 
     onFocusOff(): void {
@@ -1281,11 +1379,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     onInsertInto(insertCode: Expression) {
-        if (insertCode instanceof ListLiteralExpression) {
-            this.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
-        } else {
-            this.dataType = insertCode.returns;
-        }
+        this.dataType = insertCode.returns; //#344
     }
 
     removeAssignment() {
@@ -1454,6 +1548,10 @@ export class VarOperationStmt extends Statement {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
+
+    getVarRef(): VariableReferenceExpr {
+        return this.tokens[0] as VariableReferenceExpr;
+    }
 }
 
 export class ListAccessModifier extends Modifier {
@@ -1561,9 +1659,20 @@ export class MethodCallModifier extends Modifier {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        const doTypesMatch = this.leftExprTypes.some((type) =>
+        let doTypesMatch = this.leftExprTypes.some((type) =>
             areEqualTypes(providedContext?.expressionToLeft?.returns, type)
         );
+
+        //#260/#341
+        if (
+            this.returns === DataType.Void &&
+            providedContext?.lineStatement instanceof VarOperationStmt &&
+            ListTypes.indexOf(providedContext?.lineStatement.getVarRef().returns) > -1
+        ) {
+            doTypesMatch = true;
+        } else if (this.returns === DataType.Void) {
+            doTypesMatch = false;
+        }
 
         return validator.atRightOfExpression(providedContext) && doTypesMatch
             ? InsertionType.Valid
@@ -1671,20 +1780,22 @@ export class AugmentedAssignmentModifier extends Modifier {
     }
 }
 
-export class FunctionCallExpr extends Expression {
+export class FunctionCallExpr extends Expression implements Importable {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
     functionName: string = "";
     args: Array<Argument>;
+    requiredModule: string;
 
     constructor(
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
         root?: Statement,
-        indexInRoot?: number
+        indexInRoot?: number,
+        requiredModule: string = ""
     ) {
         super(returns);
 
@@ -1692,6 +1803,7 @@ export class FunctionCallExpr extends Expression {
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
         this.args = args;
+        this.requiredModule = requiredModule;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1753,21 +1865,93 @@ export class FunctionCallExpr extends Expression {
     getFunctionName(): string {
         return this.functionName;
     }
+
+    getKeyword(): string {
+        return this.functionName;
+    }
+
+    validateImport(importedModule: string, importedItem: string): boolean {
+        return this.requiredModule === importedModule && this.getFunctionName() === importedItem;
+    }
+
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType) {
+        let insertionType = currentInsertionType;
+        let importsOfThisConstruct: ImportStatement[] = [];
+        const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
+            if (
+                construct instanceof ImportStatement &&
+                this.getLineNumber() > construct.getLineNumber() &&
+                this.requiredModule === construct.getImportModuleName()
+            ) {
+                stmts.push(construct);
+            }
+        };
+
+        module.performActionOnBFS((code) => checker(code, importsOfThisConstruct));
+
+        if (importsOfThisConstruct.length === 0 && this.requiresImport()) {
+            //imports of required module don't exist and this item requires an import
+            insertionType = InsertionType.DraftMode;
+        } else if (importsOfThisConstruct.length > 0 && this.requiresImport()) {
+            //imports of required module exist and this item requires an import
+            insertionType =
+                importsOfThisConstruct.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+                    ? currentInsertionType
+                    : InsertionType.DraftMode;
+        }
+
+        return insertionType;
+    }
+
+    validateImportFromImportList(imports: ImportStatement[]): boolean {
+        const relevantImports = imports.filter(
+            (stmt) => stmt.getImportModuleName() === this.requiredModule && this.getLineNumber() > stmt.getLineNumber()
+        );
+
+        if (relevantImports.length === 0) {
+            return false;
+        }
+
+        return relevantImports.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+            ? true
+            : false;
+    }
+
+    requiresImport(): boolean {
+        return this.requiredModule !== "";
+    }
 }
 
-export class FunctionCallStmt extends Statement {
+export interface Importable {
+    requiredModule: string;
+
+    validateImport(importedModule: string, importedItem: string): boolean;
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType): InsertionType;
+    validateImportFromImportList(imports: ImportStatement[]): boolean;
+    requiresImport(): boolean;
+}
+
+export class FunctionCallStmt extends Statement implements Importable {
     /**
      * function calls such as `print()` are single-line statements, while `randint()` are expressions and could be used inside a more complex expression, this should be specified when instantiating the `FunctionCallStmt` class.
      */
     private argumentsIndices = new Array<number>();
     functionName: string = "";
+    requiredModule: string;
 
-    constructor(functionName: string, args: Array<Argument>, root?: Statement | Module, indexInRoot?: number) {
+    constructor(
+        functionName: string,
+        args: Array<Argument>,
+        root?: Statement | Module,
+        indexInRoot?: number,
+        requiredModule: string = ""
+    ) {
         super();
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
+        this.requiredModule = requiredModule;
 
         if (args.length > 0) {
             this.tokens.push(new NonEditableTkn(functionName + "(", this, this.tokens.length));
@@ -1800,6 +1984,61 @@ export class FunctionCallStmt extends Statement {
 
     getFunctionName(): string {
         return this.functionName;
+    }
+
+    getKeyword(): string {
+        return this.functionName;
+    }
+
+    validateImport(importedModule: string, importedItem: string): boolean {
+        return this.requiredModule === importedModule && this.getFunctionName() === importedItem;
+    }
+
+    validateImportOnInsertion(module: Module, currentInsertionType: InsertionType) {
+        let insertionType = currentInsertionType;
+        let importsOfThisConstruct: ImportStatement[] = [];
+        const checker = (construct: CodeConstruct, stmts: ImportStatement[]) => {
+            if (
+                construct instanceof ImportStatement &&
+                this.getLineNumber() > construct.getLineNumber() &&
+                this.requiredModule === construct.getImportModuleName()
+            ) {
+                stmts.push(construct);
+            }
+        };
+
+        module.performActionOnBFS((code) => checker(code, importsOfThisConstruct));
+
+        if (importsOfThisConstruct.length === 0 && this.requiresImport()) {
+            //imports of required module don't exist and this item requires an import
+            insertionType = InsertionType.DraftMode;
+        } else if (importsOfThisConstruct.length > 0 && this.requiresImport()) {
+            //imports of required module exist and this item requires an import
+            insertionType =
+                importsOfThisConstruct.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+                    ? currentInsertionType
+                    : InsertionType.DraftMode;
+        }
+
+        return insertionType;
+    }
+
+    validateImportFromImportList(imports: ImportStatement[]): boolean {
+        const relevantImports = imports.filter(
+            (stmt) => stmt.getImportModuleName() === this.requiredModule && this.getLineNumber() > stmt.getLineNumber()
+        );
+
+        if (relevantImports.length === 0) {
+            return false;
+        }
+
+        return relevantImports.filter((stmt) => stmt.getImportItemName() === this.getFunctionName()).length > 0
+            ? true
+            : false;
+    }
+
+    requiresImport(): boolean {
+        return this.requiredModule !== "";
     }
 }
 
@@ -1961,10 +2200,12 @@ export class BinaryOperatorExpr extends Expression {
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
             (validator.atLeftOfExpression(providedContext) &&
+                !(providedContext.expressionToRight.rootNode instanceof VarOperationStmt) &&
                 getAllowedBinaryOperators(providedContext?.expressionToRight?.returns).some(
                     (x) => x === this.operator
                 )) ||
             (validator.atRightOfExpression(providedContext) &&
+                !(providedContext.expressionToLeft.rootNode instanceof VarOperationStmt) &&
                 getAllowedBinaryOperators(providedContext?.expressionToLeft?.returns).some((x) => x === this.operator))
             ? InsertionType.Valid
             : InsertionType.Invalid;
@@ -2072,7 +2313,7 @@ export class BinaryOperatorExpr extends Expression {
             //if existingLiteralType is null then both operands are still empty holes and since we are inserting
             //into one of them, the types need to be updated
             if (!existingLiteralType && (this.returns === DataType.Any || this.returns === DataType.Boolean)) {
-                this.returns = insertCode.returns;
+                // this.returns = insertCode.returns;
 
                 (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
                 (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
@@ -2132,7 +2373,7 @@ export class BinaryOperatorExpr extends Expression {
         // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
         // into one when a more type restricted bin op such as - is inserted inside of them
 
-        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the isnertion type
+        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the insertion type
         if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
             if (this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic) {
                 TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
@@ -2349,6 +2590,25 @@ export class ListLiteralExpression extends Expression {
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
 
+    isHolePlacementValid(): boolean {
+        const emptyHolePlacements = this.getEmptyHolesWIndex();
+        return emptyHolePlacements.length === 0
+            ? true
+            : emptyHolePlacements.length === 1 && emptyHolePlacements[0][1] === this.tokens.length - 2;
+    }
+
+    private getEmptyHolesWIndex(): [TypedEmptyExpr, number][] {
+        const holes = [];
+
+        for (let i = 0; i < this.tokens.length; i++) {
+            if (this.tokens[i] instanceof TypedEmptyExpr) {
+                holes.push([this.tokens[i], this.tokens[i].indexInRoot]);
+            }
+        }
+
+        return holes;
+    }
+
     private getFilledHolesType(): DataType {
         const elements = this.tokens.filter(
             (tkn) => !(tkn instanceof TypedEmptyExpr) && !(tkn instanceof NonEditableTkn)
@@ -2467,17 +2727,37 @@ export class AutocompleteTkn extends Token implements TextEditable {
     }
 
     isMatch(): EditCodeAction {
+        for (const match of this.validMatches) if (this.text == match.matchString) return match;
+
+        return null;
+    }
+
+    isInsertableTerminatingMatch(newChar: string): EditCodeAction {
+        for (const match of this.validMatches) {
+            if (match.insertableTerminatingCharRegex) {
+                for (const matchReg of match.insertableTerminatingCharRegex) {
+                    if (this.text == match.matchString && matchReg.test(newChar)) return match;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    isTerminatingMatch(): EditCodeAction {
         const newChar = this.text[this.text.length - 1];
-        const curText = this.text.substring(0, this.text.length - 2);
+        const curText = this.text.substring(0, this.text.length - 1);
 
         return this.checkMatch(newChar, curText);
     }
 
     checkMatch(newChar: string, text?: string): EditCodeAction {
-        const curText = text !== undefined ? text : this.text;
+        let curText = text !== undefined ? text : this.text;
 
         for (const match of this.validMatches) {
             if (match.terminatingChars.indexOf(newChar) >= 0) {
+                if (match.trimSpacesBeforeTermChar) curText = curText.trim();
+
                 if (curText == match.matchString) return match;
                 else if (match.matchRegex != null && match.matchRegex.test(curText)) return match;
             }
@@ -2513,6 +2793,10 @@ export class TypedEmptyExpr extends Token {
         }
 
         return InsertionType.Invalid;
+    }
+
+    isListElement(): boolean {
+        return this.rootNode && this.rootNode instanceof ListLiteralExpression;
     }
 }
 

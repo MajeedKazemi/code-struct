@@ -165,7 +165,10 @@ export class ConstructHighlight extends ConstructVisualElement {
 
             this.selection = newSelection;
 
-            this.domElement.style.left = `${this.domElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
+            this.domElement.style.left = `${
+                this.domElement.offsetLeft +
+                diff * this.editor.computeCharWidthInvisible(this.selection.startLineNumber)
+            }px`;
         }
     }
 
@@ -193,11 +196,11 @@ export class ConstructHighlight extends ConstructVisualElement {
             const text = this.code.getRenderText();
 
             top = transform.y + 5;
-            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidth(lineNumber);
+            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible(lineNumber);
 
             width =
-                text.length * this.editor.computeCharWidth(lineNumber) > 0
-                    ? text.length * this.editor.computeCharWidth(lineNumber)
+                text.length * this.editor.computeCharWidthInvisible(lineNumber) > 0
+                    ? text.length * this.editor.computeCharWidthInvisible(lineNumber)
                     : HIGHLIGHT_DEFAULT_WIDTH;
             height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
         } else {
@@ -207,7 +210,7 @@ export class ConstructHighlight extends ConstructVisualElement {
             top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
             left = transform.x;
             height = Math.floor(this.editor.computeCharHeight() * 0.95);
-            width = text.length * this.editor.computeCharWidth(lineNumber);
+            width = text.length * this.editor.computeCharWidthInvisible(lineNumber);
         }
 
         if (firstInsertion) {
@@ -259,6 +262,8 @@ export class HoverNotification extends Notification {
     private notificationHighlightCollisionCheckInterval = 500;
     private notificationFadeTime = 100;
 
+    private buttons = [];
+
     constructor(
         editor: Editor,
         code: CodeConstruct,
@@ -272,6 +277,17 @@ export class HoverNotification extends Notification {
 
         this.updateMouseOffsets();
         this.scheduleCollisionCheck();
+    }
+
+    addButton(txt: string): HTMLDivElement {
+        const button = document.createElement("div");
+        button.classList.add("button");
+        button.textContent = txt;
+
+        this.domElement.appendChild(button);
+        this.buttons.push(button);
+
+        return button;
     }
 
     protected createDomElement() {
@@ -371,7 +387,7 @@ export class HoverNotification extends Notification {
 
         //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
         //wrong from time to time...
-        this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
+        this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById("editorArea")).paddingTop);
     }
 
     private scheduleCollisionCheck() {

@@ -2,6 +2,7 @@ export enum CSSClasses {
     identifier = "identifier",
     type = "type",
     keyword = "keyword",
+    emphasize = "emph",
     other = "other",
 }
 

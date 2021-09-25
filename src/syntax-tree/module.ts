@@ -1,7 +1,8 @@
 import { Position, Range } from "monaco-editor";
 import { ActionExecutor } from "../editor/action-executor";
 import { ActionFilter } from "../editor/action-filter";
-import { CodeStatus } from "../editor/consts";
+import { CodeStatus, EditActionType } from "../editor/consts";
+import { EditAction } from "../editor/data-types";
 import { DraftRecord } from "../editor/draft";
 import { Editor } from "../editor/editor";
 import { EventRouter } from "../editor/event-router";
@@ -20,6 +21,8 @@ import {
     EmptyLineStmt,
     Expression,
     ForStatement,
+    Importable,
+    ImportStatement,
     ListLiteralExpression,
     Statement,
     Token,
@@ -29,7 +32,7 @@ import {
 } from "./ast";
 import { rebuildBody } from "./body";
 import { CallbackType } from "./callback";
-import { DataType, TAB_SPACES } from "./consts";
+import { DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
@@ -105,22 +108,22 @@ export class Module {
             Hole.highlightValidVarHoles(c);
         });
 
-        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to rafactor this one to
+        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to refactor this one to
         //use methods like above code
         this.focus.subscribeOnNavChangeCallback(
             ((c: Context) => {
-                if (
-                    !(
-                        c.tokenToLeft instanceof AutocompleteTkn ||
-                        c.tokenToRight instanceof AutocompleteTkn ||
-                        c.token instanceof AutocompleteTkn
-                    )
-                ) {
-                    const inserts = this.actionFilter.getProcessedInsertionsList();
+                // if (
+                //     !(
+                //         c.tokenToLeft instanceof AutocompleteTkn ||
+                //         c.tokenToRight instanceof AutocompleteTkn ||
+                //         c.token instanceof AutocompleteTkn
+                //     )
+                // ) {
+                const inserts = this.actionFilter.getProcessedInsertionsList();
 
-                    //mark draft mode buttons
-                    updateButtonsVisualMode(inserts);
-                }
+                //mark draft mode buttons
+                updateButtonsVisualMode(inserts);
+                // }
             }).bind(this)
         );
 
@@ -520,9 +523,9 @@ export class Module {
         }
     }
 
-    openDraftMode(code: Expression) {
+    openDraftMode(code: Statement, txt: string = "Draft Mode Placeholder Txt") {
         code.draftModeEnabled = true;
-        this.draftExpressions.push(new DraftRecord(code, this));
+        this.draftExpressions.push(new DraftRecord(code, this, txt));
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
     }
 
@@ -541,7 +544,7 @@ export class Module {
         while (Q.length > 0) {
             let curr: CodeConstruct = Q.splice(0, 1)[0];
 
-            if (curr instanceof TypedEmptyExpr) {
+            if (curr instanceof TypedEmptyExpr && !curr.isListElement()) {
                 ret = ret ?? CodeStatus.ContainsEmptyHoles;
 
                 if (highlightConstructs) {
@@ -560,7 +563,15 @@ export class Module {
                     this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
                 }
             } else if (curr instanceof Expression && curr.tokens.length > 0) {
-                Q.push(...curr.tokens);
+                const addHighlight = curr instanceof ListLiteralExpression && !curr.isHolePlacementValid();
+                ret = addHighlight ? CodeStatus.ContainsEmptyHoles : ret;
+
+                for (let i = 0; i < curr.tokens.length; i++) {
+                    if (curr.tokens[i] instanceof TypedEmptyExpr && addHighlight && i < curr.tokens.length - 2) {
+                        this.addHighlightToConstruct(curr.tokens[i], ERROR_HIGHLIGHT_COLOUR);
+                    }
+                    Q.push(curr.tokens[i]);
+                }
             } else if (curr instanceof Statement) {
                 for (const tkn of curr.tokens) {
                     Q.push(tkn);
@@ -572,5 +583,59 @@ export class Module {
         }
 
         return ret ?? CodeStatus.Runnable;
+    }
+
+    performActionOnBFS(duringAction: (code: CodeConstruct) => void) {
+        const Q: CodeConstruct[] = [];
+        Q.push(...this.body);
+
+        while (Q.length > 0) {
+            let curr: CodeConstruct = Q.splice(0, 1)[0];
+
+            if (curr instanceof Expression && curr.tokens.length > 0) {
+                Q.push(...curr.tokens);
+            } else if (curr instanceof Statement) {
+                for (const tkn of curr.tokens) {
+                    Q.push(tkn);
+                }
+                if (curr.body.length > 0) {
+                    Q.push(...curr.body);
+                }
+            }
+
+            duringAction(curr);
+        }
+    }
+
+    getAllImportStmts(): ImportStatement[] {
+        const stmts: ImportStatement[] = [];
+
+        this.performActionOnBFS((code: CodeConstruct) => {
+            if (code instanceof ImportStatement) {
+                stmts.push(code);
+            }
+        });
+
+        return stmts;
+    }
+
+    openImportDraftMode(code: Statement & Importable) {
+        this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule));
+
+        const button = code.notification.addButton(`import ${code.requiredModule}`);
+        button.addEventListener(
+            "click",
+            (() => {
+                this.executer.execute(
+                    new EditAction(EditActionType.InsertImportFromDraftMode, {
+                        moduleName: code.requiredModule,
+                        itemName: code.getKeyword(),
+                    }),
+                    this.focus.getContext()
+                );
+
+                this.validator.validateImports();
+            }).bind(this)
+        );
     }
 }

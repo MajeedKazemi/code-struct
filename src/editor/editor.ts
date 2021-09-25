@@ -1,33 +1,40 @@
-import { editor, Position, Range, Selection } from "monaco-editor";
+import { editor, Range, Selection } from "monaco-editor";
 import { CodeConstruct, EditableTextTkn, IdentifierTkn, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Cursor } from "./cursor";
 import { Hole } from "./hole";
 
+const FONT_SIZE = 20;
+
 export class Editor {
     module: Module;
     cursor: Cursor;
     monaco: editor.IStandaloneCodeEditor;
     holes: Hole[];
-    mousePosMonaco: Position;
     mousePosWindow: number[] = [0, 0];
     scrollOffsetTop: number = 0;
     oldCursorLineNumber: number = 1;
+    mousePosMonaco: any;
 
     constructor(parentEl: HTMLElement, module: Module) {
         this.monaco = editor.create(parentEl, {
+            dimension: { height: 500, width: 700 },
             value: "",
             language: "python",
             minimap: {
                 enabled: false,
             },
             overviewRulerLanes: 0,
+            automaticLayout: true,
             scrollbar: {
-                vertical: "hidden",
+                vertical: "auto",
+                horizontal: "auto",
+                verticalSliderSize: 5,
+                scrollByPage: false,
             },
             overviewRulerBorder: false,
-            fontSize: 20,
+            fontSize: FONT_SIZE,
             contextmenu: false,
             mouseWheelScrollSensitivity: 0,
             lineHeight: 40,
@@ -166,7 +173,29 @@ export class Editor {
         const line = <HTMLElement>lines.children[ln - 1]?.children[0];
         if (line == null) return 0;
 
+        if (line.getBoundingClientRect().width === 0 && line.innerText.length === 0) {
+            return 0;
+        }
+
         return line.getBoundingClientRect().width / line.innerText.length;
+    }
+
+    computeCharWidthInvisible(ln = 1): number {
+        let width = this.computeCharWidth(ln);
+        if (width > 0) return width;
+
+        const lines = Array.from(document.getElementsByClassName("view-lines")[0].children);
+
+        for (const line of lines) {
+            if (line.children[0] && (line.children[0] as HTMLElement).innerText.length > 0) {
+                return (
+                    line.children[0].getBoundingClientRect().width / (line.children[0] as HTMLElement).innerText.length
+                );
+            }
+        }
+        return FONT_SIZE / 1.92; //Major hack that probably won't always work, but there is no other way than to manually set
+        //the value because monaco does not allow you to get font size unless you have a line within
+        //the viewport of the editor that also has text in it.
     }
 
     reset() {

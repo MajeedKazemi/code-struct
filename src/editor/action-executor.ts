@@ -10,6 +10,8 @@ import {
     EmptyLineStmt,
     Expression,
     IdentifierTkn,
+    Importable,
+    ImportStatement,
     ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
@@ -30,9 +32,10 @@ import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
+import { isImportable } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
-import { EditActionType } from "./consts";
+import { EditActionType, InsertActionType } from "./consts";
 import { EditAction } from "./data-types";
 import { Context } from "./focus";
 
@@ -43,7 +46,8 @@ export class ActionExecutor {
         this.module = module;
     }
 
-    execute(action: EditAction, providedContext?: Context, pressedKey?: string): boolean {
+    execute(action: EditAction, providedContext?: Context, e?: KeyboardEvent): boolean {
+        const pressedKey = e?.key;
         let context = providedContext ? providedContext : this.module.focus.getContext();
 
         let preventDefaultEvent = true;
@@ -95,7 +99,7 @@ export class ActionExecutor {
                         break;
                 }
 
-                const match = autocompleteTkn.isMatch();
+                const match = autocompleteTkn.isTerminatingMatch();
 
                 if (match) this.performMatchAction(match, autocompleteTkn);
                 else {
@@ -214,8 +218,8 @@ export class ActionExecutor {
                 //TODO: Might want to change back to use the case above if no new logic is added
                 const statement = action.data?.statement;
 
-                if (statement instanceof VarAssignmentStmt && action.data?.autocompleteData?.identifier) {
-                    statement.setIdentifier(action.data?.autocompleteData?.identifier);
+                if (statement instanceof VarAssignmentStmt && action.data?.autocompleteData?.identifier.trim()) {
+                    statement.setIdentifier(action.data?.autocompleteData?.identifier.trim());
                 }
 
                 this.insertStatement(context, action.data?.statement as Statement);
@@ -289,6 +293,12 @@ export class ActionExecutor {
                 }
 
                 this.module.editor.executeEdits(range, null, "");
+
+                break;
+            }
+
+            case EditActionType.DeleteSelectedModifier: {
+                this.deleteModifier(context.token.rootNode as Modifier, { deleting: true });
 
                 break;
             }
@@ -425,10 +435,20 @@ export class ActionExecutor {
                 }
 
                 if (token instanceof AutocompleteTkn) {
-                    const match = token.checkMatch(pressedKey);
+                    let match = token.checkMatch(pressedKey);
 
                     if (match) {
                         this.performMatchAction(match, token);
+
+                        break;
+                    }
+
+                    match = token.isInsertableTerminatingMatch(pressedKey);
+
+                    if (match) {
+                        this.performMatchAction(match, token);
+
+                        this.execute(this.module.eventRouter.getKeyAction(e));
 
                         break;
                     }
@@ -571,16 +591,18 @@ export class ActionExecutor {
 
                         this.module.editor.executeEdits(initialBoundary, varAssignStmt);
                         this.module.focus.updateContext(varAssignStmt.getInitialFocus());
+
+                        if (flashGreen) this.flashGreen(varAssignStmt);
                     } else {
                         varOpStmt.appendModifier(action.data.modifier);
                         varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
 
                         this.module.editor.insertAtCurPos([action.data.modifier]);
                         this.module.focus.updateContext(action.data.modifier.getInitialFocus());
+
+                        if (flashGreen) this.flashGreen(action.data.modifier);
                     }
                 }
-
-                if (flashGreen) this.flashGreen(action.data.modifier);
 
                 break;
             }
@@ -739,7 +761,10 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyList: {
-                this.insertExpression(context, new ListLiteralExpression());
+                const newLiteral = new ListLiteralExpression();
+                this.insertExpression(context, newLiteral);
+
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 break;
             }
@@ -772,6 +797,29 @@ export class ActionExecutor {
                     const items = this.module.removeItems(context.token.rootNode, context.token.indexInRoot - 1, 2);
                     this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
                 }
+
+                break;
+            }
+
+            case EditActionType.InsertImportFromDraftMode: {
+                let currContext = context;
+                this.module.editor.monaco.setPosition(new Position(1, 1));
+                this.module.insertEmptyLine();
+                this.module.editor.monaco.setPosition(new Position(1, 1));
+                currContext = this.module.focus.getContext();
+
+                const stmt = new ImportStatement(action.data?.moduleName, action.data?.itemName);
+                const insertAction = new EditCodeAction(
+                    "from --- import --- :",
+                    "add-import-btn",
+                    () => stmt,
+                    InsertActionType.InsertImportStmt,
+                    {},
+                    [" "],
+                    "import",
+                    null
+                );
+                insertAction.performAction(this, this.module.eventRouter, currContext);
 
                 break;
             }
@@ -819,13 +867,21 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                this.insertExpression(context, new LiteralValExpr(action.data?.literalType, action.data?.initialValue));
+                const newLiteral = new LiteralValExpr(action.data?.literalType, action.data?.initialValue);
+                this.insertExpression(context, newLiteral);
+
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 break;
             }
 
             case EditActionType.OpenValidInsertMenu:
-                this.openAutocompleteMenu(this.module.actionFilter.getProcessedInsertionsList());
+                this.openAutocompleteMenu(
+                    this.module.actionFilter
+                        .getProcessedInsertionsList()
+                        .filter((item) => item.insertionType != InsertionType.Invalid)
+                );
+                this.styleAutocompleteMenu(context.position);
 
                 break;
 
@@ -958,18 +1014,20 @@ export class ActionExecutor {
     }
 
     private flashGreen(code: CodeConstruct) {
-        let highlight = new ConstructHighlight(this.module.editor, code, [109, 242, 162, 1]);
+        if (code) {
+            let highlight = new ConstructHighlight(this.module.editor, code, [109, 242, 162, 1]);
 
-        setTimeout(() => {
-            if (highlight) {
-                highlight.changeHighlightColour([255, 255, 255, 0]);
+            setTimeout(() => {
+                if (highlight) {
+                    highlight.changeHighlightColour([255, 255, 255, 0]);
 
-                setTimeout(() => {
-                    highlight.removeFromDOM();
-                    highlight = null;
-                }, 500);
-            }
-        }, 1);
+                    setTimeout(() => {
+                        highlight.removeFromDOM();
+                        highlight = null;
+                    }, 500);
+                }
+            }, 1);
+        }
     }
 
     private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
@@ -990,6 +1048,15 @@ export class ActionExecutor {
     }
 
     private performMatchAction(match: EditCodeAction, token: AutocompleteTkn) {
+        if (
+            match.insertActionType == InsertActionType.InsertNewVariableStmt &&
+            (Object.keys(PythonKeywords).indexOf(token.text.trim()) >= 0 ||
+                Object.keys(BuiltInFunctions).indexOf(token.text.trim()) >= 0)
+        ) {
+            // TODO: can insert an interesting warning
+            return;
+        }
+
         match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
             identifier: token.text,
         });
@@ -1032,7 +1099,7 @@ export class ActionExecutor {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr) {
-            const insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+            let insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
             if (insertionType != InsertionType.Invalid) {
                 code.performPreInsertionUpdates(context.token);
@@ -1067,6 +1134,18 @@ export class ActionExecutor {
             }
 
             if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
+            else if (isImportable(code)) {
+                this.checkImports(code, insertionType);
+            }
+        }
+    }
+
+    private checkImports(insertedCode: Importable, currentInsertionType: InsertionType) {
+        if (currentInsertionType === InsertionType.Invalid) return;
+
+        const insertionType = insertedCode.validateImportOnInsertion(this.module, currentInsertionType);
+        if (insertionType === InsertionType.DraftMode && insertedCode instanceof Statement) {
+            this.module.openImportDraftMode(insertedCode);
         }
     }
 
@@ -1093,6 +1172,10 @@ export class ActionExecutor {
 
         if (context.lineStatement.notification && context.selected) {
             this.module.notificationSystem.removeNotificationFromConstruct(context.lineStatement);
+        }
+
+        if (isImportable(statement)) {
+            this.checkImports(statement, InsertionType.Valid);
         }
 
         this.module.editor.executeEdits(range, statement);
@@ -1152,6 +1235,8 @@ export class ActionExecutor {
                 } else {
                     this.module.openDraftMode(newCode);
                 }
+
+                if (newCode.rootNode instanceof Statement) newCode.rootNode.onInsertInto(newCode);
 
                 return newCode;
             }
@@ -1302,6 +1387,13 @@ export class ActionExecutor {
 
     private updateAutocompleteMenu(autocompleteTkn: AutocompleteTkn) {
         this.module.menuController.updateMenuOptions(autocompleteTkn.getEditableText());
-        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPosition(autocompleteTkn));
+        this.module.menuController.updatePosition(
+            this.module.menuController.getNewMenuPositionFromCode(autocompleteTkn)
+        );
+    }
+
+    private styleAutocompleteMenu(pos: Position) {
+        this.module.menuController.styleMenuOptions();
+        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPositionFromPosition(pos));
     }
 }

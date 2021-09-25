@@ -1,11 +1,15 @@
 import Fuse from "fuse.js";
 import {
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
+    AutocompleteTkn,
     CodeConstruct,
     EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
     IdentifierTkn,
     IfStatement,
+    ImportStatement,
     ListLiteralExpression,
     LiteralValExpr,
     Modifier,
@@ -19,7 +23,9 @@ import {
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
+import { isImportable } from "../utilities/util";
 import { DataType, InsertionType, NumberRegex, TAB_SPACES } from "./../syntax-tree/consts";
+import { EditCodeAction } from "./action-filter";
 import { Context } from "./focus";
 
 export class Validator {
@@ -34,6 +40,7 @@ export class Validator {
 
         return (
             context.expressionToLeft instanceof LiteralValExpr &&
+            !(context.tokenToRight instanceof AutocompleteTkn) &&
             !NumberRegex.test(context.expressionToLeft.getValue() + pressedKey)
         );
     }
@@ -43,6 +50,7 @@ export class Validator {
 
         return (
             context.expressionToRight instanceof LiteralValExpr &&
+            !(context.tokenToLeft instanceof AutocompleteTkn) &&
             !NumberRegex.test(context.expressionToRight.getValue() + pressedKey)
         );
     }
@@ -255,7 +263,8 @@ export class Validator {
             return (
                 (context.lineStatement.rootNode instanceof Statement ||
                     context.lineStatement.rootNode instanceof Module) &&
-                context.lineStatement.rootNode.body.length != 1
+                context.lineStatement.rootNode.body.length != 1 &&
+                context.lineStatement.lineNumber != 1
             );
         }
 
@@ -331,6 +340,32 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.expressionToLeft != null && !this.module.focus.isTextEditable(providedContext);
+    }
+
+    shouldDeleteVarAssignmentOnHole(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.token instanceof TypedEmptyExpr && context.selected) {
+            const root = context.token.rootNode;
+
+            if (root instanceof VarAssignmentStmt) {
+                return true; // this.module.variableController.isVarStmtReassignment(root, this.module);
+            }
+        }
+
+        return false;
+    }
+
+    shouldDeleteHole(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.token instanceof TypedEmptyExpr && context.selected) {
+            const root = context.token.rootNode;
+
+            if (root instanceof AugmentedAssignmentModifier || root instanceof AssignmentModifier) return true;
+        }
+
+        return false;
     }
 
     canIndentBackIfStatement(providedContext?: Context): boolean {
@@ -632,16 +667,41 @@ export class Validator {
         }
     }
 
-    static matchString(searchString: string, possibilities: string[]) {
+    static matchEditCodeAction(
+        searchString: string,
+        possibilities: EditCodeAction[],
+        searchKeys: string[]
+    ): Fuse.FuseResult<EditCodeAction>[] {
         const options = {
             includeScore: true,
             includeMatches: true,
             shouldSort: true,
             findAllMatches: true,
-            threshold: 0.4,
+            threshold: 0.5,
+            keys: searchKeys,
         };
         const fuse = new Fuse(possibilities, options);
 
         return fuse.search(searchString);
+    }
+
+    validateImports(stmts?: ImportStatement[]) {
+        if (!stmts) {
+            stmts = this.module.getAllImportStmts();
+        }
+        this.module.performActionOnBFS((code: CodeConstruct) => {
+            if (isImportable(code) && code.requiresImport()) {
+                const importStatus = code.validateImportFromImportList(stmts);
+
+                //This check is required otherwise it won't compile. In practice, it will always be a Statement becuase tokens are not importables
+                if (code instanceof Statement) {
+                    if (importStatus && code.draftModeEnabled) {
+                        this.module.closeConstructDraftRecord(code);
+                    } else if (!importStatus && !code.draftModeEnabled) {
+                        this.module.openImportDraftMode(code);
+                    }
+                }
+            }
+        });
     }
 }

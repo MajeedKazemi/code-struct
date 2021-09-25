@@ -1,39 +1,43 @@
 #editorArea {
-    padding-top: 4rem;
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 #editor {
     width: 100%;
-    height: 50%;
+    flex-shrink: 0;
+    flex-grow: 0;
+    flex-basis: 70%;
+    height: 70%;
 }
 
-monaco-editor.no-user-select.showUnused.showDeprecated.vs {
+#editor .monaco-editor.no-user-select.showUnused.showDeprecated.vs {
     height: 100%;
 }
 
-.monaco-editor,
-.monaco-editor-background,
-.monaco-editor .inputarea.ime-input {
+#editor .monaco-editor,
+#editor .monaco-editor-background,
+#editor .monaco-editor .inputarea.ime-input {
     background-color: rgba(0, 0, 0, 0) !important;
 }
 
-.monaco-editor-background {
+#editor .monaco-editor-background {
     /* background-color: var(--main-bg-color) !important; */
     background-color: rgba(0, 0, 0, 0) !important;
 }
 
-.monaco-editor .margin {
+#editor .monaco-editor .margin {
     /* background-color: var(--main-bg-color) !important; */
     background-color: rgba(0, 0, 0, 0) !important;
 }
 
-.monaco-editor .view-overlays .current-line {
+#editor .monaco-editor .view-overlays .current-line {
     display: none;
 }
 
-.execution-decoration {
+#editor .execution-decoration {
     left: 45px !important;
 
     width: 8px !important;
@@ -48,7 +52,7 @@ monaco-editor.no-user-select.showUnused.showDeprecated.vs {
     display: none;
 }
 
-.monaco-editor .line-numbers {
+#editor .monaco-editor .line-numbers {
     color: black !important;
     opacity: 0.2;
     font-size: 12px !important;
@@ -58,33 +62,33 @@ monaco-editor.no-user-select.showUnused.showDeprecated.vs {
     margin-left: -10px;
 }
 
-.monaco-editor .line-numbers:hover {
+#editor .monaco-editor .line-numbers:hover {
     opacity: 1 !important;
 }
 
-.line-selected {
+#editor .line-selected {
     font-weight: 800 !important;
     opacity: 1 !important;
 }
 
-.cigr {
+#editor .cigr {
     box-shadow: 0.5px 0 0 0 rgba(0, 0, 0, 0) inset !important;
 }
 
-.cigra {
+#editor .cigra {
     box-shadow: 0.5px 0 0 0 rgba(0, 0, 0, 0) inset !important;
 }
 
-.monaco-editor .margin-view-overlays .codicon-chevron-down {
+#editor .monaco-editor .margin-view-overlays .codicon-chevron-down {
     font-size: 80%;
 }
 
-.monaco-editor .margin-view-overlays .codicon-folding-collapsed,
-.monaco-editor .margin-view-overlays .codicon-folding-expanded {
+#editor .monaco-editor .margin-view-overlays .codicon-folding-collapsed,
+#editor .monaco-editor .margin-view-overlays .codicon-folding-expanded {
     font-size: 80% !important;
 }
 
-.cdr.bracket-match {
+#editor .cdr.bracket-match {
     opacity: 0.5;
     border: none !important;
     outline: none !important;
@@ -93,7 +97,7 @@ monaco-editor.no-user-select.showUnused.showDeprecated.vs {
     background: none !important;
 }
 
-.monaco-editor .cursors-layer .cursor {
+#editor .monaco-editor .cursors-layer .cursor {
     background-color: black !important;
     transition-property: top, left;
     transition: 0.1s;
@@ -103,18 +107,18 @@ monaco-editor.no-user-select.showUnused.showDeprecated.vs {
     margin-left: 2px !important;
 }
 
-.monaco-editor .scroll-decoration {
+#editor .monaco-editor .scroll-decoration {
     box-shadow: none !important;
 }
 
-.monaco-scrollable-element {
+#editor .monaco-scrollable-element {
     overflow: visible !important;
 }
 
-.monaco-editor .view-overlays .current-line {
+#editor .monaco-editor .view-overlays .current-line {
     border: none !important;
 }
 
-.monaco-editor .selected-text {
+#editor .monaco-editor .selected-text {
     background: none !important;
 }

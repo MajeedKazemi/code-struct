@@ -1,7 +1,12 @@
 var controller;
-import { addVariableReferenceButton, removeVariableReferenceButton, ToolboxButton } from "../editor/toolbox";
+import {
+    addVariableReferenceButton,
+    createCascadedMenuForVarRef,
+    removeVariableReferenceButton,
+} from "../editor/toolbox";
+import { getUserFriendlyType } from "../utilities/util";
 import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
-import { DataType, InsertionType } from "./consts";
+import { DataType } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
 
@@ -22,97 +27,7 @@ export class VariableController {
         );
         this.variableButtons.push(button);
 
-        this.addCascadedMenuActions(assignmentStmt.buttonId, button);
-    }
-
-    private createCascadedMenu(identifier: string, buttonId: string): HTMLDivElement {
-        const dataType = this.getVariableTypeNearLine(
-            this.module.focus.getFocusedStatement().scope ??
-                (
-                    this.module.focus.getStatementAtLineNumber(this.module.editor.monaco.getPosition().lineNumber)
-                        .rootNode as Statement | Module
-                ).scope,
-            this.module.editor.monaco.getPosition().lineNumber,
-            identifier,
-            false
-        );
-        const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
-        const validActions = this.module.actionFilter.validateVariableOperations(varRef);
-        const context = this.module.focus.getContext();
-
-        const menu = document.createElement("div");
-        menu.id = `${buttonId}-cascadedMenu`;
-        menu.className = "cascadedMenuMainDiv";
-
-        menu.addEventListener("mouseover", () => {
-            setTimeout(() => {
-                const element = document.getElementById(`${buttonId}-cascadedMenu`);
-                const button = document.getElementById(buttonId);
-
-                if (element && !element.matches(":hover") && !button.matches(":hover")) {
-                    element.remove();
-                }
-            }, 50);
-        });
-
-        for (const [key, value] of validActions) {
-            if (value.insertionType !== InsertionType.Invalid) {
-                const menuItem = document.createElement("div");
-                menuItem.classList.add("cascadedMenuContent");
-
-                const menuText = document.createElement("span");
-                menuText.classList.add("cascadedMenuOptionTooltip");
-
-                const menuButton = ToolboxButton.createToolboxButtonFromJsonObj({
-                    text: value.optionName,
-                }).domElement;
-                menuButton.classList.add("cascadedMenuItem");
-
-                menuButton.addEventListener("click", () => {
-                    value.performAction(this.module.executer, this.module.eventRouter, context);
-                });
-
-                menuItem.appendChild(menuButton);
-                menuItem.appendChild(menuText);
-
-                menu.appendChild(menuItem);
-            }
-        }
-
-        return menu;
-    }
-
-    private addCascadedMenuActions(buttonId: string, button: HTMLDivElement) {
-        const identifier = document.getElementById(buttonId).innerText;
-
-        button.addEventListener("mouseover", () => {
-            if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
-                const menuElement = this.createCascadedMenu(identifier, buttonId);
-
-                if (menuElement.children.length > 0) {
-                    const content = document.createElement("div");
-                    content.classList.add("cascadedMenuContent");
-                    document.getElementById("editor-toolbox").appendChild(menuElement);
-
-                    const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
-                    const leftPos = button.offsetLeft;
-                    const topPos =
-                        button.offsetTop - document.getElementById("editor-toolbox").scrollTop + button.offsetHeight;
-
-                    domMenuElement.style.left = `${leftPos}px`;
-                    domMenuElement.style.top = `${topPos + 2}px`;
-                }
-            }
-        });
-
-        button.addEventListener("mouseleave", () => {
-            setTimeout(() => {
-                const element = document.getElementById(`${buttonId}-cascadedMenu`);
-                if (element && !element.matches(":hover") && !button.matches(":hover")) {
-                    element.remove();
-                }
-            }, 50);
-        });
+        createCascadedMenuForVarRef(assignmentStmt.buttonId, assignmentStmt.getIdentifier(), this.module);
     }
 
     isVariableReferenceButton(buttonId: string) {
@@ -172,25 +87,31 @@ export class VariableController {
         if (availableRefs) {
             for (const button of this.variableButtons) {
                 if (availableRefs.indexOf(button.id) === -1) {
-                    button.parentElement.style.display = "none";
+                    button.parentElement.parentElement.style.display = "none";
                 } else {
-                    button.parentElement.style.display = "grid";
-                    button.parentElement.children[1].innerHTML = this.getVariableTypeNearLine(
-                        scope,
-                        lineNumber,
-                        button.textContent
-                    );
+                    button.parentElement.parentElement.style.display = "grid";
+
+                    button.parentElement.parentElement.children[1].innerHTML =
+                        "-> " +
+                        getUserFriendlyType(this.getVariableTypeNearLine(scope, lineNumber, button.textContent));
                 }
             }
         }
     }
 
     updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string) {
-        this.variableButtons.filter((button) => button.id === buttonId)[0].parentElement.children[1].innerHTML =
-            this.getVariableTypeNearLine(scope, lineNumber, identifier, false);
+        this.variableButtons.filter(
+            (button) => button.id === buttonId
+        )[0].parentElement.parentElement.children[1].innerHTML =
+            "-> " + getUserFriendlyType(this.getVariableTypeNearLine(scope, lineNumber, identifier, false));
     }
 
-    getVariableTypeNearLine(scope: Scope, lineNumber: number, identifier: string, excludeCurrentLine: boolean = true) {
+    getVariableTypeNearLine(
+        scope: Scope,
+        lineNumber: number,
+        identifier: string,
+        excludeCurrentLine: boolean = true
+    ): DataType {
         const focus = this.module.focus;
         const assignmentsToVar = scope.getAllAssignmentsToVarAboveLine(
             identifier,
@@ -248,7 +169,30 @@ export class VariableController {
         }
     }
 
-    getAllAssignmentsToVar(varId: string, module: Module) {
+    isVarStmtReassignment(varStmt: VarAssignmentStmt, module: Module): boolean {
+        const Q: CodeConstruct[] = [];
+        Q.unshift(...module.body.filter((stmt) => stmt.lineNumber < varStmt.lineNumber));
+
+        while (Q.length > 0) {
+            const currCodeConstruct = Q.pop();
+
+            if (currCodeConstruct instanceof Statement) {
+                Q.unshift(...currCodeConstruct.body);
+
+                if (
+                    currCodeConstruct instanceof VarAssignmentStmt &&
+                    currCodeConstruct.getIdentifier() === varStmt.getIdentifier() &&
+                    currCodeConstruct.lineNumber < varStmt.lineNumber
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    getAllAssignmentsToVar(varId: string, module: Module): VarAssignmentStmt[] {
         const Q: CodeConstruct[] = [];
         const result: VarAssignmentStmt[] = [];
         Q.push(...module.body);
@@ -272,13 +216,14 @@ export class VariableController {
         return result;
     }
 
-    private getVarRefsBFS(varId: string, module: Module) {
+    private getVarRefsBFS(varId: string, module: Module): VariableReferenceExpr[] {
         const Q: CodeConstruct[] = [];
         const result: VariableReferenceExpr[] = [];
         Q.push(...module.body);
 
         while (Q.length > 0) {
-            const currCodeConstruct = Q.splice(0, 1)[0];
+            const currCodeConstruct = Q.pop();
+
             if (currCodeConstruct instanceof Expression) {
                 Q.push(...currCodeConstruct.tokens);
 

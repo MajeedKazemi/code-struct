@@ -1,10 +1,11 @@
+import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
 import { InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeConstruct, ListElementAssignment, TypedEmptyExpr, VarAssignmentStmt } from "../syntax-tree/ast";
-import { BuiltInFunctions, PythonKeywords } from "../syntax-tree/consts";
+import { BuiltInFunctions, InsertionType, PythonKeywords } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { TextEnhance } from "../utilities/text-enhance";
 import { ConstructDoc } from "./construct-doc";
@@ -31,6 +32,8 @@ class Menu {
     static menuCount = 0;
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
+
+    private optionsInViewPort;
 
     constructor(options: Map<string, Function>) {
         this.htmlElement = document.createElement("div");
@@ -228,6 +231,33 @@ class Menu {
     getOptionByText(optionText: string) {
         return this.options.filter((option) => option.text == optionText)[0];
     }
+
+    setOptionsInViewport(n: number) {
+        this.optionsInViewPort = n;
+    }
+
+    getOptionsInViewport() {
+        return this.optionsInViewPort;
+    }
+
+    /**
+     * This should only be called on menus with > 0 options. Otherwise it will have no effect.
+     */
+    updateDimensions() {
+        if (this.options.length > 0) {
+            const optionHeight = this.options[0].htmlElement.offsetHeight;
+            const totalOptionHeight = optionHeight * this.options.length;
+            const vh = window.innerHeight;
+
+            if (totalOptionHeight <= 0.3 * vh) {
+                this.optionsInViewPort = this.options.length;
+                this.htmlElement.style.height = `${totalOptionHeight}px`;
+            } else {
+                this.optionsInViewPort = Math.floor((0.3 * vh) / optionHeight);
+                this.htmlElement.style.height = `${this.optionsInViewPort * optionHeight}px`;
+            }
+        }
+    }
 }
 
 /**
@@ -242,6 +272,7 @@ class MenuOption {
     text: string;
     doc: ConstructDoc;
     htmlElement: HTMLDivElement;
+    draftMode: boolean;
 
     //action performed when this option is selected, null if this option links to another menu
     selectAction: Function;
@@ -253,7 +284,8 @@ class MenuOption {
         parentMenu?: Menu,
         doc?: ConstructDoc,
         selectAction?: Function,
-        extraInformation?: string
+        extraInformation?: string,
+        draftMode: boolean = false
     ) {
         this.text = text;
         this.childMenu = childMenu;
@@ -263,6 +295,10 @@ class MenuOption {
 
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.optionElementClass);
+
+        this.draftMode = draftMode;
+
+        if (draftMode) this.htmlElement.classList.add(MenuController.draftModeOptionElementClass);
 
         let textNode;
 
@@ -288,13 +324,6 @@ class MenuOption {
         }
 
         this.addArrowImg();
-
-        this.htmlElement.addEventListener(
-            "mouseenter",
-            (() => {
-                MenuController.getInstance().focusOption(this);
-            }).bind(this)
-        );
 
         this.htmlElement.addEventListener("click", () => {
             this.select();
@@ -380,9 +409,12 @@ class MenuOption {
  */
 export class MenuController {
     private static instance: MenuController;
+    private topOptionIndex: number = 0;
+    private bottomOptionIndex: number = 0;
 
     static suggestionOptionExtraInfo: string = "suggestionOptionExtraInfo";
     static optionElementClass: string = "suggestionOptionParent";
+    static draftModeOptionElementClass: string = "draftModeOptionElementClass";
     static menuElementClass: string = "suggestionMenuParent";
     static optionTextElementClass: string = "suggestionOptionText";
     static selectedOptionElementClass: string = "selectedSuggestionOptionParent";
@@ -423,9 +455,11 @@ export class MenuController {
         if (this.menus.length > 0) this.removeMenus();
         else if (suggestions.length > 0) {
             const menu = this.module.menuController.buildMenu(suggestions, pos);
+            menu.updateDimensions();
             menu.open();
             this.indexOfRootMenu = 0;
             this.focusedOptionIndex = 0;
+            this.bottomOptionIndex = menu.getOptionsInViewport() - 1;
             menu.editCodeActionsOptions = suggestions;
             this.focusOption(menu.options[this.focusedOptionIndex]);
         }
@@ -439,7 +473,7 @@ export class MenuController {
      *
      * @returns the constructed menu. Null if no options was empty.
      */
-    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
+    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }): Menu {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
@@ -496,27 +530,31 @@ export class MenuController {
             MenuController.optionElementClass
         );
 
-        if (this.focusedOptionIndex != -1 && this.focusedOptionIndex != optionDomElements.length) {
-            options[this.focusedOptionIndex].removeFocus();
-        }
-
+        //Updates
+        options[this.focusedOptionIndex].removeFocus();
         this.focusedOptionIndex++;
 
         if (this.focusedOptionIndex == optionDomElements.length) {
             this.focusedOptionIndex = 0;
         }
 
-        options[this.focusedOptionIndex].setFocus();
-        if (options[this.focusedOptionIndex].hasChild()) {
-            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
-        }
-
         if (this.focusedOptionIndex == 0) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop = 0;
-        } else {
+            this.topOptionIndex = 0;
+            this.bottomOptionIndex = this.menus[this.focusedMenuIndex].getOptionsInViewport();
+        } else if (this.focusedOptionIndex > this.bottomOptionIndex) {
+            this.topOptionIndex++;
+            this.bottomOptionIndex++;
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop += (
                 optionDomElements[0] as HTMLDivElement
             ).offsetHeight;
+        }
+
+        options[this.focusedOptionIndex].setFocus();
+
+        //Open sub-menu if there is one
+        if (options[this.focusedOptionIndex].hasChild()) {
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
     }
 
@@ -527,26 +565,30 @@ export class MenuController {
             MenuController.optionElementClass
         );
 
-        if (this.focusedOptionIndex != -1 && this.focusedOptionIndex != options.length) {
-            options[this.focusedOptionIndex].removeFocus();
-        }
-
+        //Updates
+        options[this.focusedOptionIndex].removeFocus();
         this.focusedOptionIndex--;
 
         if (this.focusedOptionIndex < 0) this.focusedOptionIndex = options.length - 1;
 
-        options[this.focusedOptionIndex].setFocus();
-        if (options[this.focusedOptionIndex].hasChild()) {
-            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
-        }
-
         if (this.focusedOptionIndex == options.length - 1) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop =
                 (optionDomElements[0] as HTMLDivElement).offsetHeight * options.length;
-        } else {
+            this.topOptionIndex = options.length - this.menus[this.focusedMenuIndex].getOptionsInViewport();
+            this.bottomOptionIndex = options.length - 1;
+        } else if (this.focusedOptionIndex < this.topOptionIndex) {
+            this.topOptionIndex--;
+            this.bottomOptionIndex--;
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop -= (
                 optionDomElements[0] as HTMLDivElement
             ).offsetHeight;
+        }
+
+        options[this.focusedOptionIndex].setFocus();
+
+        //Open sub-menu if there is one
+        if (options[this.focusedOptionIndex].hasChild()) {
+            this.menus[this.focusedMenuIndex].openedLinkOptionIndex = this.focusedOptionIndex;
         }
     }
 
@@ -580,7 +622,7 @@ export class MenuController {
                 this.selectFocusedOption();
 
                 this.focusedMenuIndex = this.menus.indexOf(newFocusedMenu);
-                this.focusedOptionIndex = 0;
+                this.focusedOptionIndex = 0; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
                 this.focusOption(this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex]);
             }
         }
@@ -591,7 +633,7 @@ export class MenuController {
         if (this.menus[this.focusedMenuIndex].parentMenu) {
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].removeFocus();
             this.focusedMenuIndex = this.menus.indexOf(this.menus[this.focusedMenuIndex].parentMenu);
-            this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex;
+            this.focusedOptionIndex = this.menus[this.focusedMenuIndex].openedLinkOptionIndex; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
             this.menus[this.focusedMenuIndex].options[this.focusedOptionIndex].setFocus();
             this.menus[this.focusedMenuIndex].closeChildren();
         }
@@ -612,7 +654,7 @@ export class MenuController {
         if (isRoot) {
             this.indexOfRootMenu = 0;
             this.menus = [];
-            this.focusedOptionIndex = 0;
+            this.focusedOptionIndex = 0; //TODO: If we ever go back to nested menus then this.topOptionIndex and this.bottomOptionIndex need to be updated here.
             this.focusedMenuIndex = 0;
         }
 
@@ -623,44 +665,127 @@ export class MenuController {
         });
     }
 
-    updateMenuOptions(optionText: string) {
+    styleMenuOptions() {
         if (this.isMenuOpen()) {
             const textEnhance = new TextEnhance();
             const menu = this.menus[this.focusedMenuIndex];
 
-            //get matches from fuse
-            const searchResult = Validator.matchString(
-                optionText,
-                menu.editCodeActionsOptions.map((action) => action.optionName)
-            );
+            let actionsToKeep = menu.editCodeActionsOptions;
 
-            //filter EditCodeAction options based on what strings matched
-            const searchResultStrings = searchResult.map((result) => result.item);
-            let optionsToKeep = menu.editCodeActionsOptions.filter((action) =>
-                action.matchRegex ? true : searchResultStrings.indexOf(action.optionName) > -1
-            );
-
-            /*Second round of filtering for regex-based items
-              Currently only used by variable assignment
-            */
-            optionsToKeep = optionsToKeep.filter((editCodeAction) =>
-                editCodeAction.matchRegex ? editCodeAction.matchRegex.test(optionText) : true
-            );
-
-            //recreate options
+            //------RECREATE OPTIONS------
             let focusedOptionText = "";
             if (this.focusedOptionIndex > -1) {
                 focusedOptionText = menu.options[this.focusedOptionIndex].text;
             }
 
+            //clear old options since some of them might not be valid anymore
             menu.options.forEach((option) => {
                 option.removeFromDOM();
             });
             menu.options = [];
 
-            for (const editAction of optionsToKeep) {
-                let stringMatch; //user input if editAction has a matchRegex; a Fuse match object otherwise
+            for (const action of actionsToKeep) {
+                let option = new MenuOption(
+                    action.optionName,
+                    true,
+                    null,
+                    menu,
+                    null,
+                    () => {
+                        action.performAction(
+                            this.module.executer,
+                            this.module.eventRouter,
+                            this.module.focus.getContext(),
+                            {}
+                        );
+                    },
+                    null,
+                    action.insertionType == InsertionType.DraftMode
+                );
+
+                this.insertOptionIntoMenu(option, menu);
+
+                if (option.text === focusedOptionText) {
+                    this.focusedOptionIndex = menu.options.length - 1;
+                    option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
+                } else {
+                    this.focusedOptionIndex = 0;
+                }
+            }
+
+            //------UPDATE FOCUSED OPTION------
+            if (menu.options.length == 0) {
+                const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
+                this.insertOptionIntoMenu(option, menu);
+                this.focusedOptionIndex = 0;
+            } else if (this.focusedOptionIndex < menu.options.length) {
+                this.focusOption(menu.options[this.focusedOptionIndex]);
+            } else {
+                console.error("suggestion-controller: this.focusedOptionIndex >= menu.options.length");
+            }
+        }
+    }
+
+    updateMenuOptions(optionText: string) {
+        if (this.isMenuOpen()) {
+            const textEnhance = new TextEnhance();
+            const menu = this.menus[this.focusedMenuIndex];
+
+            //------UPDATE MATCH STRING FOR ACTIONS THAT DEPEND ON USER INPUT------------
+
+            /*The default text for var assignment is 'var = ---'
+              Change it here so that fuse matches on 'user_input = ---'
+              Same goes for ---[---] = --- ==> user_input[---] = ---
+            */
+            const assignNewVarAction = menu.editCodeActionsOptions.filter(
+                (action) => action.insertActionType === InsertActionType.InsertNewVariableStmt
+            )[0];
+            if (assignNewVarAction) {
+                assignNewVarAction.optionName = optionText + " = ---";
+            }
+
+            const assignListElementAction = menu.editCodeActionsOptions.filter(
+                (action) => action.insertActionType === InsertActionType.InsertListIndexAssignment
+            )[0];
+            if (assignListElementAction) {
+                assignListElementAction.optionName = optionText + "[---] = ---";
+            }
+
+            //------FILTER------
+            //get matching options from fuse
+            let actionsToKeep = Validator.matchEditCodeAction(optionText, menu.editCodeActionsOptions, ["optionName"]);
+
+            /*Second round of filtering for regex-based items
+              Currently only used by variable assignment
+            */
+            actionsToKeep = actionsToKeep.filter((editCodeAction) =>
+                editCodeAction.item.matchRegex ? editCodeAction.item.matchRegex.test(optionText) : true
+            );
+
+            //var assignment option has to be moved to the end manually
+            const indexOfVarAssignment = actionsToKeep
+                .map((result) => result.item.insertActionType)
+                .indexOf(InsertActionType.InsertNewVariableStmt);
+            if (indexOfVarAssignment > -1) {
+                const varAssignmentRes = actionsToKeep.splice(indexOfVarAssignment, 1)[0];
+                actionsToKeep.push(varAssignmentRes);
+            }
+
+            //------RECREATE OPTIONS------
+            let focusedOptionText = "";
+            if (this.focusedOptionIndex > -1) {
+                focusedOptionText = menu.options[this.focusedOptionIndex].text;
+            }
+
+            //clear old options since some of them might not be valid anymore
+            menu.options.forEach((option) => {
+                option.removeFromDOM();
+            });
+            menu.options = [];
+
+            for (const fuseResult of actionsToKeep) {
                 let substringMatchRanges = [];
+                const editAction = fuseResult.item;
 
                 //TODO: If there are more constructs that need to have a custom performAction based on user input then consider changing this to be more general
                 const currentStmt = this.module.focus.getFocusedStatement();
@@ -673,14 +798,12 @@ export class MenuController {
                     currentScope.getAllAssignmentsToVarAboveLine(optionText, this.module, currentStmt.lineNumber)
                         .length === 0
                 ) {
-                    stringMatch = optionText + " = ---";
-                    substringMatchRanges = [[[0, optionText.length - 1]]];
+                    substringMatchRanges = [[[0, optionText.length - 1]]]; //It will always exactly match the user input.
                     editAction.getCode = () => new VarAssignmentStmt("", optionText);
+                    editAction.trimSpacesBeforeTermChar = true;
                 }
                 // for displaying the correct identifier for the ---[---] = --- option
                 else if (editAction.insertActionType === InsertActionType.InsertListIndexAssignment) {
-                    //TODO: Need to think about whether to remove this or not
-                    stringMatch = optionText + "[---]= ---";
                     substringMatchRanges = [[[0, optionText.length - 1]]];
                     editAction.getCode = () => {
                         const code = new ListElementAssignment();
@@ -701,24 +824,20 @@ export class MenuController {
                 else if (editAction.insertActionType === InsertActionType.InsertNewVariableStmt) {
                     continue;
                 } else {
-                    stringMatch = searchResult.filter((match) => match.item === editAction.optionName)[0];
-
-                    if (stringMatch) {
-                        for (const match of stringMatch.matches) {
-                            substringMatchRanges.push(match.indices);
-                        }
+                    for (const match of fuseResult.matches) {
+                        substringMatchRanges.push(match.indices);
                     }
                 }
 
                 const optionDisplayText = textEnhance.getStyledSpanAtSubstrings(
-                    stringMatch?.item ?? stringMatch,
+                    editAction.optionName,
                     "matchingText",
                     substringMatchRanges
                 );
 
-                //necessary so that we don't create variables with keywords as identifiers
+                //Create new option from above info
                 let option: MenuOption;
-
+                //necessary so that we don't create variables with keywords as identifiers
                 if (
                     (editAction.insertActionType === InsertActionType.InsertNewVariableStmt &&
                         Object.keys(PythonKeywords).indexOf(optionText) == -1 &&
@@ -746,20 +865,20 @@ export class MenuController {
                                 {}
                             );
                         },
-                        extraInfo
+                        extraInfo,
+                        editAction.insertionType == InsertionType.DraftMode
                     );
 
                     this.insertOptionIntoMenu(option, menu);
-
-                    if (option.text === focusedOptionText) {
-                        this.focusedOptionIndex = menu.options.length - 1;
-                        option.htmlElement.classList.add(MenuController.selectedOptionElementClass);
-                    } else {
-                        this.focusedOptionIndex = 0;
-                    }
                 }
             }
 
+            //focus top option if one exists
+            this.focusedOptionIndex = 0;
+            this.topOptionIndex = 0;
+            this.bottomOptionIndex = menu.getOptionsInViewport() > 0 ? menu.getOptionsInViewport() - 1 : 0;
+
+            //------UPDATE FOCUSED OPTION------
             if (menu.options.length == 0) {
                 const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
                 this.insertOptionIntoMenu(option, menu);
@@ -777,7 +896,27 @@ export class MenuController {
         this.menus[this.focusedMenuIndex].htmlElement.style.top = `${pos.top}px`;
     }
 
-    getNewMenuPosition(code: CodeConstruct): { left: number; top: number } {
+    getNewMenuPositionFromPosition(position: Position): { left: number; top: number } {
+        const pos = { left: 0, top: 0 };
+        pos.left =
+            document.getElementById(EDITOR_DOM_ID).offsetLeft +
+            (
+                document
+                    .getElementById(EDITOR_DOM_ID)
+                    .getElementsByClassName("monaco-editor no-user-select  showUnused showDeprecated vs")[0]
+                    .getElementsByClassName("overflow-guard")[0]
+                    .getElementsByClassName("margin")[0] as HTMLElement
+            ).offsetWidth +
+            (this.module.editor.computeCharWidth() ? position.column * this.module.editor.computeCharWidth() : 0);
+
+        pos.top =
+            this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
+            document.getElementById(EDITOR_DOM_ID).offsetTop;
+
+        return pos;
+    }
+
+    getNewMenuPositionFromCode(code: CodeConstruct): { left: number; top: number } {
         const pos = { left: 0, top: 0 };
         pos.left =
             document.getElementById(EDITOR_DOM_ID).offsetLeft +
@@ -794,7 +933,7 @@ export class MenuController {
 
         pos.top =
             this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
-            parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop);
+            document.getElementById(EDITOR_DOM_ID).offsetTop;
 
         return pos;
     }

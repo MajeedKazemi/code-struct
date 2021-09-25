@@ -1,56 +1,41 @@
 {
     "toolboxConstructGroupOptions": {
-        "functionCalls": {
+        "loops": {
             "includeCategory": 1,
-            "categoryDisplayName": "Function Calls",
-            "includeCategoryItems": {
-                "print": 1,
-                "randint": 1,
-                "range": 1,
-                "len": 1,
-                "input": 1
-            }
-        },
-        "controlFlow": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Control Flow",
+            "categoryDisplayName": "Loops",
+            "categoryId": "loops-toolbox-group",
             "includeCategoryItems": {
                 "while": 1,
-                "if": 1,
-                "elif": 1,
-                "else": 1,
-                "for": 1
+                "for": 1,
+                "range": 1
             }
         },
-        "methods": {
+        "conditionals": {
             "includeCategory": 1,
-            "categoryDisplayName": "Methods",
+            "categoryDisplayName": "Conditionals",
+            "categoryId": "conditionals-toolbox-group",
             "includeCategoryItems": {
-                "split": 1,
-                "join": 1,
-                "find": 1,
-                "replace": 1
+                "if": 1,
+                "elif": 1,
+                "else": 1
+            }
+        },
+        "generalFunctions": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Functions",
+            "categoryId": "functions-toolbox-group",
+            "includeCategoryItems": {
+                "print": 1,
+                "input": 1,
+                "len": 1
             }
         },
         "variables": {
             "includeCategory": 1,
             "categoryDisplayName": "Variables",
+            "categoryId": "create-var-toolbox-group",
             "includeCategoryItems": {
-                "addVar": 1
-            }
-        },
-        "userDefinedVariables": {
-            "includeCategory": 1,
-            "categoryDisplayName": "User Defined Variables",
-            "categoryHtml": "<div id=\"user-variables\"><h2 id=\"user-defined-vars-heading\">User-Defined Variables</h2><div id=\"vars-button-grid\"></div>",
-            "includeCategoryItems": {
-                
-            }
-        },
-        "assignmentOperations": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Assignment Operations",
-            "includeCategoryItems": {
+                "addVar": 1,
                 "assign": 1,
                 "assignAdd": 1,
                 "assignSub": 1,
@@ -58,37 +43,42 @@
                 "assignDiv": 1
             }
         },
+        "numbers": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Numbers",
+            "categoryId": "numbers-toolbox-group",
+            "includeCategoryItems": {
+                "num": 1,
+                "randint": 1
+            }
+        },
+        "texts": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Text",
+            "categoryId": "text-toolbox-group",
+            "includeCategoryItems": {
+                "str": 1,
+                "split": 1,
+                "join": 1,
+                "find": 1,
+                "replace": 1
+            }
+        },
         "list": {
             "includeCategory": 1,
-            "categoryDisplayName": "List",
+            "categoryDisplayName": "Lists",
+            "categoryId": "list-ops-toolbox-group",
             "includeCategoryItems": {
                 "listLiteral": 1,
                 "listItem": 1,
-                "listAppend": 1,
                 "listIndex": 1,
-                "listElementAssign": 1
+                "listAppend": 1
             }
         },
-        "literals": {
+        "arithmetics": {
             "includeCategory": 1,
-            "categoryDisplayName": "Literals",
-            "includeCategoryItems": {
-                "str": 1,
-                "num": 1,
-                "boolT": 1,
-                "boolF": 1
-            }
-        },
-        "casting": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Casting",
-            "includeCategoryItems": {
-                "toStr": 1
-            }
-        },
-        "operations": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Operations",
+            "categoryDisplayName": "Arithmetics",
+            "categoryId": "arithmetics-toolbox-group",
             "includeCategoryItems": {
                 "binAdd": 1,
                 "binSub": 1,
@@ -96,18 +86,10 @@
                 "binDiv": 1
             }
         },
-        "booleans": {
-            "includeCategory": 1,
-            "categoryDisplayName": "Booleans",
-            "includeCategoryItems": {
-                "and": 1,
-                "or": 1,
-                "unaryNot": 1
-            }
-        },
         "comparisons": {
             "includeCategory": 1,
             "categoryDisplayName": "Comparisons",
+            "categoryId": "comparison-ops-toolbox-group",
             "includeCategoryItems": {
                 "compEq": 1,
                 "compNeq": 1,
@@ -116,180 +98,272 @@
                 "compGt": 1,
                 "comptGte": 1
             }
+        },
+        "booleans": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Booleans",
+            "categoryId": "boolean-ops-toolbox-group",
+            "includeCategoryItems": {
+                "and": 1,
+                "or": 1,
+                "unaryNot": 1,
+                "boolT": 1,
+                "boolF": 1
+            }
+        },
+        "castingFunctions": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Casting",
+            "categoryId": "casting-toolbox-group",
+            "includeCategoryItems": {
+                "toStr": 1
+            }
+        },
+        "imports": {
+            "includeCategory": 1,
+            "categoryDisplayName": "Imports",
+            "categoryId": "import-toolbox-group",
+            "includeCategoryItems": {
+                "import": 1
+            }
         }
     },
     "toolboxDefaultButtonTemplates": {
         "print": {
             "id": "add-print-btn",
-            "text": "print(---)"
+            "text": "print(---)",
+            "returnType": null
         },
         "randint": {
             "id": "add-randint-btn",
-            "text": "randint(---, ---)"
+            "text": "randint(---, ---)",
+            "returnType": " -> number"
         },
         "range": {
             "id": "add-range-btn",
-            "text": "range(---, ---)"
+            "text": "range(---, ---)",
+            "returnType": " -> iterator"
         },
         "len": {
             "id": "add-len-btn",
-            "text": "len(---)"
+            "text": "len(---)",
+            "returnType": " -> number"
         },
         "input": {
             "id": "add-input-btn",
-            "text": "input(---)"
+            "text": "input(---)",
+            "returnType": " -> text"
         },
         "while": {
             "id": "add-while-expr-btn",
-            "text": "while ---:"
+            "text": "while ---:",
+            "returnType": null,
+            "documentation": {
+                "title": "while loop",
+                "body": [
+                    {
+                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true"
+                    },
+                    { "example": "while True :\n\tprint(\"an infinite loop\")" },
+                    {
+                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true"
+                    },
+                    { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" },
+                    {
+                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true"
+                    }
+                ]
+            }
         },
         "if": {
             "id": "add-if-expr-btn",
-            "text": "if ---:"
+            "text": "if ---:",
+            "returnType": null
         },
         "elif": {
             "id": "add-elif-expr-btn",
-            "text": "elif ---:"
+            "text": "elif ---:",
+            "returnType": null
         },
         "else": {
             "id": "add-else-expr-btn",
-            "text": "else:"
+            "text": "else:",
+            "returnType": null
         },
         "for": {
             "id": "add-for-expr-btn",
-            "text": "for --- in ---:"
+            "text": "for --- in ---:",
+            "returnType": null
         },
         "split": {
             "id": "add-split-method-call-btn",
-            "text": ".split(---)"
+            "text": ".split(---)",
+            "returnType": " -> list[text]"
         },
         "join": {
             "id": "add-join-method-call-btn",
-            "text": ".join(---)"
+            "text": ".join(---)",
+            "returnType": " -> text"
         },
         "find": {
             "id": "add-find-method-call-btn",
-            "text": ".find(---)"
+            "text": ".find(---)",
+            "returnType": " -> number"
         },
         "replace": {
             "id": "add-replace-method-call-btn",
-            "text": ".replace(---)"
+            "text": ".replace(---)",
+            "returnType": " -> text"
         },
         "addVar": {
             "id": "add-var-btn",
-            "text": "--- = ---"
+            "text": "--- = ---",
+            "returnType": null
         },
         "assign": {
             "id": "add-assign-mod-btn",
-            "text": "--- = ---"
+            "text": "= ---",
+            "returnType": null
         },
         "assignAdd": {
             "id": "add-aug-assign-add-mod-btn",
-            "text": "+= ---"
+            "text": "+= ---",
+            "returnType": null
         },
         "assignSub": {
             "id": "add-aug-assign-sub-mod-btn",
-            "text": "-= ---"
+            "text": "-= ---",
+            "returnType": null
         },
         "assignMult": {
             "id": "add-aug-assign-mul-mod-btn",
-            "text": "*= ---"
+            "text": "*= ---",
+            "returnType": null
         },
         "assignDiv": {
             "id": "add-aug-assign-div-mod-btn",
-            "text": "/= ---"
+            "text": "/= ---",
+            "returnType": null
         },
         "listLiteral": {
             "id": "add-list-literal-btn",
-            "text": "[]"
+            "text": "[]",
+            "returnType": " -> list[any]"
         },
         "listItem": {
             "id": "add-list-item-btn",
-            "text": ", ---"
+            "text": ", ---",
+            "returnType": null
         },
         "listAppend": {
             "id": "add-list-append-stmt-btn",
-            "text": "---.append(---)"
+            "text": "---.append(---)",
+            "returnType": null
         },
         "listIndex": {
             "id": "add-list-index-btn",
-            "text": "---[---]"
+            "text": "[---]",
+            "returnType": " -> any"
         },
         "listElementAssign": {
             "id": "add-list-elem-assign-btn",
-            "text": "---[---] = ---"
+            "text": "---[---] = ---",
+            "returnType": null
         },
         "str": {
             "id": "add-str-btn",
-            "text": "\"txt\""
+            "text": "\"txt\"",
+            "returnType": " -> text"
         },
         "num": {
             "id": "add-num-btn",
-            "text": "123"
+            "text": "123",
+            "returnType": " -> number"
         },
         "boolT": {
             "id": "add-true-btn",
-            "text": "True"
+            "text": "True",
+            "returnType": " -> boolean"
         },
         "boolF": {
             "id": "add-false-btn",
-            "text": "False"
+            "text": "False",
+            "returnType": " -> boolean"
         },
         "toStr": {
             "id": "add-cast-str-btn",
-            "text": "str(---)"
+            "text": "str(---)",
+            "returnType": " -> text"
         },
         "binAdd": {
             "id": "add-bin-add-expr-btn",
-            "text": "--- + ---"
+            "text": "--- + ---",
+            "returnType": " -> number / text"
         },
         "binSub": {
             "id": "add-bin-sub-expr-btn",
-            "text": "--- - ---"
+            "text": "--- - ---",
+            "returnType": " -> number"
         },
         "binMult": {
             "id": "add-bin-mul-expr-btn",
-            "text": "--- * ---"
+            "text": "--- * ---",
+            "returnType": " -> number"
         },
         "binDiv": {
             "id": "add-bin-div-expr-btn",
-            "text": "--- / ---"
+            "text": "--- / ---",
+            "returnType": " -> number"
         },
         "and": {
             "id": "add-bin-and-expr-btn",
-            "text": "--- and ---"
+            "text": "--- and ---",
+            "returnType": " -> boolean"
         },
         "or": {
             "id": "add-bin-or-expr-btn",
-            "text": "--- or ---"
+            "text": "--- or ---",
+            "returnType": " -> boolean"
         },
         "unaryNot": {
             "id": "add-unary-not-expr-btn",
-            "text": "not ---"
+            "text": "not ---",
+            "returnType": " -> boolean"
         },
         "compEq": {
             "id": "add-comp-eq-expr-btn",
-            "text": "--- == ---"
+            "text": "--- == ---",
+            "returnType": " -> boolean"
         },
         "compNeq": {
             "id": "add-comp-neq-expr-btn",
-            "text": "--- != ---"
+            "text": "--- != ---",
+            "returnType": " -> boolean"
         },
         "compLt": {
             "id": "add-comp-lt-expr-btn",
-            "text": "--- < ---"
+            "text": "--- < ---",
+            "returnType": " -> boolean"
         },
         "compLte": {
             "id": "add-comp-lte-expr-btn",
-            "text": "--- <= ---"
+            "text": "--- <= ---",
+            "returnType": " -> boolean"
         },
         "compGt": {
             "id": "add-comp-gt-expr-btn",
-            "text": "--- > ---"
+            "text": "--- > ---",
+            "returnType": " -> boolean"
         },
         "comptGte": {
             "id": "add-comp-gte-expr-btn",
-            "text": "--- >= ---"
+            "text": "--- >= ---",
+            "returnType": " -> boolean"
+        },
+        "import": {
+            "id": "add-import-btn",
+            "text": "from --- import ---",
+            "returnType": null
         }
     }
 }
