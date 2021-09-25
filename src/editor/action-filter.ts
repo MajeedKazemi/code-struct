@@ -1,5 +1,6 @@
 import {
     Expression,
+    ForStatement,
     Statement,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -116,6 +117,8 @@ export class ActionFilter {
                 } else if (code instanceof VarOperationStmt) {
                     code.setVariable(ref);
                     code.updateModifierTypes();
+                } else if (code instanceof ForStatement) {
+                    code.setIterator(ref);
                 }
 
                 const codeAction = new EditCodeAction(
@@ -131,6 +134,8 @@ export class ActionFilter {
                         } else if (code instanceof VarOperationStmt) {
                             code.setVariable(ref);
                             code.updateModifierTypes();
+                        } else if (code instanceof ForStatement) {
+                            code.setIterator(ref);
                         }
 
                         return code;

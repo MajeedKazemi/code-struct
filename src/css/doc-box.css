@@ -1,0 +1,84 @@
+.doc-box-container {
+    position: absolute;
+    box-shadow: 0px 0px 20px 0px #5d5d5d;
+    width: 400px;
+    height: 330px;
+    left: calc(50% - 150px);
+    top: calc(50% - 125px);
+    background-color: #fff;
+    border-radius: 7px;
+    overflow: hidden;
+
+    font-family: "Courier New", Courier, monospace;
+}
+
+.doc-box-header {
+    height: 25px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+
+    background-color: #6699aa;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+
+    cursor: grab;
+}
+
+.doc-box-header:hover {
+    background-color: #578;
+}
+
+.close-button {
+    margin-left: auto;
+    margin-top: 1px;
+    font-weight: bold;
+    color: #fff;
+    font-size: 27px;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+
+    cursor: pointer;
+    padding: 0px 10px;
+}
+
+.close-button:hover {
+    color: #000;
+}
+
+.doc-body {
+    overflow-y: auto;
+    width: calc(100% - 30px);
+    height: calc(100% - 30px);
+    padding: 15px;
+}
+
+.doc-editor {
+    width: 100%;
+    height: 125px;
+    border: solid 1px #eee;
+}
+
+.doc-body::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+.doc-body::-webkit-scrollbar-track {
+    background: #ebebeb;
+}
+
+.doc-body::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #b8ccd1;
+    border-radius: 0px;
+}

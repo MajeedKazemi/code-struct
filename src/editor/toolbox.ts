@@ -3,6 +3,7 @@ import { DataType, InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
 import { EditCodeAction } from "./action-filter";
+import { DocumentationBox } from "./doc-box";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import * as options from "./toolbox.json";
 
@@ -142,7 +143,7 @@ export function loadToolboxFromJson() {
 export class ToolboxButton {
     container: HTMLDivElement;
 
-    constructor(text: string, domId?: string, returnType?: string) {
+    constructor(text: string, domId?: string, returnType?: string, documentation?: any) {
         this.container = document.createElement("div");
         this.container.classList.add("var-button-container");
 
@@ -164,6 +165,18 @@ export class ToolboxButton {
         }
 
         button.innerHTML = text.replace(/---/g, "<hole></hole>");
+
+        if (documentation) {
+            const learnButton = document.createElement("div");
+            learnButton.classList.add("learn-button");
+            learnButton.innerText = "learn";
+
+            learnButton.onclick = () => {
+                const doc = new DocumentationBox(domId, documentation);
+            };
+
+            this.container.appendChild(learnButton);
+        }
     }
 
     getButtonElement(): Element {
@@ -174,8 +187,13 @@ export class ToolboxButton {
         this.container.remove();
     }
 
-    static createToolboxButtonFromJsonObj(obj: { id?: string; text: string; returnType?: string }) {
-        return new ToolboxButton(obj.text, obj?.id, obj?.returnType);
+    static createToolboxButtonFromJsonObj(obj: {
+        id?: string;
+        text: string;
+        returnType?: string;
+        documentation?: any;
+    }) {
+        return new ToolboxButton(obj.text, obj?.id, obj?.returnType, obj?.documentation);
     }
 }
 
@@ -346,6 +364,7 @@ export function createCascadedMenuForVarRef(buttonId: string, identifier: string
 
     button.addEventListener("mouseleave", () => {
         const element = document.getElementById(`${buttonId}-cascadedMenu`);
+
         if (element && !element.matches(":hover") && !button.matches(":hover")) {
             element.remove();
         }
