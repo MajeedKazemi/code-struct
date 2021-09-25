@@ -1,0 +1,12 @@
+{
+    "title": "Divide a Variable",
+    "body": [
+        {
+            "paragraph": "Divides the value of an existing variable by the value of the given expression and reassigns it back."
+        },
+        {
+            "paragraph": "The below will print 5. It is equivalent to a = a / 2"
+        },
+        { "example": "a = 10\na /= 2\nprint(a)" }
+    ]
+}

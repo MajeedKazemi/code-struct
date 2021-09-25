@@ -132,27 +132,98 @@
         "print": {
             "id": "add-print-btn",
             "text": "print(---)",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "print(msg: object)",
+                "body": [
+                    {
+                        "paragraph": "The <span class=\"bold\">print()</span> function will display a message in the console as text. It can accept anything as its argument and will try to convert it to text before displaying it."
+                    },
+                    {"paragraph": "The below will print 123 to the console."},
+                    { "example": "print(123)" },
+                    {
+                        "paragraph": "<span class=\"bold\">print()</span> can also be used with variables."
+                    },
+                    { "example": "a = \"abc\"\nprint(a)" }
+                ]
+            }
         },
         "randint": {
             "id": "add-randint-btn",
             "text": "randint(---, ---)",
-            "returnType": " -> number"
+            "returnType": " -> number",
+            "documentation": {
+                "title": "randint(min: number, max: number)",
+                "body": [
+                    {
+                        "paragraph": "Returns a randomly chosen number from the range <span class=\"italics bold\">min</span> to <span class=\"italics bold\">max - 1</span>."
+                    },
+                    { "example": "a = randint(0, 10)\nprint(a)" },
+                    {
+                        "paragraph": "Could print any of the following numbers: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
+                    }
+                ]
+            }
         },
         "range": {
             "id": "add-range-btn",
             "text": "range(---, ---)",
-            "returnType": " -> iterator"
+            "returnType": " -> iterator",
+            "documentation": {
+                "title": "range(start: number, end: number)",
+                "body": [
+                    {
+                        "paragraph": "Returns a sequence of numbers starting at <span class=\"italics bold\">start</span> and terminating at <span class=\"italics bold\">end - 1</span>."
+                    },
+                    { "example": "range(0, 10)" },
+                    {
+                        "paragraph": "A for-loop can also be used together with the <span class=\"bold\">range()</span> function call to go through a sequence of numbers."
+                    },
+                    { "example": "for i in range(1, 10):\n\tprint(i)" }
+                ]
+            }
         },
         "len": {
             "id": "add-len-btn",
             "text": "len(---)",
-            "returnType": " -> number"
+            "returnType": " -> number",
+            "documentation": {
+                "title": "len(iterable: object)",
+                "body": [
+                    {
+                        "paragraph": "<span class=\"bold\">len()</span> returns the number of items in an object; the number of characters in a text object."
+                    },
+                    {
+                        "example": "greeting = \"Hello World!\"\na = len(greeting)\nprint(a)"
+                    },
+                    {
+                        "paragraph": "It can also be used on lists."
+                    },
+                    {
+                        "example": "items = [1, 2, 3]\na = len(items)\nprint(a)"
+                    }
+                ]
+            }
         },
         "input": {
             "id": "add-input-btn",
             "text": "input(---)",
-            "returnType": " -> text"
+            "returnType": " -> text",
+            "documentation": {
+                "title": "input(prompt: text)",
+                "body": [
+                    {
+                        "paragraph": "The <span class=\"bold\">input()</span> function allows the program to ask the user for input. The prompt that is included will be displayed to the user before asking them for input."
+                    },
+                    {
+                        "paragraph": "The below example with ask the user's name and print it to the console."
+                    },
+                    { "example": "name = input(\"Hi! What’s your name?\")\nprint(name)" },
+                    {
+                        "paragraph": "<span class=\"bold\">NOTE: The value returned by the <span class=\"italics bold\">input()</span> function is always text and has to be cast to other datatypes if you are expecting anything other than a text. </span>"
+                    }
+                ]
+            }
         },
         "while": {
             "id": "add-while-expr-btn",
@@ -162,88 +233,251 @@
                 "title": "while loop",
                 "body": [
                     {
-                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true"
+                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is <span class=\"bold\">true</span>."
                     },
                     { "example": "while True :\n\tprint(\"an infinite loop\")" },
                     {
-                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true"
+                        "paragraph": "The following loop will print numbers from 0 to 9."
                     },
-                    { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" },
-                    {
-                        "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true"
-                    }
+                    { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" }
                 ]
             }
         },
         "if": {
             "id": "add-if-expr-btn",
             "text": "if ---:",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "if statement",
+                "body": [
+                    {
+                        "paragraph": "The if conditional statement will execute a block of code only if its condition is <span class=\"bold\">true</span>. Its condition can be filled with anything that evaluates to <span class=\"bold\">true</span> or <span class=\"bold\">false</span>."
+                    },
+                    {
+                        "paragraph": "The below example will print \"Success!\"."
+                    },
+                    { "example": "a = 3\nif a < 10:\n\tprint(\"Success!\")" },
+                    {
+                        "paragraph": "The below example, however, will not print anything because the code inside the if-statement will not be run since the condition is <span class=\"bold\">false</span>."
+                    },
+                    { "example": "a = 3\nif a > 10:\n\tprint(\"Success!\")" }
+                ]
+            }
         },
         "elif": {
             "id": "add-elif-expr-btn",
             "text": "elif ---:",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "elif statement",
+                "body": [
+                    {
+                        "paragraph": "A conditional statement that can only be used after an if-statement and allows us to add more cases to create an <span class=\"italics bold\">if block</span>. It executes only if the statements above it evaluate to <span class=\"bold\">false</span>."
+                    },
+                    { "example": "a = 3\nif a > 10:\n\tprint(\"a is larger than 10\")\nelif a < 10:\n\tprint(\"a is smaller than 10\")" },
+                    {
+                        "paragraph": "<span class=\"bold\">elif</span> statements allow us to group related conditions together and we can have multiple of them in one <span class=\"bold\">if block</span>. The code below will print 5."
+                    },
+                    { "example": "a = 5\nif a > 3:\n\tprint(3)\nelif a > 4:\n\tprint(4)\nelif a == 5:\n\tprint(5)\nelif a > 6:\n\tprint(6)" }
+                ]
+            }
         },
         "else": {
             "id": "add-else-expr-btn",
             "text": "else:",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "else statement",
+                "body": [
+                    {
+                        "paragraph": "A conditional statement that can only be used after an elif statement. It can be used to terminate an <span class=\"bold\">if block</span> and executes only if all of the conditions above it evaluate to <span class=\"bold\">false</span>."
+                    },
+                    { "example": "a = 2\nif a > 3:\n\tprint(3)\nelif a > 4:\n\tprint(4)\nelif a == 5:\n\tprint(5)\nelif a > 6:\n\tprint(6)\nelse:\n\tprint(\"None of the above are true.\")" }
+                ]
+            }
         },
         "for": {
             "id": "add-for-expr-btn",
             "text": "for --- in ---:",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "for loop",
+                "body": [
+                    {
+                        "paragraph": "A for-loop can be used to go through a sequence of elements one-by-one. \n\n Notice the usage of \"animal\", this is the variable that holds the current value of our item."
+                    },
+                    { "example": "lst = [\"cat\", \"dog\", \"mouse\", \"parrot\"]\nfor animal in lst:\n\tprint(animal)" },
+                    {
+                        "paragraph": "A for-loop can also be used together with the <span class=\"bold\">range()</span> function call to go through a sequence of numbers."
+                    },
+                    { "example": "for i in range(1, 10):\n\tprint(i)" }
+                ]
+            }
         },
         "split": {
             "id": "add-split-method-call-btn",
             "text": ".split(---)",
-            "returnType": " -> list[text]"
+            "returnType": " -> list[text]",
+            "documentation": {
+                "title": "split(separator: text)",
+                "body": [
+                    {
+                        "paragraph": "Splits the text the method is being called from into a list based on a separator text. Returns an array containing the separate components of the text."
+                    },
+                    {
+                        "paragraph": "The below example will print [\"Split\", \"this\", \"text\", \"on\", \"hyphen\"]"
+                    },
+                    { "example": "name = \"Split-this-text-on-hyphen\"\nsplitName = name.split(\"-\")\nprint(splitName)" }
+                    
+                ]
+            }
         },
         "join": {
             "id": "add-join-method-call-btn",
             "text": ".join(---)",
-            "returnType": " -> text"
+            "returnType": " -> text",
+            "documentation": {
+                "title": "join(elements: [text])",
+                "body": [
+                    {
+                        "paragraph": "Joins a list of text values together and places the text the method is being called from as the separator between the elements of the list provided. Returns a new text object."
+                    },
+                    {
+                        "paragraph": "The below example will print \"Anna-John-Peter\" as a single text object."
+                    },
+                    { "example": "names = [\"Anna\", \"John\", \"Peter\"]\njoinedNames = \"-\".join(names)\nprint(joinedNames)" }
+                ]
+            }
         },
         "find": {
             "id": "add-find-method-call-btn",
             "text": ".find(---)",
-            "returnType": " -> number"
+            "returnType": " -> number",
+            "documentation": {
+                "title": "find(txt: text)",
+                "body": [
+                    {
+                        "paragraph": "Finds the first occurrence of the specified text value in the text the method is being called from and returns its index; -1 if the value was not found."
+                    },
+                    {
+                        "paragraph": "The below example will print 4 because text is 0-indexed. "
+                    },
+                    { "example": "name = \"Zimmer\"\nindexOfE = name.find(\"e\")\nprint(indexOfE)" }
+                ]
+            }
         },
         "replace": {
             "id": "add-replace-method-call-btn",
             "text": ".replace(---)",
-            "returnType": " -> text"
+            "returnType": " -> text",
+            "documentation": {
+                "title": "replace(oldValue: text, newValue: text)",
+                "body": [
+                    {
+                        "paragraph": "Replaces all occurrences of <span class=\"italics\">oldValue</span> with <span class=\"italics\">newValue</span> in the text the method is being called from. Returns a new text object."
+                    },
+                    {
+                        "paragraph": "The below example will print \"Jan\". "
+                    },
+                    { "example": "name  = \"John\"\nname = name.replace(\"oh\", \"a\")\nprint(name)" }
+                ]
+            }
         },
         "addVar": {
             "id": "add-var-btn",
             "text": "--- = ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "Create/Reassign Variable",
+                "body": [
+                    {
+                        "paragraph": "Creates a new variable with the left hole expecting an identifier (name) for the variable. The second hole expects the value that will be stored in the variable."
+                    },
+                    { "example": "name = \"John\"" }
+                ]
+            }
         },
         "assign": {
             "id": "add-assign-mod-btn",
             "text": "= ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "Assign to Variable",
+                "body": [
+                    {
+                        "paragraph": "Assigns a new value to an existing variable. Requires a reference to the variable to already be inserted before using this modifier."
+                    },
+                    { "example": "a = 123\nprint(a)\na=321\nprint(a)" }
+                ]
+            }
         },
         "assignAdd": {
             "id": "add-aug-assign-add-mod-btn",
             "text": "+= ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "Add to Variable",
+                "body": [
+                    {
+                        "paragraph": "Adds a value to an existing variable and reassigns it back to the variable."
+                    },
+                    {
+                        "paragraph": "The below will print 4. It is equivalent to <span class=\"italics\">a = a + 2</span>."
+                    },
+                    { "example": "a = 2\na += 2\nprint(a)" }
+                ]
+            }
         },
         "assignSub": {
             "id": "add-aug-assign-sub-mod-btn",
             "text": "-= ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "Subtract from Variable",
+                "body": [
+                    {
+                        "paragraph": "Subtracts a value from an existing variable and reassigns the result back to the variable."
+                    },
+                    {
+                        "paragraph": "The below will print 3. It is equivalent to <span class=\"italics\">a = a - 2</span>."
+                    },
+                    { "example": "a = 5\na -= 2\nprint(a)" }
+                ]
+            }
         },
         "assignMult": {
             "id": "add-aug-assign-mul-mod-btn",
             "text": "*= ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "Multiply a Variable",
+                "body": [
+                    {
+                        "paragraph": "Multiplies the value of an existing variable by the value of the provided expression and reassings it back."
+                    },
+                    {
+                        "paragraph": "The below will print 10. It is equivalent to a = a * 2"
+                    },
+                    { "example": "a = 5\na *= 2\nprint(a)" }
+                ]
+            }
         },
         "assignDiv": {
             "id": "add-aug-assign-div-mod-btn",
             "text": "/= ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "Divide a Variable",
+                "body": [
+                    {
+                        "paragraph": "Divides the value of an existing variable by the value of the given expression and reassigns it back."
+                    },
+                    {
+                        "paragraph": "The below will print 5. It is equivalent to a = a / 2"
+                    },
+                    { "example": "a = 10\na /= 2\nprint(a)" }
+                ]
+            }
         },
         "listLiteral": {
             "id": "add-list-literal-btn",
@@ -273,12 +507,28 @@
         "str": {
             "id": "add-str-btn",
             "text": "\"txt\"",
-            "returnType": " -> text"
+            "returnType": " -> text",
+            "documentation": {
+                "title": "text",
+                "body": [
+                    {
+                        "paragraph": "Inserts a text value into an empty hole. Note that text is 0-indexed which means its first character is considered to be at position 0 in the text and not position 1."
+                    }
+                ]
+            }
         },
         "num": {
             "id": "add-num-btn",
             "text": "123",
-            "returnType": " -> number"
+            "returnType": " -> number",
+            "documentation": {
+                "title": "123",
+                "body": [
+                    {
+                        "paragraph": "Inserts a numeric value (0 by default) into an empty hole."
+                    }
+                ]
+            }
         },
         "boolT": {
             "id": "add-true-btn",

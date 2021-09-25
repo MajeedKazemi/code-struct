@@ -1,0 +1,8 @@
+{
+    "title": "text",
+    "body": [
+        {
+            "paragraph": "Inserts a text value into an empty hole. Note that text is 0-indexed which means its first character is considered to be at position 0 in the text and not position 1."
+        }
+    ]
+}

@@ -1,0 +1,9 @@
+{
+    "title": "Assign to Variable",
+    "body": [
+        {
+            "paragraph": "Assigns a new value to an existing variable. Requires a reference to the variable to already be inserted before using this modifier."
+        },
+        { "example": "a = 123\nprint(a)\na=321\nprint(a)" }
+    ]
+}

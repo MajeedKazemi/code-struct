@@ -1,0 +1,17 @@
+{
+    "title": "len(iterable: object)",
+    "body": [
+        {
+            "paragraph": "<span class=\"bold\">len()</span> returns the number of items in an object; the number of characters in a text object."
+        },
+        {
+            "example": "greeting = \"Hello World!\"\na = len(greeting)\nprint(a)"
+        },
+        {
+            "paragraph": "It can also be used on lists."
+        },
+        {
+            "example": "items = [1, 2, 3]\na = len(items)\nprint(a)"
+        }
+    ]
+}

@@ -1,0 +1,12 @@
+{
+    "title": "join(elements: [text])",
+    "body": [
+        {
+            "paragraph": "Joins a list of text values together and places the text the method is being called from as the separator between the elements of the list provided. Returns a new text object."
+        },
+        {
+            "paragraph": "The below example will print \"Anna-John-Peter\" as a single text object."
+        },
+        { "example": "names = [\"Anna\", \"John\", \"Peter\"]\njoinedNames = \"-\".join(names)\nprint(joinedNames)" }
+    ]
+}

@@ -1,0 +1,16 @@
+{
+    "title": "if statement",
+    "body": [
+        {
+            "paragraph": "The if conditional statement will execute a block of code only if its condition is <span class=\"bold\">true</span>. Its condition can be filled with anything that evaluates to <span class=\"bold\">true</span> or <span class=\"bold\">false</span>."
+        },
+        {
+            "paragraph": "The below example will print \"Success!\"."
+        },
+        { "example": "a = 3\nif a < 10:\n\tprint(\"Success!\")" },
+        {
+            "paragraph": "The below example, however, will not print anything because the code inside the if-statement will not be run since the condition is <span class=\"bold\">false</span>."
+        },
+        { "example": "a = 3\nif a > 10:\n\tprint(\"Success!\")" }
+    ]
+}
