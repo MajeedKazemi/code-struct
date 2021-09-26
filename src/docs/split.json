@@ -2,7 +2,7 @@
     "title": "split(separator: text)",
     "body": [
         {
-            "paragraph": "Splits the text the method is being called from into a list based on a separator text. Returns an array containing the separate components of the text."
+            "paragraph": "Splits the text the function is being called from into a list based on a separator text. Returns an array containing the separate components of the text."
         },
         {
             "paragraph": "The below example will print [\"Split\", \"this\", \"text\", \"on\", \"hyphen\"]"

@@ -1,0 +1,16 @@
+{
+    "title": "append(element: object)",
+    "body": [
+        {
+            "paragraph": "Appends (adds to the end of) a new element to an existing list. Can be used on both, list literals and variables of type list. Does not return anything!"
+        },
+        {
+            "paragraph": "The below code should print [1, 2, 3, 4]"
+        },
+        {"example": "a = [1, 2, 3]\na.append(4)\nprint(a)"},
+        {
+            "paragraph": "The below code will print <span class=\"italics bold\">none</span> because the <span class=\"bold\">append()</span> function does not return anything. The list will also be lost."
+        },
+        {"example": "print([1, 2, 3].append(4))"}
+    ]
+}

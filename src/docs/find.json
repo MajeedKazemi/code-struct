@@ -2,7 +2,7 @@
     "title": "find(txt: text)",
     "body": [
         {
-            "paragraph": "Finds the first occurrence of the specified text value in the text the method is being called from and returns its index; -1 if the value was not found."
+            "paragraph": "Finds the first occurrence of the specified text value in the text the function is being called from and returns its index; -1 if the value was not found."
         },
         {
             "paragraph": "The below example will print 4 because text is 0-indexed. "

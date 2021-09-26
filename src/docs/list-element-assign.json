@@ -1,0 +1,16 @@
+{
+    "title": "List Element Assignment",
+    "body": [
+        {
+            "paragraph": "Will assign a new value to the element at the provided index of a list. See <span class=\"bold\">List Element Access</span> for more information."
+        },
+        {
+            "paragraph": "The below code will print [1, 2, 4]. Notice how the last element was changed from 3 to 4."
+        },
+        {"example": "a = [1, 2, 3]\na[2] = 4\nprint(a)"},
+        {
+            "paragraph": "The new value does not have to be of the same type as the old value. The below will print([1, \"cat\", 3])"
+        },
+        {"example": "a = [1, 2, 3]\na[1] = \"cat\"\nprint(a)"}
+    ]
+}

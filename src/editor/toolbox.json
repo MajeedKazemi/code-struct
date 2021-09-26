@@ -315,14 +315,14 @@
             }
         },
         "split": {
-            "id": "add-split-method-call-btn",
+            "id": "add-split-function-call-btn",
             "text": ".split(---)",
             "returnType": " -> list[text]",
             "documentation": {
                 "title": "split(separator: text)",
                 "body": [
                     {
-                        "paragraph": "Splits the text the method is being called from into a list based on a separator text. Returns an array containing the separate components of the text."
+                        "paragraph": "Splits the text the function is being called from into a list based on a separator text. Returns an array containing the separate components of the text."
                     },
                     {
                         "paragraph": "The below example will print [\"Split\", \"this\", \"text\", \"on\", \"hyphen\"]"
@@ -333,14 +333,14 @@
             }
         },
         "join": {
-            "id": "add-join-method-call-btn",
+            "id": "add-join-function-call-btn",
             "text": ".join(---)",
             "returnType": " -> text",
             "documentation": {
                 "title": "join(elements: [text])",
                 "body": [
                     {
-                        "paragraph": "Joins a list of text values together and places the text the method is being called from as the separator between the elements of the list provided. Returns a new text object."
+                        "paragraph": "Joins a list of text values together and places the text the function is being called from as the separator between the elements of the list provided. Returns a new text object."
                     },
                     {
                         "paragraph": "The below example will print \"Anna-John-Peter\" as a single text object."
@@ -350,14 +350,14 @@
             }
         },
         "find": {
-            "id": "add-find-method-call-btn",
+            "id": "add-find-function-call-btn",
             "text": ".find(---)",
             "returnType": " -> number",
             "documentation": {
                 "title": "find(txt: text)",
                 "body": [
                     {
-                        "paragraph": "Finds the first occurrence of the specified text value in the text the method is being called from and returns its index; -1 if the value was not found."
+                        "paragraph": "Finds the first occurrence of the specified text value in the text the function is being called from and returns its index; -1 if the value was not found."
                     },
                     {
                         "paragraph": "The below example will print 4 because text is 0-indexed. "
@@ -367,14 +367,14 @@
             }
         },
         "replace": {
-            "id": "add-replace-method-call-btn",
+            "id": "add-replace-function-call-btn",
             "text": ".replace(---)",
             "returnType": " -> text",
             "documentation": {
                 "title": "replace(oldValue: text, newValue: text)",
                 "body": [
                     {
-                        "paragraph": "Replaces all occurrences of <span class=\"italics\">oldValue</span> with <span class=\"italics\">newValue</span> in the text the method is being called from. Returns a new text object."
+                        "paragraph": "Replaces all occurrences of <span class=\"italics\">oldValue</span> with <span class=\"italics\">newValue</span> in the text the function is being called from. Returns a new text object."
                     },
                     {
                         "paragraph": "The below example will print \"Jan\". "
@@ -482,27 +482,98 @@
         "listLiteral": {
             "id": "add-list-literal-btn",
             "text": "[]",
-            "returnType": " -> list[any]"
+            "returnType": " -> list[any]",
+            "documentation": {
+                "title": "List",
+                "body": [
+                    {
+                        "paragraph": "Inserts an empty list into a hole. The list can be populated with multiple values after creation by navigating inside the list and inserting a value. New values in a list are separated by a comma."
+                    },
+                    { "example": "a = []" },
+                    {"example": "a = [1, 2, 3]"},
+                    {
+                        "paragraph": "Lists can store a variety of types and even different types within the same list."
+                    },
+                    {"example": "a = [\"cat\", \"dog\", \"parrot\"]\nb = [1, \"cat\", true]\nc = [1, [1, \"dog\"], \"cat\", [true]]"}
+                ]
+            }
         },
         "listItem": {
             "id": "add-list-item-btn",
             "text": ", ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "List Item",
+                "body": [
+                    {
+                        "paragraph": "Insert a new empty list element that can be filled with the value you want to insert into a list. Should be used either when focused on an empty element of a list or just to the right of an existing or empty element."
+                    },
+                    {"example": "a = [1, 2, 3]"}
+                ]
+            }
         },
         "listAppend": {
             "id": "add-list-append-stmt-btn",
             "text": "---.append(---)",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "append(element: object)",
+                "body": [
+                    {
+                        "paragraph": "Appends (adds to the end of) a new element to an existing list. Can be used on both, list literals and variables of type list. Does not return anything!"
+                    },
+                    {
+                        "paragraph": "The below code should print [1, 2, 3, 4]"
+                    },
+                    {"example": "a = [1, 2, 3]\na.append(4)\nprint(a)"},
+                    {
+                        "paragraph": "The below code will print <span class=\"italics bold\">none</span> because the <span class=\"bold\">append()</span> function does not return anything. The list will also be lost."
+                    },
+                    {"example": "print([1, 2, 3].append(4))"}
+                ]
+            }
         },
         "listIndex": {
             "id": "add-list-index-btn",
             "text": "[---]",
-            "returnType": " -> any"
+            "returnType": " -> any",
+            "documentation": {
+                "title": "List Element Access",
+                "body": [
+                    {
+                        "paragraph": "Used after a list or a variable of type list to access an element of the list at the provided index. <span class=\"bold\">Lists are 0-indexed meaning that the first element of a list is at position 0 and not 1.</span>"
+                    },
+                    {
+                        "paragraph": "The below code will print 1 (the first element of the list)."
+                    },
+                    {"example": "a = [1, 2, 3]\nprint(a[0])"},
+                    {
+                        "paragraph": "After being accessed, the element can be used just like any other value."
+                    },
+                    {"example": "a = [1, 2, 3]\nif a[1] == 2:\n\tprint(\"The second element of the list is equal to 2.\")"}
+                ]
+            }
         },
         "listElementAssign": {
             "id": "add-list-elem-assign-btn",
             "text": "---[---] = ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "List Element Assignment",
+                "body": [
+                    {
+                        "paragraph": "Will assign a new value to the element at the provided index of a list. See <span class=\"bold\">List Element Access</span> for more information."
+                    },
+                    {
+                        "paragraph": "The below code will print [1, 2, 4]. Notice how the last element was changed from 3 to 4."
+                    },
+                    {"example": "a = [1, 2, 3]\na[2] = 4\nprint(a)"},
+                    {
+                        "paragraph": "The new value does not have to be of the same type as the old value. The below will print([1, \"cat\", 3])"
+                    },
+                    {"example": "a = [1, 2, 3]\na[1] = \"cat\"\nprint(a)"}
+                ]
+            }
         },
         "str": {
             "id": "add-str-btn",
@@ -533,87 +604,290 @@
         "boolT": {
             "id": "add-true-btn",
             "text": "True",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "true",
+                "body": [
+                    {
+                        "paragraph": "Inserts a boolean value of <span class=\"bold\">true</span> into an empty hole."
+                    }
+                ]
+            }
         },
         "boolF": {
             "id": "add-false-btn",
             "text": "False",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "false",
+                "body": [
+                    {
+                        "paragraph": "Inserts a boolean value of <span class=\"bold\">false</span> into an empty hole."
+                    }
+                ]
+            }
         },
         "toStr": {
             "id": "add-cast-str-btn",
             "text": "str(---)",
-            "returnType": " -> text"
+            "returnType": " -> text",
+            "documentation": {
+                "title": "str(obj: object)",
+                "body": [
+                    {
+                        "paragraph": "Converts the passed object to a text object. Useful when comparing values of different types and one of them is a text value. This type of conversion is called a <span class\"bold\">cast</span> because it is temporary."
+                    },
+                    {"example": "a = 2\nc = \"2\"\nprint(str(a) == c)"},
+                    {"paragraph": "In the above example you would not be able to compare <span class\"italics\">a</span> to <span class\"italics\">c</span> before performing the conversion."
+                    }
+                ]
+            }
         },
         "binAdd": {
             "id": "add-bin-add-expr-btn",
             "text": "--- + ---",
-            "returnType": " -> number / text"
+            "returnType": " -> number / text",
+            "documentation": {
+                "title": "+",
+                "body": [
+                    {
+                        "paragraph": "Performs the addition of the value to the right of the operator to the value to the left on the operator."
+                    },
+                    {
+                        "paragraph": "The below prints 7."
+                    },
+                    {"example": "a = 2\nb = 5\nprint((a + b))"}
+                ]
+            }
         },
         "binSub": {
             "id": "add-bin-sub-expr-btn",
             "text": "--- - ---",
-            "returnType": " -> number"
+            "returnType": " -> number",
+            "documentation": {
+                "title": "-",
+                "body": [
+                    {
+                        "paragraph": "Performs the subtraction of the value to the right of the operator from the value to the left on the operator."
+                    },
+                    {
+                        "paragraph": "The below prints 10."
+                    },
+                    {"example": "a = 20\nb = 10\nprint((a - b))"}
+                ]
+            }
         },
         "binMult": {
             "id": "add-bin-mul-expr-btn",
             "text": "--- * ---",
-            "returnType": " -> number"
+            "returnType": " -> number",
+            "documentation": {
+                "title": "*",
+                "body": [
+                    {
+                        "paragraph": "Performs the multiplication of the value to the left of the operator by the value to the right on the operator."
+                    },
+                    {
+                        "paragraph": "The below prints 10."
+                    },
+                    {"example": "a = 2\nb = 5\nprint((b * a))"}
+                ]
+            }
         },
         "binDiv": {
             "id": "add-bin-div-expr-btn",
             "text": "--- / ---",
-            "returnType": " -> number"
+            "returnType": " -> number",
+            "documentation": {
+                "title": "/",
+                "body": [
+                    {
+                        "paragraph": "Performs the division of the value to the left of the operator by the value to the right on the operator."
+                    },
+                    {
+                        "paragraph": "The below prints 5."
+                    },
+                    {"example": "a = 2\nb = 10\nprint((b / a))"}
+                ]
+            }
         },
         "and": {
             "id": "add-bin-and-expr-btn",
             "text": "--- and ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "and",
+                "body": [
+                    {
+                        "paragraph": "A boolean operator used to combine conditional expressions together. Evaluates to true as long as both of the expressions it contains are <span class=\"bold\">true</span>."
+                    },
+                    {"example": "if (true and true):\n\tprint(true)\n\nif (true and false):\n\tprint(\"not true\")\n\nif (false and true):\n\tprint(\"still not true\")\n\nif (false and false):\n\tprint(\"also false\")"},
+                    {"example": "a = 5\nb = 7\nc=2\n\nif ((a > c) and (b > c)):\n\tprint(\"Both expressions are true.\")"}
+                ]
+            }
         },
         "or": {
             "id": "add-bin-or-expr-btn",
             "text": "--- or ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "or",
+                "body": [
+                    {
+                        "paragraph": "A boolean operator used to combine conditional expressions together. Evaluates to true as long as at least one of the expressions it contains is <span class=\"bold\">true</span>."
+                    },
+                    {"example": "if (true or true):\n\tprint(true)\n\nif (true or false):\n\tprint(\"true\")\n\nif (false or true):\n\tprint(\"still true\")\n\nif (false or false):\n\tprint(\"false\")"},
+                    {"example": "a = 5\nb = 7\nc=2\n\nif ((a > c) or (b < c)):\n\tprint(\"Only the first expression is true.\")"}
+                ]
+            }
         },
         "unaryNot": {
             "id": "add-unary-not-expr-btn",
             "text": "not ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "Not",
+                "body": [
+                    {
+                        "paragraph": "A boolean operator (<span class=\"bold\">not</span>) that returns <span class=\"bold\">true</span> the logical negation of a boolean value. That is if the value evaluates to <span class=\"bold\">true</span>, then <span class=\"bold\"> not true</span> will evaluate to <span class=\"bold\">false</span> and vice versa."
+                    },
+                    {"example": "a = 2\nb = 2\nif not (a == b):\n\tprint(\"Will not print.\")\n\nif not (b != a):\n\tprint(\"b is equal to a\")"},
+                    {
+                        "paragraph": "In the code above the first condition evalues to <span class=\"bold\">false</span> because the value of <span class=\"italics\">a == b</span> is actually <span class=\"bold\">true</span>."
+                    }
+                ]
+            }
         },
         "compEq": {
             "id": "add-comp-eq-expr-btn",
             "text": "--- == ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "Equal",
+                "body": [
+                    {
+                        "paragraph": "A comparison operator (<span class=\"bold\">==</span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is equal the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
+                    },
+                    {"example": "a = 2\nb = 3\nif a == c:\n\tprint(\"a is equal to c\")\n\nif b == a:\n\tprint(\"This will not print because the condition is false.\")"},
+                    {
+                        "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
+                    },
+                    {"example": "a = 5\nb = 5\nwhile a == b:\n\ta += 1\nprint(a)\nprint(a)"}
+                ]
+            }
         },
         "compNeq": {
             "id": "add-comp-neq-expr-btn",
             "text": "--- != ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "Not Equal",
+                "body": [
+                    {
+                        "paragraph": "A comparison operator (<span class=\"bold\">!=</span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is not equal the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
+                    },
+                    {"example": "a = 2\nb = 3\nif a != b:\n\tprint(\"a is not equal to b\")\n\nif c != a:\n\tprint(\"This will not print because the condition is false.\")"},
+                    {
+                        "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
+                    },
+                    {"example": "a = 1\nb = 5\nwhile a != b:\n\ta += 1\nprint(a)\nprint(a)"}
+                ]
+            }
         },
         "compLt": {
             "id": "add-comp-lt-expr-btn",
             "text": "--- < ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "Less Than",
+                "body": [
+                    {
+                        "paragraph": "A comparison operator (<span class=\"bold\"><</span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is strictly less than the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
+                    },
+                    {"example": "a = 2\nb = 3\nif a < b:\n\tprint(\"a is less than b\")\n\nif c < a:\n\tprint(\"This will not print because the condition is false.\")"},
+                    {
+                        "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
+                    },
+                    {"example": "a = 1\nb = 5\nwhile a < b:\n\ta += 1\nprint(a)\nprint(a)"}
+                ]
+            }
         },
         "compLte": {
             "id": "add-comp-lte-expr-btn",
             "text": "--- <= ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "Less Than or Equal",
+                "body": [
+                    {
+                        "paragraph": "A comparison operator (<span class=\"bold\"><=</span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is less than or equal to the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
+                    },
+                    {"example": "a = 2\nb = 3\n c = 2\n if a <= b:\n\tprint(\"a is less than b\")\n\nif c <= a:\n\tprint(\"c is equal to a\")"},
+                    {
+                        "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
+                    },
+                    {"example": "a = 1\nb = 5\nwhile a <= b:\n\ta += 1\nprint(a)\nprint(a)"}
+                ]
+            }
         },
         "compGt": {
             "id": "add-comp-gt-expr-btn",
             "text": "--- > ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "Greater Than",
+                "body": [
+                    {
+                        "paragraph": "A comparison operator (<span class=\"bold\">></span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is strictly greater than the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
+                    },
+                    {"example": "a = 2\nb = 3\nif b > a:\n\tprint(\"b is greater than a\")\n\nif a > b:\n\tprint(\"a is greater to b\")"},
+                    {
+                        "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
+                    },
+                    {"example": "a = 1\nb = 5\nwhile b > a:\n\ta += 1\nprint(a)\nprint(a)"}
+                ]
+            }
         },
         "comptGte": {
             "id": "add-comp-gte-expr-btn",
             "text": "--- >= ---",
-            "returnType": " -> boolean"
+            "returnType": " -> boolean",
+            "documentation": {
+                "title": "Greater Than or Equal",
+                "body": [
+                    {
+                        "paragraph": "A comparison operator (<span class=\"bold\">>=</span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is greater than or equal to the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
+                    },
+                    {"example": "a = 2\nb = 3\n c = 2\n if b >= a:\n\tprint(\"b is greater than a\")\n\nif c >= a:\n\tprint(\"c is equal to a\")"},
+                    {
+                        "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
+                    },
+                    {"example": "a = 1\nb = 5\nwhile b >= a:\n\ta += 1\nprint(a)\nprint(a)"}
+                ]
+            }
         },
         "import": {
             "id": "add-import-btn",
             "text": "from --- import ---",
-            "returnType": null
+            "returnType": null,
+            "documentation": {
+                "title": "Import Module",
+                "body": [
+                    {
+                        "paragraph": "Import a module containing common existing functionality that is separate from your code. Some functions and definitions are already defined by Python by default in different modules. However, Python does not include them into your program by default and so you have to make an import of those modules/functionalities."
+                    },
+                    {
+                        "paragraph": "The two most common modules to import from are <span class=\"bold\">math</span> and <span class=\"bold\">random</span>. In this tool you can import one item at a time from a specific module."
+                    },
+                    {
+                        "paragraph": "The below will import two functions from the random module, <span class=\"bold\">randint()</span> and <span class=\"bold\">randrange()</span>."
+                    },
+                    {"example": "from random import randint\nfrom random import randrange"},
+                    {
+                        "paragraph": "The functions can then be used inside your program below the lines they were imported on."
+                    }
+                ]
+            }
         }
     }
 }

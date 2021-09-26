@@ -1,0 +1,12 @@
+{
+    "title": "/",
+    "body": [
+        {
+            "paragraph": "Performs the division of the value to the left of the operator by the value to the right on the operator."
+        },
+        {
+            "paragraph": "The below prints 5."
+        },
+        {"example": "a = 2\nb = 10\nprint((b / a))"}
+    ]
+}

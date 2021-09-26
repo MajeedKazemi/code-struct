@@ -1,0 +1,10 @@
+{
+    "title": "and",
+    "body": [
+        {
+            "paragraph": "A boolean operator used to combine conditional expressions together. Evaluates to true as long as both of the expressions it contains are <span class=\"bold\">true</span>."
+        },
+        {"example": "if (true and true):\n\tprint(true)\n\nif (true and false):\n\tprint(\"not true\")\n\nif (false and true):\n\tprint(\"still not true\")\n\nif (false and false):\n\tprint(\"also false\")"},
+        {"example": "a = 5\nb = 7\nc=2\n\nif ((a > c) and (b > c)):\n\tprint(\"Both expressions are true.\")"}
+    ]
+}
