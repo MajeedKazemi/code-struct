@@ -935,7 +935,7 @@ export class MenuController {
 
         pos.top =
             this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
-            document.getElementById(EDITOR_DOM_ID).offsetTop;
+            document.getElementById(EDITOR_DOM_ID).offsetTop - this.module.editor.scrollOffsetTop;
 
         return pos;
     }
