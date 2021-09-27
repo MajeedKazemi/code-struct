@@ -34,6 +34,12 @@
     background-color: #578;
 }
 
+.doc-title {
+    color: #fff;
+    font-size: 16px;
+    margin: 0 0 0 15px;
+}
+
 .close-button {
     margin-left: auto;
     margin-top: 1px;
@@ -59,7 +65,9 @@
     overflow-y: auto;
     width: calc(100% - 30px);
     height: calc(100% - 30px);
-    padding: 15px;
+    padding: 0 15px 0 15px;
+    font-family: monospace;
+    font-size: 15px;
 }
 
 .doc-editor {
@@ -94,4 +102,43 @@ div.doc-body p span.bold {
 
 div.doc-body > div.doc-editor:nth-last-child(1) {
     margin-bottom: 7%;
+}
+
+.doc-editor-container {
+    width: 100%;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 0 5px 1px #888;
+}
+
+.doc-example-console {
+    background-color: #ccc;
+    height: 75px;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 5px;
+}
+
+.doc-example-console p {
+    padding: 0;
+    margin: 0;
+}
+
+.doc-editor-header {
+    background-color: #d9e7ee;
+    font-weight: bold;
+    padding: 5px 15px;
+    font-size: 12px;
+}
+
+.doc-example-console-button-container {
+}
+
+.doc-example-btn {
+    padding: 5px 10px !important;
+    font-size: 12px !important;
+}
+
+.reset-editor-btn {
+    visibility: hidden;
 }
