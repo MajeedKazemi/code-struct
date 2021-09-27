@@ -1,0 +1,9 @@
+{
+    "title": "else statement",
+    "body": [
+        {
+            "paragraph": "A conditional statement that can only be used after an elif statement. It can be used to terminate an <span class=\"bold\">if block</span> and executes only if all of the conditions above it evaluate to <span class=\"bold\">false</span>."
+        },
+        { "example": "a = 2\nif a > 3:\n\tprint(3)\nelif a > 4:\n\tprint(4)\nelif a == 5:\n\tprint(5)\nelif a > 6:\n\tprint(6)\nelse:\n\tprint(\"None of the above are true.\")" }
+    ]
+}

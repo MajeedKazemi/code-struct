@@ -1,0 +1,13 @@
+{
+    "title": "Less Than",
+    "body": [
+        {
+            "paragraph": "A comparison operator (<span class=\"bold\"><</span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is strictly less than the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
+        },
+        {"example": "a = 2\nb = 3\nif a < b:\n\tprint(\"a is less than b\")\n\nif c < a:\n\tprint(\"This will not print because the condition is false.\")"},
+        {
+            "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
+        },
+        {"example": "a = 1\nb = 5\nwhile a < b:\n\ta += 1\nprint(a)\nprint(a)"}
+    ]
+}

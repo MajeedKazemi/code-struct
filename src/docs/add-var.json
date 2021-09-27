@@ -1,0 +1,9 @@
+{
+    "title": "Create/Reassign Variable",
+    "body": [
+        {
+            "paragraph": "Creates a new variable with the left hole expecting an identifier (name) for the variable. The second hole expects the value that will be stored in the variable."
+        },
+        { "example": "name = \"John\"" }
+    ]
+}

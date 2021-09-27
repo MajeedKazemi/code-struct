@@ -1,0 +1,18 @@
+{
+    "title": "Import Module",
+    "body": [
+        {
+            "paragraph": "Import a module containing common existing functionality that is separate from your code. Some functions and definitions are already defined by Python by default in different modules. However, Python does not include them into your program by default and so you have to make an import of those modules/functionalities."
+        },
+        {
+            "paragraph": "The two most common modules to import from are <span class=\"bold\">math</span> and <span class=\"bold\">random</span>. In this tool you can import one item at a time from a specific module."
+        },
+        {
+            "paragraph": "The below will import two functions from the random module, <span class=\"bold\">randint()</span> and <span class=\"bold\">randrange()</span>."
+        },
+        {"example": "from random import randint\nfrom random import randrange"},
+        {
+            "paragraph": "The functions can then be used inside your program below the lines they were imported on."
+        }
+    ]
+}

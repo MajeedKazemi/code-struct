@@ -1,0 +1,12 @@
+{
+    "title": "Add to Variable",
+    "body": [
+        {
+            "paragraph": "Adds a value to an existing variable and reassigns it back to the variable."
+        },
+        {
+            "paragraph": "The below will print 4. It is equivalent to <span class=\"italics\">a = a + 2</span>."
+        },
+        { "example": "a = 2\na += 2\nprint(a)" }
+    ]
+}

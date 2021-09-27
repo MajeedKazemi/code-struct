@@ -1,0 +1,12 @@
+{
+    "title": "Subtract from Variable",
+    "body": [
+        {
+            "paragraph": "Subtracts a value from an existing variable and reassigns the result back to the variable."
+        },
+        {
+            "paragraph": "The below will print 3. It is equivalent to <span class=\"italics\">a = a - 2</span>."
+        },
+        { "example": "a = 5\na -= 2\nprint(a)" }
+    ]
+}
