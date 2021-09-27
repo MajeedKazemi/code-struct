@@ -14,11 +14,13 @@
     box-shadow: 10px 0px 20px 0px #ccc;
 }
 
-#runCodeBtn {
+.run-code-btn {
     justify-self: start;
+    background-color: rgb(24 200 120);
+    color: #fff;
 }
 
-#runCodeButtonDiv {
+.run-code-button-container {
     margin: 10px 0px 0px 20px;
 }
 
@@ -34,9 +36,6 @@
     padding-left: 20px;
 }
 
-#clearOutputBtn {
-}
-
 .consoleTxt {
     font-weight: 10pt;
 }
@@ -49,12 +48,7 @@
     color: orange;
 }
 
-#runCodeBtn {
-    background-color: rgb(24 200 120);
-    color: #fff;
-}
-
-#clearOutputBtn {
+.clear-output-btn {
     box-shadow: none;
     border: solid #4f4f4f 0.5px;
 }
@@ -92,12 +86,12 @@
     -ms-transition: 0.2s ease-in-out;
 }
 
-#runCodeBtn:hover {
+.run-code-btn:hover {
     background-color: rgb(21 173 110);
     box-shadow: rgb(0 0 0 / 20%) 0px 2px 4px -1px, rgb(0 0 0 / 14%) 0px 4px 5px 0px, rgb(0 0 0 / 12%) 0px 1px 10px 0px;
 }
 
-#clearOutputBtn:hover {
+.clear-output-btn:hover {
     background-color: #4f4f4f;
     color: #fff;
 }
