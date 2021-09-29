@@ -1,6 +1,6 @@
 import { CodeStatus } from "../editor/consts";
 import { nova } from "../index";
-import {CONSOLE_WARN_TXT_CLASS, CONSOLE_ERR_TXT_CLASS, CONSOLE_TXT_CLASS} from "../pyodide-ts/pyodide-ui"
+import {CONSOLE_WARN_TXT_CLASS, CONSOLE_ERR_TXT_CLASS, clearConsole} from "../pyodide-ts/pyodide-ui"
 
 const jsModule = {
     inputPrompt: function (text) {
@@ -100,6 +100,6 @@ const attachMainConsoleRun = () => {
 const attachMainConsoleClear = () => {
     //this is only for the main console so the id is hard-coded
     document.getElementById("clearOutputBtn").addEventListener("click", () => {
-        clearConsole();
+        clearConsole("outputDiv");
     });
 }

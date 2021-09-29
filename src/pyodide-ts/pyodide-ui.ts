@@ -3,7 +3,7 @@ export const CONSOLE_ERR_TXT_CLASS = "consoleErrTxt";
 export const CONSOLE_WARN_TXT_CLASS = "consoleWarnTxt";
 
 
-export const addTextToConsole = (text, styleClass = "", consoleId) => {
+export const addTextToConsole = (consoleId: string, text: string, styleClass: string = CONSOLE_TXT_CLASS) => {
     const outputArea = document.getElementById(consoleId);
     outputArea.appendChild(document.createElement("br"));
     const textEm = document.createElement("div");
@@ -13,9 +13,9 @@ export const addTextToConsole = (text, styleClass = "", consoleId) => {
     outputArea.appendChild(textEm);
 };
 
-export const clearConsole = (consoleId) => {
+export const clearConsole = (consoleId: string) => {
     document.getElementById(consoleId).innerHTML = "";
-    addTextToConsole("Cleared console.", "", consoleId);
+    addTextToConsole("Cleared console.", CONSOLE_TXT_CLASS, consoleId);
 };
 
 

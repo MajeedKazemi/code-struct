@@ -7,7 +7,7 @@ if(JSON.parse(process.env.EXECUTE_CODE)){
             pyodideController: loadPyodide({
                 indexURL: "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/",
                 stdout: (text) => {
-                    addTextToConsole(text);
+                    addTextToConsole("outputDiv", text);
                 },
             }),
         });
