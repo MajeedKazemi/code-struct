@@ -8,43 +8,37 @@ const jsModule = {
     },
 };
 
-let pyodideController;
-
-if(JSON.parse(process.env.EXECUTE_CODE)){
-    (async () => {
-        (await import("./load-pyodide")).default
-            .then(
-                (res) => {
-                    return res.pyodideController;
-                },
+export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) => {
+    if(JSON.parse(process.env.EXECUTE_CODE)){
+        (async () => {
+            (await import("../pyodide-js/load-pyodide")).default
+                .then(
+                    (res) => {
+                        return res.pyodideController;
+                    },
+                    (err) => {
+                        console.error("Could not import load-pyodide");
+                        console.error(err);
+                    }
+                )
+                .then((res) => {
+                    pyodideController = res;
+        
+                    for(let i = 0; i < afterPyodideLoadedActions.length; i++){
+                        afterPyodideLoadedActions[i]();
+                    }
+                }),
                 (err) => {
-                    console.error("Could not import load-pyodide");
+                    console.error("Could not access pyodideController");
                     console.error(err);
-                }
-            )
-            .then((res) => {
-                pyodideController = res;
-    
-                //Configuring actions and pyodide
-                //has to be done here otherwise no guarantee that pyodide has been loaded when the code below runs
-    
-                //load jsModule to be used in pyodide (for processing input prompts)
-                pyodideController.registerJsModule("jsModule", jsModule);
-    
-                attachMainConsoleRun();
-            }),
-            (err) => {
-                console.error("Could not access pyodideController");
-                console.error(err);
-            };
-    
-        //OTHER CODE EXECUTION-RELATED FUNCTIONALITY
-    
-        attachMainConsoleClear();
-    })();    
+                };
+
+            for(let i = 0; i < otherActions.length; i++){
+                otherActions[i]();
+            }
+        })();    
+    }
 }
-
-
 
 
 const attachMainConsoleRun = () => {
@@ -103,3 +97,8 @@ const attachMainConsoleClear = () => {
         clearConsole("outputDiv");
     });
 }
+
+let pyodideController;
+attachPyodideActions([() => {
+    pyodideController.registerJsModule("jsModule", jsModule);
+}, attachMainConsoleRun], [attachMainConsoleClear]);

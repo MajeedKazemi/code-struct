@@ -1,4 +1,4 @@
-import { addTextToConsole } from "../pyodide-ts/pyodide-ui";
+import { addTextToConsole, CONSOLE_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 
 let exportPromise;
 if(JSON.parse(process.env.EXECUTE_CODE)){
@@ -7,7 +7,7 @@ if(JSON.parse(process.env.EXECUTE_CODE)){
             pyodideController: loadPyodide({
                 indexURL: "https://cdn.jsdelivr.net/pyodide/v0.18.0/full/",
                 stdout: (text) => {
-                    addTextToConsole("outputDiv", text);
+                    addTextToConsole(text, CONSOLE_TXT_CLASS);
                 },
             }),
         });
