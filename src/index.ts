@@ -26,6 +26,7 @@ self.MonacoEnvironment = {
 
 const nova = new Module("editor");
 const runBtnToOutputWindow = new Map<string, string>();
+runBtnToOutputWindow.set("runCodeBtn", "outputDiv");
 
 
 export { nova, runBtnToOutputWindow };

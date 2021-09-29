@@ -8,6 +8,11 @@ const jsModule = {
     },
 };
 
+
+export const codeString = (code) => {
+    return `from jsModule import inputPrompt\ninput = inputPrompt\n__builtins__.input = inputPrompt\n${code}\n`
+}
+
 export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) => {
     if(JSON.parse(process.env.EXECUTE_CODE)){
         (async () => {
@@ -22,10 +27,10 @@ export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) =>
                     }
                 )
                 .then((res) => {
-                    pyodideController = res;
+                    let pyodideController = res;
         
                     for(let i = 0; i < afterPyodideLoadedActions.length; i++){
-                        afterPyodideLoadedActions[i]();
+                        afterPyodideLoadedActions[i](pyodideController);
                     }
                 }),
                 (err) => {
@@ -41,7 +46,7 @@ export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) =>
 }
 
 
-const attachMainConsoleRun = () => {
+const attachMainConsoleRun = (pyodideController) => {
     const runCodeBtn = document.getElementById("runCodeBtn");
     runCodeBtn.addEventListener("click", () => {
         const codeStatus = nova.getCodeStatus(true);
@@ -50,8 +55,9 @@ const attachMainConsoleRun = () => {
             case CodeStatus.Runnable:
                 const code = nova.editor.monaco.getValue();
                 try {
+                    nova.globals.lastPressedRunButtonId = "runCodeBtn";
                     pyodideController.runPython(
-                        `from jsModule import inputPrompt\ninput = inputPrompt\n__builtins__.input = inputPrompt\n${code}\n`
+                       codeString(code)
                     );
                 } catch (err) {
                     console.error("Unable to run python code");
@@ -98,7 +104,6 @@ const attachMainConsoleClear = () => {
     });
 }
 
-let pyodideController;
-attachPyodideActions([() => {
-    pyodideController.registerJsModule("jsModule", jsModule);
+attachPyodideActions([(controller) => {
+    controller.registerJsModule("jsModule", jsModule);
 }, attachMainConsoleRun], [attachMainConsoleClear]);

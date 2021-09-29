@@ -1,6 +1,8 @@
 import { editor } from "monaco-editor";
-import { runBtnToOutputWindow } from "../index";
+import { runBtnToOutputWindow, nova } from "../index";
 import { clearConsole } from "../pyodide-ts/pyodide-ui";
+import {attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller"
+import { addTextToConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 
 const INITIAL_Z_INDEX = 500;
 
@@ -50,6 +52,30 @@ export class DocumentationBox {
                 const ex = createExample(item);
                 docBody.appendChild(ex[0]);
                 docBoxRunButtons.set(container.id, ex[1]);
+
+                attachPyodideActions((() => {
+                    const actions = []
+                    for(const buttonId of ex[1]){
+                        actions.push((pyodideController) => {
+                            const button = document.getElementById(buttonId);
+                            button.addEventListener("click", () => {
+                                try {
+                                    nova.globals.lastPressedRunButtonId = button.id;
+
+                                    pyodideController.runPython(
+                                       codeString(item.example)
+                                    );
+                                } catch (err) {
+                                    console.error("Unable to run python code");
+                                    addTextToConsole(runBtnToOutputWindow.get(button.id), err, CONSOLE_ERR_TXT_CLASS);
+                                }
+                            })
+                        })
+                        
+                    }
+
+                    return actions;
+                })(), []);
             }
         }
 
@@ -111,6 +137,9 @@ export class DocumentationBox {
 
         if (maxZIndexId) DocumentationBox.focusBox(maxZIndexId);
 
+        for(const buttonId of docBoxRunButtons.get(id)){
+            runBtnToOutputWindow.delete(buttonId);
+        }
         docBoxRunButtons.delete(id);
     }
 

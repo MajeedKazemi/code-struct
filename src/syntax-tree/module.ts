@@ -64,7 +64,7 @@ export class Module {
     variableController: VariableController;
     actionFilter: ActionFilter;
 
-    globals: { hoveringOverCascadedMenu: boolean; hoveringOverVarRefButton: boolean };
+    globals: { hoveringOverCascadedMenu: boolean; hoveringOverVarRefButton: boolean, lastPressedRunButtonId: string};
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
@@ -78,6 +78,7 @@ export class Module {
         this.globals = {
             hoveringOverCascadedMenu: false,
             hoveringOverVarRefButton: false,
+            lastPressedRunButtonId: ""
         };
 
         loadToolboxFromJson();
