@@ -1,5 +1,5 @@
 {
-    "title": "len(iterable: object)",
+    "title": "len(iterable: list/text)",
     "body": [
         {
             "paragraph": "<span class=\"bold\">len()</span> returns the number of items in an object; the number of characters in a text object."

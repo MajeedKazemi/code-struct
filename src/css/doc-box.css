@@ -64,7 +64,7 @@
 .doc-body {
     overflow-y: auto;
     width: calc(100% - 30px);
-    height: calc(100% - 30px);
+    height: calc(100% - 25px);
     padding: 0 15px 0 15px;
     font-family: monospace;
     font-size: 15px;
@@ -109,6 +109,7 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
     border-radius: 5px;
     overflow: hidden;
     box-shadow: 0 0 5px 1px #888;
+    margin-bottom: 15px;
 }
 
 .doc-example-console {
@@ -129,9 +130,6 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
     font-weight: bold;
     padding: 5px 15px;
     font-size: 12px;
-}
-
-.doc-example-console-button-container {
 }
 
 .doc-example-btn {

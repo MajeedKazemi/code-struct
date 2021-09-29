@@ -1,5 +1,5 @@
 {
-    "title": "join(elements: [text])",
+    "title": "join(elements: list[text])",
     "body": [
         {
             "paragraph": "Joins a list of text values together and places the text the function is being called from as the separator between the elements of the list provided. Returns a new text object."

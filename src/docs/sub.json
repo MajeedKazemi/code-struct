@@ -1,5 +1,5 @@
 {
-    "title": "-",
+    "title": "subtract",
     "body": [
         {
             "paragraph": "Performs the subtraction of the value to the right of the operator from the value to the left on the operator."
@@ -7,6 +7,6 @@
         {
             "paragraph": "The below prints 10."
         },
-        {"example": "a = 20\nb = 10\nprint((a - b))"}
+        { "example": "a = 20\nb = 10\nprint((a - b))" }
     ]
 }

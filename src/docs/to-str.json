@@ -1,11 +1,12 @@
 {
-    "title": "str(obj: object)",
+    "title": "str(object: any)",
     "body": [
         {
             "paragraph": "Converts the passed object to a text object. Useful when comparing values of different types and one of them is a text value. This type of conversion is called a <span class\"bold\">cast</span> because it is temporary."
         },
-        {"example": "a = 2\nc = \"2\"\nprint(str(a) == c)"},
-        {"paragraph": "In the above example you would not be able to compare <span class\"italics\">a</span> to <span class\"italics\">c</span> before performing the conversion."
+        { "example": "a = 2\nc = \"2\"\nprint(str(a) == c)" },
+        {
+            "paragraph": "In the above example you would not be able to compare <span class\"italics\">a</span> to <span class\"italics\">c</span> before performing the conversion."
         }
     ]
 }

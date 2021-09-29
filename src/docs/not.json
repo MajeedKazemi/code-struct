@@ -1,10 +1,12 @@
 {
-    "title": "Not",
+    "title": "not",
     "body": [
         {
             "paragraph": "A boolean operator (<span class=\"bold\">not</span>) that returns <span class=\"bold\">true</span> the logical negation of a boolean value. That is if the value evaluates to <span class=\"bold\">true</span>, then <span class=\"bold\"> not true</span> will evaluate to <span class=\"bold\">false</span> and vice versa."
         },
-        {"example": "a = 2\nb = 2\nif not (a == b):\n\tprint(\"Will not print.\")\n\nif not (b != a):\n\tprint(\"b is equal to a\")"},
+        {
+            "example": "a = 2\nb = 2\nif not (a == b):\n\tprint(\"Will not print.\")\n\nif not (b != a):\n\tprint(\"b is equal to a\")"
+        },
         {
             "paragraph": "In the code above the first condition evalues to <span class=\"bold\">false</span> because the value of <span class=\"italics\">a == b</span> is actually <span class=\"bold\">true</span>."
         }
