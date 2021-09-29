@@ -1,4 +1,4 @@
-const { addTextToConsole } = require("./pyodide-controller");
+import { addTextToConsole } from "../pyodide-ts/pyodide-ui";
 
 let exportPromise;
 if(JSON.parse(process.env.EXECUTE_CODE)){

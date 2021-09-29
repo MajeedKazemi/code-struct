@@ -1,6 +1,11 @@
 import { editor } from "monaco-editor";
+import { runBtnToOutputWindow } from "../index";
+import { clearConsole } from "../pyodide-ts/pyodide-ui";
 
 const INITIAL_Z_INDEX = 500;
+
+export const docBoxRunButtons = new Map<string, string[]>();
+
 export class DocumentationBox {
     private static exampleCounter = 0;
     private static openBoxes: DocBoxMeta[] = [];
@@ -10,6 +15,7 @@ export class DocumentationBox {
         const container = document.createElement("div");
         container.classList.add("doc-box-container");
         container.id = `doc-box-${uniqueId}`;
+        docBoxRunButtons.set(container.id, []);
 
         const headerDiv = document.createElement("div");
         headerDiv.classList.add("doc-box-header");
@@ -41,7 +47,9 @@ export class DocumentationBox {
 
                 docBody.appendChild(p);
             } else if (item.hasOwnProperty("example")) {
-                docBody.appendChild(createExample(item));
+                const ex = createExample(item);
+                docBody.appendChild(ex[0]);
+                docBoxRunButtons.set(container.id, ex[1]);
             }
         }
 
@@ -102,6 +110,8 @@ export class DocumentationBox {
         const maxZIndexId = DocumentationBox.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
 
         if (maxZIndexId) DocumentationBox.focusBox(maxZIndexId);
+
+        docBoxRunButtons.delete(id);
     }
 
     static setZIndex(id: string, zIndex: number) {
@@ -147,7 +157,9 @@ class DocBoxMeta {
     }
 }
 
-function createExample(item): HTMLDivElement {
+function createExample(item): [HTMLDivElement, string[]] {
+    const runBtns = [];
+
     const editorContainer = document.createElement("div");
     editorContainer.classList.add("doc-editor-container");
 
@@ -193,6 +205,12 @@ function createExample(item): HTMLDivElement {
     consoleOutput.classList.add("console-output");
     exampleConsole.appendChild(consoleOutput);
 
+    runBtnToOutputWindow.set(runButton.id, consoleOutput.id);
+    clearConsoleButton.addEventListener("click", () => {
+        clearConsole(consoleOutput.id);
+    });
+    runBtns.push(runButton.id);
+
     const codeEditor = editor.create(exampleEditor, {
         value: item.example,
         language: "python",
@@ -223,7 +241,7 @@ function createExample(item): HTMLDivElement {
         codeEditor.setValue(item.example);
     });
 
-    return editorContainer;
+    return [editorContainer, runBtns];
 }
 
 function makeDraggable(element: HTMLDivElement) {
