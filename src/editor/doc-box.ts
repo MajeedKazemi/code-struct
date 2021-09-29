@@ -1,12 +1,15 @@
 import { editor } from "monaco-editor";
 
+const INITIAL_Z_INDEX = 500;
 export class DocumentationBox {
     private static exampleCounter = 0;
+    private static openBoxes: DocBoxMeta[] = [];
+    private static pressedEscape = false;
 
     constructor(uniqueId: string, documentation: any) {
         const container = document.createElement("div");
         container.classList.add("doc-box-container");
-        container.id = uniqueId;
+        container.id = `doc-box-${uniqueId}`;
 
         const headerDiv = document.createElement("div");
         headerDiv.classList.add("doc-box-header");
@@ -14,10 +17,6 @@ export class DocumentationBox {
         const closeButton = document.createElement("div");
         closeButton.classList.add("close-button");
         closeButton.innerHTML = `<span>&times;</span>`;
-
-        closeButton.onclick = () => {
-            container.remove();
-        };
 
         const docTitle = document.createElement("h3");
         docTitle.classList.add("doc-title");
@@ -45,10 +44,106 @@ export class DocumentationBox {
                 docBody.appendChild(createExample(item));
             }
         }
+
+        window.addEventListener("mousedown", function (e) {
+            if (container.contains(e.target as Element)) DocumentationBox.focusBox(container.id);
+            else headerDiv.classList.remove("focused-header");
+        });
+
+        closeButton.onclick = () => {
+            DocumentationBox.closeBox(container.id);
+        };
+
+        document.addEventListener("keydown", (ev) => {
+            if (ev.key == "Escape") {
+                DocumentationBox.pressedEscape = true;
+            }
+        });
+
+        document.addEventListener("keyup", (ev) => {
+            if (ev.key == "Escape" && DocumentationBox.pressedEscape) {
+                const focusedBox = DocumentationBox.openBoxes.find((box) => box.isFocused);
+                if (focusedBox) DocumentationBox.closeBox(focusedBox.id);
+
+                DocumentationBox.pressedEscape = false;
+            }
+        });
+
+        DocumentationBox.addNewBox(container.id);
     }
 
     static getNewConsoleId(): string {
         return "console-id-" + DocumentationBox.exampleCounter++;
+    }
+
+    static addNewBox(id: string) {
+        let newZIndex = INITIAL_Z_INDEX;
+
+        if (DocumentationBox.openBoxes.length > 0) {
+            newZIndex = Math.max(...DocumentationBox.openBoxes.map((box) => box.zIndex)) + 1;
+        }
+
+        DocumentationBox.openBoxes.push(new DocBoxMeta(id, true, newZIndex));
+        DocumentationBox.setZIndex(id, newZIndex);
+        DocumentationBox.focusBox(id);
+    }
+
+    static closeBox(id: string) {
+        // should become the highest
+        DocumentationBox.focusBox(id);
+
+        document.getElementById(id).remove();
+        DocumentationBox.openBoxes.splice(
+            DocumentationBox.openBoxes.findIndex((box) => box.id == id),
+            1
+        );
+
+        const maxZIndex = Math.max(...DocumentationBox.openBoxes.map((box) => box.zIndex));
+        const maxZIndexId = DocumentationBox.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
+
+        if (maxZIndexId) DocumentationBox.focusBox(maxZIndexId);
+    }
+
+    static setZIndex(id: string, zIndex: number) {
+        document.getElementById(id).style.zIndex = `${zIndex}`;
+    }
+
+    static focusBox(id: string) {
+        const box = DocumentationBox.openBoxes.find((box) => box.id == id);
+        const boxElement = document.getElementById(box?.id);
+
+        if (box && boxElement) {
+            const boxHeader = boxElement.getElementsByClassName("doc-box-header")[0];
+            boxHeader.classList.add("focused-header");
+
+            const maxZIndex = Math.max(...DocumentationBox.openBoxes.map((box) => box.zIndex));
+            const maxZIndexId = DocumentationBox.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
+
+            box.zIndex = maxZIndex;
+            box.isFocused = true;
+            DocumentationBox.setZIndex(box.id, box.zIndex);
+
+            DocumentationBox.openBoxes.forEach((box) => {
+                if (box.id != id) {
+                    box.isFocused = false;
+
+                    if (maxZIndexId != id && box.zIndex != INITIAL_Z_INDEX) box.zIndex--;
+                    DocumentationBox.setZIndex(box.id, box.zIndex);
+                }
+            });
+        }
+    }
+}
+
+class DocBoxMeta {
+    id: string;
+    isFocused: boolean;
+    zIndex: number;
+
+    constructor(id: string, isFocused: boolean, zIndex: number) {
+        this.id = id;
+        this.isFocused = isFocused;
+        this.zIndex = zIndex;
     }
 }
 

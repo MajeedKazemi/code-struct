@@ -13,13 +13,17 @@
     font-family: "Courier New", Courier, monospace;
 }
 
+.focused-header {
+    background-color: #6699aa !important;
+}
+
 .doc-box-header {
     height: 25px;
     display: flex;
     flex-direction: row;
     align-items: center;
 
-    background-color: #6699aa;
+    background-color: #6699aa70;
 
     transition: background-color 0.15s ease-in-out;
     -webkit-transition: background-color 0.15s ease-in-out;
