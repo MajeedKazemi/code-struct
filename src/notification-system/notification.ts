@@ -1,7 +1,7 @@
 import { Selection } from "monaco-editor";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
-import { CodeConstruct, TypedEmptyExpr } from "../syntax-tree/ast";
+import { CodeConstruct, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 
 /**
@@ -55,11 +55,6 @@ abstract class ConstructVisualElement {
      * HTML element that represents this object in the DOM.
      */
     protected domElement: HTMLDivElement;
-
-    /**
-     * The id of the div associated with this object in the DOM.
-     */
-    protected domId: string;
 
     /**
      * Callbacks this object listens to.
@@ -135,7 +130,6 @@ abstract class ConstructVisualElement {
 export class ConstructHighlight extends ConstructVisualElement {
     constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]) {
         super(editor, codeToHighlight);
-
         this.changeHighlightColour(rgbColour);
     }
 
@@ -461,5 +455,339 @@ export class PopUpNotification extends Notification {
             this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())
         }px`;
         this.domElement.style.top = `${this.selection.startLineNumber * this.editor.computeCharHeight()}px`;
+    }
+}
+
+export class CodeBackground extends ConstructVisualElement {
+    code: Statement;
+
+    constructor(editor: Editor, statement: Statement) {
+        super(editor, statement);
+        this.changeHighlightColour([33, 33, 255, 0.1]);
+
+        if (statement.hasBody()) {
+            for (const line of statement.body) {
+                line.background = new CodeBackground(editor, line);
+            }
+
+            statement.subscribe(
+                CallbackType.replace,
+                new Callback(() => {
+                    for (const line of statement.body) {
+                        if (!line.background) {
+                            line.background = new CodeBackground(editor, line);
+                            line.background.updateDimensions();
+                        }
+                    }
+                })
+            );
+
+            statement.subscribe(
+                CallbackType.change,
+                new Callback(() => {
+                    for (const line of statement.body) {
+                        if (!line.background) {
+                            line.background = new CodeBackground(editor, line);
+                            line.background.updateDimensions();
+                        }
+                    }
+                })
+            );
+
+            statement.subscribe(
+                CallbackType.delete,
+                new Callback(() => {
+                    for (const line of statement.body) {
+                        if (line.background) line.background.removeFromDOM();
+                    }
+                })
+            );
+        }
+    }
+
+    protected createDomElement() {
+        super.createDomElement();
+
+        this.updateDimensions(true);
+
+        document.querySelector(editorDomElementClass).appendChild(this.domElement);
+    }
+
+    protected moveToConstructPosition(): void {
+        const newSelection = this.code.getSelection();
+
+        //top
+        if (this.selection.startLineNumber != newSelection.startLineNumber) {
+            const diff = newSelection.startLineNumber - this.selection.startLineNumber;
+            this.selection = newSelection;
+
+            this.domElement.style.top = `${this.domElement.offsetTop + diff * this.editor.computeCharHeight()}px`;
+        }
+
+        //left
+        if (this.selection.startColumn != newSelection.startColumn) {
+            const diff = newSelection.startColumn - this.selection.startColumn;
+
+            this.selection = newSelection;
+
+            this.domElement.style.left = `${
+                this.domElement.offsetLeft +
+                diff * this.editor.computeCharWidthInvisible(this.selection.startLineNumber)
+            }px`;
+        }
+    }
+
+    /**
+     * Change the colour of this highlight to rgbColour.
+     *
+     * @param rgbColour array of four numbers representing the CSS rgb(R, G, B, A) construct
+     */
+    changeHighlightColour(rgbColour: [number, number, number, number]) {
+        this.domElement.style.backgroundColor = `rgb(${rgbColour[0]}, ${rgbColour[1]}, ${rgbColour[2]}, ${rgbColour[3]})`;
+    }
+
+    protected updateDimensions(firstInsertion: boolean = false) {
+        // instanceof Token does not have lineNumber
+        let top = 0;
+        let left = 0;
+        let width = 0;
+        let height = 0;
+
+        const transform = this.editor.computeBoundingBox(this.code.getSelection());
+
+        top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
+        left = transform.x;
+        height = Math.floor(this.editor.computeCharHeight());
+
+        // compute max width
+        let maxRight = LineDimension.compute(this.code, this.editor).right;
+
+        let outmostRoot: Statement = null;
+        let stack = Array<Statement>();
+
+        if (this.code.rootNode instanceof Statement) {
+            outmostRoot = this.code.rootNode;
+            stack.unshift(outmostRoot);
+
+            while (stack.length > 0) {
+                outmostRoot = stack.pop();
+
+                if (outmostRoot instanceof Statement && outmostRoot.rootNode instanceof Statement)
+                    stack.unshift(outmostRoot.rootNode);
+            }
+        }
+
+        if (outmostRoot) {
+            stack.unshift(outmostRoot);
+            stack.unshift(...outmostRoot.body);
+        }
+
+        while (stack.length > 0) {
+            const line = stack.pop();
+            const lineDim = LineDimension.compute(line, this.editor);
+
+            if (lineDim.right > maxRight) maxRight = lineDim.right;
+            if (line.hasBody()) stack.unshift(...line.body);
+        }
+
+        width = maxRight - left;
+
+        if (firstInsertion) {
+            this.domElement.style.top = `${top}px`;
+            this.domElement.style.left = `${left}px`;
+        }
+
+        this.domElement.style.width = `${width}px`;
+        this.domElement.style.height = `${height}px`;
+    }
+}
+
+// only build two rectangles: one for the header item + one for the whole body. we can style and give border-radiuses to them:
+// header dimensions => left of header + width of max body of statements (recursively)
+// body dimensions => left of first item in the body + same max body width + total height of the body statements (recursively)
+
+// onChange or onReplace of one of the body items => it should recalculate these two dimensions, and the boxes
+
+export class ScopeHighlight {
+    static idPrefix = "visual-element";
+    static idCounter = 0;
+
+    /**
+     * Code that this element is attached to.
+     */
+    protected statement: Statement;
+
+    /**
+     * Current selection of the element. Used for calculating displacement during position changes.
+     */
+    protected selection: Selection;
+
+    /**
+     * Editor object.
+     */
+    protected editor: Editor;
+
+    /**
+     * HTML element that represents the header object in the DOM.
+     */
+    protected headerElement: HTMLDivElement;
+
+    /**
+     * HTML element that represents the body object in the DOM.
+     */
+    protected bodyElement: HTMLDivElement;
+
+    /**
+     * Callbacks this object listens to.
+     */
+    private callbacks: Map<string, CallbackType>;
+
+    constructor(editor: Editor, statement: Statement) {
+        this.statement = statement;
+        this.selection = this.statement.getSelection();
+        this.editor = editor;
+
+        this.callbacks = new Map<string, CallbackType>();
+
+        this.createDomElement();
+        ScopeHighlight.idCounter++;
+        this.headerElement.id = `scope-header-${ScopeHighlight.idPrefix}-${ScopeHighlight.idCounter}`;
+        this.bodyElement.id = `scope-body-${ScopeHighlight.idPrefix}-${ScopeHighlight.idCounter}`;
+
+        const onChange = new Callback(
+            (() => {
+                this.updateDimensions();
+            }).bind(this)
+        );
+
+        const onDelete = new Callback(
+            (() => {
+                this.removeFromDOM();
+            }).bind(this)
+        );
+
+        for (const line of this.statement.body) {
+            line.subscribe(CallbackType.delete, onChange);
+            line.subscribe(CallbackType.replace, onChange);
+            line.subscribe(CallbackType.change, onChange);
+        }
+
+        this.callbacks.set(onDelete.callerId, CallbackType.delete);
+        this.callbacks.set(onChange.callerId, CallbackType.change);
+        this.callbacks.set(onChange.callerId, CallbackType.replace);
+
+        this.statement.subscribe(CallbackType.replace, onChange);
+        this.statement.subscribe(CallbackType.change, onChange);
+        this.statement.subscribe(CallbackType.delete, onDelete);
+    }
+
+    /**
+     * Remove this element and its children from the DOM. (Should always be called on the deletion of this.code)
+     */
+    removeFromDOM(): void {
+        this.headerElement.remove();
+        this.bodyElement.remove();
+
+        for (const entry of this.callbacks) {
+            this.statement.unsubscribe(entry[1], entry[0]);
+        }
+    }
+
+    /**
+     * Construct the DOM element for this visual.
+     */
+    protected createDomElement(): void {
+        this.headerElement = document.createElement("div");
+        this.headerElement.classList.add("scope-header-highlight");
+        this.headerElement.style.backgroundColor = "rgba(75, 200, 255, 0.1)";
+
+        this.bodyElement = document.createElement("div");
+        this.bodyElement.classList.add("scope-body-highlight");
+        this.bodyElement.style.backgroundColor = "rgba(75, 200, 255, 0.1)";
+
+        this.updateDimensions();
+
+        document.querySelector(editorDomElementClass).appendChild(this.headerElement);
+        document.querySelector(editorDomElementClass).appendChild(this.bodyElement);
+    }
+
+    /**
+     * Update the dimensions of this visual element. Called when the code construct the visual is attached to is updated in some way (moved, inserted into, etc...)
+     */
+    protected updateDimensions(): void {
+        const headerDim = LineDimension.compute(this.statement, this.editor);
+
+        let maxRight = headerDim.right;
+        let maxLineNumber = 0;
+
+        const stack = Array<Statement>();
+        stack.unshift(...this.statement.body);
+
+        while (stack.length > 0) {
+            const line = stack.pop();
+
+            const lineDim = LineDimension.compute(line, this.editor);
+            if (lineDim.right > maxRight) maxRight = lineDim.right;
+            if (line.lineNumber > maxLineNumber) maxLineNumber = line.lineNumber;
+
+            if (line.hasBody()) stack.unshift(...line.body);
+        }
+
+        this.headerElement.style.top = `${headerDim.top}px`;
+        this.headerElement.style.left = `${headerDim.left}px`;
+
+        this.headerElement.style.width = `${maxRight - headerDim.left}px`;
+        this.headerElement.style.height = `${headerDim.height}px`;
+
+        const firstLineInBodyDim = LineDimension.compute(this.statement.body[0], this.editor);
+
+        this.bodyElement.style.top = `${firstLineInBodyDim.top}px`;
+        this.bodyElement.style.left = `${firstLineInBodyDim.left}px`;
+
+        this.bodyElement.style.width = `${maxRight - firstLineInBodyDim.left}px`;
+        this.bodyElement.style.height = `${headerDim.height * (maxLineNumber - this.statement.lineNumber)}px`;
+    }
+
+    getHeaderElement(): HTMLDivElement {
+        return this.headerElement;
+    }
+
+    getBodyElement(): HTMLDivElement {
+        return this.bodyElement;
+    }
+}
+
+export class LineDimension {
+    top: number;
+    left: number;
+    right: number;
+    width: number;
+    height: number;
+
+    constructor(top: number, left: number, right: number, width: number, height: number) {
+        this.top = top;
+        this.left = left;
+        this.right = right;
+        this.width = width;
+        this.height = height;
+    }
+
+    static compute(code: Statement, editor: Editor): LineDimension {
+        let lineNumber = code.getLineNumber();
+
+        const text = code.getLineText();
+        const transform = editor.computeBoundingBox(code.getSelection());
+
+        let top = (code.getSelection().startLineNumber - 1) * editor.computeCharHeight();
+        let left = (code.left - 1) * 10.5;
+        let height = Math.floor(editor.computeCharHeight());
+        let width = text.length * editor.computeCharWidthInvisible(lineNumber);
+        let right = left + width;
+
+        return new LineDimension(top, left, right, width, height);
+    }
+
+    toString(): string {
+        return `top: ${this.top}, left: ${this.left}, right: ${this.right}, width: ${this.width}, height: ${this.height}`;
     }
 }

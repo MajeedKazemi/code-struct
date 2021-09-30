@@ -194,6 +194,7 @@ function createExample(item): HTMLDivElement {
     exampleConsole.appendChild(consoleOutput);
 
     const codeEditor = editor.create(exampleEditor, {
+        folding: false,
         value: item.example,
         language: "python",
         dimension: { width: 200, height: 100 },

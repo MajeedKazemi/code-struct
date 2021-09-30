@@ -1,6 +1,6 @@
 import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { ConstructHighlight } from "../notification-system/notification";
+import { ConstructHighlight, ScopeHighlight } from "../notification-system/notification";
 import {
     AssignmentModifier,
     AutocompleteTkn,
@@ -205,11 +205,15 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertStatement: {
-                const statement = action.data?.statement;
+                const statement = action.data?.statement as Statement;
 
-                this.insertStatement(context, statement as Statement);
+                this.insertStatement(context, statement);
 
                 if (flashGreen) this.flashGreen(action.data?.statement);
+
+                if (statement.hasBody()) {
+                    let background = new ScopeHighlight(this.module.editor, statement);
+                }
 
                 break;
             }

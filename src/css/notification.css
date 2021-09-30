@@ -17,6 +17,27 @@
     -ms-transition: background-color 0.3s ease-in-out;
 }
 
+.scope-header-highlight {
+    display: block;
+    position: absolute;
+    pointer-events: none;
+    z-index: -999;
+
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.scope-body-highlight {
+    display: block;
+    position: absolute;
+    pointer-events: none;
+    z-index: -999;
+
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
 .codeVisual.textBox {
     display: block;
 

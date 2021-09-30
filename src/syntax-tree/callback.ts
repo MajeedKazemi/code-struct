@@ -1,9 +1,11 @@
+import { CodeConstruct } from "./ast";
+
 export class Callback {
     static counter: number = 0;
-    callback: () => any;
+    callback: (code: CodeConstruct) => void;
     callerId: string;
 
-    constructor(callback: () => any) {
+    constructor(callback: (code: CodeConstruct) => void) {
         this.callback = callback;
         this.callerId = "caller-id-" + Callback.counter;
         Callback.counter++;
