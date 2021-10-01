@@ -819,10 +819,12 @@ export class ActionExecutor {
                     () => stmt,
                     InsertActionType.InsertImportStmt,
                     {},
+                    null,
                     [" "],
                     "import",
                     null
                 );
+
                 insertAction.performAction(this, this.module.eventRouter, currContext);
 
                 break;

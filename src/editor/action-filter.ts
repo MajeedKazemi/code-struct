@@ -1,6 +1,7 @@
 import {
     Expression,
     ForStatement,
+    Modifier,
     Statement,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -11,6 +12,7 @@ import {
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { getUserFriendlyType } from "../utilities/util";
 import { ActionExecutor } from "./action-executor";
 import { Actions, InsertActionType } from "./consts";
 import { EventRouter } from "./event-router";
@@ -324,6 +326,14 @@ export class EditCodeAction extends UserAction {
         action.insertionType = insertionType;
 
         return action;
+    }
+
+    getUserFriendlyReturnType(): string {
+        const code = this.getCode();
+
+        if (code instanceof Expression && !(code instanceof Modifier))
+            return " -> " + getUserFriendlyType(code.returns);
+        else return "";
     }
 
     getCode() {
