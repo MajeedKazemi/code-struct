@@ -144,6 +144,7 @@ export class ActionFilter {
                         ? InsertActionType.InsertVarOperationStmt
                         : InsertActionType.InsertValOperationExpr,
                     {},
+                    null,
                     [""],
                     "",
                     null
@@ -267,6 +268,7 @@ export class EditCodeAction extends UserAction {
     matchRegex: RegExp;
     insertableTerminatingCharRegex: RegExp[];
     trimSpacesBeforeTermChar: boolean;
+    documentation: any;
 
     constructor(
         optionName: string,
@@ -274,6 +276,7 @@ export class EditCodeAction extends UserAction {
         getCodeFunction: () => Statement | Expression,
         insertActionType: InsertActionType,
         insertData: any = {},
+        documentation: any,
         terminatingChars: string[],
         matchString: string,
         matchRegex: RegExp,
@@ -285,6 +288,7 @@ export class EditCodeAction extends UserAction {
         this.getCodeFunction = getCodeFunction;
         this.insertActionType = insertActionType;
         this.insertData = insertData;
+        this.documentation = documentation;
         this.terminatingChars = terminatingChars;
         this.matchString = matchString;
         this.matchRegex = matchRegex;
@@ -310,6 +314,7 @@ export class EditCodeAction extends UserAction {
             getCodeFunction,
             insertActionType,
             insertData,
+            null,
             terminatingChars,
             matchString,
             matchRegex,

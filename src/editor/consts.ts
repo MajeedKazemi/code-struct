@@ -1,3 +1,46 @@
+import * as AddVarDocs from "../docs/add-var.json";
+import * as AddDocs from "../docs/add.json";
+import * as AndDocs from "../docs/and.json";
+import * as AssignAddDocs from "../docs/assign-add.json";
+import * as AssignDivDocs from "../docs/assign-div.json";
+import * as AssignMultDocs from "../docs/assign-mult.json";
+import * as AssignSubDocs from "../docs/assign-sub.json";
+import * as AssignDocs from "../docs/assign.json";
+import * as CompEqDocs from "../docs/comp-eq.json";
+import * as CompGtDocs from "../docs/comp-gt.json";
+import * as CompGteDocs from "../docs/comp-gte.json";
+import * as CompLtDocs from "../docs/comp-lt.json";
+import * as CompLteDocs from "../docs/comp-lte.json";
+import * as CompNeDocs from "../docs/comp-ne.json";
+import * as DivDocs from "../docs/div.json";
+import * as ElifDocs from "../docs/elif.json";
+import * as ElseDocs from "../docs/else.json";
+import * as FalseDocs from "../docs/false.json";
+import * as FindDocs from "../docs/find.json";
+import * as ForDocs from "../docs/for.json";
+import * as IfDocs from "../docs/if.json";
+import * as ImportDocs from "../docs/import.json";
+import * as InputDocs from "../docs/input.json";
+import * as JoinDocs from "../docs/join.json";
+import * as LenDocs from "../docs/len.json";
+import * as ListAppendDocs from "../docs/list-append.json";
+import * as ListIndexDocs from "../docs/list-index.json";
+import * as ListItemDocs from "../docs/list-item.json";
+import * as ListLiteralDocs from "../docs/list-literal.json";
+import * as MultDocs from "../docs/mult.json";
+import * as NotDocs from "../docs/not.json";
+import * as NumDocs from "../docs/num.json";
+import * as OrDocs from "../docs/or.json";
+import * as PrintDocs from "../docs/print.json";
+import * as RandintDocs from "../docs/randint.json";
+import * as RangeDocs from "../docs/range.json";
+import * as ReplaceDocs from "../docs/replace.json";
+import * as SplitDocs from "../docs/split.json";
+import * as StrDocs from "../docs/str.json";
+import * as SubDocs from "../docs/sub.json";
+import * as CastToStrDocs from "../docs/to-str.json";
+import * as TrueDocs from "../docs/true.json";
+import * as WhileDocs from "../docs/while.json";
 import {
     Argument,
     AssignmentModifier,
@@ -221,6 +264,7 @@ export class Actions {
             () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)]),
             InsertActionType.InsertPrintFunctionStmt,
             {},
+            PrintDocs,
             ["("],
             "print",
             null
@@ -240,6 +284,7 @@ export class Actions {
                 ),
             InsertActionType.InsertRandintExpr,
             {},
+            RandintDocs,
             ["("],
             "randint",
             null
@@ -256,6 +301,7 @@ export class Actions {
                 ),
             InsertActionType.InsertRangeExpr,
             {},
+            RangeDocs,
             ["("],
             "range",
             null
@@ -284,6 +330,7 @@ export class Actions {
                 ),
             InsertActionType.InsertLenExpr,
             {},
+            LenDocs,
             ["("],
             "len",
             null
@@ -295,6 +342,7 @@ export class Actions {
             () => new FunctionCallExpr("input", [new Argument([DataType.String], "prompt", true)], DataType.String),
             InsertActionType.InsertInputExpr,
             {},
+            InputDocs,
             ["("],
             "input",
             null
@@ -309,6 +357,7 @@ export class Actions {
                 literalType: DataType.String,
                 initialValue: "",
             },
+            StrDocs,
             [],
             "",
             null
@@ -323,6 +372,7 @@ export class Actions {
                 literalType: DataType.Number,
                 initialValue: "0",
             },
+            NumDocs,
             [],
             "",
             null
@@ -337,6 +387,7 @@ export class Actions {
                 literalType: DataType.Boolean,
                 initialValue: "True",
             },
+            TrueDocs,
             [" "],
             "True",
             null,
@@ -352,6 +403,7 @@ export class Actions {
                 literalType: DataType.Boolean,
                 initialValue: "False",
             },
+            FalseDocs,
             [" "],
             "False",
             null,
@@ -366,6 +418,7 @@ export class Actions {
             {
                 operator: BinaryOperator.Add,
             },
+            AddDocs,
             ["+"],
             "",
             null
@@ -379,6 +432,7 @@ export class Actions {
             {
                 operator: BinaryOperator.Subtract,
             },
+            SubDocs,
             ["-"],
             "",
             null
@@ -392,6 +446,7 @@ export class Actions {
             {
                 operator: BinaryOperator.Multiply,
             },
+            MultDocs,
             ["*"],
             "",
             null
@@ -405,6 +460,7 @@ export class Actions {
             {
                 operator: BinaryOperator.Divide,
             },
+            DivDocs,
             ["/"],
             "",
             null
@@ -418,6 +474,7 @@ export class Actions {
             {
                 operator: BinaryOperator.And,
             },
+            AndDocs,
             ["d"],
             "an",
             null
@@ -431,6 +488,7 @@ export class Actions {
             {
                 operator: BinaryOperator.Or,
             },
+            OrDocs,
             ["r"],
             "o",
             null
@@ -444,6 +502,7 @@ export class Actions {
             {
                 operator: BinaryOperator.Equal,
             },
+            CompEqDocs,
             ["="],
             "=",
             null
@@ -457,6 +516,7 @@ export class Actions {
             {
                 operator: BinaryOperator.NotEqual,
             },
+            CompNeDocs,
             ["="],
             "!",
             null
@@ -470,6 +530,7 @@ export class Actions {
             {
                 operator: BinaryOperator.LessThan,
             },
+            CompLtDocs,
             [" "],
             "<",
             null,
@@ -484,6 +545,7 @@ export class Actions {
             {
                 operator: BinaryOperator.LessThanEqual,
             },
+            CompLteDocs,
             ["="],
             "<",
             null
@@ -497,6 +559,7 @@ export class Actions {
             {
                 operator: BinaryOperator.GreaterThan,
             },
+            CompGtDocs,
             [" "],
             ">",
             null,
@@ -511,6 +574,7 @@ export class Actions {
             {
                 operator: BinaryOperator.GreaterThanEqual,
             },
+            CompGteDocs,
             ["="],
             ">",
             null
@@ -524,6 +588,7 @@ export class Actions {
             {
                 operator: UnaryOp.Not,
             },
+            NotDocs,
             // TODO: this has ambiguity with not in binary exp
             ["t"],
             "no",
@@ -542,6 +607,7 @@ export class Actions {
                 ),
             InsertActionType.InsertStringFindMethod,
             {},
+            FindDocs,
             ["("],
             ".find",
             null
@@ -553,6 +619,7 @@ export class Actions {
             () => new WhileStatement(),
             InsertActionType.InsertWhileStmt,
             {},
+            WhileDocs,
             [" "],
             "while",
             null
@@ -564,6 +631,7 @@ export class Actions {
             () => new IfStatement(),
             InsertActionType.InsertIfStmt,
             {},
+            IfDocs,
             [" "],
             "if",
             null
@@ -575,6 +643,7 @@ export class Actions {
             () => new ElseStatement(true),
             InsertActionType.InsertElifStmt,
             {},
+            ElifDocs,
             [" "],
             "elif",
             null
@@ -586,6 +655,7 @@ export class Actions {
             () => new ElseStatement(false),
             InsertActionType.InsertElseStmt,
             {},
+            ElseDocs,
             [" "],
             "else",
             null
@@ -597,6 +667,7 @@ export class Actions {
             () => new ForStatement(),
             InsertActionType.InsertForStmt,
             {},
+            ForDocs,
             [" "],
             "for",
             null
@@ -608,6 +679,7 @@ export class Actions {
             () => new ImportStatement(),
             InsertActionType.InsertImportStmt,
             {},
+            ImportDocs,
             [" "],
             "import",
             null
@@ -619,6 +691,7 @@ export class Actions {
             () => new ListLiteralExpression(),
             InsertActionType.InsertListLiteral,
             {},
+            ListLiteralDocs,
             ["["],
             "",
             null
@@ -630,6 +703,7 @@ export class Actions {
             () => new ListComma(),
             InsertActionType.InsertListItem,
             {},
+            ListItemDocs,
             [","],
             "",
             null
@@ -641,6 +715,7 @@ export class Actions {
             () => new ListAccessModifier(),
             InsertActionType.InsertListIndexAccessor,
             {},
+            ListIndexDocs,
             ["["],
             "",
             null
@@ -652,6 +727,7 @@ export class Actions {
             () => new AssignmentModifier(),
             InsertActionType.InsertAssignmentModifier,
             {},
+            AssignDocs,
             ["="],
             "",
             null
@@ -663,6 +739,7 @@ export class Actions {
             () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
+            AssignAddDocs,
             ["+"],
             "",
             null
@@ -674,6 +751,7 @@ export class Actions {
             () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
+            AssignSubDocs,
             ["-"],
             "",
             null
@@ -685,6 +763,7 @@ export class Actions {
             () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
+            AssignMultDocs,
             ["*"],
             "",
             null
@@ -696,6 +775,7 @@ export class Actions {
             () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
+            AssignDivDocs,
             ["/"],
             "",
             null
@@ -713,6 +793,7 @@ export class Actions {
                 ),
             InsertActionType.InsertListAppendMethod,
             {},
+            ListAppendDocs,
             ["("],
             ".append",
             null
@@ -730,6 +811,7 @@ export class Actions {
                 ),
             InsertActionType.InsertStringReplaceMethod,
             {},
+            ReplaceDocs,
             ["("],
             ".replace",
             null
@@ -765,6 +847,7 @@ export class Actions {
                 ],
                 exprType: DataType.String,
             },
+            JoinDocs,
             ["("],
             ".join",
             null
@@ -782,6 +865,7 @@ export class Actions {
                 ),
             InsertActionType.InsertStringSplitMethod,
             {},
+            SplitDocs,
             ["("],
             ".split",
             null
@@ -793,6 +877,7 @@ export class Actions {
             () => new FunctionCallExpr("str", [new Argument([DataType.Any], "value", false)], DataType.String),
             InsertActionType.InsertCastStrExpr,
             {},
+            CastToStrDocs,
             ["("],
             "str",
             null
@@ -804,6 +889,7 @@ export class Actions {
             () => new VarAssignmentStmt(),
             InsertActionType.InsertNewVariableStmt,
             {},
+            AddVarDocs,
             ["="],
             null,
             IdentifierRegex
