@@ -1,4 +1,4 @@
-import { Expression, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
+import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
 import { DataType, InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
@@ -132,12 +132,20 @@ export function loadToolboxFromJson() {
 export class ToolboxButton {
     container: HTMLDivElement;
 
-    constructor(text: string, domId?: string, returnType?: string, documentation?: any) {
+    constructor(text: string, domId?: string, returnType?: string, documentation?: any, code?: CodeConstruct) {
         this.container = document.createElement("div");
         this.container.classList.add("var-button-container");
 
         const button = document.createElement("div");
         button.classList.add("button");
+
+        if (!(code instanceof Expression) && !(code instanceof Modifier)) {
+            button.classList.add("statement-button");
+        } else if (code instanceof Modifier) {
+            button.classList.add("modifier-button");
+        } else if (code instanceof Expression) {
+            button.classList.add("expression-button");
+        }
 
         this.container.appendChild(button);
 
@@ -149,10 +157,9 @@ export class ToolboxButton {
             this.container.appendChild(typeText);
         }
 
-        if (domId) {
-            button.id = domId;
-        }
+        if (domId) button.id = domId;
 
+        // TODO: different types of holes should look differently
         button.innerHTML = text.replace(/---/g, "<hole></hole>");
 
         if (documentation) {
@@ -181,7 +188,8 @@ export class ToolboxButton {
             action.optionName,
             action.cssId,
             action.getUserFriendlyReturnType(),
-            action.documentation
+            action.documentation,
+            action.getCode()
         );
     }
 }

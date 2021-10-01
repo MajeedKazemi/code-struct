@@ -291,7 +291,7 @@ export class Actions {
         );
 
         const RangeExpr = new EditCodeAction(
-            "range(---)",
+            "range(---, ---)",
             "add-range-btn",
             () =>
                 new FunctionCallExpr(

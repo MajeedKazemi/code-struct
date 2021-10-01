@@ -4,7 +4,7 @@
 
     box-shadow: 20px -50px 50px -15px #ccc;
 
-    min-width: 480px;
+    min-width: 490px;
 
     font-family: Consolas, "Courier New", monospace;
 }
@@ -216,4 +216,18 @@ hole {
 
 .var-button-container:hover > .learn-button {
     visibility: visible;
+}
+
+.statement-button {
+    border-bottom: solid #05c8ac 3px !important;
+}
+
+.expression-button {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    border-radius: 25px !important;
+}
+
+.modifier-button {
+    border-left: solid #0084dd 3px !important;
 }
