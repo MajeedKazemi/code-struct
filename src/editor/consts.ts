@@ -212,6 +212,7 @@ export class Actions {
     actionsList: Array<EditCodeAction>;
     actionsMap: Map<string, EditCodeAction>;
     varModifiersMap: Map<DataType, Array<() => Statement>>;
+    toolboxCategories: Array<ToolboxCategory> = [];
 
     private constructor() {
         const PrintStmt = new EditCodeAction(
@@ -529,7 +530,7 @@ export class Actions {
             null
         );
 
-        const FindExpr = new EditCodeAction(
+        const FindMethodMod = new EditCodeAction(
             ".find(---)",
             "add-find-method-call-btn",
             () =>
@@ -831,7 +832,7 @@ export class Actions {
             BinCompGtExpr,
             BinCompGteExpr,
             UnaryNotExpr,
-            FindExpr,
+            FindMethodMod,
             WhileStmt,
             IfStmt,
             ElifStmt,
@@ -1010,6 +1011,76 @@ export class Actions {
                 ],
             ],
         ]);
+
+        this.toolboxCategories.push(
+            new ToolboxCategory("Loops", "loops-toolbox-group", [WhileStmt, ForStmt, RangeExpr])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Conditionals", "conditionals-toolbox-group", [IfStmt, ElifStmt, ElseStmt])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Functions", "functions-toolbox-group", [PrintStmt, InputExpr, LenExpr])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Variables", "create-var-toolbox-group", [
+                VarAssignStmt,
+                AssignmentMod,
+                AugAddAssignmentMod,
+                AugSubAssignmentMod,
+                AugMulAssignmentMod,
+                AugDivAssignmentMod,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Numbers", "numbers-toolbox-group", [NumberLiteralExpr, RandIntExpr])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Texts", "text-toolbox-group", [
+                StringLiteralExpr,
+                SplitMethodMod,
+                JoinMethodMod,
+                FindMethodMod,
+                ReplaceMethodMod,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Lists", "list-ops-toolbox-group", [
+                ListLiteralExpr,
+                ListCommaItem,
+                ListIndexAccessor,
+                AppendMethodMod,
+            ])
+        );
+
+        this.toolboxCategories.push(
+            new ToolboxCategory("Arithmetics", "arithmetics-toolbox-group", [
+                BinAddExpr,
+                BinSubExpr,
+                BinMultExpr,
+                BinDivExpr,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Comparisons", "comparison-ops-toolbox-group", [
+                BinCompEqExpr,
+                BinCompNeqExpr,
+                BinCompLtExpr,
+                BinCompLteExpr,
+                BinCompGtExpr,
+                BinCompGteExpr,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Booleans", "boolean-ops-toolbox-group", [
+                BinAndExpr,
+                BinOrExpr,
+                UnaryNotExpr,
+                BooleanTrueLiteralExpr,
+                BooleanFalseLiteralExpr,
+            ])
+        );
+        this.toolboxCategories.push(new ToolboxCategory("Casting", "casting-toolbox-group", [CastStrExpr]));
+        this.toolboxCategories.push(new ToolboxCategory("Imports", "import-ops-toolbox-group", [ImportStmt]));
     }
 
     static instance(): Actions {
