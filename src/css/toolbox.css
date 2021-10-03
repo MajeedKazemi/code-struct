@@ -229,13 +229,23 @@ hole {
 }
 
 .statement-button:hover {
-    border-bottom: solid #05c8ac 3px !important;
+    border-bottom: solid #05c8ac 4px !important;
 }
 
 .expression-button {
     padding-left: 10px !important;
     padding-right: 10px !important;
     border-radius: 25px !important;
+
+    transition: border 0.15s ease-in-out;
+    -webkit-transition: border 0.15s ease-in-out;
+    -moz-transition: border 0.15s ease-in-out;
+    -o-transition: border 0.15s ease-in-out;
+    -ms-transition: border 0.15s ease-in-out;
+}
+
+.expression-button:hover {
+    border: solid #a900dd 2px !important;
 }
 
 .modifier-button {
@@ -249,5 +259,5 @@ hole {
 }
 
 .modifier-button:hover {
-    border-left: solid #0084dd 3px !important;
+    border-left: solid #0084dd 4px !important;
 }
