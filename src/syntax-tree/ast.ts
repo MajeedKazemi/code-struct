@@ -1260,7 +1260,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         const varController = this.getModule().variableController;
 
         if (currentIdentifier !== this.oldIdentifier || this.buttonId === "") {
-            if (currentIdentifier === "   ") {
+            if (currentIdentifier === "  ") {
                 this.removeAssignment();
 
                 if (
@@ -1274,7 +1274,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                 }
 
                 this.buttonId = "";
-                this.oldIdentifier = "   ";
+                this.oldIdentifier = "  ";
             } else {
                 const currentIdentifierAssignments = (
                     this.rootNode as Statement | Module
@@ -2657,7 +2657,7 @@ export class IdentifierTkn extends Token implements TextEditable {
     validatorRegex: RegExp;
 
     constructor(identifier?: string, root?: CodeConstruct, indexInRoot?: number) {
-        super(identifier == undefined ? "   " : identifier);
+        super(identifier == undefined ? "  " : identifier);
 
         if (identifier == undefined) this.isEmpty = true;
         else this.isEmpty = false;
@@ -2791,7 +2791,7 @@ export class TypedEmptyExpr extends Token {
     type: DataType[];
 
     constructor(type: DataType[], root?: CodeConstruct, indexInRoot?: number) {
-        super("   ");
+        super("    ");
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;

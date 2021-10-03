@@ -219,6 +219,16 @@ hole {
 }
 
 .statement-button {
+    /* border-bottom: solid #05c8ac 3px !important; */
+
+    transition: border 0.15s ease-in-out;
+    -webkit-transition: border 0.15s ease-in-out;
+    -moz-transition: border 0.15s ease-in-out;
+    -o-transition: border 0.15s ease-in-out;
+    -ms-transition: border 0.15s ease-in-out;
+}
+
+.statement-button:hover {
     border-bottom: solid #05c8ac 3px !important;
 }
 
@@ -229,5 +239,15 @@ hole {
 }
 
 .modifier-button {
+    /* border-left: solid #0084dd 3px !important; */
+
+    transition: border 0.15s ease-in-out;
+    -webkit-transition: border 0.15s ease-in-out;
+    -moz-transition: border 0.15s ease-in-out;
+    -o-transition: border 0.15s ease-in-out;
+    -ms-transition: border 0.15s ease-in-out;
+}
+
+.modifier-button:hover {
     border-left: solid #0084dd 3px !important;
 }
