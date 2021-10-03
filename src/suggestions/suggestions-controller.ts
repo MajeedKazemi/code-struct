@@ -302,7 +302,8 @@ class MenuOption {
 
         let textNode;
 
-        text = text.replace(/---/g, "<hole></hole>");
+        text = text.replace(/---/g, "<hole1></hole1>");
+        text = text.replace(/--/g, '<hole2></hole2>');
 
         if (useInnerHTML) {
             textNode = document.createElement("div");
@@ -935,7 +936,8 @@ export class MenuController {
 
         pos.top =
             this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
-            document.getElementById(EDITOR_DOM_ID).offsetTop - this.module.editor.scrollOffsetTop;
+            document.getElementById(EDITOR_DOM_ID).offsetTop -
+            this.module.editor.scrollOffsetTop;
 
         return pos;
     }

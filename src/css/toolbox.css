@@ -41,14 +41,22 @@
     box-shadow: 0px 1px 5px 2px #ccc;
 }
 
-hole {
+#editor-toolbox hole1 {
     min-width: 18px;
     height: 18px;
-    background: rgb(0 0 0 / 5%);
-    border-radius: 2px;
-    box-shadow: 0px 0px 0px 1px #0000005e inset;
-    margin: 0px 8px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 1px 1px #0000005e inset;
+    margin: 0px 3px;
     display: inline-block;
+}
+
+#editor-toolbox hole2 {
+    margin: 0px 3px;
+    display: inline-block;
+    box-shadow: none;
+    border: dashed 1px #c7c7c7;
+    min-width: 12px;
+    height: 16px;
 }
 
 #user-variables {

@@ -160,7 +160,10 @@ export class ToolboxButton {
         if (domId) button.id = domId;
 
         // TODO: different types of holes should look differently
-        button.innerHTML = text.replace(/---/g, "<hole></hole>");
+        let htmlText = text.replace(/---/g, "<hole1></hole1>");
+        htmlText = htmlText.replace(/--/g, "<hole2></hole2>");
+        htmlText = htmlText.trim().replace(/ /g, "&nbsp");
+        button.innerHTML = htmlText;
 
         if (documentation) {
             const learnButton = document.createElement("div");

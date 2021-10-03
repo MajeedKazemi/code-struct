@@ -650,7 +650,7 @@ export class Actions {
         );
 
         const ElseStmt = new EditCodeAction(
-            "else (---) :",
+            "else :",
             "add-else-expr-btn",
             () => new ElseStatement(false),
             InsertActionType.InsertElseStmt,
@@ -662,7 +662,7 @@ export class Actions {
         );
 
         const ForStmt = new EditCodeAction(
-            "for --- in --- :",
+            "for -- in --- :",
             "add-for-expr-btn",
             () => new ForStatement(),
             InsertActionType.InsertForStmt,

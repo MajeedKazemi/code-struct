@@ -123,8 +123,14 @@ export class ActionFilter {
                     code.setIterator(ref);
                 }
 
+                let optionName = code.getRenderText();
+
+                if (code instanceof ForStatement) {
+                    optionName = optionName.replace(/   /g, " --");
+                } else optionName = optionName.replace(/   /g, " ---");
+
                 const codeAction = new EditCodeAction(
-                    code.getRenderText().replace(/   /g, " ---"),
+                    optionName,
                     "",
                     () => {
                         const code = varOperation() as Expression;
