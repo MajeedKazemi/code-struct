@@ -879,7 +879,7 @@ export class ActionExecutor {
                 this.openAutocompleteMenu(
                     this.module.actionFilter
                         .getProcessedInsertionsList()
-                        .filter((item) => item.insertionType != InsertionType.Invalid)
+                        .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid)
                 );
                 this.styleAutocompleteMenu(context.position);
 
@@ -1099,9 +1099,9 @@ export class ActionExecutor {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr) {
-            let insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+            let insertionResult = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
-            if (insertionType != InsertionType.Invalid) {
+            if (insertionResult.insertionType != InsertionType.Invalid) {
                 code.performPreInsertionUpdates(context.token);
 
                 if (context.token.rootNode instanceof Statement) {
@@ -1133,9 +1133,10 @@ export class ActionExecutor {
                 }
             }
 
-            if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
+            if (insertionResult.insertionType == InsertionType.DraftMode)
+                this.module.openDraftMode(code, insertionResult.message);
             else if (isImportable(code)) {
-                this.checkImports(code, insertionType);
+                this.checkImports(code, insertionResult.insertionType);
             }
         }
     }
@@ -1151,7 +1152,7 @@ export class ActionExecutor {
 
     private openAutocompleteMenu(inserts: EditCodeAction[]) {
         if (!this.module.menuController.isMenuOpen()) {
-            inserts = inserts.filter((insert) => insert.insertionType !== InsertionType.Invalid);
+            inserts = inserts.filter((insert) => insert.insertionResult.insertionType !== InsertionType.Invalid);
             this.module.menuController.buildSingleLevelMenu(inserts);
         } else this.module.menuController.removeMenus();
     }
@@ -1202,18 +1203,18 @@ export class ActionExecutor {
 
         const curOperand = toLeft ? newCode.getLeftOperand() : newCode.getRightOperand();
         const otherOperand = toLeft ? newCode.getRightOperand() : newCode.getLeftOperand();
-        const insertionType = newCode.typeValidateInsertionIntoHole(expr, curOperand as TypedEmptyExpr);
+        const insertionResult = newCode.typeValidateInsertionIntoHole(expr, curOperand as TypedEmptyExpr);
 
         /**
          * Special cases
          *
          * if (--- + (--- + ---)|): --> attempting to insert a comparator or binary boolean operation should fail
          */
-        if (insertionType === InsertionType.Valid) {
-            const replacementType = expr.canReplaceWithConstruct(newCode);
+        if (insertionResult.insertionType === InsertionType.Valid) {
+            const replacementResult = expr.canReplaceWithConstruct(newCode);
 
             // this can never go into draft mode
-            if (replacementType !== InsertionType.Invalid) {
+            if (replacementResult.insertionType !== InsertionType.Invalid) {
                 this.module.closeConstructDraftRecord(root.tokens[index]);
 
                 if (toLeft) newCode.replaceLeftOperand(expr);
@@ -1230,10 +1231,10 @@ export class ActionExecutor {
                     tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
                 });
 
-                if (replacementType !== InsertionType.DraftMode) {
+                if (replacementResult.insertionType !== InsertionType.DraftMode) {
                     this.module.closeConstructDraftRecord(expr);
                 } else {
-                    this.module.openDraftMode(newCode);
+                    this.module.openDraftMode(newCode, replacementResult.message);
                 }
 
                 if (newCode.rootNode instanceof Statement) newCode.rootNode.onInsertInto(newCode);
