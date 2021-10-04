@@ -702,7 +702,7 @@ export class MenuController {
                         );
                     },
                     null,
-                    action.insertionType == InsertionType.DraftMode
+                    action.insertionResult.insertionType == InsertionType.DraftMode
                 );
 
                 this.insertOptionIntoMenu(option, menu);
@@ -868,7 +868,7 @@ export class MenuController {
                             );
                         },
                         extraInfo,
-                        editAction.insertionType == InsertionType.DraftMode
+                        editAction.insertionResult.insertionType == InsertionType.DraftMode
                     );
 
                     this.insertOptionIntoMenu(option, menu);
@@ -935,7 +935,8 @@ export class MenuController {
 
         pos.top =
             this.module.editor.monaco.getSelection().startLineNumber * this.module.editor.computeCharHeight() +
-            document.getElementById(EDITOR_DOM_ID).offsetTop - this.module.editor.scrollOffsetTop;
+            document.getElementById(EDITOR_DOM_ID).offsetTop -
+            this.module.editor.scrollOffsetTop;
 
         return pos;
     }
