@@ -28,7 +28,14 @@ import {
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
-import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
+import {
+    AutoCompleteType,
+    BuiltInFunctions,
+    PythonKeywords,
+    TAB_SPACES,
+    TYPE_MISMATCH_HOLE_FUNC_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_STR,
+} from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
@@ -620,19 +627,30 @@ export class ActionExecutor {
                         const valOprExpr = context.expressionToLeft.rootNode;
                         const valOprExprRoot = valOprExpr.rootNode as Statement;
 
-                        let replacementType = valOprExpr.rootNode.checkInsertionAtHole(
+                        let replacementResult = valOprExpr.rootNode.checkInsertionAtHole(
                             valOprExpr.indexInRoot,
                             modifier.returns
                         );
 
-                        if (replacementType !== InsertionType.Invalid) {
+                        const holeTypes = valOprExpr.rootNode.typeOfHoles[valOprExpr.indexInRoot];
+
+                        if (replacementResult.insertionType !== InsertionType.Invalid) {
                             valOprExpr.appendModifier(modifier);
                             valOprExprRoot.rebuild(valOprExprRoot.getLeftPosition(), 0);
 
                             this.module.editor.insertAtCurPos([modifier]);
                             this.module.focus.updateContext(modifier.getInitialFocus());
 
-                            if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                            if (replacementResult.insertionType == InsertionType.DraftMode)
+                                this.module.openDraftMode(
+                                    valOprExpr,
+                                    TYPE_MISMATCH_HOLE_FUNC_STR(
+                                        valOprExpr.getKeyword(),
+                                        holeTypes,
+                                        valOprExpr.returns,
+                                        "CONVERSION INSTRUCTION 321"
+                                    )
+                                );
                         }
 
                         if (valOprExpr.rootNode instanceof Statement) valOprExpr.rootNode.onInsertInto(valOprExpr);
@@ -658,10 +676,11 @@ export class ActionExecutor {
                         if (!modifier.returns) modifier.returns = DataType.Any;
                     }
 
-                    const replacementType = exprToLeftRoot.checkInsertionAtHole(
+                    const replacementResult = exprToLeftRoot.checkInsertionAtHole(
                         context.expressionToLeft.indexInRoot,
                         modifier.returns
                     );
+                    const holeDataTypes = exprToLeftRoot.typeOfHoles[context.expressionToLeft.indexInRoot];
 
                     const valOprExpr = new ValueOperationExpr(
                         context.expressionToLeft,
@@ -675,7 +694,7 @@ export class ActionExecutor {
                     context.expressionToLeft.indexInRoot = 0;
                     context.expressionToLeft.rootNode = valOprExpr;
 
-                    if (replacementType !== InsertionType.Invalid) {
+                    if (replacementResult.insertionType !== InsertionType.Invalid) {
                         this.module.closeConstructDraftRecord(context.expressionToLeft);
 
                         exprToLeftRoot.tokens[exprToLeftIndexInRoot] = valOprExpr;
@@ -684,7 +703,16 @@ export class ActionExecutor {
                         this.module.editor.insertAtCurPos([modifier]);
                         this.module.focus.updateContext(modifier.getInitialFocus());
 
-                        if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                        if (replacementResult.insertionType == InsertionType.DraftMode)
+                            this.module.openDraftMode(
+                                valOprExpr,
+                                TYPE_MISMATCH_HOLE_FUNC_STR(
+                                    valOprExpr.getKeyword(),
+                                    holeDataTypes,
+                                    valOprExpr.returns,
+                                    "CONVERSION INSTRUCTION 123"
+                                )
+                            );
                     }
                 }
 
@@ -1310,13 +1338,31 @@ export class ActionExecutor {
             if (rootOfExprToLeft instanceof ValueOperationExpr) {
                 rootOfExprToLeft.updateReturnType();
 
-                let replacementType = rootOfExprToLeft.rootNode.checkInsertionAtHole(
+                let replacementResult = rootOfExprToLeft.rootNode.checkInsertionAtHole(
                     rootOfExprToLeft.indexInRoot,
                     rootOfExprToLeft.returns
                 );
 
-                if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(rootOfExprToLeft);
-
+                if (replacementResult.insertionType == InsertionType.DraftMode) {
+                    const ref = rootOfExprToLeft.getVarRef();
+                    const line = this.module.focus.getContext().lineStatement;
+                    const varType = this.module.variableController.getVariableTypeNearLine(
+                        line.scope,
+                        line.lineNumber,
+                        ref.identifier,
+                        false
+                    );
+                    const expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
+                    this.module.openDraftMode(
+                        rootOfExprToLeft,
+                        TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(
+                            ref.identifier,
+                            varType,
+                            expectedTypes,
+                            "CONVERSION INSTRUCTION"
+                        )
+                    );
+                }
                 const value = rootOfExprToLeft.tokens[0];
                 rootOfExprToLeft.rootNode.tokens[rootOfExprToLeft.indexInRoot] = value;
                 value.rootNode = rootOfExprToLeft.rootNode;
