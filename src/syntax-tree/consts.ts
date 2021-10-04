@@ -237,8 +237,9 @@ export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");
 export const NumberRegex = RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$");
 export const StringRegex = RegExp('^([^\\r\\n\\"]*)$');
 
+//-------------------
+const te = new TextEnhance();
 export const MISSING_IMPORT_DRAFT_MODE_STR = (requiredItem, requiredModule) => {
-    const te = new TextEnhance();
     return (
         te.getStyledSpan(requiredItem, CSSClasses.identifier) +
         " does not exist in this program. It is part of the " +
@@ -250,3 +251,50 @@ export const MISSING_IMPORT_DRAFT_MODE_STR = (requiredItem, requiredModule) => {
         " can be used."
     );
 };
+
+export function TYPE_MISMATCH_EXPR_STR(
+    construct: string,
+    expectedTypes: DataType[],
+    actualType: DataType,
+    conversionInstructions: string
+) {
+    return `${te.getStyledSpan(construct, CSSClasses.keyword)} expected a value one of the following types: ${(() => {
+        let res = "";
+        for (const dataType of expectedTypes) {
+            res += te.getStyledSpan(dataType, CSSClasses.type);
+            res += ", ";
+        }
+        res = res.substring(0, res.length - 2);
+
+        return res;
+    })()} in this hole, but you tried to input a value of type ${te.getStyledSpan(
+        actualType,
+        CSSClasses.type
+    )} instead. A conversion from ${te.getStyledSpan(
+        actualType,
+        CSSClasses.type
+    )} to one of the expected types is possible using ${conversionInstructions}.`;
+}
+
+export function TYPE_MISMATCH_HOLE_STR(
+    expectedTypes: DataType[],
+    actualType: DataType,
+    conversionInstructions: string
+) {
+    return `Expected a value one of the following types: ${(() => {
+        let res = "";
+        for (const dataType of expectedTypes) {
+            res += te.getStyledSpan(dataType, CSSClasses.type);
+            res += ", ";
+        }
+        res = res.substring(0, res.length - 2);
+
+        return res;
+    })()}, but you tried to input a value of type ${te.getStyledSpan(
+        actualType,
+        CSSClasses.type
+    )} instead. A conversion from ${te.getStyledSpan(
+        actualType,
+        CSSClasses.type
+    )} to one of the expected types is possible using ${conversionInstructions}.`;
+}
