@@ -242,7 +242,7 @@ export class EventRouter {
                                 firstChar: e.key,
                                 validMatches: this.module.actionFilter
                                     .getProcessedInsertionsList()
-                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                                    .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                             });
                         } else if (this.module.validator.canSwitchRightNumToAutocomplete(e.key)) {
                             return new EditAction(EditActionType.OpenAutocomplete, {
@@ -250,7 +250,7 @@ export class EventRouter {
                                 firstChar: e.key,
                                 validMatches: this.module.actionFilter
                                     .getProcessedInsertionsList()
-                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                                    .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                             });
                         } else return new EditAction(EditActionType.InsertChar);
                     } else if (this.module.validator.atEmptyExpressionHole(context)) {
@@ -269,7 +269,7 @@ export class EventRouter {
                                 firstChar: e.key,
                                 validMatches: this.module.actionFilter
                                     .getProcessedInsertionsList()
-                                    .filter((item) => item.insertionType != InsertionType.Invalid),
+                                    .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                             });
                         }
                     } else if (this.module.validator.onBeginningOfLine(context) && IdentifierRegex.test(e.key)) {
@@ -279,7 +279,7 @@ export class EventRouter {
                             validatorRegex: IdentifierRegex,
                             validMatches: this.module.actionFilter
                                 .getProcessedInsertionsList()
-                                .filter((item) => item.insertionType != InsertionType.Invalid),
+                                .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                         });
                     } else if (this.module.validator.atRightOfExpression(context)) {
                         return new EditAction(EditActionType.OpenAutocomplete, {
@@ -287,7 +287,7 @@ export class EventRouter {
                             firstChar: e.key,
                             validMatches: this.module.actionFilter
                                 .getProcessedInsertionsList()
-                                .filter((item) => item.insertionType != InsertionType.Invalid),
+                                .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                         });
                     } else if (this.module.validator.atLeftOfExpression(context)) {
                         return new EditAction(EditActionType.OpenAutocomplete, {
@@ -295,7 +295,7 @@ export class EventRouter {
                             firstChar: e.key,
                             validMatches: this.module.actionFilter
                                 .getProcessedInsertionsList()
-                                .filter((item) => item.insertionType != InsertionType.Invalid),
+                                .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                         });
                     }
                 }
