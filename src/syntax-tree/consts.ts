@@ -239,7 +239,19 @@ export const StringRegex = RegExp('^([^\\r\\n\\"]*)$');
 
 //-------------------
 const te = new TextEnhance();
-export const MISSING_IMPORT_DRAFT_MODE_STR = (requiredItem, requiredModule) => {
+
+const getTypesString = (types: DataType[]) => {
+    let res = "";
+    for (const dataType of types) {
+        res += te.getStyledSpan(dataType, CSSClasses.type);
+        res += ", ";
+    }
+    res = res.substring(0, res.length - 2);
+
+    return res;
+};
+
+export function MISSING_IMPORT_DRAFT_MODE_STR(requiredItem, requiredModule) {
     return (
         te.getStyledSpan(requiredItem, CSSClasses.identifier) +
         " does not exist in this program. It is part of the " +
@@ -250,7 +262,7 @@ export const MISSING_IMPORT_DRAFT_MODE_STR = (requiredItem, requiredModule) => {
         te.getStyledSpan(requiredItem, CSSClasses.identifier) +
         " can be used."
     );
-};
+}
 
 export function TYPE_MISMATCH_EXPR_STR(
     construct: string,
@@ -258,16 +270,12 @@ export function TYPE_MISMATCH_EXPR_STR(
     actualType: DataType,
     conversionInstructions: string
 ) {
-    return `${te.getStyledSpan(construct, CSSClasses.keyword)} expected a value one of the following types: ${(() => {
-        let res = "";
-        for (const dataType of expectedTypes) {
-            res += te.getStyledSpan(dataType, CSSClasses.type);
-            res += ", ";
-        }
-        res = res.substring(0, res.length - 2);
-
-        return res;
-    })()} in this hole, but you tried to input a value of type ${te.getStyledSpan(
+    return `${te.getStyledSpan(
+        construct,
+        CSSClasses.keyword
+    )} expected a value one of the following types: ${getTypesString(
+        expectedTypes
+    )} in this hole, but you tried to input a value of type ${te.getStyledSpan(
         actualType,
         CSSClasses.type
     )} instead. A conversion from ${te.getStyledSpan(
@@ -281,16 +289,42 @@ export function TYPE_MISMATCH_HOLE_STR(
     actualType: DataType,
     conversionInstructions: string
 ) {
-    return `Expected a value one of the following types: ${(() => {
-        let res = "";
-        for (const dataType of expectedTypes) {
-            res += te.getStyledSpan(dataType, CSSClasses.type);
-            res += ", ";
-        }
-        res = res.substring(0, res.length - 2);
+    return `Expected a value one of the following types: ${getTypesString(
+        expectedTypes
+    )}, but you tried to input a value of type ${te.getStyledSpan(
+        actualType,
+        CSSClasses.type
+    )} instead. A conversion from ${te.getStyledSpan(
+        actualType,
+        CSSClasses.type
+    )} to one of the expected types is possible using ${conversionInstructions}.`;
+}
 
-        return res;
-    })()}, but you tried to input a value of type ${te.getStyledSpan(
+export function TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(
+    identifier: string,
+    varType: DataType,
+    expectedTypes: DataType[],
+    conversionInstruction: string
+) {
+    return `${te.getStyledSpan(identifier, CSSClasses.identifier)} is a ${te.getStyledSpan(
+        varType,
+        CSSClasses.type
+    )}, but a value of ${getTypesString(expectedTypes)} was expected. You can convert from ${te.getStyledSpan(
+        varType,
+        CSSClasses.type
+    )} to ${getTypesString(expectedTypes)} using ${conversionInstruction}`;
+}
+
+export function TYPE_MISMATCH_HOLE_FUNC_STR(
+    functionName: string,
+    expectedTypes: DataType[],
+    actualType: DataType,
+    conversionInstructions: string
+) {
+    return `Expected a value one of the following types: ${getTypesString(expectedTypes)}, but ${te.getStyledSpan(
+        functionName,
+        CSSClasses.identifier
+    )} returns a value of type ${te.getStyledSpan(
         actualType,
         CSSClasses.type
     )} instead. A conversion from ${te.getStyledSpan(
