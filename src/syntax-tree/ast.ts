@@ -180,20 +180,20 @@ export abstract class Statement implements CodeConstruct {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
     }
 
-    checkInsertionAtHole(index: number, givenType: DataType): InsertionType {
+    checkInsertionAtHole(index: number, givenType: DataType): InsertionResult {
         if (Object.keys(this.typeOfHoles).length > 0) {
             const holeType = this.typeOfHoles[index];
 
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
 
             if (canConvertToParentType && !hasMatch(holeType, [givenType])) {
-                return InsertionType.DraftMode;
+                return new InsertionResult(InsertionType.DraftMode, ""); //NOTE: message is populated by calling code as it has enough context info
             } else if (holeType.some((t) => t == DataType.Any) || hasMatch(holeType, [givenType])) {
-                return InsertionType.Valid;
+                return new InsertionResult(InsertionType.Valid, "");
             }
         }
 
-        return InsertionType.Invalid;
+        return new InsertionResult(InsertionType.Invalid, "");
     }
 
     /**
@@ -1503,6 +1503,14 @@ export class ValueOperationExpr extends Expression {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    getKeyword(): string {
+        return (this.tokens[this.tokens.length - 1] as Modifier).getModifierText();
+    }
+
+    getVarRef(): VariableReferenceExpr {
+        return this.tokens[0] as VariableReferenceExpr;
     }
 }
 
