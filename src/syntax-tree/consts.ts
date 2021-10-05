@@ -297,7 +297,7 @@ export function TYPE_MISMATCH_HOLE_STR(
     )} instead. A conversion from ${te.getStyledSpan(
         actualType,
         CSSClasses.type
-    )} to one of the expected types is possible using ${conversionInstructions}.`;
+    )} to one of the expected types is possible using one of: ${conversionInstructions}`;
 }
 
 export function TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(
@@ -312,7 +312,7 @@ export function TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(
     )}, but a value of ${getTypesString(expectedTypes)} was expected. You can convert from ${te.getStyledSpan(
         varType,
         CSSClasses.type
-    )} to ${getTypesString(expectedTypes)} using ${conversionInstruction}`;
+    )} to one of the expected types is possible using one of: ${conversionInstruction}`;
 }
 
 export function TYPE_MISMATCH_HOLE_FUNC_STR(
@@ -330,5 +330,143 @@ export function TYPE_MISMATCH_HOLE_FUNC_STR(
     )} instead. A conversion from ${te.getStyledSpan(
         actualType,
         CSSClasses.type
-    )} to one of the expected types is possible using ${conversionInstructions}.`;
+    )} to one of the expected types is possible using one of: ${conversionInstructions}.`;
 }
+
+export abstract class TypeConversionRecord{
+    conversionConstruct: string;
+    convertTo: DataType;
+    convertFrom: DataType;
+    conversionAction: string;
+    
+    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
+        this.conversionConstruct = conversionConstruct;
+        this.convertFrom = convertFrom;
+        this.convertTo = convertTo;
+        this.conversionAction = conversionAction;
+    }
+
+    abstract getConversionCode(itemToConvert: string): string;     
+
+    getConversionInstruction(itemToConvert: string): string{
+        return `${itemToConvert} can be ${this.conversionAction} to `;
+    }
+
+    static getConversionString(from: DataType, to: DataType[], itemToConvert: string): string{
+        const records = []
+        records.push(...typeToConversionRecord.get(from));
+        for(let i = 0; i < records.length; i++){
+            if(to.indexOf(records[i].convertTo) === -1){
+                records.splice(i, 1);
+            }
+        }
+
+        let str = "";
+        for(const record of records){
+            str += `${record.getConversionCode(itemToConvert)}, `;
+        }
+
+        str = str.substring(0, str.length - 2) + "."
+        return str;
+    }
+}
+
+export class CastConversionRecord extends TypeConversionRecord{
+    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
+        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+    }
+
+    getConversionCode(itemToConvert){
+        return `${this.conversionConstruct.substring(0, this.conversionConstruct.length - 1)}${itemToConvert})`;
+    }
+}
+
+export class ComparisonConversionRecord extends TypeConversionRecord{
+    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
+        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+    }
+
+    getConversionCode(itemToConvert){
+        return `${itemToConvert} ${this.conversionConstruct} ---`;
+    }
+}
+
+export class MemberFunctionConversionRecord extends TypeConversionRecord{
+    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
+        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+    }
+
+    getConversionCode(itemToConvert){
+        return `${itemToConvert}.${this.conversionConstruct}`;
+    }
+}
+
+export class FunctionExprConversionRecord extends CastConversionRecord{
+    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
+        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+    }
+
+    getConversionCode(itemToConvert){
+        return super.getConversionCode(itemToConvert);
+    }
+}
+
+export class MemberAccessConversion extends TypeConversionRecord{
+    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
+        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+    }
+
+    getConversionCode(itemToConvert){
+        return `${itemToConvert}${this.conversionConstruct}`;
+    }
+}
+
+export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>(
+    [
+        [
+            DataType.Number, [new CastConversionRecord("str()", DataType.String, DataType.Number, "cast"),
+            
+                              new ComparisonConversionRecord("==", DataType.Boolean, DataType.Number, "converted"),
+                              new ComparisonConversionRecord("!=", DataType.Boolean, DataType.Number, "converted"),
+                              new ComparisonConversionRecord(">=", DataType.Boolean, DataType.Number, "converted"),
+                              new ComparisonConversionRecord("<=", DataType.Boolean, DataType.Number, "converted"),
+                              new ComparisonConversionRecord("<", DataType.Boolean, DataType.Number, "converted"),
+                              new ComparisonConversionRecord(">", DataType.Boolean, DataType.Number, "converted")
+                            ]
+        ],
+        [
+            DataType.String, [new ComparisonConversionRecord("==", DataType.Boolean, DataType.String, "converted"),
+                              new ComparisonConversionRecord("!=", DataType.Boolean, DataType.String, "converted"),
+                              new ComparisonConversionRecord(">=", DataType.Boolean, DataType.String, "converted"),
+                              new ComparisonConversionRecord("<=", DataType.Boolean, DataType.String, "converted"),
+                              new ComparisonConversionRecord("<", DataType.Boolean, DataType.String, "converted"),
+                              new ComparisonConversionRecord(">", DataType.Boolean, DataType.String, "converted"),
+                            
+                              new MemberFunctionConversionRecord("find()", DataType.Number, DataType.String, "converted"),
+                              new MemberFunctionConversionRecord("split()", DataType.StringList, DataType.String, "converted"),
+
+                              new FunctionExprConversionRecord("len()", DataType.Number, DataType.String, "converted")
+                            ]
+        ],
+        [
+            DataType.BooleanList, [new MemberAccessConversion("[---]", DataType.Boolean, DataType.BooleanList, "converted"),
+                                   new FunctionExprConversionRecord("len()", DataType.Number, DataType.BooleanList, "converted")
+                                  ]
+        ],
+        [
+            DataType.StringList, [new MemberAccessConversion("[---]", DataType.String, DataType.StringList, "converted"),
+                                  new FunctionExprConversionRecord("len()", DataType.Number, DataType.StringList, "converted")
+                                 ]
+        ],
+        [
+            DataType.NumberList, [new MemberAccessConversion("[---]", DataType.Number, DataType.NumberList, "converted"),
+                                  new FunctionExprConversionRecord("len()", DataType.Number, DataType.NumberList, "converted")
+                                 ]
+        ],
+        [
+            DataType.AnyList, [new MemberAccessConversion("[---]", DataType.Any, DataType.AnyList, "converted"),
+                               new FunctionExprConversionRecord("len()", DataType.Number, DataType.AnyList, "converted")
+                              ]
+        ]
+    ]
+);

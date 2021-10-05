@@ -33,6 +33,8 @@ import {
     BuiltInFunctions,
     PythonKeywords,
     TAB_SPACES,
+    TypeConversionRecord,
+    typeToConversionRecord,
     TYPE_MISMATCH_HOLE_FUNC_STR,
     TYPE_MISMATCH_ON_MODIFIER_DELETION_STR,
 } from "../syntax-tree/consts";
@@ -648,7 +650,7 @@ export class ActionExecutor {
                                         valOprExpr.getKeyword(),
                                         holeTypes,
                                         valOprExpr.returns,
-                                        "CONVERSION INSTRUCTION 321"
+                                        TypeConversionRecord.getConversionString(valOprExpr.returns, holeTypes, valOprExpr.getKeyword())
                                     )
                                 );
                         }
@@ -710,7 +712,7 @@ export class ActionExecutor {
                                     valOprExpr.getKeyword(),
                                     holeDataTypes,
                                     valOprExpr.returns,
-                                    "CONVERSION INSTRUCTION 123"
+                                    TypeConversionRecord.getConversionString(valOprExpr.returns, holeDataTypes, valOprExpr.getKeyword())
                                 )
                             );
                     }
@@ -1359,7 +1361,7 @@ export class ActionExecutor {
                             ref.identifier,
                             varType,
                             expectedTypes,
-                            "CONVERSION INSTRUCTION"
+                            TypeConversionRecord.getConversionString(varType, expectedTypes, ref.identifier)
                         )
                     );
                 }
