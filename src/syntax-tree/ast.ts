@@ -24,6 +24,8 @@ import {
     NumberRegex,
     StringRegex,
     TAB_SPACES,
+    TypeConversionRecord,
+    typeToConversionRecord,
     TYPE_MISMATCH_EXPR_STR,
     TYPE_MISMATCH_HOLE_STR,
     UnaryOp,
@@ -1441,6 +1443,7 @@ export class VariableReferenceExpr extends Expression {
         const idToken = new NonEditableTkn(id);
         idToken.rootNode = this;
         idToken.indexInRoot = this.tokens.length;
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(idToken);
 
         this.uniqueId = uniqueId;
@@ -1453,6 +1456,10 @@ export class VariableReferenceExpr extends Expression {
         if (validator.atEmptyExpressionHole(providedContext)) return InsertionType.Valid;
         else if (validator.onEmptyLine(providedContext)) return InsertionType.DraftMode;
         else return InsertionType.Invalid;
+    }
+
+    getKeyword(): string{
+        return this.tokens[this.keywordIndex].getRenderText();
     }
 }
 
@@ -2827,7 +2834,7 @@ export class TypedEmptyExpr extends Token {
         if (hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), this.type)) {
             return new InsertionResult(
                 InsertionType.DraftMode,
-                TYPE_MISMATCH_HOLE_STR(this.type, replaceWith.returns, "CONVERSION INSTRUCTION")
+                TYPE_MISMATCH_HOLE_STR(this.type, replaceWith.returns, TypeConversionRecord.getConversionString(replaceWith.returns, this.type, replaceWith.getKeyword()))
             );
         }
 
