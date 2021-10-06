@@ -6,7 +6,7 @@ require('dotenv').config({ path: './.env' });
 module.exports = {
     mode: "development",
     entry: {
-        app: ["./src/index.ts", "./src/js/load-pyodide.js", "./src/js/pyodide-controller.js"],
+        app: ["./src/index.ts", "./src/pyodide-js/load-pyodide.js", "./src/pyodide-js/pyodide-controller.js"],
         "editor.worker": "monaco-editor/esm/vs/editor/editor.worker.js",
         "json.worker": "monaco-editor/esm/vs/language/json/json.worker",
         "css.worker": "monaco-editor/esm/vs/language/css/css.worker",
