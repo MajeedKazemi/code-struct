@@ -1,6 +1,6 @@
 import { CodeStatus } from "../editor/consts";
 import { nova } from "../index";
-import {CONSOLE_WARN_TXT_CLASS, CONSOLE_ERR_TXT_CLASS, clearConsole} from "../pyodide-ts/pyodide-ui"
+import { clearConsole, CONSOLE_ERR_TXT_CLASS, CONSOLE_WARN_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 
 const jsModule = {
     inputPrompt: function (text) {
@@ -8,13 +8,12 @@ const jsModule = {
     },
 };
 
-
 export const codeString = (code) => {
     return `from jsModule import inputPrompt\ninput = inputPrompt\n__builtins__.input = inputPrompt\n${code}\n`
 }
 
 export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) => {
-    if(JSON.parse(process.env.EXECUTE_CODE)){
+    if (JSON.parse(process.env.EXECUTE_CODE)) {
         (async () => {
             (await import("../pyodide-js/load-pyodide")).default
                 .then(
@@ -28,8 +27,8 @@ export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) =>
                 )
                 .then((res) => {
                     let pyodideController = res;
-        
-                    for(let i = 0; i < afterPyodideLoadedActions.length; i++){
+
+                    for (let i = 0; i < afterPyodideLoadedActions.length; i++) {
                         afterPyodideLoadedActions[i](pyodideController);
                     }
                 }),
@@ -38,13 +37,12 @@ export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) =>
                     console.error(err);
                 };
 
-            for(let i = 0; i < otherActions.length; i++){
+            for (let i = 0; i < otherActions.length; i++) {
                 otherActions[i]();
             }
-        })();    
+        })();
     }
 }
-
 
 const attachMainConsoleRun = (pyodideController) => {
     const runCodeBtn = document.getElementById("runCodeBtn");
@@ -57,7 +55,7 @@ const attachMainConsoleRun = (pyodideController) => {
                 try {
                     nova.globals.lastPressedRunButtonId = "runCodeBtn";
                     pyodideController.runPython(
-                       codeString(code)
+                        codeString(code)
                     );
                 } catch (err) {
                     console.error("Unable to run python code");
