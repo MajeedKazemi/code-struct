@@ -63,7 +63,7 @@ export class DocumentationBox {
                                     nova.globals.lastPressedRunButtonId = button.id;
 
                                     pyodideController.runPython(
-                                       codeString(item.example)
+                                       codeString(ex[2].getValue())
                                     );
                                 } catch (err) {
                                     console.error("Unable to run python code");
@@ -186,7 +186,7 @@ class DocBoxMeta {
     }
 }
 
-function createExample(item): [HTMLDivElement, string[]] {
+function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeEditor] {
     const runBtns = [];
 
     const editorContainer = document.createElement("div");
@@ -270,7 +270,7 @@ function createExample(item): [HTMLDivElement, string[]] {
         codeEditor.setValue(item.example);
     });
 
-    return [editorContainer, runBtns];
+    return [editorContainer, runBtns, codeEditor];
 }
 
 function makeDraggable(element: HTMLDivElement) {
