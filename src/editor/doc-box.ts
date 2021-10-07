@@ -1,8 +1,7 @@
 import { editor } from "monaco-editor";
-import { runBtnToOutputWindow, nova } from "../index";
-import { clearConsole } from "../pyodide-ts/pyodide-ui";
-import {attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller"
-import { addTextToConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
+import { nova, runBtnToOutputWindow } from "../index";
+import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
+import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 
 const INITIAL_Z_INDEX = 500;
 
@@ -53,29 +52,35 @@ export class DocumentationBox {
                 docBody.appendChild(ex[0]);
                 docBoxRunButtons.set(container.id, ex[1]);
 
-                attachPyodideActions((() => {
-                    const actions = []
-                    for(const buttonId of ex[1]){
-                        actions.push((pyodideController) => {
-                            const button = document.getElementById(buttonId);
-                            button.addEventListener("click", () => {
-                                try {
-                                    nova.globals.lastPressedRunButtonId = button.id;
+                attachPyodideActions(
+                    (() => {
+                        const actions = [];
+                        for (const buttonId of ex[1]) {
+                            actions.push((pyodideController) => {
+                                const button = document.getElementById(buttonId);
+                                button.addEventListener("click", () => {
+                                    try {
+                                        nova.globals.lastPressedRunButtonId = button.id;
 
-                                    pyodideController.runPython(
-                                       codeString(ex[2].getValue())
-                                    );
-                                } catch (err) {
-                                    console.error("Unable to run python code");
-                                    addTextToConsole(runBtnToOutputWindow.get(button.id), err, CONSOLE_ERR_TXT_CLASS);
-                                }
-                            })
-                        })
-                        
-                    }
+                                        pyodideController.runPython(codeString(ex[2].getValue()));
+                                    } catch (err) {
+                                        console.error("Unable to run python code");
+                                        addTextToConsole(
+                                            runBtnToOutputWindow.get(button.id),
+                                            err,
+                                            CONSOLE_ERR_TXT_CLASS
+                                        );
+                                    }
+                                });
+                            });
+                        }
 
-                    return actions;
-                })(), []);
+                        return actions;
+                    })(),
+                    []
+                );
+            } else if (item.hasOwnProperty("block-based-image")) {
+                docBody.appendChild(createImage(item));
             }
         }
 
@@ -137,7 +142,7 @@ export class DocumentationBox {
 
         if (maxZIndexId) DocumentationBox.focusBox(maxZIndexId);
 
-        for(const buttonId of docBoxRunButtons.get(id)){
+        for (const buttonId of docBoxRunButtons.get(id)) {
             runBtnToOutputWindow.delete(buttonId);
         }
         docBoxRunButtons.delete(id);
@@ -184,6 +189,43 @@ class DocBoxMeta {
         this.isFocused = isFocused;
         this.zIndex = zIndex;
     }
+}
+
+function createImage(image): HTMLDivElement {
+    const tableElement = document.createElement("div");
+    tableElement.classList.add("block-vs-text-table-container");
+    const tableHeader = document.createElement("div");
+    tableHeader.classList.add("block-vs-text-table-header");
+    tableElement.appendChild(tableHeader);
+
+    const blockHeader = document.createElement("span");
+    blockHeader.innerText = "block-based";
+    blockHeader.classList.add("block-based-header");
+    tableHeader.appendChild(blockHeader);
+
+    const textHeader = document.createElement("span");
+    textHeader.innerText = "text-based";
+    textHeader.classList.add("text-based-header");
+    tableHeader.appendChild(textHeader);
+
+    const imageContainer = document.createElement("div");
+    imageContainer.classList.add("image-container");
+
+    const blockImage = document.createElement("img");
+    blockImage.src = image["block-based-image"];
+    blockImage.alt = image.alt;
+    blockImage.classList.add("block-image");
+    imageContainer.appendChild(blockImage);
+
+    const textImage = document.createElement("img");
+    textImage.src = image["text-based-image"];
+    textImage.alt = image.alt;
+    textImage.classList.add("text-image");
+    imageContainer.appendChild(textImage);
+
+    tableElement.appendChild(imageContainer);
+
+    return tableElement;
 }
 
 function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeEditor] {
@@ -241,6 +283,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
     runBtns.push(runButton.id);
 
     const codeEditor = editor.create(exampleEditor, {
+        folding: false,
         value: item.example,
         language: "python",
         dimension: { width: 200, height: 100 },

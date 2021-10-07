@@ -1,3 +1,46 @@
+import * as AddVarDocs from "../docs/add-var.json";
+import * as AddDocs from "../docs/add.json";
+import * as AndDocs from "../docs/and.json";
+import * as AssignAddDocs from "../docs/assign-add.json";
+import * as AssignDivDocs from "../docs/assign-div.json";
+import * as AssignMultDocs from "../docs/assign-mult.json";
+import * as AssignSubDocs from "../docs/assign-sub.json";
+import * as AssignDocs from "../docs/assign.json";
+import * as CompEqDocs from "../docs/comp-eq.json";
+import * as CompGtDocs from "../docs/comp-gt.json";
+import * as CompGteDocs from "../docs/comp-gte.json";
+import * as CompLtDocs from "../docs/comp-lt.json";
+import * as CompLteDocs from "../docs/comp-lte.json";
+import * as CompNeDocs from "../docs/comp-ne.json";
+import * as DivDocs from "../docs/div.json";
+import * as ElifDocs from "../docs/elif.json";
+import * as ElseDocs from "../docs/else.json";
+import * as FalseDocs from "../docs/false.json";
+import * as FindDocs from "../docs/find.json";
+import * as ForDocs from "../docs/for.json";
+import * as IfDocs from "../docs/if.json";
+import * as ImportDocs from "../docs/import.json";
+import * as InputDocs from "../docs/input.json";
+import * as JoinDocs from "../docs/join.json";
+import * as LenDocs from "../docs/len.json";
+import * as ListAppendDocs from "../docs/list-append.json";
+import * as ListIndexDocs from "../docs/list-index.json";
+import * as ListItemDocs from "../docs/list-item.json";
+import * as ListLiteralDocs from "../docs/list-literal.json";
+import * as MultDocs from "../docs/mult.json";
+import * as NotDocs from "../docs/not.json";
+import * as NumDocs from "../docs/num.json";
+import * as OrDocs from "../docs/or.json";
+import * as PrintDocs from "../docs/print.json";
+import * as RandintDocs from "../docs/randint.json";
+import * as RangeDocs from "../docs/range.json";
+import * as ReplaceDocs from "../docs/replace.json";
+import * as SplitDocs from "../docs/split.json";
+import * as StrDocs from "../docs/str.json";
+import * as SubDocs from "../docs/sub.json";
+import * as CastToStrDocs from "../docs/to-str.json";
+import * as TrueDocs from "../docs/true.json";
+import * as WhileDocs from "../docs/while.json";
 import {
     Argument,
     AssignmentModifier,
@@ -212,607 +255,690 @@ export class Actions {
     actionsList: Array<EditCodeAction>;
     actionsMap: Map<string, EditCodeAction>;
     varModifiersMap: Map<DataType, Array<() => Statement>>;
+    toolboxCategories: Array<ToolboxCategory> = [];
 
     private constructor() {
-        this.actionsList = new Array<EditCodeAction>(
-            new EditCodeAction(
-                "print(---)",
-                "add-print-btn",
-                () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)]),
-                InsertActionType.InsertPrintFunctionStmt,
-                {},
-                ["("],
-                "print",
-                null
-            ),
+        const PrintStmt = new EditCodeAction(
+            "print(---)",
+            "add-print-btn",
+            () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)]),
+            InsertActionType.InsertPrintFunctionStmt,
+            {},
+            PrintDocs,
+            ["("],
+            "print",
+            null
+        );
 
-            new EditCodeAction(
-                "randint(---, ---)",
-                "add-randint-btn",
-                () =>
-                    new FunctionCallExpr(
-                        "randint",
-                        [
-                            new Argument([DataType.Number], "start", false),
-                            new Argument([DataType.Number], "end", false),
-                        ],
-                        DataType.Number,
-                        null,
-                        null,
-                        "random"
-                    ),
-                InsertActionType.InsertRandintExpr,
-                {},
-                ["("],
-                "randint",
-                null
-            ),
+        const RandIntExpr = new EditCodeAction(
+            "randint(---, ---)",
+            "add-randint-btn",
+            () =>
+                new FunctionCallExpr(
+                    "randint",
+                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
+                    DataType.Number,
+                    null,
+                    null,
+                    "random"
+                ),
+            InsertActionType.InsertRandintExpr,
+            {},
+            RandintDocs,
+            ["("],
+            "randint",
+            null
+        );
 
-            new EditCodeAction(
-                "range(---)",
-                "add-range-btn",
-                () =>
-                    new FunctionCallExpr(
-                        "range",
-                        [
-                            new Argument([DataType.Number], "start", false),
-                            new Argument([DataType.Number], "end", false),
-                        ],
-                        DataType.NumberList
-                    ),
-                InsertActionType.InsertRangeExpr,
-                {},
-                ["("],
-                "range",
-                null
-            ),
+        const RangeExpr = new EditCodeAction(
+            "range(---, ---)",
+            "add-range-btn",
+            () =>
+                new FunctionCallExpr(
+                    "range",
+                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
+                    DataType.NumberList
+                ),
+            InsertActionType.InsertRangeExpr,
+            {},
+            RangeDocs,
+            ["("],
+            "range",
+            null
+        );
 
-            new EditCodeAction(
-                "len(---)",
-                "add-len-btn",
-                () =>
-                    new FunctionCallExpr(
-                        "len",
-                        [
-                            new Argument(
-                                [
-                                    DataType.AnyList,
-                                    DataType.StringList,
-                                    DataType.BooleanList,
-                                    DataType.NumberList,
-                                    DataType.String,
-                                ],
-                                "list",
-                                false
-                            ),
-                        ],
-                        DataType.Number
-                    ),
-                InsertActionType.InsertLenExpr,
-                {},
-                ["("],
-                "len",
-                null
-            ),
+        const LenExpr = new EditCodeAction(
+            "len(---)",
+            "add-len-btn",
+            () =>
+                new FunctionCallExpr(
+                    "len",
+                    [
+                        new Argument(
+                            [
+                                DataType.AnyList,
+                                DataType.StringList,
+                                DataType.BooleanList,
+                                DataType.NumberList,
+                                DataType.String,
+                            ],
+                            "list",
+                            false
+                        ),
+                    ],
+                    DataType.Number
+                ),
+            InsertActionType.InsertLenExpr,
+            {},
+            LenDocs,
+            ["("],
+            "len",
+            null
+        );
 
-            new EditCodeAction(
-                "input(---)",
-                "add-input-btn",
-                () => new FunctionCallExpr("input", [new Argument([DataType.String], "prompt", true)], DataType.String),
-                InsertActionType.InsertInputExpr,
-                {},
-                ["("],
-                "input",
-                null
-            ),
+        const InputExpr = new EditCodeAction(
+            "input(---)",
+            "add-input-btn",
+            () => new FunctionCallExpr("input", [new Argument([DataType.String], "prompt", true)], DataType.String),
+            InsertActionType.InsertInputExpr,
+            {},
+            InputDocs,
+            ["("],
+            "input",
+            null
+        );
 
-            new EditCodeAction(
-                '""',
-                "add-str-btn",
-                () => new LiteralValExpr(DataType.String, ""),
-                InsertActionType.InsertLiteral,
-                {
-                    literalType: DataType.String,
-                    initialValue: "",
-                },
-                [],
-                "",
-                null
-            ),
-            new EditCodeAction(
-                "0",
-                "add-num-btn",
-                () => new LiteralValExpr(DataType.Number, "0"),
-                InsertActionType.InsertLiteral,
-                {
-                    literalType: DataType.Number,
-                    initialValue: "0",
-                },
-                [],
-                "",
-                null
-            ),
+        const StringLiteralExpr = new EditCodeAction(
+            '""',
+            "add-str-btn",
+            () => new LiteralValExpr(DataType.String, ""),
+            InsertActionType.InsertLiteral,
+            {
+                literalType: DataType.String,
+                initialValue: "",
+            },
+            StrDocs,
+            [],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "True",
-                "add-true-btn",
-                () => new LiteralValExpr(DataType.Boolean, "True"),
-                InsertActionType.InsertLiteral,
-                {
-                    literalType: DataType.Boolean,
-                    initialValue: "True",
-                },
-                [" "],
-                "True",
-                null,
-                [new RegExp("^[\\=\\!\\ ]$")]
-            ),
+        const NumberLiteralExpr = new EditCodeAction(
+            "0",
+            "add-num-btn",
+            () => new LiteralValExpr(DataType.Number, "0"),
+            InsertActionType.InsertLiteral,
+            {
+                literalType: DataType.Number,
+                initialValue: "0",
+            },
+            NumDocs,
+            [],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "False",
-                "add-false-btn",
-                () => new LiteralValExpr(DataType.Boolean, "False"),
-                InsertActionType.InsertLiteral,
-                {
-                    literalType: DataType.Boolean,
-                    initialValue: "False",
-                },
-                [" "],
-                "False",
-                null,
-                [new RegExp("^[\\=\\!\\ ]$")]
-            ),
+        const BooleanTrueLiteralExpr = new EditCodeAction(
+            "True",
+            "add-true-btn",
+            () => new LiteralValExpr(DataType.Boolean, "True"),
+            InsertActionType.InsertLiteral,
+            {
+                literalType: DataType.Boolean,
+                initialValue: "True",
+            },
+            TrueDocs,
+            [" "],
+            "True",
+            null,
+            [new RegExp("^[\\=\\!\\ ]$")]
+        );
 
-            new EditCodeAction(
-                "--- + ---",
-                "add-bin-add-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number), //NOTE: For + this will be reassigned in the constructor
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.Add,
-                },
-                ["+"],
-                "",
-                null
-            ),
+        const BooleanFalseLiteralExpr = new EditCodeAction(
+            "False",
+            "add-false-btn",
+            () => new LiteralValExpr(DataType.Boolean, "False"),
+            InsertActionType.InsertLiteral,
+            {
+                literalType: DataType.Boolean,
+                initialValue: "False",
+            },
+            FalseDocs,
+            [" "],
+            "False",
+            null,
+            [new RegExp("^[\\=\\!\\ ]$")]
+        );
 
-            new EditCodeAction(
-                "--- - ---",
-                "add-bin-sub-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.Subtract,
-                },
-                ["-"],
-                "",
-                null
-            ),
+        const BinAddExpr = new EditCodeAction(
+            "--- + ---",
+            "add-bin-add-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number), //NOTE: For + this will be reassigned in the constructor
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.Add,
+            },
+            AddDocs,
+            ["+"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "--- * ---",
-                "add-bin-mul-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Number),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.Multiply,
-                },
-                ["*"],
-                "",
-                null
-            ),
+        const BinSubExpr = new EditCodeAction(
+            "--- - ---",
+            "add-bin-sub-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.Subtract,
+            },
+            SubDocs,
+            ["-"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "--- / ---",
-                "add-bin-div-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Number),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.Divide,
-                },
-                ["/"],
-                "",
-                null
-            ),
+        const BinMultExpr = new EditCodeAction(
+            "--- * ---",
+            "add-bin-mul-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Number),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.Multiply,
+            },
+            MultDocs,
+            ["*"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "--- and ---",
-                "add-bin-and-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.And,
-                },
-                ["d"],
-                "an",
-                null
-            ),
+        const BinDivExpr = new EditCodeAction(
+            "--- / ---",
+            "add-bin-div-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Number),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.Divide,
+            },
+            DivDocs,
+            ["/"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "--- or ---",
-                "add-bin-or-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.Or,
-                },
-                ["r"],
-                "o",
-                null
-            ),
+        const BinAndExpr = new EditCodeAction(
+            "--- and ---",
+            "add-bin-and-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.And,
+            },
+            AndDocs,
+            ["d"],
+            "an",
+            null
+        );
 
-            new EditCodeAction(
-                "--- == ---",
-                "add-comp-eq-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.Equal,
-                },
-                ["="],
-                "=",
-                null
-            ),
+        const BinOrExpr = new EditCodeAction(
+            "--- or ---",
+            "add-bin-or-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.Or,
+            },
+            OrDocs,
+            ["r"],
+            "o",
+            null
+        );
 
-            new EditCodeAction(
-                "--- != ---",
-                "add-comp-neq-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.NotEqual,
-                },
-                ["="],
-                "!",
-                null
-            ),
+        const BinCompEqExpr = new EditCodeAction(
+            "--- == ---",
+            "add-comp-eq-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.Equal,
+            },
+            CompEqDocs,
+            ["="],
+            "=",
+            null
+        );
 
-            new EditCodeAction(
-                "--- < ---",
-                "add-comp-lt-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.LessThan,
-                },
-                [" "],
-                "<",
-                null,
-                [IdentifierRegex, NumberRegex, new RegExp('^[\\"]$')]
-            ),
+        const BinCompNeqExpr = new EditCodeAction(
+            "--- != ---",
+            "add-comp-neq-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.NotEqual,
+            },
+            CompNeDocs,
+            ["="],
+            "!",
+            null
+        );
 
-            new EditCodeAction(
-                "--- <= ---",
-                "add-comp-lte-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.LessThanEqual,
-                },
-                ["="],
-                "<",
-                null
-            ),
+        const BinCompLtExpr = new EditCodeAction(
+            "--- < ---",
+            "add-comp-lt-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.LessThan,
+            },
+            CompLtDocs,
+            [" "],
+            "<",
+            null,
+            [IdentifierRegex, NumberRegex, new RegExp('^[\\"]$')]
+        );
 
-            new EditCodeAction(
-                "--- > ---",
-                "add-comp-gt-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.GreaterThan,
-                },
-                [" "],
-                ">",
-                null,
-                [IdentifierRegex, NumberRegex, new RegExp('^[\\"]$')]
-            ),
+        const BinCompLteExpr = new EditCodeAction(
+            "--- <= ---",
+            "add-comp-lte-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.LessThanEqual,
+            },
+            CompLteDocs,
+            ["="],
+            "<",
+            null
+        );
 
-            new EditCodeAction(
-                "--- >= ---",
-                "add-comp-gte-expr-btn",
-                () => new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
-                InsertActionType.InsertBinaryExpr,
-                {
-                    operator: BinaryOperator.GreaterThanEqual,
-                },
-                ["="],
-                ">",
-                null
-            ),
+        const BinCompGtExpr = new EditCodeAction(
+            "--- > ---",
+            "add-comp-gt-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.GreaterThan,
+            },
+            CompGtDocs,
+            [" "],
+            ">",
+            null,
+            [IdentifierRegex, NumberRegex, new RegExp('^[\\"]$')]
+        );
 
+        const BinCompGteExpr = new EditCodeAction(
+            "--- >= ---",
+            "add-comp-gte-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.GreaterThanEqual,
+            },
+            CompGteDocs,
+            ["="],
+            ">",
+            null
+        );
+
+        const UnaryNotExpr = new EditCodeAction(
+            "not ---",
+            "add-unary-not-expr-btn",
+            () => new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean),
+            InsertActionType.InsertUnaryExpr,
+            {
+                operator: UnaryOp.Not,
+            },
+            NotDocs,
             // TODO: this has ambiguity with not in binary exp
-            new EditCodeAction(
-                "not ---",
-                "add-unary-not-expr-btn",
-                () => new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean),
-                InsertActionType.InsertUnaryExpr,
-                {
-                    operator: UnaryOp.Not,
-                },
-                ["t"],
-                "no",
-                null
-            ),
+            ["t"],
+            "no",
+            null
+        );
 
-            new EditCodeAction(
-                ".find(---)",
-                "add-find-method-call-btn",
-                () =>
-                    new MethodCallModifier(
-                        "find",
-                        [new Argument([DataType.String], "item", false)],
-                        DataType.Number,
-                        DataType.String
-                    ),
-                InsertActionType.InsertStringFindMethod,
-                {},
-                ["("],
-                ".find",
-                null
-            ),
+        const FindMethodMod = new EditCodeAction(
+            ".find(---)",
+            "add-find-method-call-btn",
+            () =>
+                new MethodCallModifier(
+                    "find",
+                    [new Argument([DataType.String], "item", false)],
+                    DataType.Number,
+                    DataType.String
+                ),
+            InsertActionType.InsertStringFindMethod,
+            {},
+            FindDocs,
+            ["("],
+            ".find",
+            null
+        );
 
-            new EditCodeAction(
-                "while (---) :",
-                "add-while-expr-btn",
-                () => new WhileStatement(),
-                InsertActionType.InsertWhileStmt,
-                {},
-                [" "],
-                "while",
-                null
-            ),
+        const WhileStmt = new EditCodeAction(
+            "while (---) :",
+            "add-while-expr-btn",
+            () => new WhileStatement(),
+            InsertActionType.InsertWhileStmt,
+            {},
+            WhileDocs,
+            [" "],
+            "while",
+            null
+        );
 
-            new EditCodeAction(
-                "if (---) :",
-                "add-if-expr-btn",
-                () => new IfStatement(),
-                InsertActionType.InsertIfStmt,
-                {},
-                [" "],
-                "if",
-                null
-            ),
+        const IfStmt = new EditCodeAction(
+            "if (---) :",
+            "add-if-expr-btn",
+            () => new IfStatement(),
+            InsertActionType.InsertIfStmt,
+            {},
+            IfDocs,
+            [" "],
+            "if",
+            null
+        );
 
-            new EditCodeAction(
-                "elif (---) :",
-                "add-elif-expr-btn",
-                () => new ElseStatement(true),
-                InsertActionType.InsertElifStmt,
-                {},
-                [" "],
-                "elif",
-                null
-            ),
+        const ElifStmt = new EditCodeAction(
+            "elif (---) :",
+            "add-elif-expr-btn",
+            () => new ElseStatement(true),
+            InsertActionType.InsertElifStmt,
+            {},
+            ElifDocs,
+            [" "],
+            "elif",
+            null
+        );
 
-            new EditCodeAction(
-                "else (---) :",
-                "add-else-expr-btn",
-                () => new ElseStatement(false),
-                InsertActionType.InsertElseStmt,
-                {},
-                [" "],
-                "else",
-                null
-            ),
+        const ElseStmt = new EditCodeAction(
+            "else :",
+            "add-else-expr-btn",
+            () => new ElseStatement(false),
+            InsertActionType.InsertElseStmt,
+            {},
+            ElseDocs,
+            [" "],
+            "else",
+            null
+        );
 
-            new EditCodeAction(
-                "for --- in --- :",
-                "add-for-expr-btn",
-                () => new ForStatement(),
-                InsertActionType.InsertForStmt,
-                {},
-                [" "],
-                "for",
-                null
-            ),
+        const ForStmt = new EditCodeAction(
+            "for -- in --- :",
+            "add-for-expr-btn",
+            () => new ForStatement(),
+            InsertActionType.InsertForStmt,
+            {},
+            ForDocs,
+            [" "],
+            "for",
+            null
+        );
 
-            new EditCodeAction(
-                "from --- import --- :",
-                "add-import-btn",
-                () => new ImportStatement(),
-                InsertActionType.InsertImportStmt,
-                {},
-                [" "],
-                "import",
-                null
-            ),
+        const ImportStmt = new EditCodeAction(
+            "from --- import --- :",
+            "add-import-btn",
+            () => new ImportStatement(),
+            InsertActionType.InsertImportStmt,
+            {},
+            ImportDocs,
+            [" "],
+            "import",
+            null
+        );
 
-            new EditCodeAction(
-                "[]",
-                "add-list-literal-btn",
-                () => new ListLiteralExpression(),
-                InsertActionType.InsertListLiteral,
-                {},
-                ["["],
-                "",
-                null
-            ),
+        const ListLiteralExpr = new EditCodeAction(
+            "[]",
+            "add-list-literal-btn",
+            () => new ListLiteralExpression(),
+            InsertActionType.InsertListLiteral,
+            {},
+            ListLiteralDocs,
+            ["["],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                ", ---",
-                "add-list-item-btn",
-                () => new ListComma(),
-                InsertActionType.InsertListItem,
-                {},
-                [","],
-                "",
-                null
-            ),
+        const ListCommaItem = new EditCodeAction(
+            ", ---",
+            "add-list-item-btn",
+            () => new ListComma(),
+            InsertActionType.InsertListItem,
+            {},
+            ListItemDocs,
+            [","],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "[---]",
-                "add-list-index-btn",
-                () => new ListAccessModifier(),
-                InsertActionType.InsertListIndexAccessor,
-                {},
-                ["["],
-                "",
-                null
-            ),
+        const ListIndexAccessor = new EditCodeAction(
+            "[---]",
+            "add-list-index-btn",
+            () => new ListAccessModifier(),
+            InsertActionType.InsertListIndexAccessor,
+            {},
+            ListIndexDocs,
+            ["["],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "= ---",
-                "add-assign-mod-btn",
-                () => new AssignmentModifier(),
-                InsertActionType.InsertAssignmentModifier,
-                {},
-                ["="],
-                "",
-                null
-            ),
+        const AssignmentMod = new EditCodeAction(
+            "= ---",
+            "add-assign-mod-btn",
+            () => new AssignmentModifier(),
+            InsertActionType.InsertAssignmentModifier,
+            {},
+            AssignDocs,
+            ["="],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "+= ---",
-                "add-aug-assign-add-mod-btn",
-                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
-                InsertActionType.InsertAugmentedAssignmentModifier,
-                {},
-                ["+"],
-                "",
-                null
-            ),
+        const AugAddAssignmentMod = new EditCodeAction(
+            "+= ---",
+            "add-aug-assign-add-mod-btn",
+            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+            InsertActionType.InsertAugmentedAssignmentModifier,
+            {},
+            AssignAddDocs,
+            ["+"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "-= ---",
-                "add-aug-assign-sub-mod-btn",
-                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
-                InsertActionType.InsertAugmentedAssignmentModifier,
-                {},
-                ["-"],
-                "",
-                null
-            ),
+        const AugSubAssignmentMod = new EditCodeAction(
+            "-= ---",
+            "add-aug-assign-sub-mod-btn",
+            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+            InsertActionType.InsertAugmentedAssignmentModifier,
+            {},
+            AssignSubDocs,
+            ["-"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "*= ---",
-                "add-aug-assign-mul-mod-btn",
-                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
-                InsertActionType.InsertAugmentedAssignmentModifier,
-                {},
-                ["*"],
-                "",
-                null
-            ),
+        const AugMulAssignmentMod = new EditCodeAction(
+            "*= ---",
+            "add-aug-assign-mul-mod-btn",
+            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+            InsertActionType.InsertAugmentedAssignmentModifier,
+            {},
+            AssignMultDocs,
+            ["*"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                "/= ---",
-                "add-aug-assign-div-mod-btn",
-                () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
-                InsertActionType.InsertAugmentedAssignmentModifier,
-                {},
-                ["/"],
-                "",
-                null
-            ),
+        const AugDivAssignmentMod = new EditCodeAction(
+            "/= ---",
+            "add-aug-assign-div-mod-btn",
+            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+            InsertActionType.InsertAugmentedAssignmentModifier,
+            {},
+            AssignDivDocs,
+            ["/"],
+            "",
+            null
+        );
 
-            new EditCodeAction(
-                ".append(---)",
-                "add-list-append-stmt-btn",
-                () =>
-                    new MethodCallModifier(
-                        "append",
-                        [new Argument([DataType.Any], "object", false)],
-                        DataType.Void,
-                        DataType.AnyList
-                    ),
-                InsertActionType.InsertListAppendMethod,
-                {},
-                ["("],
-                ".append",
-                null
-            ),
+        const AppendMethodMod = new EditCodeAction(
+            ".append(---)",
+            "add-list-append-stmt-btn",
+            () =>
+                new MethodCallModifier(
+                    "append",
+                    [new Argument([DataType.Any], "object", false)],
+                    DataType.Void,
+                    DataType.AnyList
+                ),
+            InsertActionType.InsertListAppendMethod,
+            {},
+            ListAppendDocs,
+            ["("],
+            ".append",
+            null
+        );
 
-            new EditCodeAction(
-                ".replace(---, ---)",
-                "add-replace-method-call-btn",
-                () =>
-                    new MethodCallModifier(
-                        "replace",
-                        [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
-                        DataType.String,
-                        DataType.String
-                    ),
-                InsertActionType.InsertStringReplaceMethod,
-                {},
-                ["("],
-                ".replace",
-                null
-            ),
+        const ReplaceMethodMod = new EditCodeAction(
+            ".replace(---, ---)",
+            "add-replace-method-call-btn",
+            () =>
+                new MethodCallModifier(
+                    "replace",
+                    [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
+                    DataType.String,
+                    DataType.String
+                ),
+            InsertActionType.InsertStringReplaceMethod,
+            {},
+            ReplaceDocs,
+            ["("],
+            ".replace",
+            null
+        );
 
-            new EditCodeAction(
-                ".join(---)",
-                "add-join-method-call-btn",
-                () =>
-                    new MethodCallModifier(
-                        "join",
-                        [
-                            new Argument(
-                                [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
-                                "items",
-                                false
-                            ),
-                        ],
-                        DataType.String,
-
-                        DataType.String
-                    ),
-                InsertActionType.InsertStringJoinMethod,
-                {
-                    functionName: "join",
-                    returns: DataType.String,
-                    args: [
+        const JoinMethodMod = new EditCodeAction(
+            ".join(---)",
+            "add-join-method-call-btn",
+            () =>
+                new MethodCallModifier(
+                    "join",
+                    [
                         new Argument(
                             [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
                             "items",
                             false
                         ),
                     ],
-                    exprType: DataType.String,
-                },
-                ["("],
-                ".join",
-                null
-            ),
+                    DataType.String,
 
-            new EditCodeAction(
-                ".split(---)",
-                "add-split-method-call-btn",
-                () =>
-                    new MethodCallModifier(
-                        "split",
-                        [new Argument([DataType.String], "sep", false)],
-                        DataType.StringList,
-                        DataType.String
+                    DataType.String
+                ),
+            InsertActionType.InsertStringJoinMethod,
+            {
+                functionName: "join",
+                returns: DataType.String,
+                args: [
+                    new Argument(
+                        [DataType.AnyList, DataType.StringList, DataType.NumberList, DataType.BooleanList],
+                        "items",
+                        false
                     ),
-                InsertActionType.InsertStringSplitMethod,
-                {},
-                ["("],
-                ".split",
-                null
-            ),
+                ],
+                exprType: DataType.String,
+            },
+            JoinDocs,
+            ["("],
+            ".join",
+            null
+        );
 
-            new EditCodeAction(
-                "str(---)",
-                "add-cast-str-btn",
-                () => new FunctionCallExpr("str", [new Argument([DataType.Any], "value", false)], DataType.String),
-                InsertActionType.InsertCastStrExpr,
-                {},
-                ["("],
-                "str",
-                null
-            ),
+        const SplitMethodMod = new EditCodeAction(
+            ".split(---)",
+            "add-split-method-call-btn",
+            () =>
+                new MethodCallModifier(
+                    "split",
+                    [new Argument([DataType.String], "sep", false)],
+                    DataType.StringList,
+                    DataType.String
+                ),
+            InsertActionType.InsertStringSplitMethod,
+            {},
+            SplitDocs,
+            ["("],
+            ".split",
+            null
+        );
 
-            new EditCodeAction(
-                "var = ---",
-                "add-var-btn",
-                () => new VarAssignmentStmt(),
-                InsertActionType.InsertNewVariableStmt,
-                {},
-                ["="],
-                null,
-                IdentifierRegex
-            )
+        const CastStrExpr = new EditCodeAction(
+            "str(---)",
+            "add-cast-str-btn",
+            () => new FunctionCallExpr("str", [new Argument([DataType.Any], "value", false)], DataType.String),
+            InsertActionType.InsertCastStrExpr,
+            {},
+            CastToStrDocs,
+            ["("],
+            "str",
+            null
+        );
+
+        const VarAssignStmt = new EditCodeAction(
+            "var = ---",
+            "add-var-btn",
+            () => new VarAssignmentStmt(),
+            InsertActionType.InsertNewVariableStmt,
+            {},
+            AddVarDocs,
+            ["="],
+            null,
+            IdentifierRegex
+        );
+
+        this.actionsList = new Array<EditCodeAction>(
+            PrintStmt,
+            RandIntExpr,
+            RangeExpr,
+            LenExpr,
+            InputExpr,
+            StringLiteralExpr,
+            NumberLiteralExpr,
+            BooleanTrueLiteralExpr,
+            BooleanFalseLiteralExpr,
+            BinAddExpr,
+            BinSubExpr,
+            BinMultExpr,
+            BinDivExpr,
+            BinAndExpr,
+            BinOrExpr,
+            BinCompEqExpr,
+            BinCompNeqExpr,
+            BinCompLtExpr,
+            BinCompLteExpr,
+            BinCompGtExpr,
+            BinCompGteExpr,
+            UnaryNotExpr,
+            FindMethodMod,
+            WhileStmt,
+            IfStmt,
+            ElifStmt,
+            ElseStmt,
+            ForStmt,
+            ImportStmt,
+            ListLiteralExpr,
+            ListCommaItem,
+            ListIndexAccessor,
+            AssignmentMod,
+            AugAddAssignmentMod,
+            AugSubAssignmentMod,
+            AugMulAssignmentMod,
+            AugDivAssignmentMod,
+            AppendMethodMod,
+            ReplaceMethodMod,
+            JoinMethodMod,
+            SplitMethodMod,
+            CastStrExpr,
+            VarAssignStmt
         );
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
@@ -971,6 +1097,76 @@ export class Actions {
                 ],
             ],
         ]);
+
+        this.toolboxCategories.push(
+            new ToolboxCategory("Loops", "loops-toolbox-group", [WhileStmt, ForStmt, RangeExpr])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Conditionals", "conditionals-toolbox-group", [IfStmt, ElifStmt, ElseStmt])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Functions", "functions-toolbox-group", [PrintStmt, InputExpr, LenExpr])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Variables", "create-var-toolbox-group", [
+                VarAssignStmt,
+                AssignmentMod,
+                AugAddAssignmentMod,
+                AugSubAssignmentMod,
+                AugMulAssignmentMod,
+                AugDivAssignmentMod,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Numbers", "numbers-toolbox-group", [NumberLiteralExpr, RandIntExpr])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Texts", "text-toolbox-group", [
+                StringLiteralExpr,
+                SplitMethodMod,
+                JoinMethodMod,
+                FindMethodMod,
+                ReplaceMethodMod,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Lists", "list-ops-toolbox-group", [
+                ListLiteralExpr,
+                ListCommaItem,
+                ListIndexAccessor,
+                AppendMethodMod,
+            ])
+        );
+
+        this.toolboxCategories.push(
+            new ToolboxCategory("Arithmetics", "arithmetics-toolbox-group", [
+                BinAddExpr,
+                BinSubExpr,
+                BinMultExpr,
+                BinDivExpr,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Comparisons", "comparison-ops-toolbox-group", [
+                BinCompEqExpr,
+                BinCompNeqExpr,
+                BinCompLtExpr,
+                BinCompLteExpr,
+                BinCompGtExpr,
+                BinCompGteExpr,
+            ])
+        );
+        this.toolboxCategories.push(
+            new ToolboxCategory("Booleans", "boolean-ops-toolbox-group", [
+                BinAndExpr,
+                BinOrExpr,
+                UnaryNotExpr,
+                BooleanTrueLiteralExpr,
+                BooleanFalseLiteralExpr,
+            ])
+        );
+        this.toolboxCategories.push(new ToolboxCategory("Casting", "casting-toolbox-group", [CastStrExpr]));
+        this.toolboxCategories.push(new ToolboxCategory("Imports", "import-ops-toolbox-group", [ImportStmt]));
     }
 
     static instance(): Actions {
@@ -986,4 +1182,16 @@ export enum CodeStatus {
     ContainsDraftMode,
     Empty,
     Runnable,
+}
+
+export class ToolboxCategory {
+    displayName: string;
+    id: string;
+    items: Array<EditCodeAction> = [];
+
+    constructor(displayName: string, id: string, items: Array<EditCodeAction>) {
+        this.displayName = displayName;
+        this.id = id;
+        this.items = items;
+    }
 }

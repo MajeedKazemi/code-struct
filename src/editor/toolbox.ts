@@ -1,11 +1,11 @@
-import { Expression, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
+import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
 import { DataType, InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
 import { EditCodeAction } from "./action-filter";
+import { Actions } from "./consts";
 import { DocumentationBox } from "./doc-box";
 import { EventAction, EventStack, EventType } from "./event-stack";
-import * as options from "./toolbox.json";
 
 export const EDITOR_DOM_ID = "editor";
 
@@ -90,45 +90,34 @@ export function loadToolboxFromJson() {
     const toolboxMenu = document.getElementById("toolbox-menu");
     const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
 
-    const toolboxGroupOptions = options.toolboxConstructGroupOptions;
+    const toolboxCategories = Actions.instance().toolboxCategories;
 
-    for (const constructGroup in toolboxGroupOptions) {
-        if (toolboxGroupOptions.hasOwnProperty(constructGroup) && toolboxGroupOptions[constructGroup].includeCategory) {
+    for (const constructGroup of toolboxCategories) {
+        if (constructGroup) {
             let categoryDiv;
 
             categoryDiv = document.createElement("div");
-            categoryDiv.id = toolboxGroupOptions[constructGroup].categoryId;
+            categoryDiv.id = constructGroup.id;
             categoryDiv.classList.add("group");
 
             const p = document.createElement("p");
-            p.textContent = toolboxGroupOptions[constructGroup].categoryDisplayName;
+            p.textContent = constructGroup.displayName;
             categoryDiv.appendChild(p);
 
-            const itemOpts = toolboxGroupOptions[constructGroup].includeCategoryItems;
-            for (const item in itemOpts) {
-                if (item == "customHtml") {
-                    const template = document.createElement("div");
-                    template.innerHTML = itemOpts[item];
+            for (const item of constructGroup.items) {
+                const button = ToolboxButton.createToolboxButtonFromJsonObj(item);
 
-                    categoryDiv.appendChild(template);
-                } else if (itemOpts.hasOwnProperty(item) && itemOpts[item]) {
-                    const button = ToolboxButton.createToolboxButtonFromJsonObj(
-                        options.toolboxDefaultButtonTemplates[item]
-                    );
-                    categoryDiv.appendChild(button.container);
-                }
+                categoryDiv.appendChild(button.container);
             }
 
             toolboxDiv.insertBefore(categoryDiv, staticDummySpace);
 
             const menuButton = document.createElement("div");
             menuButton.classList.add("menu-button");
-            menuButton.innerText = toolboxGroupOptions[constructGroup].categoryDisplayName;
+            menuButton.innerText = constructGroup.displayName;
 
             menuButton.addEventListener("click", () => {
-                document
-                    .getElementById(toolboxGroupOptions[constructGroup].categoryId)
-                    .scrollIntoView({ behavior: "smooth" });
+                document.getElementById(constructGroup.id).scrollIntoView({ behavior: "smooth" });
             });
 
             toolboxMenu.appendChild(menuButton);
@@ -143,12 +132,20 @@ export function loadToolboxFromJson() {
 export class ToolboxButton {
     container: HTMLDivElement;
 
-    constructor(text: string, domId?: string, returnType?: string, documentation?: any) {
+    constructor(text: string, domId?: string, returnType?: string, documentation?: any, code?: CodeConstruct) {
         this.container = document.createElement("div");
         this.container.classList.add("var-button-container");
 
         const button = document.createElement("div");
         button.classList.add("button");
+
+        if (!(code instanceof Expression) && !(code instanceof Modifier)) {
+            button.classList.add("statement-button");
+        } else if (code instanceof Modifier) {
+            button.classList.add("modifier-button");
+        } else if (code instanceof Expression) {
+            button.classList.add("expression-button");
+        }
 
         this.container.appendChild(button);
 
@@ -160,11 +157,13 @@ export class ToolboxButton {
             this.container.appendChild(typeText);
         }
 
-        if (domId) {
-            button.id = domId;
-        }
+        if (domId) button.id = domId;
 
-        button.innerHTML = text.replace(/---/g, "<hole></hole>");
+        // TODO: different types of holes should look differently
+        let htmlText = text.replace(/---/g, "<hole1></hole1>");
+        htmlText = htmlText.replace(/--/g, "<hole2></hole2>");
+        htmlText = htmlText.trim().replace(/ /g, "&nbsp");
+        button.innerHTML = htmlText;
 
         if (documentation) {
             const learnButton = document.createElement("div");
@@ -187,13 +186,14 @@ export class ToolboxButton {
         this.container.remove();
     }
 
-    static createToolboxButtonFromJsonObj(obj: {
-        id?: string;
-        text: string;
-        returnType?: string;
-        documentation?: any;
-    }) {
-        return new ToolboxButton(obj.text, obj?.id, obj?.returnType, obj?.documentation);
+    static createToolboxButtonFromJsonObj(action: EditCodeAction) {
+        return new ToolboxButton(
+            action.optionName,
+            action.cssId,
+            action.getUserFriendlyReturnType(),
+            action.documentation,
+            action.getCode()
+        );
     }
 }
 
@@ -283,10 +283,7 @@ function constructCascadedMenuObj(
             returnType = " -> " + getUserFriendlyType(code.returns);
         }
 
-        const menuButton = ToolboxButton.createToolboxButtonFromJsonObj({
-            text: value.optionName,
-            returnType: returnType,
-        });
+        const menuButton = ToolboxButton.createToolboxButtonFromJsonObj(value);
 
         menuButton.getButtonElement().classList.add("cascadedMenuItem");
         value.performAction.bind(value);

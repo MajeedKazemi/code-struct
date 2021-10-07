@@ -1,6 +1,7 @@
 import {
     Expression,
     ForStatement,
+    Modifier,
     Statement,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -11,6 +12,7 @@ import {
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { getUserFriendlyType } from "../utilities/util";
 import { ActionExecutor } from "./action-executor";
 import { Actions, InsertActionType } from "./consts";
 import { EventRouter } from "./event-router";
@@ -121,8 +123,14 @@ export class ActionFilter {
                     code.setIterator(ref);
                 }
 
+                let optionName = code.getRenderText();
+
+                if (code instanceof ForStatement) {
+                    optionName = optionName.replace(/   /g, " --");
+                } else optionName = optionName.replace(/   /g, " ---");
+
                 const codeAction = new EditCodeAction(
-                    code.getRenderText().replace(/   /g, " ---"),
+                    optionName,
                     "",
                     () => {
                         const code = varOperation() as Expression;
@@ -144,6 +152,7 @@ export class ActionFilter {
                         ? InsertActionType.InsertVarOperationStmt
                         : InsertActionType.InsertValOperationExpr,
                     {},
+                    null,
                     [""],
                     "",
                     null
@@ -267,6 +276,7 @@ export class EditCodeAction extends UserAction {
     matchRegex: RegExp;
     insertableTerminatingCharRegex: RegExp[];
     trimSpacesBeforeTermChar: boolean;
+    documentation: any;
 
     constructor(
         optionName: string,
@@ -274,6 +284,7 @@ export class EditCodeAction extends UserAction {
         getCodeFunction: () => Statement | Expression,
         insertActionType: InsertActionType,
         insertData: any = {},
+        documentation: any,
         terminatingChars: string[],
         matchString: string,
         matchRegex: RegExp,
@@ -285,6 +296,7 @@ export class EditCodeAction extends UserAction {
         this.getCodeFunction = getCodeFunction;
         this.insertActionType = insertActionType;
         this.insertData = insertData;
+        this.documentation = documentation;
         this.terminatingChars = terminatingChars;
         this.matchString = matchString;
         this.matchRegex = matchRegex;
@@ -310,6 +322,7 @@ export class EditCodeAction extends UserAction {
             getCodeFunction,
             insertActionType,
             insertData,
+            null,
             terminatingChars,
             matchString,
             matchRegex,
@@ -319,6 +332,14 @@ export class EditCodeAction extends UserAction {
         action.insertionType = insertionType;
 
         return action;
+    }
+
+    getUserFriendlyReturnType(): string {
+        const code = this.getCode();
+
+        if (code instanceof Expression && !(code instanceof Modifier))
+            return " -> " + getUserFriendlyType(code.returns);
+        else return "";
     }
 
     getCode() {

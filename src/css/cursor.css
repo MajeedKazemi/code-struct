@@ -1,4 +1,4 @@
-.cursor {
+.custom-selection-cursor {
     position: absolute;
     background: #a4e2ff94;
     mix-blend-mode: multiply;
@@ -6,4 +6,8 @@
     transition: 0.1s ease-in;
     pointer-events: none;
     z-index: 5;
+    border-radius: 8.5px;
+
+    /* this should match the border-width of hole in hole.css */
+    padding: 1px;
 }

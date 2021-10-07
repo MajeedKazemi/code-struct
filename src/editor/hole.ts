@@ -42,9 +42,14 @@ export class Hole {
 
         Hole.holes.push(hole);
 
-        if (code instanceof EditableTextTkn || code instanceof IdentifierTkn) {
-            this.element.classList.add(Hole.editableHoleClass);
+        if (code instanceof IdentifierTkn) this.element.classList.add("identifier-hole");
+        else if (code instanceof EditableTextTkn) {
+            this.element.classList.add("text-editable-expr-hole");
+        } else if (code instanceof TypedEmptyExpr) {
+            this.element.classList.add("expression-hole");
+        }
 
+        if (code instanceof EditableTextTkn || code instanceof IdentifierTkn) {
             code.subscribe(
                 CallbackType.focusEditableHole,
                 new Callback(() => {
@@ -109,7 +114,7 @@ export class Hole {
         code.subscribe(
             CallbackType.delete,
             new Callback(() => {
-                hole.setTransform({ x: 0, y: 0, width: 0, height: 0 });
+                hole.setTransform(null);
                 hole.remove();
             })
         );
@@ -117,7 +122,7 @@ export class Hole {
         code.subscribe(
             CallbackType.replace,
             new Callback(() => {
-                hole.setTransform({ x: 0, y: 0, width: 0, height: 0 });
+                hole.setTransform(null);
                 hole.remove();
             })
         );
@@ -134,27 +139,46 @@ export class Hole {
         );
 
         function loop() {
-            const boundingBox = editor.computeBoundingBox(code.getSelection());
-
-            if (boundingBox.width == 0) {
-                boundingBox.x -= 7;
-                boundingBox.width = 14;
-            }
-
-            hole.setTransform(boundingBox);
+            hole.setTransform(code);
             requestAnimationFrame(loop);
         }
 
         loop();
     }
 
-    setTransform(transform: { x: number; width: number; y: number; height: number }) {
-        const padding = 0;
+    setTransform(code: CodeConstruct) {
+        let leftPadding = 0;
+        let rightPadding = 0;
+        let transform = { x: 0, y: 0, width: 0, height: 0 };
+
+        if (code) {
+            transform = this.editor.computeBoundingBox(code.getSelection());
+
+            if (transform.width == 0) {
+                transform.x -= 7;
+                transform.width = 14;
+            }
+        }
+
+        // if (code instanceof TypedEmptyExpr) {
+        //     leftPadding = 3;
+        //     rightPadding = 3;
+        // }
+
+        // if (code instanceof EditableTextTkn) {
+        //     leftPadding = 5;
+        //     rightPadding = 10;
+        // }
+
+        // if (code instanceof IdentifierTkn) {
+        //     leftPadding = 0;
+        //     rightPadding = 5;
+        // }
 
         this.element.style.top = `${transform.y + 5}px`;
-        this.element.style.left = `${transform.x - padding}px`;
+        this.element.style.left = `${transform.x - leftPadding}px`;
 
-        this.element.style.width = `${transform.width + padding * 2}px`;
+        this.element.style.width = `${transform.width + rightPadding}px`;
         this.element.style.height = `${transform.height - 5 * 2}px`;
     }
 

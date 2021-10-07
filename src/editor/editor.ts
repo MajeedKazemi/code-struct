@@ -19,6 +19,7 @@ export class Editor {
 
     constructor(parentEl: HTMLElement, module: Module) {
         this.monaco = editor.create(parentEl, {
+            folding: false,
             dimension: { height: 500, width: 700 },
             value: "",
             language: "python",
@@ -54,21 +55,13 @@ export class Editor {
             acceptSuggestionOnEnter: "off",
             tabCompletion: "off",
             wordBasedSuggestions: false,
+            renderWhitespace: "none",
+            occurrencesHighlight: false,
         });
 
         this.cursor = new Cursor(this);
         this.holes = [];
         this.module = module;
-    }
-
-    focusSelection() {
-        // if (selection.startColumn == selection.endColumn) {
-        //     this.monaco.setPosition(new Position(selection.startLineNumber, selection.startColumn));
-        // } else {
-        //     this.cursor.setSelection(selection, code);
-        //     this.monaco.setSelection(selection);
-        // }
-        const context = this.module.focus.getContext();
     }
 
     getLineEl(ln: number) {

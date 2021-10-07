@@ -1,6 +1,6 @@
 import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { ConstructHighlight } from "../notification-system/notification";
+import { ConstructHighlight, ScopeHighlight } from "../notification-system/notification";
 import {
     AssignmentModifier,
     AutocompleteTkn,
@@ -99,6 +99,7 @@ export class ActionExecutor {
                         break;
                 }
 
+                this.module.editor.cursor.setSelection(null);
                 const match = autocompleteTkn.isTerminatingMatch();
 
                 if (match) this.performMatchAction(match, autocompleteTkn);
@@ -205,11 +206,15 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertStatement: {
-                const statement = action.data?.statement;
+                const statement = action.data?.statement as Statement;
 
-                this.insertStatement(context, statement as Statement);
+                this.insertStatement(context, statement);
 
                 if (flashGreen) this.flashGreen(action.data?.statement);
+
+                if (statement.hasBody()) {
+                    let background = new ScopeHighlight(this.module.editor, statement);
+                }
 
                 break;
             }
@@ -393,7 +398,7 @@ export class ActionExecutor {
                 const editableText = token.getEditableText();
                 let newText = "";
 
-                if (editableText == "   ") {
+                if (editableText == "  ") {
                     const curText = "";
                     newText = curText + pressedKey;
                 } else {
@@ -418,7 +423,7 @@ export class ActionExecutor {
                         cursorPos.lineNumber,
                         selectedText.endColumn
                     );
-                } else if (context.tokenToRight?.isTextEditable && editableText == "   ") {
+                } else if (context.tokenToRight?.isTextEditable && editableText == "  ") {
                     editRange = new Range(
                         cursorPos.lineNumber,
                         context.tokenToRight.left,
@@ -532,12 +537,12 @@ export class ActionExecutor {
                     }
 
                     if (identifier != null) {
-                        identifier.text = "   ";
+                        identifier.text = "  ";
                         identifier.isEmpty = true;
                         this.module.editor.executeEdits(
                             new Range(cursorPos.lineNumber, identifier.left, cursorPos.lineNumber, identifier.right),
                             null,
-                            "   "
+                            "  "
                         );
                         context.lineStatement.build(context.lineStatement.getLeftPosition());
                         this.module.focus.updateContext({ tokenToSelect: identifier });
@@ -804,8 +809,10 @@ export class ActionExecutor {
             case EditActionType.InsertImportFromDraftMode: {
                 let currContext = context;
                 this.module.editor.monaco.setPosition(new Position(1, 1));
+                this.module.editor.cursor.setSelection(null);
                 this.module.insertEmptyLine();
                 this.module.editor.monaco.setPosition(new Position(1, 1));
+                this.module.editor.cursor.setSelection(null);
                 currContext = this.module.focus.getContext();
 
                 const stmt = new ImportStatement(action.data?.moduleName, action.data?.itemName);
@@ -815,10 +822,12 @@ export class ActionExecutor {
                     () => stmt,
                     InsertActionType.InsertImportStmt,
                     {},
+                    null,
                     [" "],
                     "import",
                     null
                 );
+
                 insertAction.performAction(this, this.module.eventRouter, currContext);
 
                 break;

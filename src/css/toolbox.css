@@ -4,7 +4,7 @@
 
     box-shadow: 20px -50px 50px -15px #ccc;
 
-    min-width: 480px;
+    min-width: 490px;
 
     font-family: Consolas, "Courier New", monospace;
 }
@@ -41,14 +41,22 @@
     box-shadow: 0px 1px 5px 2px #ccc;
 }
 
-hole {
+#editor-toolbox hole1 {
     min-width: 18px;
     height: 18px;
-    background: rgb(0 0 0 / 5%);
-    border-radius: 2px;
-    box-shadow: 0px 0px 0px 1px #0000005e inset;
-    margin: 0px 8px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 1px 1px #0000005e inset;
+    margin: 0px 3px;
     display: inline-block;
+}
+
+#editor-toolbox hole2 {
+    margin: 0px 3px;
+    display: inline-block;
+    box-shadow: none;
+    border: dashed 1px #c7c7c7;
+    min-width: 12px;
+    height: 16px;
 }
 
 #user-variables {
@@ -216,4 +224,48 @@ hole {
 
 .var-button-container:hover > .learn-button {
     visibility: visible;
+}
+
+.statement-button {
+    /* border-bottom: solid #05c8ac 3px !important; */
+
+    transition: border 0.15s ease-in-out;
+    -webkit-transition: border 0.15s ease-in-out;
+    -moz-transition: border 0.15s ease-in-out;
+    -o-transition: border 0.15s ease-in-out;
+    -ms-transition: border 0.15s ease-in-out;
+}
+
+.statement-button:hover {
+    border-bottom: solid #05c8ac 4px !important;
+}
+
+.expression-button {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    border-radius: 25px !important;
+
+    transition: border 0.15s ease-in-out;
+    -webkit-transition: border 0.15s ease-in-out;
+    -moz-transition: border 0.15s ease-in-out;
+    -o-transition: border 0.15s ease-in-out;
+    -ms-transition: border 0.15s ease-in-out;
+}
+
+.expression-button:hover {
+    border: solid #a900dd 2px !important;
+}
+
+.modifier-button {
+    /* border-left: solid #0084dd 3px !important; */
+
+    transition: border 0.15s ease-in-out;
+    -webkit-transition: border 0.15s ease-in-out;
+    -moz-transition: border 0.15s ease-in-out;
+    -o-transition: border 0.15s ease-in-out;
+    -ms-transition: border 0.15s ease-in-out;
+}
+
+.modifier-button:hover {
+    border-left: solid #0084dd 4px !important;
 }

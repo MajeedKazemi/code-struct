@@ -1,4 +1,5 @@
 import { Statement } from "./ast";
+import { CallbackType } from "./callback";
 import { Module } from "./module";
 
 export function rebuildBody(bodyContainer: Statement | Module, fromIndex: number, startLineNumber: number) {
@@ -22,8 +23,10 @@ export function rebuildBody(bodyContainer: Statement | Module, fromIndex: number
     if (bodyContainer instanceof Statement) {
         if (bodyContainer.rootNode instanceof Module) {
             rebuildBody(bodyContainer.rootNode, bodyContainer.indexInRoot + 1, lineNumber);
+            bodyContainer.notify(CallbackType.change);
         } else if (bodyContainer.rootNode instanceof Statement && bodyContainer.rootNode.hasBody()) {
             rebuildBody(bodyContainer.rootNode, bodyContainer.indexInRoot + 1, lineNumber);
+            bodyContainer.notify(CallbackType.change);
         }
     }
 }

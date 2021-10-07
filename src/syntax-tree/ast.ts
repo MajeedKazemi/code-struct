@@ -5,7 +5,7 @@ import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
 import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { Notification } from "../notification-system/notification";
+import { CodeBackground, Notification } from "../notification-system/notification";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
@@ -164,6 +164,7 @@ export abstract class Statement implements CodeConstruct {
     tokens = new Array<CodeConstruct>();
     hasEmptyToken: boolean;
     callbacks = new Map<string, Array<Callback>>();
+    background: CodeBackground = null;
     notification = null;
     keywordIndex = -1;
     hole = null;
@@ -229,7 +230,7 @@ export abstract class Statement implements CodeConstruct {
     setLineNumber(lineNumber: number) {
         this.lineNumber = lineNumber;
 
-        if (this instanceof EmptyLineStmt) this.notify(CallbackType.change);
+        this.notify(CallbackType.change);
 
         for (const token of this.tokens) {
             if (token instanceof Expression) token.setLineNumber(lineNumber);
@@ -255,7 +256,7 @@ export abstract class Statement implements CodeConstruct {
     }
 
     notify(type: CallbackType) {
-        for (const callback of this.callbacks[type]) callback.callback();
+        for (const callback of this.callbacks[type]) callback.callback(this);
 
         if (this.callbacksToBeDeleted.size > 0) {
             for (const entry of this.callbacksToBeDeleted) {
@@ -399,6 +400,17 @@ export abstract class Statement implements CodeConstruct {
         }
 
         for (const stmt of this.body) txt += textToAdd + stmt.getRenderText();
+
+        return txt;
+    }
+
+    /**
+     * Returns the textual value of the statement's particular line
+     */
+    getLineText(): string {
+        let txt: string = "";
+
+        for (const token of this.tokens) txt += token.getRenderText();
 
         return txt;
     }
@@ -641,7 +653,7 @@ export abstract class Token implements CodeConstruct {
     }
 
     notify(type: CallbackType) {
-        for (const callback of this.callbacks[type]) callback.callback();
+        for (const callback of this.callbacks[type]) callback.callback(this);
 
         if (this.callbacksToBeDeleted.size > 0) {
             for (const entry of this.callbacksToBeDeleted) {
@@ -1248,7 +1260,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         const varController = this.getModule().variableController;
 
         if (currentIdentifier !== this.oldIdentifier || this.buttonId === "") {
-            if (currentIdentifier === "   ") {
+            if (currentIdentifier === "  ") {
                 this.removeAssignment();
 
                 if (
@@ -1262,7 +1274,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                 }
 
                 this.buttonId = "";
-                this.oldIdentifier = "   ";
+                this.oldIdentifier = "  ";
             } else {
                 const currentIdentifierAssignments = (
                     this.rootNode as Statement | Module
@@ -2645,7 +2657,7 @@ export class IdentifierTkn extends Token implements TextEditable {
     validatorRegex: RegExp;
 
     constructor(identifier?: string, root?: CodeConstruct, indexInRoot?: number) {
-        super(identifier == undefined ? "   " : identifier);
+        super(identifier == undefined ? "  " : identifier);
 
         if (identifier == undefined) this.isEmpty = true;
         else this.isEmpty = false;
@@ -2779,7 +2791,7 @@ export class TypedEmptyExpr extends Token {
     type: DataType[];
 
     constructor(type: DataType[], root?: CodeConstruct, indexInRoot?: number) {
-        super("   ");
+        super("    ");
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;

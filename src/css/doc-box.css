@@ -145,7 +145,36 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
     visibility: hidden;
 }
 
-.console-output{
+.block-vs-text-table-container {
+    border-radius: 5px;
+    box-shadow: 0 0 5px 1px #888;
+}
+
+.block-vs-text-table-header {
+    height: 20px;
+    background-color: #d9e7ee;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 15px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.image-container {
+    flex-direction: row;
+    justify-content: space-between;
+    display: flex;
+    align-items: start;
+    padding: 15px;
+}
+
+.image-container img {
+    width: 48%;
+}
+
+.console-output {
     height: 100%;
     overflow-y: scroll;
 }

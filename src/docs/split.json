@@ -8,6 +8,5 @@
             "paragraph": "The below example will print [\"Split\", \"this\", \"text\", \"on\", \"hyphen\"]"
         },
         { "example": "name = \"Split-this-text-on-hyphen\"\nsplitName = name.split(\"-\")\nprint(splitName)" }
-        
     ]
 }
