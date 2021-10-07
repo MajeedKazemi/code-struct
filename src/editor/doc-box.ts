@@ -1,6 +1,12 @@
 import { editor } from "monaco-editor";
+import { nova, runBtnToOutputWindow } from "../index";
+import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
+import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 
 const INITIAL_Z_INDEX = 500;
+
+export const docBoxRunButtons = new Map<string, string[]>();
+
 export class DocumentationBox {
     private static exampleCounter = 0;
     private static openBoxes: DocBoxMeta[] = [];
@@ -10,6 +16,7 @@ export class DocumentationBox {
         const container = document.createElement("div");
         container.classList.add("doc-box-container");
         container.id = `doc-box-${uniqueId}`;
+        docBoxRunButtons.set(container.id, []);
 
         const headerDiv = document.createElement("div");
         headerDiv.classList.add("doc-box-header");
@@ -41,7 +48,37 @@ export class DocumentationBox {
 
                 docBody.appendChild(p);
             } else if (item.hasOwnProperty("example")) {
-                docBody.appendChild(createExample(item));
+                const ex = createExample(item);
+                docBody.appendChild(ex[0]);
+                docBoxRunButtons.set(container.id, ex[1]);
+
+                attachPyodideActions(
+                    (() => {
+                        const actions = [];
+                        for (const buttonId of ex[1]) {
+                            actions.push((pyodideController) => {
+                                const button = document.getElementById(buttonId);
+                                button.addEventListener("click", () => {
+                                    try {
+                                        nova.globals.lastPressedRunButtonId = button.id;
+
+                                        pyodideController.runPython(codeString(ex[2].getValue()));
+                                    } catch (err) {
+                                        console.error("Unable to run python code");
+                                        addTextToConsole(
+                                            runBtnToOutputWindow.get(button.id),
+                                            err,
+                                            CONSOLE_ERR_TXT_CLASS
+                                        );
+                                    }
+                                });
+                            });
+                        }
+
+                        return actions;
+                    })(),
+                    []
+                );
             } else if (item.hasOwnProperty("block-based-image")) {
                 docBody.appendChild(createImage(item));
             }
@@ -104,6 +141,11 @@ export class DocumentationBox {
         const maxZIndexId = DocumentationBox.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
 
         if (maxZIndexId) DocumentationBox.focusBox(maxZIndexId);
+
+        for (const buttonId of docBoxRunButtons.get(id)) {
+            runBtnToOutputWindow.delete(buttonId);
+        }
+        docBoxRunButtons.delete(id);
     }
 
     static setZIndex(id: string, zIndex: number) {
@@ -186,7 +228,9 @@ function createImage(image): HTMLDivElement {
     return tableElement;
 }
 
-function createExample(item): HTMLDivElement {
+function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeEditor] {
+    const runBtns = [];
+
     const editorContainer = document.createElement("div");
     editorContainer.classList.add("doc-editor-container");
 
@@ -232,6 +276,12 @@ function createExample(item): HTMLDivElement {
     consoleOutput.classList.add("console-output");
     exampleConsole.appendChild(consoleOutput);
 
+    runBtnToOutputWindow.set(runButton.id, consoleOutput.id);
+    clearConsoleButton.addEventListener("click", () => {
+        clearConsole(consoleOutput.id);
+    });
+    runBtns.push(runButton.id);
+
     const codeEditor = editor.create(exampleEditor, {
         folding: false,
         value: item.example,
@@ -263,7 +313,7 @@ function createExample(item): HTMLDivElement {
         codeEditor.setValue(item.example);
     });
 
-    return editorContainer;
+    return [editorContainer, runBtns, codeEditor];
 }
 
 function makeDraggable(element: HTMLDivElement) {

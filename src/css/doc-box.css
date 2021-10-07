@@ -118,7 +118,7 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 
 .doc-example-console {
     background-color: #ccc;
-    height: 75px;
+    height: 125px;
     font-size: 14px;
     font-weight: bold;
     padding: 5px;
@@ -172,4 +172,9 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 
 .image-container img {
     width: 48%;
+}
+
+.console-output {
+    height: 100%;
+    overflow-y: scroll;
 }
