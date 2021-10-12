@@ -357,18 +357,15 @@ export abstract class TypeConversionRecord {
         const conversionConstructId = this.conversionConstructId;
 
         button.addEventListener("click", () => {
-            console.log("AAAAAA I have been clicked");
-
-            (() => {
-                module.replaceFocusedExpression;
-                this.executer.execute(
-                    new EditAction(actionType, {
-                        codeToReplace: codeToReplace,
-                        conversionConstructId: conversionConstructId,
-                    }),
-                    this.focus.getContext()
-                );
-            }).bind(module);
+            module.replaceFocusedExpression;
+            module.executer.execute(
+                new EditAction(actionType, {
+                    codeToReplace: codeToReplace,
+                    conversionConstructId: conversionConstructId,
+                    typeToConvertTo: this.convertTo,
+                }),
+                module.focus.getContext()
+            );
         });
 
         return button;

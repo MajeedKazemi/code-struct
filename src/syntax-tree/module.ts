@@ -530,7 +530,7 @@ export class Module {
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
 
         for (const button of actionButtons) {
-            code.notification.addButton("I AM BUTTON");
+            code.notification.attachButton(button);
         }
     }
 
@@ -627,7 +627,7 @@ export class Module {
     openImportDraftMode(code: Statement & Importable) {
         this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule), []);
 
-        const button = code.notification.addButton(`import ${code.requiredModule}`);
+        const button = code.notification.createButton(`import ${code.requiredModule}`);
         button.addEventListener(
             "click",
             (() => {
