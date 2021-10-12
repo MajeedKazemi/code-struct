@@ -5,7 +5,7 @@ import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
 import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { CodeBackground, Notification } from "../notification-system/notification";
+import { CodeBackground, HoverNotification, Notification } from "../notification-system/notification";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
@@ -168,7 +168,7 @@ export abstract class Statement implements CodeConstruct {
     hasEmptyToken: boolean;
     callbacks = new Map<string, Array<Callback>>();
     background: CodeBackground = null;
-    notification = null;
+    notification: HoverNotification = null;
     keywordIndex = -1;
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();
