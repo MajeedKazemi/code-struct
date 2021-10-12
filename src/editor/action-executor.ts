@@ -42,7 +42,7 @@ import { TypeChecker } from "../syntax-tree/type-checker";
 import { isImportable } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
-import { EditActionType, InsertActionType } from "./consts";
+import { Actions, EditActionType, InsertActionType } from "./consts";
 import { EditAction } from "./data-types";
 import { Context } from "./focus";
 
@@ -860,6 +860,32 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.InsertFunctionConversion: {
+                //TODO: Should be the same as cast functions, but does not work. Check edit order.
+                break;
+            }
+            case EditActionType.InsertMemberCallConversion: {
+                //TODO: Needs separate edit order from the rest
+                break;
+            }
+            case EditActionType.InsertTypeCast:
+            case EditActionType.InsertComparisonConversion: {
+                this.deleteCode(action.data.codeToReplace, {
+                    statement: null,
+                    replaceType: action.data.typeToConvertTo,
+                });
+                this.insertExpression(
+                    this.module.focus.getContext(),
+                    Actions.instance()
+                        .actionsList.find((element) => element.cssId == action.data.conversionConstructId)
+                        .getCodeFunction() as Expression
+                );
+                this.insertExpression(this.module.focus.getContext(), action.data.codeToReplace as Expression);
+                this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
+
+                break;
+            }
+
             case EditActionType.SelectClosestTokenAbove: {
                 this.module.focus.navigateUp();
 
@@ -1172,7 +1198,7 @@ export class ActionExecutor {
             if (insertionResult.insertionType == InsertionType.DraftMode)
                 this.module.openDraftMode(code, insertionResult.message, [
                     ...insertionResult.conversionRecords.map((conversionRecord) => {
-                        return conversionRecord.getConversionButton("SOMETHING HERE", this.module, code);
+                        return conversionRecord.getConversionButton(code.getKeyword(), this.module, code);
                     }),
                 ]);
             else if (isImportable(code)) {
@@ -1276,7 +1302,7 @@ export class ActionExecutor {
                 } else {
                     this.module.openDraftMode(newCode, replacementResult.message, [
                         ...replacementResult.conversionRecords.map((conversionRecord) => {
-                            return conversionRecord.getConversionButton("SOMETHING HERE", this.module, newCode);
+                            return conversionRecord.getConversionButton("SOMETHING HERE123", this.module, newCode);
                         }),
                     ]);
                 }
