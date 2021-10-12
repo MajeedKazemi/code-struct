@@ -8,7 +8,7 @@ import {
     VariableReferenceExpr,
     VarOperationStmt,
 } from "../syntax-tree/ast";
-import { InsertionType } from "../syntax-tree/consts";
+import { InsertionType, TypeConversionRecord } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { ActionExecutor } from "./action-executor";
@@ -77,7 +77,7 @@ export class ActionFilter {
                 },
                 null,
                 {},
-                new InsertionResult(varRecord[1], "MESSAGE BASED ON INSERTION TYPE"),
+                new InsertionResult(varRecord[1], "MESSAGE BASED ON INSERTION TYPE", []), //TODO: Need to actually check what the insertion type is and populate the insertion result accordingly
                 [""],
                 varStmt.getIdentifier(),
                 null,
@@ -260,7 +260,7 @@ export class UserAction {
     }
 
     validateAction(validator: Validator, context: Context): InsertionResult {
-        return new InsertionResult(InsertionType.Invalid, "");
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {}
@@ -338,18 +338,19 @@ export class EditCodeAction extends UserAction {
         const code = this.getCode();
         const astInsertionType = code.validateContext(validator, context);
 
+        //TODO: Need to actually check what type of insertion it is: Draft, Valid, Invalid and populate the InsertionResult accordingly
         if (!(code instanceof Expression)) {
-            return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE");
+            return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE", []);
         } else if (astInsertionType !== InsertionType.Invalid && code instanceof Expression) {
             if (context.selected) {
                 return context.token.rootNode.typeValidateInsertionIntoHole(code, context.token as TypedEmptyExpr); //NOTE: The only expression that can be inserted outside of an empty hole is a variable reference and that will be changed in the future with the introduction of a separate code construct for that
             } else if (!context.selected) {
-                return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE");
+                return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE", []);
             } else {
-                return new InsertionResult(InsertionType.Invalid, "");
+                return new InsertionResult(InsertionType.Invalid, "", []);
             }
         } else {
-            return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE");
+            return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE", []);
         }
     }
 
@@ -371,9 +372,11 @@ export class EditCodeAction extends UserAction {
 export class InsertionResult {
     insertionType: InsertionType;
     message: string;
+    conversionRecords: TypeConversionRecord[];
 
-    constructor(insertionType: InsertionType, msg: string) {
+    constructor(insertionType: InsertionType, msg: string, typeConversionRecord: TypeConversionRecord[]) {
         this.insertionType = insertionType;
         this.message = msg;
+        this.conversionRecords = typeConversionRecord;
     }
 }
