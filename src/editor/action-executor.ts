@@ -33,8 +33,6 @@ import {
     BuiltInFunctions,
     PythonKeywords,
     TAB_SPACES,
-    TypeConversionRecord,
-    typeToConversionRecord,
     TYPE_MISMATCH_HOLE_FUNC_STR,
     TYPE_MISMATCH_ON_MODIFIER_DELETION_STR,
 } from "../syntax-tree/consts";
@@ -646,12 +644,16 @@ export class ActionExecutor {
                             if (replacementResult.insertionType == InsertionType.DraftMode)
                                 this.module.openDraftMode(
                                     valOprExpr,
-                                    TYPE_MISMATCH_HOLE_FUNC_STR(
-                                        valOprExpr.getKeyword(),
-                                        holeTypes,
-                                        valOprExpr.returns,
-                                        TypeConversionRecord.getConversionString(valOprExpr.returns, holeTypes, valOprExpr.getKeyword())
-                                    )
+                                    TYPE_MISMATCH_HOLE_FUNC_STR(valOprExpr.getKeyword(), holeTypes, valOprExpr.returns),
+                                    [
+                                        ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                            return conversionRecord.getConversionButton(
+                                                valOprExpr.getKeyword(),
+                                                this.module,
+                                                valOprExpr
+                                            );
+                                        }),
+                                    ]
                                 );
                         }
 
@@ -708,12 +710,16 @@ export class ActionExecutor {
                         if (replacementResult.insertionType == InsertionType.DraftMode)
                             this.module.openDraftMode(
                                 valOprExpr,
-                                TYPE_MISMATCH_HOLE_FUNC_STR(
-                                    valOprExpr.getKeyword(),
-                                    holeDataTypes,
-                                    valOprExpr.returns,
-                                    TypeConversionRecord.getConversionString(valOprExpr.returns, holeDataTypes, valOprExpr.getKeyword())
-                                )
+                                TYPE_MISMATCH_HOLE_FUNC_STR(valOprExpr.getKeyword(), holeDataTypes, valOprExpr.returns),
+                                [
+                                    ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                        return conversionRecord.getConversionButton(
+                                            valOprExpr.getKeyword(),
+                                            this.module,
+                                            valOprExpr
+                                        );
+                                    }),
+                                ]
                             );
                     }
                 }
@@ -787,7 +793,7 @@ export class ActionExecutor {
 
                 if (!isValidRootInsertion) {
                     this.module.closeConstructDraftRecord(expr);
-                    this.module.openDraftMode(newCode);
+                    this.module.openDraftMode(newCode, "SOME MESSAGE", []);
                 }
 
                 if (flashGreen) this.flashGreen(newCode);
@@ -1173,7 +1179,11 @@ export class ActionExecutor {
             }
 
             if (insertionResult.insertionType == InsertionType.DraftMode)
-                this.module.openDraftMode(code, insertionResult.message);
+                this.module.openDraftMode(code, insertionResult.message, [
+                    ...insertionResult.conversionRecords.map((conversionRecord) => {
+                        return conversionRecord.getConversionButton("SOMETHING HERE", this.module, code);
+                    }),
+                ]);
             else if (isImportable(code)) {
                 this.checkImports(code, insertionResult.insertionType);
             }
@@ -1273,7 +1283,11 @@ export class ActionExecutor {
                 if (replacementResult.insertionType !== InsertionType.DraftMode) {
                     this.module.closeConstructDraftRecord(expr);
                 } else {
-                    this.module.openDraftMode(newCode, replacementResult.message);
+                    this.module.openDraftMode(newCode, replacementResult.message, [
+                        ...replacementResult.conversionRecords.map((conversionRecord) => {
+                            return conversionRecord.getConversionButton("SOMETHING HERE", this.module, newCode);
+                        }),
+                    ]);
                 }
 
                 if (newCode.rootNode instanceof Statement) newCode.rootNode.onInsertInto(newCode);
@@ -1357,12 +1371,16 @@ export class ActionExecutor {
                     const expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
                     this.module.openDraftMode(
                         rootOfExprToLeft,
-                        TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(
-                            ref.identifier,
-                            varType,
-                            expectedTypes,
-                            TypeConversionRecord.getConversionString(varType, expectedTypes, ref.identifier)
-                        )
+                        TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(ref.identifier, varType, expectedTypes),
+                        [
+                            ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                return conversionRecord.getConversionButton(
+                                    ref.identifier,
+                                    this.module,
+                                    rootOfExprToLeft
+                                );
+                            }),
+                        ]
                     );
                 }
                 const value = rootOfExprToLeft.tokens[0];

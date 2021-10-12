@@ -23,7 +23,6 @@ import {
     NumberRegex,
     StringRegex,
     TAB_SPACES,
-    TypeConversionRecord,
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_STR,
     TYPE_MISMATCH_HOLE_STR,
@@ -189,13 +188,17 @@ export abstract class Statement implements CodeConstruct {
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
 
             if (canConvertToParentType && !hasMatch(holeType, [givenType])) {
-                return new InsertionResult(InsertionType.DraftMode, ""); //NOTE: message is populated by calling code as it has enough context info
+                return new InsertionResult(
+                    InsertionType.DraftMode,
+                    "",
+                    typeToConversionRecord.get(givenType).filter((record) => holeType.indexOf(record.convertTo) > -1)
+                ); //NOTE: message is populated by calling code as it has enough context info
             } else if (holeType.some((t) => t == DataType.Any) || hasMatch(holeType, [givenType])) {
-                return new InsertionResult(InsertionType.Valid, "");
+                return new InsertionResult(InsertionType.Valid, "", []);
             }
         }
 
-        return new InsertionResult(InsertionType.Invalid, "");
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     /**
@@ -465,7 +468,7 @@ export abstract class Statement implements CodeConstruct {
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionResult {
         if (insertInto?.type?.indexOf(insertCode.returns) > -1 || insertInto?.type?.indexOf(DataType.Any) > -1) {
-            return new InsertionResult(InsertionType.Valid, "");
+            return new InsertionResult(InsertionType.Valid, "", []);
         } //types match or one of them is Any
 
         //need to check if the type being inserted can be converted into any of the types that the hole accepts
@@ -554,22 +557,18 @@ export abstract class Expression extends Statement implements CodeConstruct {
         if (this.rootNode instanceof Expression && !this.draftModeEnabled) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
             if (replaceWith.returns === this.returns || this.returns === DataType.Any) {
-                return new InsertionResult(InsertionType.Valid, "");
+                return new InsertionResult(InsertionType.Valid, "", []);
             } else if (
                 replaceWith.returns !== this.returns &&
                 hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns])
             ) {
                 return new InsertionResult(
                     InsertionType.DraftMode,
-                    TYPE_MISMATCH_EXPR_STR(
-                        this.getKeyword(),
-                        [this.returns],
-                        replaceWith.returns,
-                        "CONVERSION INSTRUCTION"
-                    )
+                    TYPE_MISMATCH_EXPR_STR(this.getKeyword(), [this.returns], replaceWith.returns),
+                    typeToConversionRecord.get(replaceWith.returns).filter((record) => record.convertTo == this.returns)
                 );
             } else {
-                return new InsertionResult(InsertionType.Invalid, "");
+                return new InsertionResult(InsertionType.Invalid, "", []);
             }
         } else if (!(this.rootNode instanceof Module)) {
             const rootTypeOfHoles = (this.rootNode as Statement).typeOfHoles;
@@ -585,22 +584,20 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
                     return new InsertionResult(
                         InsertionType.DraftMode,
-                        TYPE_MISMATCH_EXPR_STR(
-                            this.rootNode.getKeyword(),
-                            typesOfParentHole,
-                            replaceWith.returns,
-                            "CONVERSION INSTRUCTION"
-                        )
+                        TYPE_MISMATCH_EXPR_STR(this.rootNode.getKeyword(), typesOfParentHole, replaceWith.returns),
+                        typeToConversionRecord
+                            .get(replaceWith.returns)
+                            .filter((record) => typesOfParentHole.indexOf(record.convertTo) > -1)
                     );
                 } else if (
                     typesOfParentHole?.some((t) => t == DataType.Any) ||
                     hasMatch(typesOfParentHole, [replaceWith.returns])
                 ) {
-                    return new InsertionResult(InsertionType.Valid, "");
+                    return new InsertionResult(InsertionType.Valid, "", []);
                 }
             }
 
-            return new InsertionResult(InsertionType.Invalid, "");
+            return new InsertionResult(InsertionType.Invalid, "", []);
         }
     }
 
@@ -747,7 +744,7 @@ export abstract class Token implements CodeConstruct {
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr): InsertionResult {
-        return new InsertionResult(InsertionType.Valid, "");
+        return new InsertionResult(InsertionType.Valid, "", []);
     }
 
     markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
@@ -1469,7 +1466,7 @@ export class VariableReferenceExpr extends Expression {
         else return InsertionType.Invalid;
     }
 
-    getKeyword(): string{
+    getKeyword(): string {
         return this.tokens[this.keywordIndex].getRenderText();
     }
 }
@@ -2845,11 +2842,14 @@ export class TypedEmptyExpr extends Token {
         if (hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), this.type)) {
             return new InsertionResult(
                 InsertionType.DraftMode,
-                TYPE_MISMATCH_HOLE_STR(this.type, replaceWith.returns, TypeConversionRecord.getConversionString(replaceWith.returns, this.type, replaceWith.getKeyword()))
+                TYPE_MISMATCH_HOLE_STR(this.type, replaceWith.returns),
+                typeToConversionRecord
+                    .get(replaceWith.returns)
+                    .filter((record) => this.type.indexOf(record.convertTo) > -1)
             );
         }
 
-        return new InsertionResult(InsertionType.DraftMode, "");
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     isListElement(): boolean {

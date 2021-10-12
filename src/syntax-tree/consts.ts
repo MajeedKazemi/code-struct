@@ -1,4 +1,8 @@
+import { EditActionType } from "../editor/consts";
+import { EditAction } from "../editor/data-types";
 import { CSSClasses, TextEnhance } from "../utilities/text-enhance";
+import { CodeConstruct } from "./ast";
+import { Module } from "./module";
 
 export const TAB_SPACES = 4;
 
@@ -264,12 +268,7 @@ export function MISSING_IMPORT_DRAFT_MODE_STR(requiredItem, requiredModule) {
     );
 }
 
-export function TYPE_MISMATCH_EXPR_STR(
-    construct: string,
-    expectedTypes: DataType[],
-    actualType: DataType,
-    conversionInstructions: string
-) {
+export function TYPE_MISMATCH_EXPR_STR(construct: string, expectedTypes: DataType[], actualType: DataType) {
     return `${te.getStyledSpan(
         construct,
         CSSClasses.keyword
@@ -281,14 +280,10 @@ export function TYPE_MISMATCH_EXPR_STR(
     )} instead. A conversion from ${te.getStyledSpan(
         actualType,
         CSSClasses.type
-    )} to one of the expected types is possible using ${conversionInstructions}.`;
+    )} to one of the expected types is possible using:`;
 }
 
-export function TYPE_MISMATCH_HOLE_STR(
-    expectedTypes: DataType[],
-    actualType: DataType,
-    conversionInstructions: string
-) {
+export function TYPE_MISMATCH_HOLE_STR(expectedTypes: DataType[], actualType: DataType) {
     return `Expected a value one of the following types: ${getTypesString(
         expectedTypes
     )}, but you tried to input a value of type ${te.getStyledSpan(
@@ -297,14 +292,13 @@ export function TYPE_MISMATCH_HOLE_STR(
     )} instead. A conversion from ${te.getStyledSpan(
         actualType,
         CSSClasses.type
-    )} to one of the expected types is possible using one of: ${conversionInstructions}`;
+    )} to one of the expected types is possible using one of:`;
 }
 
 export function TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(
     identifier: string,
     varType: DataType,
-    expectedTypes: DataType[],
-    conversionInstruction: string
+    expectedTypes: DataType[]
 ) {
     return `${te.getStyledSpan(identifier, CSSClasses.identifier)} is a ${te.getStyledSpan(
         varType,
@@ -312,15 +306,10 @@ export function TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(
     )}, but a value of ${getTypesString(expectedTypes)} was expected. You can convert from ${te.getStyledSpan(
         varType,
         CSSClasses.type
-    )} to one of the expected types is possible using one of: ${conversionInstruction}`;
+    )} to one of the expected types is possible using one of:`;
 }
 
-export function TYPE_MISMATCH_HOLE_FUNC_STR(
-    functionName: string,
-    expectedTypes: DataType[],
-    actualType: DataType,
-    conversionInstructions: string
-) {
+export function TYPE_MISMATCH_HOLE_FUNC_STR(functionName: string, expectedTypes: DataType[], actualType: DataType) {
     return `Expected a value one of the following types: ${getTypesString(expectedTypes)}, but ${te.getStyledSpan(
         functionName,
         CSSClasses.identifier
@@ -330,143 +319,342 @@ export function TYPE_MISMATCH_HOLE_FUNC_STR(
     )} instead. A conversion from ${te.getStyledSpan(
         actualType,
         CSSClasses.type
-    )} to one of the expected types is possible using one of: ${conversionInstructions}.`;
+    )} to one of the expected types is possible using one of:`;
 }
 
-export abstract class TypeConversionRecord{
+export abstract class TypeConversionRecord {
     conversionConstruct: string;
+    conversionConstructId: string;
     convertTo: DataType;
     convertFrom: DataType;
-    conversionAction: string;
-    
-    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
+    editActionType: EditActionType;
+    executer: any;
+    focus: any;
+    validator: any;
+
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionConstructId: string,
+        editActionType: EditActionType
+    ) {
         this.conversionConstruct = conversionConstruct;
         this.convertFrom = convertFrom;
         this.convertTo = convertTo;
-        this.conversionAction = conversionAction;
+        this.conversionConstructId = conversionConstructId;
+        this.editActionType = editActionType;
     }
 
-    abstract getConversionCode(itemToConvert: string): string;     
+    protected abstract getConversionCode(itemToConvert: string): string;
 
-    getConversionInstruction(itemToConvert: string): string{
-        return `${itemToConvert} can be ${this.conversionAction} to `;
-    }
+    getConversionButton(itemToConvert: string, module: Module, codeToReplace: CodeConstruct): HTMLDivElement {
+        const text = this.getConversionCode(itemToConvert);
+        const button = document.createElement("div");
+        button.textContent = text;
 
-    static getConversionString(from: DataType, to: DataType[], itemToConvert: string): string{
-        const records = []
-        records.push(...typeToConversionRecord.get(from));
-        for(let i = 0; i < records.length; i++){
-            if(to.indexOf(records[i].convertTo) === -1){
-                records.splice(i, 1);
-            }
-        }
+        const actionType = this.editActionType;
+        const conversionConstructId = this.conversionConstructId;
 
-        let str = "";
-        for(const record of records){
-            str += `${record.getConversionCode(itemToConvert)}, `;
-        }
+        button.addEventListener("click", () => {
+            console.log("AAAAAA I have been clicked");
 
-        str = str.substring(0, str.length - 2) + "."
-        return str;
+            (() => {
+                module.replaceFocusedExpression;
+                this.executer.execute(
+                    new EditAction(actionType, {
+                        codeToReplace: codeToReplace,
+                        conversionConstructId: conversionConstructId,
+                    }),
+                    this.focus.getContext()
+                );
+            }).bind(module);
+        });
+
+        return button;
     }
 }
 
-export class CastConversionRecord extends TypeConversionRecord{
-    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
-        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+export class CastConversionRecord extends TypeConversionRecord {
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionAction: string,
+        editActionType: EditActionType
+    ) {
+        super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
     }
 
-    getConversionCode(itemToConvert){
+    getConversionCode(itemToConvert): string {
         return `${this.conversionConstruct.substring(0, this.conversionConstruct.length - 1)}${itemToConvert})`;
     }
 }
 
-export class ComparisonConversionRecord extends TypeConversionRecord{
-    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
-        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+export class ComparisonConversionRecord extends TypeConversionRecord {
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionAction: string,
+        editActionType: EditActionType
+    ) {
+        super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
     }
 
-    getConversionCode(itemToConvert){
+    getConversionCode(itemToConvert): string {
         return `${itemToConvert} ${this.conversionConstruct} ---`;
     }
 }
 
-export class MemberFunctionConversionRecord extends TypeConversionRecord{
-    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
-        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+export class MemberFunctionConversionRecord extends TypeConversionRecord {
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionAction: string,
+        editActionType: EditActionType
+    ) {
+        super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
     }
 
-    getConversionCode(itemToConvert){
+    getConversionCode(itemToConvert): string {
         return `${itemToConvert}.${this.conversionConstruct}`;
     }
 }
 
-export class FunctionExprConversionRecord extends CastConversionRecord{
-    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
-        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+export class FunctionExprConversionRecord extends CastConversionRecord {
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionAction: string,
+        editActionType: EditActionType
+    ) {
+        super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
     }
 
-    getConversionCode(itemToConvert){
+    getConversionCode(itemToConvert): string {
         return super.getConversionCode(itemToConvert);
     }
 }
 
-export class MemberAccessConversion extends TypeConversionRecord{
-    constructor(conversionConstruct: string, convertTo: DataType, convertFrom: DataType, conversionAction: string){
-        super(conversionConstruct, convertTo, convertFrom, conversionAction);
+export class MemberAccessConversion extends TypeConversionRecord {
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionAction: string,
+        editActionType: EditActionType
+    ) {
+        super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
     }
 
-    getConversionCode(itemToConvert){
+    getConversionCode(itemToConvert): string {
         return `${itemToConvert}${this.conversionConstruct}`;
     }
 }
 
-export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>(
+export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
     [
+        DataType.Number,
         [
-            DataType.Number, [new CastConversionRecord("str()", DataType.String, DataType.Number, "cast"),
-            
-                              new ComparisonConversionRecord("==", DataType.Boolean, DataType.Number, "converted"),
-                              new ComparisonConversionRecord("!=", DataType.Boolean, DataType.Number, "converted"),
-                              new ComparisonConversionRecord(">=", DataType.Boolean, DataType.Number, "converted"),
-                              new ComparisonConversionRecord("<=", DataType.Boolean, DataType.Number, "converted"),
-                              new ComparisonConversionRecord("<", DataType.Boolean, DataType.Number, "converted"),
-                              new ComparisonConversionRecord(">", DataType.Boolean, DataType.Number, "converted")
-                            ]
-        ],
-        [
-            DataType.String, [new ComparisonConversionRecord("==", DataType.Boolean, DataType.String, "converted"),
-                              new ComparisonConversionRecord("!=", DataType.Boolean, DataType.String, "converted"),
-                              new ComparisonConversionRecord(">=", DataType.Boolean, DataType.String, "converted"),
-                              new ComparisonConversionRecord("<=", DataType.Boolean, DataType.String, "converted"),
-                              new ComparisonConversionRecord("<", DataType.Boolean, DataType.String, "converted"),
-                              new ComparisonConversionRecord(">", DataType.Boolean, DataType.String, "converted"),
-                            
-                              new MemberFunctionConversionRecord("find()", DataType.Number, DataType.String, "converted"),
-                              new MemberFunctionConversionRecord("split()", DataType.StringList, DataType.String, "converted"),
+            new CastConversionRecord(
+                "str()",
+                DataType.String,
+                DataType.Number,
+                "add-cast-str-btn",
+                EditActionType.InsertTypeCast
+            ),
 
-                              new FunctionExprConversionRecord("len()", DataType.Number, DataType.String, "converted")
-                            ]
+            new ComparisonConversionRecord(
+                "==",
+                DataType.Boolean,
+                DataType.Number,
+                "add-comp-eq-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                "!=",
+                DataType.Boolean,
+                DataType.Number,
+                "add-comp-neq-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                ">=",
+                DataType.Boolean,
+                DataType.Number,
+                "add-comp-gte-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                "<=",
+                DataType.Boolean,
+                DataType.Number,
+                "--- <= ---",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                "<",
+                DataType.Boolean,
+                DataType.Number,
+                "add-comp-lt-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                ">",
+                DataType.Boolean,
+                DataType.Number,
+                "add-comp-gt-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
         ],
+    ],
+    [
+        DataType.String,
         [
-            DataType.BooleanList, [new MemberAccessConversion("[---]", DataType.Boolean, DataType.BooleanList, "converted"),
-                                   new FunctionExprConversionRecord("len()", DataType.Number, DataType.BooleanList, "converted")
-                                  ]
+            new ComparisonConversionRecord(
+                "==",
+                DataType.Boolean,
+                DataType.String,
+                "add-comp-eq-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                "!=",
+                DataType.Boolean,
+                DataType.String,
+                "add-comp-neq-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                ">=",
+                DataType.Boolean,
+                DataType.String,
+                "add-comp-gte-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                "<=",
+                DataType.Boolean,
+                DataType.String,
+                "--- <= ---",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                "<",
+                DataType.Boolean,
+                DataType.String,
+                "add-comp-lt-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+            new ComparisonConversionRecord(
+                ">",
+                DataType.Boolean,
+                DataType.String,
+                "add-comp-gt-expr-btn",
+                EditActionType.InsertComparisonConversion
+            ),
+
+            new MemberFunctionConversionRecord(
+                "find()",
+                DataType.Number,
+                DataType.String,
+                "add-find-method-call-btn",
+                EditActionType.InsertMemberCallConversion
+            ),
+            new MemberFunctionConversionRecord(
+                "split()",
+                DataType.StringList,
+                DataType.String,
+                "add-split-method-call-btn",
+                EditActionType.InsertMemberCallConversion
+            ),
+
+            new FunctionExprConversionRecord(
+                "len()",
+                DataType.Number,
+                DataType.String,
+                "add-len-btn",
+                EditActionType.InsertFunctionConversion
+            ),
         ],
+    ],
+    [
+        DataType.BooleanList,
         [
-            DataType.StringList, [new MemberAccessConversion("[---]", DataType.String, DataType.StringList, "converted"),
-                                  new FunctionExprConversionRecord("len()", DataType.Number, DataType.StringList, "converted")
-                                 ]
+            new MemberAccessConversion(
+                "[---]",
+                DataType.Boolean,
+                DataType.BooleanList,
+                "add-list-index-btn",
+                EditActionType.InsertMemberAccessConversion
+            ),
+            new FunctionExprConversionRecord(
+                "len()",
+                DataType.Number,
+                DataType.BooleanList,
+                "add-len-btn",
+                EditActionType.InsertFunctionConversion
+            ),
         ],
+    ],
+    [
+        DataType.StringList,
         [
-            DataType.NumberList, [new MemberAccessConversion("[---]", DataType.Number, DataType.NumberList, "converted"),
-                                  new FunctionExprConversionRecord("len()", DataType.Number, DataType.NumberList, "converted")
-                                 ]
+            new MemberAccessConversion(
+                "[---]",
+                DataType.String,
+                DataType.StringList,
+                "add-list-index-btn",
+                EditActionType.InsertMemberAccessConversion
+            ),
+            new FunctionExprConversionRecord(
+                "len()",
+                DataType.Number,
+                DataType.StringList,
+                "add-len-btn",
+                EditActionType.InsertFunctionConversion
+            ),
         ],
+    ],
+    [
+        DataType.NumberList,
         [
-            DataType.AnyList, [new MemberAccessConversion("[---]", DataType.Any, DataType.AnyList, "converted"),
-                               new FunctionExprConversionRecord("len()", DataType.Number, DataType.AnyList, "converted")
-                              ]
-        ]
-    ]
-);
+            new MemberAccessConversion(
+                "[---]",
+                DataType.Number,
+                DataType.NumberList,
+                "add-list-index-btn",
+                EditActionType.InsertMemberAccessConversion
+            ),
+            new FunctionExprConversionRecord(
+                "len()",
+                DataType.Number,
+                DataType.NumberList,
+                "add-len-btn",
+                EditActionType.InsertFunctionConversion
+            ),
+        ],
+    ],
+    [
+        DataType.AnyList,
+        [
+            new MemberAccessConversion(
+                "[---]",
+                DataType.Any,
+                DataType.AnyList,
+                "add-list-index-btn",
+                EditActionType.InsertMemberAccessConversion
+            ),
+            new FunctionExprConversionRecord(
+                "len()",
+                DataType.Number,
+                DataType.AnyList,
+                "add-len-btn",
+                EditActionType.InsertFunctionConversion
+            ),
+        ],
+    ],
+]);
