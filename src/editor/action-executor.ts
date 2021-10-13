@@ -860,14 +860,12 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.InsertFunctionConversion: {
-                //TODO: Should be the same as cast functions, but does not work. Check edit order.
-                break;
-            }
             case EditActionType.InsertMemberCallConversion: {
+                console.log("MEMBER CALL CONVERSION");
                 //TODO: Needs separate edit order from the rest
                 break;
             }
+            case EditActionType.InsertFunctionConversion:
             case EditActionType.InsertTypeCast:
             case EditActionType.InsertComparisonConversion: {
                 this.deleteCode(action.data.codeToReplace, {

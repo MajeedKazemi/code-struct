@@ -188,11 +188,11 @@ export abstract class Statement implements CodeConstruct {
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
 
             if (canConvertToParentType && !hasMatch(holeType, [givenType])) {
-                return new InsertionResult(
-                    InsertionType.DraftMode,
-                    "",
-                    typeToConversionRecord.get(givenType).filter((record) => holeType.indexOf(record.convertTo) > -1)
-                ); //NOTE: message is populated by calling code as it has enough context info
+                const conversionRecords = typeToConversionRecord.has(givenType)
+                    ? typeToConversionRecord.get(givenType).filter((record) => holeType.indexOf(record.convertTo) > -1)
+                    : [];
+
+                return new InsertionResult(InsertionType.DraftMode, "", conversionRecords); //NOTE: message is populated by calling code as it has enough context info
             } else if (holeType.some((t) => t == DataType.Any) || hasMatch(holeType, [givenType])) {
                 return new InsertionResult(InsertionType.Valid, "", []);
             }
@@ -551,10 +551,16 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 replaceWith.returns !== this.returns &&
                 hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns])
             ) {
+                const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
+                    ? typeToConversionRecord
+                          .get(replaceWith.returns)
+                          .filter((record) => record.convertTo == this.returns)
+                    : [];
+
                 return new InsertionResult(
                     InsertionType.DraftMode,
                     TYPE_MISMATCH_EXPR_STR(this.getKeyword(), [this.returns], replaceWith.returns),
-                    typeToConversionRecord.get(replaceWith.returns).filter((record) => record.convertTo == this.returns)
+                    conversionRecords
                 );
             } else {
                 return new InsertionResult(InsertionType.Invalid, "", []);
@@ -571,12 +577,16 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 );
 
                 if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
+                    const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
+                        ? typeToConversionRecord
+                              .get(replaceWith.returns)
+                              .filter((record) => typesOfParentHole.indexOf(record.convertTo) > -1)
+                        : [];
+
                     return new InsertionResult(
                         InsertionType.DraftMode,
                         TYPE_MISMATCH_EXPR_STR(this.rootNode.getKeyword(), typesOfParentHole, replaceWith.returns),
-                        typeToConversionRecord
-                            .get(replaceWith.returns)
-                            .filter((record) => typesOfParentHole.indexOf(record.convertTo) > -1)
+                        conversionRecords
                     );
                 } else if (
                     typesOfParentHole?.some((t) => t == DataType.Any) ||
@@ -2829,12 +2839,16 @@ export class TypedEmptyExpr extends Token {
     canReplaceWithConstruct(replaceWith: Expression): InsertionResult {
         //check if the type of replaceWith can be converted into any of the hole's types
         if (hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), this.type)) {
+            const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
+                ? typeToConversionRecord
+                      .get(replaceWith.returns)
+                      .filter((record) => this.type.indexOf(record.convertTo) > -1)
+                : [];
+
             return new InsertionResult(
                 InsertionType.DraftMode,
                 TYPE_MISMATCH_HOLE_STR(this.type, replaceWith.returns),
-                typeToConversionRecord
-                    .get(replaceWith.returns)
-                    .filter((record) => this.type.indexOf(record.convertTo) > -1)
+                conversionRecords
             );
         }
 
