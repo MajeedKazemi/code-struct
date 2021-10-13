@@ -25,8 +25,8 @@ import {
     StringRegex,
     TAB_SPACES,
     typeToConversionRecord,
-    TYPE_MISMATCH_EXPR_STR,
-    TYPE_MISMATCH_HOLE_STR,
+    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
     UnaryOp,
 } from "./consts";
 import { Module } from "./module";
@@ -568,7 +568,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
                 return new InsertionResult(
                     InsertionType.DraftMode,
-                    TYPE_MISMATCH_EXPR_STR(this.getKeyword(), [this.returns], replaceWith.returns),
+                    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR(this.getKeyword(), [this.returns], replaceWith.returns),
                     conversionRecords
                 );
             } else {
@@ -594,7 +594,11 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
                     return new InsertionResult(
                         InsertionType.DraftMode,
-                        TYPE_MISMATCH_EXPR_STR(this.rootNode.getKeyword(), typesOfParentHole, replaceWith.returns),
+                        TYPE_MISMATCH_EXPR_DRAFT_MODE_STR(
+                            this.rootNode.getKeyword(),
+                            typesOfParentHole,
+                            replaceWith.returns
+                        ),
                         conversionRecords
                     );
                 } else if (
@@ -2860,7 +2864,7 @@ export class TypedEmptyExpr extends Token {
 
             return new InsertionResult(
                 InsertionType.DraftMode,
-                TYPE_MISMATCH_HOLE_STR(this.type, replaceWith.returns),
+                TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(this.type, replaceWith.returns),
                 conversionRecords
             );
         }
