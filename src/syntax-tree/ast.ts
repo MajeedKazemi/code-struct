@@ -100,6 +100,11 @@ export interface CodeConstruct {
     getLeftPosition(): Position;
 
     /**
+     * Returns the right-position `(lineNumber, column)` of this code-construct in the rendered text.
+     */
+    getRightPosition(): Position;
+
+    /**
      * Returns a `Selection` object for this particular code-construct when it is selected
      */
     getSelection(): Selection;
@@ -419,6 +424,10 @@ export abstract class Statement implements CodeConstruct {
         return new Position(this.getLineNumber(), this.left);
     }
 
+    getRightPosition(): Position {
+        return new Position(this.getLineNumber(), this.right);
+    }
+
     getSelection(): Selection {
         return new Selection(this.lineNumber, this.right, this.lineNumber, this.left);
     }
@@ -722,6 +731,10 @@ export abstract class Token implements CodeConstruct {
 
     getLeftPosition(): Position {
         return new Position(this.getLineNumber(), this.left);
+    }
+
+    getRightPosition(): Position {
+        return new Position(this.getLineNumber(), this.right);
     }
 
     getSelection(): Selection {
