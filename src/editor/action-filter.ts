@@ -359,19 +359,18 @@ export class EditCodeAction extends UserAction {
         const code = this.getCode();
         const astInsertionType = code.validateContext(validator, context);
 
-        //TODO: Need to actually check what type of insertion it is: Draft, Valid, Invalid and populate the InsertionResult accordingly
         if (!(code instanceof Expression)) {
-            return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE", []);
+            return new InsertionResult(astInsertionType, "We should never be seeing this message.", []);
         } else if (astInsertionType !== InsertionType.Invalid && code instanceof Expression) {
             if (context.selected) {
                 return context.token.rootNode.typeValidateInsertionIntoHole(code, context.token as TypedEmptyExpr); //NOTE: The only expression that can be inserted outside of an empty hole is a variable reference and that will be changed in the future with the introduction of a separate code construct for that
             } else if (!context.selected) {
-                return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE", []);
+                return new InsertionResult(astInsertionType, "We should never be seeing this message.", []);
             } else {
                 return new InsertionResult(InsertionType.Invalid, "", []);
             }
         } else {
-            return new InsertionResult(astInsertionType, "MESSAGE HERE BASED ON INSERTION TYPE", []);
+            return new InsertionResult(astInsertionType, "We should never be seeing this message.", []);
         }
     }
 
