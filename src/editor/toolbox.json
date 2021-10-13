@@ -320,7 +320,7 @@
             }
         },
         "split": {
-            "id": "add-split-function-call-btn",
+            "id": "add-split-method-call-btn",
             "text": ".split(---)",
             "returnType": " -> list[text]",
             "documentation": {
@@ -339,7 +339,7 @@
             }
         },
         "join": {
-            "id": "add-join-function-call-btn",
+            "id": "add-join-method-call-btn",
             "text": ".join(---)",
             "returnType": " -> text",
             "documentation": {
@@ -358,7 +358,7 @@
             }
         },
         "find": {
-            "id": "add-find-function-call-btn",
+            "id": "add-find-method-call-btn",
             "text": ".find(---)",
             "returnType": " -> number",
             "documentation": {
@@ -375,7 +375,7 @@
             }
         },
         "replace": {
-            "id": "add-replace-function-call-btn",
+            "id": "add-replace-method-call-btn",
             "text": ".replace(---)",
             "returnType": " -> text",
             "documentation": {
