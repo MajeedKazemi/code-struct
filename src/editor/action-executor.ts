@@ -876,6 +876,7 @@ export class ActionExecutor {
 
                 break;
             }
+            case EditActionType.InsertMemberCallConversion:
             case EditActionType.InsertMemberAccessConversion: {
                 this.module.focus.updateContext(
                     new UpdatableContext(null, action.data.codeToReplace.getRightPosition())
@@ -890,11 +891,6 @@ export class ActionExecutor {
                 );
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 
-                break;
-            }
-            case EditActionType.InsertMemberCallConversion: {
-                console.log("MEMBER CALL CONVERSION");
-                //TODO: Needs separate edit order from the rest
                 break;
             }
             case EditActionType.InsertFunctionConversion:
