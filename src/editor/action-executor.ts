@@ -33,8 +33,8 @@ import {
     BuiltInFunctions,
     PythonKeywords,
     TAB_SPACES,
-    TYPE_MISMATCH_HOLE_FUNC_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_STR,
+    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -644,7 +644,11 @@ export class ActionExecutor {
                             if (replacementResult.insertionType == InsertionType.DraftMode)
                                 this.module.openDraftMode(
                                     valOprExpr,
-                                    TYPE_MISMATCH_HOLE_FUNC_STR(valOprExpr.getKeyword(), holeTypes, valOprExpr.returns),
+                                    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
+                                        valOprExpr.getKeyword(),
+                                        holeTypes,
+                                        valOprExpr.returns
+                                    ),
                                     [
                                         ...replacementResult.conversionRecords.map((conversionRecord) => {
                                             return conversionRecord.getConversionButton(
@@ -710,7 +714,11 @@ export class ActionExecutor {
                         if (replacementResult.insertionType == InsertionType.DraftMode)
                             this.module.openDraftMode(
                                 valOprExpr,
-                                TYPE_MISMATCH_HOLE_FUNC_STR(valOprExpr.getKeyword(), holeDataTypes, valOprExpr.returns),
+                                TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
+                                    valOprExpr.getKeyword(),
+                                    holeDataTypes,
+                                    valOprExpr.returns
+                                ),
                                 [
                                     ...replacementResult.conversionRecords.map((conversionRecord) => {
                                         return conversionRecord.getConversionButton(
@@ -1410,7 +1418,7 @@ export class ActionExecutor {
                     const expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
                     this.module.openDraftMode(
                         rootOfExprToLeft,
-                        TYPE_MISMATCH_ON_MODIFIER_DELETION_STR(ref.identifier, varType, expectedTypes),
+                        TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(ref.identifier, varType, expectedTypes),
                         [
                             ...replacementResult.conversionRecords.map((conversionRecord) => {
                                 return conversionRecord.getConversionButton(
