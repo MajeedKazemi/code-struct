@@ -801,7 +801,7 @@ export class ActionExecutor {
 
                 if (!isValidRootInsertion) {
                     this.module.closeConstructDraftRecord(expr);
-                    this.module.openDraftMode(newCode, "SOME MESSAGE", []);
+                    this.module.openDraftMode(newCode, "DEBUG THIS", []);
                 }
 
                 if (flashGreen) this.flashGreen(newCode);
