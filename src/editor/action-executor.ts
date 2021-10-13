@@ -44,7 +44,7 @@ import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts
 import { EditCodeAction } from "./action-filter";
 import { Actions, EditActionType, InsertActionType } from "./consts";
 import { EditAction } from "./data-types";
-import { Context } from "./focus";
+import { Context, UpdatableContext } from "./focus";
 
 export class ActionExecutor {
     module: Module;
@@ -859,7 +859,22 @@ export class ActionExecutor {
 
                 break;
             }
+            case EditActionType.InsertMemberAccessConversion: {
+                this.module.focus.updateContext(
+                    new UpdatableContext(null, action.data.codeToReplace.getRightPosition())
+                );
+                this.execute(
+                    new EditAction(EditActionType.InsertModifier, {
+                        modifier: Actions.instance()
+                            .actionsList.find((element) => element.cssId == action.data.conversionConstructId)
+                            .getCodeFunction() as Modifier,
+                    }),
+                    this.module.focus.getContext()
+                );
+                this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 
+                break;
+            }
             case EditActionType.InsertMemberCallConversion: {
                 console.log("MEMBER CALL CONVERSION");
                 //TODO: Needs separate edit order from the rest
