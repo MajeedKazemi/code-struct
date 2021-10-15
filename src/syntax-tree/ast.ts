@@ -759,6 +759,11 @@ export interface TextEditable {
      * @param text the updated string to be set to this element.
      */
     setEditedText(text: string): boolean;
+
+    /**
+     * checks if this particular text-editable is an empty identifier -> its string value equals to "  "
+     */
+    isEmptyIdentifier(): boolean;
 }
 
 export interface VariableContainer {
@@ -2491,6 +2496,10 @@ export class EditableTextTkn extends Token implements TextEditable {
 
         return new Position(pos.lineNumber, this.right);
     }
+
+    isEmptyIdentifier(): boolean {
+        return false;
+    }
 }
 
 export class LiteralValExpr extends Expression {
@@ -2692,6 +2701,12 @@ export class IdentifierTkn extends Token implements TextEditable {
 
     setIdentifierText(text: string) {
         this.text = text;
+
+        if (this.text != "  ") this.isEmpty = false;
+    }
+
+    isEmptyIdentifier(): boolean {
+        return this.text == "  ";
     }
 }
 
@@ -2783,6 +2798,10 @@ export class AutocompleteTkn extends Token implements TextEditable {
         (this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
 
         return true;
+    }
+
+    isEmptyIdentifier(): boolean {
+        return false;
     }
 }
 

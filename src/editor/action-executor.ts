@@ -398,7 +398,7 @@ export class ActionExecutor {
                 const editableText = token.getEditableText();
                 let newText = "";
 
-                if (editableText == "  ") {
+                if (token.isEmptyIdentifier()) {
                     const curText = "";
                     newText = curText + pressedKey;
                 } else {
@@ -423,7 +423,11 @@ export class ActionExecutor {
                         cursorPos.lineNumber,
                         selectedText.endColumn
                     );
-                } else if (context.tokenToRight?.isTextEditable && editableText == "  ") {
+                } else if (
+                    context.tokenToRight?.isTextEditable &&
+                    context.tokenToRight instanceof IdentifierTkn &&
+                    context.tokenToRight.isEmpty
+                ) {
                     editRange = new Range(
                         cursorPos.lineNumber,
                         context.tokenToRight.left,
@@ -537,13 +541,18 @@ export class ActionExecutor {
                     }
 
                     if (identifier != null) {
+                        // reset identifier:
                         identifier.text = "  ";
                         identifier.isEmpty = true;
+
+                        // change editor
                         this.module.editor.executeEdits(
                             new Range(cursorPos.lineNumber, identifier.left, cursorPos.lineNumber, identifier.right),
                             null,
                             "  "
                         );
+
+                        // rebuild ast
                         context.lineStatement.build(context.lineStatement.getLeftPosition());
                         this.module.focus.updateContext({ tokenToSelect: identifier });
 
