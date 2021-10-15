@@ -336,12 +336,16 @@ export class ActionExecutor {
                     this.module.indentBackStatement(stmt);
                 }
 
+                this.module.focus.fireOnNavChangeCallbacks();
+
                 break;
             }
 
             case EditActionType.IndentBackwards: {
                 this.module.editor.indentRecursively(context.lineStatement, { backward: true });
                 this.module.indentBackStatement(context.lineStatement);
+
+                this.module.focus.fireOnNavChangeCallbacks();
 
                 break;
             }
@@ -362,12 +366,16 @@ export class ActionExecutor {
                     this.module.indentForwardStatement(stmt);
                 }
 
+                this.module.focus.fireOnNavChangeCallbacks();
+
                 break;
             }
 
             case EditActionType.IndentForwards: {
                 this.module.editor.indentRecursively(context.lineStatement, { backward: false });
                 this.module.indentForwardStatement(context.lineStatement);
+
+                this.module.focus.fireOnNavChangeCallbacks();
 
                 break;
             }
