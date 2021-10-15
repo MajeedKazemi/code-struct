@@ -237,7 +237,7 @@
 }
 
 .statement-button:hover {
-    border-bottom: solid #05c8ac 4px !important;
+    border-bottom: solid #05c8ac 3.5px !important;
 }
 
 .expression-button {
@@ -253,7 +253,7 @@
 }
 
 .expression-button:hover {
-    border: solid #a900dd 2px !important;
+    border: solid #05c8ac 3px !important;
 }
 
 .modifier-button {
@@ -267,5 +267,5 @@
 }
 
 .modifier-button:hover {
-    border-left: solid #0084dd 4px !important;
+    border-left: solid #05c8ac 3.5px !important;
 }
