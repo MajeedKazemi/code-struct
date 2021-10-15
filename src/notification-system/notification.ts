@@ -273,15 +273,23 @@ export class HoverNotification extends Notification {
         this.scheduleCollisionCheck();
     }
 
-    addButton(txt: string): HTMLDivElement {
+    createButton(txt: string): HTMLDivElement {
         const button = document.createElement("div");
         button.classList.add("button");
+        button.classList.add("draftMode");
         button.textContent = txt;
 
         this.domElement.appendChild(button);
         this.buttons.push(button);
 
         return button;
+    }
+
+    attachButton(button: HTMLDivElement) {
+        button.classList.add("button");
+        button.classList.add("draftMode");
+        this.domElement.appendChild(button);
+        this.buttons.push(button);
     }
 
     protected createDomElement() {

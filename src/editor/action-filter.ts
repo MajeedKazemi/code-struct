@@ -9,7 +9,7 @@ import {
     VariableReferenceExpr,
     VarOperationStmt,
 } from "../syntax-tree/ast";
-import { InsertionType } from "../syntax-tree/consts";
+import { InsertionType, TypeConversionRecord } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { getUserFriendlyType } from "../utilities/util";
@@ -79,7 +79,7 @@ export class ActionFilter {
                 },
                 null,
                 {},
-                varRecord[1],
+                new InsertionResult(varRecord[1], "MESSAGE BASED ON INSERTION TYPE", []), //TODO: Need to actually check what the insertion type is and populate the insertion result accordingly
                 [""],
                 varStmt.getIdentifier(),
                 null,
@@ -157,7 +157,7 @@ export class ActionFilter {
                     "",
                     null
                 );
-                codeAction.insertionType = codeAction.validateAction(this.module.validator, context);
+                codeAction.insertionResult = codeAction.validateAction(this.module.validator, context);
 
                 validOptionMap.set(codeAction.optionName, codeAction);
             }
@@ -228,11 +228,20 @@ export class ActionFilter {
         const inserts: EditCodeAction[] = [];
 
         for (const option of optionNames) {
-            if (constructMap.get(option) && constructMap.get(option).insertionType !== InsertionType.Invalid) {
+            if (
+                constructMap.get(option) &&
+                constructMap.get(option).insertionResult.insertionType !== InsertionType.Invalid
+            ) {
                 inserts.push(constructMap.get(option));
-            } else if (varMap.get(option) && varMap.get(option).insertionType !== InsertionType.Invalid) {
+            } else if (
+                varMap.get(option) &&
+                varMap.get(option).insertionResult.insertionType !== InsertionType.Invalid
+            ) {
                 inserts.push(varMap.get(option));
-            } else if (editsMap.get(option) && editsMap.get(option).insertionType !== InsertionType.Invalid) {
+            } else if (
+                editsMap.get(option) &&
+                editsMap.get(option).insertionResult.insertionType !== InsertionType.Invalid
+            ) {
                 inserts.push(editsMap.get(option));
             }
         }
@@ -259,8 +268,8 @@ export class UserAction {
         this.cssId = cssId;
     }
 
-    validateAction(validator: Validator, context: Context): InsertionType {
-        return InsertionType.Invalid;
+    validateAction(validator: Validator, context: Context): InsertionResult {
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {}
@@ -271,7 +280,7 @@ export class EditCodeAction extends UserAction {
     insertData: any = {};
     getCodeFunction: () => Statement | Expression;
     terminatingChars: string[];
-    insertionType: InsertionType;
+    insertionResult: InsertionResult;
     matchString: string;
     matchRegex: RegExp;
     insertableTerminatingCharRegex: RegExp[];
@@ -310,7 +319,7 @@ export class EditCodeAction extends UserAction {
         getCodeFunction: () => Statement | Expression,
         insertActionType: InsertActionType,
         insertData: any = {},
-        insertionType: InsertionType,
+        insertionResult: InsertionResult,
         terminatingChars: string[],
         matchString: string,
         matchRegex: RegExp,
@@ -329,7 +338,7 @@ export class EditCodeAction extends UserAction {
             insertableTerminatingCharRegex
         );
 
-        action.insertionType = insertionType;
+        action.insertionResult = insertionResult;
 
         return action;
     }
@@ -346,22 +355,22 @@ export class EditCodeAction extends UserAction {
         return this.getCodeFunction();
     }
 
-    validateAction(validator: Validator, context: Context): InsertionType {
+    validateAction(validator: Validator, context: Context): InsertionResult {
         const code = this.getCode();
         const astInsertionType = code.validateContext(validator, context);
 
         if (!(code instanceof Expression)) {
-            return astInsertionType;
+            return new InsertionResult(astInsertionType, "We should never be seeing this message.", []);
         } else if (astInsertionType !== InsertionType.Invalid && code instanceof Expression) {
             if (context.selected) {
                 return context.token.rootNode.typeValidateInsertionIntoHole(code, context.token as TypedEmptyExpr); //NOTE: The only expression that can be inserted outside of an empty hole is a variable reference and that will be changed in the future with the introduction of a separate code construct for that
             } else if (!context.selected) {
-                return astInsertionType;
+                return new InsertionResult(astInsertionType, "We should never be seeing this message.", []);
             } else {
-                return InsertionType.Invalid;
+                return new InsertionResult(InsertionType.Invalid, "", []);
             }
         } else {
-            return astInsertionType;
+            return new InsertionResult(astInsertionType, "We should never be seeing this message.", []);
         }
     }
 
@@ -376,5 +385,18 @@ export class EditCodeAction extends UserAction {
         else editAction.data = { autocompleteData };
 
         executor.execute(editAction, context);
+    }
+}
+
+//TODO: Data class, needs to be removed.
+export class InsertionResult {
+    insertionType: InsertionType;
+    message: string;
+    conversionRecords: TypeConversionRecord[];
+
+    constructor(insertionType: InsertionType, msg: string, typeConversionRecord: TypeConversionRecord[]) {
+        this.insertionType = insertionType;
+        this.message = msg;
+        this.conversionRecords = typeConversionRecord;
     }
 }

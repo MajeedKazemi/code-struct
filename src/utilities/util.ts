@@ -73,7 +73,7 @@ export class Util {
         this.typeConversionMap = new Map<DataType, Array<DataType>>([
             [DataType.Void, []],
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
-            [DataType.String, [DataType.StringList, DataType.Boolean]],
+            [DataType.String, [DataType.StringList, DataType.Boolean, DataType.Number]],
             [DataType.Boolean, [DataType.BooleanList]],
             [DataType.AnyList, [DataType.Any, DataType.Boolean]],
             [DataType.NumberList, [DataType.Number, DataType.Boolean]],

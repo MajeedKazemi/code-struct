@@ -68,11 +68,11 @@ export function updateButtonsVisualMode(insertionRecords: EditCodeAction[]) {
         const button = document.getElementById(insertionRecord.cssId) as HTMLButtonElement;
 
         if (button) {
-            if (insertionRecord.insertionType === InsertionType.DraftMode) {
+            if (insertionRecord.insertionResult.insertionType === InsertionType.DraftMode) {
                 addClassToButton(insertionRecord.cssId, Module.draftModeButtonClass);
                 removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
                 button.disabled = false;
-            } else if (insertionRecord.insertionType === InsertionType.Valid) {
+            } else if (insertionRecord.insertionResult.insertionType === InsertionType.Valid) {
                 removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
                 removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
                 button.disabled = false;
@@ -294,7 +294,8 @@ function constructCascadedMenuObj(
             menu.remove();
         });
 
-        if (value.insertionType == InsertionType.Invalid) menuButton.getButtonElement().classList.add("disabled");
+        if (value.insertionResult.insertionType == InsertionType.Invalid)
+            menuButton.getButtonElement().classList.add("disabled");
 
         menuItem.appendChild(menuButton.container);
         menuItem.appendChild(menuText);

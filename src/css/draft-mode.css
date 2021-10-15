@@ -1,14 +1,16 @@
-
-
-.draftModeLine{
+.draftModeLine {
     background-color: rgba(255, 0, 0, 0.3);
     position: absolute;
     pointer-events: none;
     border-radius: 5px;
 }
 
-
-.draftModeLine.fixed{
+.draftModeLine.fixed {
     background-color: rgba(30, 255, 0, 0.3);
+}
 
+.codeVisual.textBox .button {
+    display: inline-block;
+    margin-top: 5px;
+    font-size: 8pt;
 }

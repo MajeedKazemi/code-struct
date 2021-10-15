@@ -64,7 +64,7 @@ export class Module {
     variableController: VariableController;
     actionFilter: ActionFilter;
 
-    globals: { hoveringOverCascadedMenu: boolean; hoveringOverVarRefButton: boolean, lastPressedRunButtonId: string};
+    globals: { hoveringOverCascadedMenu: boolean; hoveringOverVarRefButton: boolean; lastPressedRunButtonId: string };
 
     constructor(editorId: string) {
         this.editor = new Editor(document.getElementById(editorId), this);
@@ -78,7 +78,7 @@ export class Module {
         this.globals = {
             hoveringOverCascadedMenu: false,
             hoveringOverVarRefButton: false,
-            lastPressedRunButtonId: ""
+            lastPressedRunButtonId: "",
         };
 
         loadToolboxFromJson();
@@ -524,10 +524,14 @@ export class Module {
         }
     }
 
-    openDraftMode(code: Statement, txt: string = "Draft Mode Placeholder Txt") {
+    openDraftMode(code: Statement, txt: string = "Draft Mode Placeholder Txt", actionButtons: HTMLDivElement[]) {
         code.draftModeEnabled = true;
         this.draftExpressions.push(new DraftRecord(code, this, txt));
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
+
+        for (const button of actionButtons) {
+            code.notification.attachButton(button);
+        }
     }
 
     addHighlightToConstruct(construct: CodeConstruct, rgbColour: [number, number, number, number]) {
@@ -621,9 +625,9 @@ export class Module {
     }
 
     openImportDraftMode(code: Statement & Importable) {
-        this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule));
+        this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule), []);
 
-        const button = code.notification.addButton(`import ${code.requiredModule}`);
+        const button = code.notification.createButton(`import ${code.requiredModule}`);
         button.addEventListener(
             "click",
             (() => {

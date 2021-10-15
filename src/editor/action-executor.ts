@@ -28,16 +28,23 @@ import {
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
-import { AutoCompleteType, BuiltInFunctions, PythonKeywords, TAB_SPACES } from "../syntax-tree/consts";
+import {
+    AutoCompleteType,
+    BuiltInFunctions,
+    PythonKeywords,
+    TAB_SPACES,
+    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
+} from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
 import { isImportable } from "../utilities/util";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
-import { EditActionType, InsertActionType } from "./consts";
+import { Actions, EditActionType, InsertActionType } from "./consts";
 import { EditAction } from "./data-types";
-import { Context } from "./focus";
+import { Context, UpdatableContext } from "./focus";
 
 export class ActionExecutor {
     module: Module;
@@ -620,19 +627,38 @@ export class ActionExecutor {
                         const valOprExpr = context.expressionToLeft.rootNode;
                         const valOprExprRoot = valOprExpr.rootNode as Statement;
 
-                        let replacementType = valOprExpr.rootNode.checkInsertionAtHole(
+                        let replacementResult = valOprExpr.rootNode.checkInsertionAtHole(
                             valOprExpr.indexInRoot,
                             modifier.returns
                         );
 
-                        if (replacementType !== InsertionType.Invalid) {
+                        const holeTypes = valOprExpr.rootNode.typeOfHoles[valOprExpr.indexInRoot];
+
+                        if (replacementResult.insertionType !== InsertionType.Invalid) {
                             valOprExpr.appendModifier(modifier);
                             valOprExprRoot.rebuild(valOprExprRoot.getLeftPosition(), 0);
 
                             this.module.editor.insertAtCurPos([modifier]);
                             this.module.focus.updateContext(modifier.getInitialFocus());
 
-                            if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                            if (replacementResult.insertionType == InsertionType.DraftMode)
+                                this.module.openDraftMode(
+                                    valOprExpr,
+                                    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
+                                        valOprExpr.getKeyword(),
+                                        holeTypes,
+                                        valOprExpr.returns
+                                    ),
+                                    [
+                                        ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                            return conversionRecord.getConversionButton(
+                                                valOprExpr.getKeyword(),
+                                                this.module,
+                                                valOprExpr
+                                            );
+                                        }),
+                                    ]
+                                );
                         }
 
                         if (valOprExpr.rootNode instanceof Statement) valOprExpr.rootNode.onInsertInto(valOprExpr);
@@ -658,10 +684,11 @@ export class ActionExecutor {
                         if (!modifier.returns) modifier.returns = DataType.Any;
                     }
 
-                    const replacementType = exprToLeftRoot.checkInsertionAtHole(
+                    const replacementResult = exprToLeftRoot.checkInsertionAtHole(
                         context.expressionToLeft.indexInRoot,
                         modifier.returns
                     );
+                    const holeDataTypes = exprToLeftRoot.typeOfHoles[context.expressionToLeft.indexInRoot];
 
                     const valOprExpr = new ValueOperationExpr(
                         context.expressionToLeft,
@@ -675,7 +702,7 @@ export class ActionExecutor {
                     context.expressionToLeft.indexInRoot = 0;
                     context.expressionToLeft.rootNode = valOprExpr;
 
-                    if (replacementType !== InsertionType.Invalid) {
+                    if (replacementResult.insertionType !== InsertionType.Invalid) {
                         this.module.closeConstructDraftRecord(context.expressionToLeft);
 
                         exprToLeftRoot.tokens[exprToLeftIndexInRoot] = valOprExpr;
@@ -684,7 +711,24 @@ export class ActionExecutor {
                         this.module.editor.insertAtCurPos([modifier]);
                         this.module.focus.updateContext(modifier.getInitialFocus());
 
-                        if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(valOprExpr);
+                        if (replacementResult.insertionType == InsertionType.DraftMode)
+                            this.module.openDraftMode(
+                                valOprExpr,
+                                TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
+                                    valOprExpr.getKeyword(),
+                                    holeDataTypes,
+                                    valOprExpr.returns
+                                ),
+                                [
+                                    ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                        return conversionRecord.getConversionButton(
+                                            valOprExpr.getKeyword(),
+                                            this.module,
+                                            valOprExpr
+                                        );
+                                    }),
+                                ]
+                            );
                     }
                 }
 
@@ -757,7 +801,7 @@ export class ActionExecutor {
 
                 if (!isValidRootInsertion) {
                     this.module.closeConstructDraftRecord(expr);
-                    this.module.openDraftMode(newCode);
+                    this.module.openDraftMode(newCode, "DEBUG THIS", []);
                 }
 
                 if (flashGreen) this.flashGreen(newCode);
@@ -832,6 +876,41 @@ export class ActionExecutor {
 
                 break;
             }
+            case EditActionType.InsertMemberCallConversion:
+            case EditActionType.InsertMemberAccessConversion: {
+                this.module.focus.updateContext(
+                    new UpdatableContext(null, action.data.codeToReplace.getRightPosition())
+                );
+                this.execute(
+                    new EditAction(EditActionType.InsertModifier, {
+                        modifier: Actions.instance()
+                            .actionsList.find((element) => element.cssId == action.data.conversionConstructId)
+                            .getCodeFunction() as Modifier,
+                    }),
+                    this.module.focus.getContext()
+                );
+                this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
+
+                break;
+            }
+            case EditActionType.InsertFunctionConversion:
+            case EditActionType.InsertTypeCast:
+            case EditActionType.InsertComparisonConversion: {
+                this.deleteCode(action.data.codeToReplace, {
+                    statement: null,
+                    replaceType: action.data.typeToConvertTo,
+                });
+                this.insertExpression(
+                    this.module.focus.getContext(),
+                    Actions.instance()
+                        .actionsList.find((element) => element.cssId == action.data.conversionConstructId)
+                        .getCodeFunction() as Expression
+                );
+                this.insertExpression(this.module.focus.getContext(), action.data.codeToReplace as Expression);
+                this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
+
+                break;
+            }
 
             case EditActionType.SelectClosestTokenAbove: {
                 this.module.focus.navigateUp();
@@ -888,7 +967,7 @@ export class ActionExecutor {
                 this.openAutocompleteMenu(
                     this.module.actionFilter
                         .getProcessedInsertionsList()
-                        .filter((item) => item.insertionType != InsertionType.Invalid)
+                        .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid)
                 );
                 this.styleAutocompleteMenu(context.position);
 
@@ -1108,9 +1187,9 @@ export class ActionExecutor {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr) {
-            let insertionType = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+            let insertionResult = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
-            if (insertionType != InsertionType.Invalid) {
+            if (insertionResult.insertionType != InsertionType.Invalid) {
                 code.performPreInsertionUpdates(context.token);
 
                 if (context.token.rootNode instanceof Statement) {
@@ -1142,9 +1221,14 @@ export class ActionExecutor {
                 }
             }
 
-            if (insertionType == InsertionType.DraftMode) this.module.openDraftMode(code);
+            if (insertionResult.insertionType == InsertionType.DraftMode)
+                this.module.openDraftMode(code, insertionResult.message, [
+                    ...insertionResult.conversionRecords.map((conversionRecord) => {
+                        return conversionRecord.getConversionButton(code.getKeyword(), this.module, code);
+                    }),
+                ]);
             else if (isImportable(code)) {
-                this.checkImports(code, insertionType);
+                this.checkImports(code, insertionResult.insertionType);
             }
         }
     }
@@ -1160,7 +1244,7 @@ export class ActionExecutor {
 
     private openAutocompleteMenu(inserts: EditCodeAction[]) {
         if (!this.module.menuController.isMenuOpen()) {
-            inserts = inserts.filter((insert) => insert.insertionType !== InsertionType.Invalid);
+            inserts = inserts.filter((insert) => insert.insertionResult.insertionType !== InsertionType.Invalid);
             this.module.menuController.buildSingleLevelMenu(inserts);
         } else this.module.menuController.removeMenus();
     }
@@ -1211,18 +1295,18 @@ export class ActionExecutor {
 
         const curOperand = toLeft ? newCode.getLeftOperand() : newCode.getRightOperand();
         const otherOperand = toLeft ? newCode.getRightOperand() : newCode.getLeftOperand();
-        const insertionType = newCode.typeValidateInsertionIntoHole(expr, curOperand as TypedEmptyExpr);
+        const insertionResult = newCode.typeValidateInsertionIntoHole(expr, curOperand as TypedEmptyExpr);
 
         /**
          * Special cases
          *
          * if (--- + (--- + ---)|): --> attempting to insert a comparator or binary boolean operation should fail
          */
-        if (insertionType === InsertionType.Valid) {
-            const replacementType = expr.canReplaceWithConstruct(newCode);
+        if (insertionResult.insertionType === InsertionType.Valid) {
+            const replacementResult = expr.canReplaceWithConstruct(newCode);
 
             // this can never go into draft mode
-            if (replacementType !== InsertionType.Invalid) {
+            if (replacementResult.insertionType !== InsertionType.Invalid) {
                 this.module.closeConstructDraftRecord(root.tokens[index]);
 
                 if (toLeft) newCode.replaceLeftOperand(expr);
@@ -1239,10 +1323,14 @@ export class ActionExecutor {
                     tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
                 });
 
-                if (replacementType !== InsertionType.DraftMode) {
+                if (replacementResult.insertionType !== InsertionType.DraftMode) {
                     this.module.closeConstructDraftRecord(expr);
                 } else {
-                    this.module.openDraftMode(newCode);
+                    this.module.openDraftMode(newCode, replacementResult.message, [
+                        ...replacementResult.conversionRecords.map((conversionRecord) => {
+                            return conversionRecord.getConversionButton("SOMETHING HERE123", this.module, newCode);
+                        }),
+                    ]);
                 }
 
                 if (newCode.rootNode instanceof Statement) newCode.rootNode.onInsertInto(newCode);
@@ -1309,13 +1397,35 @@ export class ActionExecutor {
             if (rootOfExprToLeft instanceof ValueOperationExpr) {
                 rootOfExprToLeft.updateReturnType();
 
-                let replacementType = rootOfExprToLeft.rootNode.checkInsertionAtHole(
+                let replacementResult = rootOfExprToLeft.rootNode.checkInsertionAtHole(
                     rootOfExprToLeft.indexInRoot,
                     rootOfExprToLeft.returns
                 );
 
-                if (replacementType == InsertionType.DraftMode) this.module.openDraftMode(rootOfExprToLeft);
-
+                if (replacementResult.insertionType == InsertionType.DraftMode) {
+                    const ref = rootOfExprToLeft.getVarRef();
+                    const line = this.module.focus.getContext().lineStatement;
+                    const varType = this.module.variableController.getVariableTypeNearLine(
+                        line.scope,
+                        line.lineNumber,
+                        ref.identifier,
+                        false
+                    );
+                    const expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
+                    this.module.openDraftMode(
+                        rootOfExprToLeft,
+                        TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(ref.identifier, varType, expectedTypes),
+                        [
+                            ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                return conversionRecord.getConversionButton(
+                                    ref.identifier,
+                                    this.module,
+                                    rootOfExprToLeft
+                                );
+                            }),
+                        ]
+                    );
+                }
                 const value = rootOfExprToLeft.tokens[0];
                 rootOfExprToLeft.rootNode.tokens[rootOfExprToLeft.indexInRoot] = value;
                 value.rootNode = rootOfExprToLeft.rootNode;

@@ -203,6 +203,12 @@ export enum EditActionType {
 
     OpenAutocomplete,
     InsertImportFromDraftMode,
+
+    InsertTypeCast,
+    InsertComparisonConversion,
+    InsertFunctionConversion,
+    InsertMemberCallConversion,
+    InsertMemberAccessConversion
 }
 
 export enum ConstructName {

@@ -1,11 +1,11 @@
 import { Position, Selection } from "monaco-editor";
-import { EditCodeAction } from "../editor/action-filter";
+import { EditCodeAction, InsertionResult } from "../editor/action-filter";
 import { ConstructName } from "../editor/consts";
 import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
 import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { CodeBackground, Notification } from "../notification-system/notification";
+import { CodeBackground, HoverNotification, Notification } from "../notification-system/notification";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
@@ -23,6 +23,9 @@ import {
     NumberRegex,
     StringRegex,
     TAB_SPACES,
+    typeToConversionRecord,
+    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
     UnaryOp,
 } from "./consts";
 import { Module } from "./module";
@@ -96,6 +99,11 @@ export interface CodeConstruct {
     getLeftPosition(): Position;
 
     /**
+     * Returns the right-position `(lineNumber, column)` of this code-construct in the rendered text.
+     */
+    getRightPosition(): Position;
+
+    /**
      * Returns a `Selection` object for this particular code-construct when it is selected
      */
     getSelection(): Selection;
@@ -133,7 +141,7 @@ export interface CodeConstruct {
      *
      * @returns True if insertCode's type is accepted by insertInto according to what the parent of insertInto is. Returns False otherwise.
      */
-    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionResult;
 
     /**
      * Actions that need to run after the construct has been validated for insertion, but before it is inserted into the AST.
@@ -165,7 +173,7 @@ export abstract class Statement implements CodeConstruct {
     hasEmptyToken: boolean;
     callbacks = new Map<string, Array<Callback>>();
     background: CodeBackground = null;
-    notification = null;
+    notification: HoverNotification = null;
     keywordIndex = -1;
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();
@@ -178,20 +186,24 @@ export abstract class Statement implements CodeConstruct {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
     }
 
-    checkInsertionAtHole(index: number, givenType: DataType): InsertionType {
+    checkInsertionAtHole(index: number, givenType: DataType): InsertionResult {
         if (Object.keys(this.typeOfHoles).length > 0) {
             const holeType = this.typeOfHoles[index];
 
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
 
             if (canConvertToParentType && !hasMatch(holeType, [givenType])) {
-                return InsertionType.DraftMode;
+                const conversionRecords = typeToConversionRecord.has(givenType)
+                    ? typeToConversionRecord.get(givenType).filter((record) => holeType.indexOf(record.convertTo) > -1)
+                    : [];
+
+                return new InsertionResult(InsertionType.DraftMode, "", conversionRecords); //NOTE: message is populated by calling code as it has enough context info
             } else if (holeType.some((t) => t == DataType.Any) || hasMatch(holeType, [givenType])) {
-                return InsertionType.Valid;
+                return new InsertionResult(InsertionType.Valid, "", []);
             }
         }
 
-        return InsertionType.Invalid;
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     /**
@@ -423,6 +435,10 @@ export abstract class Statement implements CodeConstruct {
         return new Position(this.getLineNumber(), this.left);
     }
 
+    getRightPosition(): Position {
+        return new Position(this.getLineNumber(), this.right);
+    }
+
     getSelection(): Selection {
         return new Selection(this.lineNumber, this.right, this.lineNumber, this.left);
     }
@@ -459,9 +475,9 @@ export abstract class Statement implements CodeConstruct {
         return "";
     }
 
-    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionType {
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionResult {
         if (insertInto?.type?.indexOf(insertCode.returns) > -1 || insertInto?.type?.indexOf(DataType.Any) > -1) {
-            return InsertionType.Valid;
+            return new InsertionResult(InsertionType.Valid, "", []);
         } //types match or one of them is Any
 
         //need to check if the type being inserted can be converted into any of the types that the hole accepts
@@ -540,7 +556,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
      *   1: replaceWith has the same return type
      *   2: replaceWith can be cast/modified to become the same type as the bin op being replaced
      */
-    canReplaceWithConstruct(replaceWith: Expression): InsertionType {
+    canReplaceWithConstruct(replaceWith: Expression): InsertionResult {
         //when we are replacing at the top level (meaning the item above is a Statement),
         //we need to check types against the type of hole that used to be there and not the expression
         //that is currently there
@@ -550,14 +566,24 @@ export abstract class Expression extends Statement implements CodeConstruct {
         if (this.rootNode instanceof Expression && !this.draftModeEnabled) {
             //when replacing within expression we need to check if the replacement can be cast into or already has the same type as the one being replaced
             if (replaceWith.returns === this.returns || this.returns === DataType.Any) {
-                return InsertionType.Valid;
+                return new InsertionResult(InsertionType.Valid, "", []);
             } else if (
                 replaceWith.returns !== this.returns &&
                 hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns])
             ) {
-                return InsertionType.DraftMode;
+                const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
+                    ? typeToConversionRecord
+                          .get(replaceWith.returns)
+                          .filter((record) => record.convertTo == this.returns)
+                    : [];
+
+                return new InsertionResult(
+                    InsertionType.DraftMode,
+                    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR(this.getKeyword(), [this.returns], replaceWith.returns),
+                    conversionRecords
+                );
             } else {
-                return InsertionType.Invalid;
+                return new InsertionResult(InsertionType.Invalid, "", []);
             }
         } else if (!(this.rootNode instanceof Module)) {
             const rootTypeOfHoles = (this.rootNode as Statement).typeOfHoles;
@@ -571,16 +597,30 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 );
 
                 if (canConvertToParentType && !hasMatch(typesOfParentHole, [replaceWith.returns])) {
-                    return InsertionType.DraftMode;
+                    const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
+                        ? typeToConversionRecord
+                              .get(replaceWith.returns)
+                              .filter((record) => typesOfParentHole.indexOf(record.convertTo) > -1)
+                        : [];
+
+                    return new InsertionResult(
+                        InsertionType.DraftMode,
+                        TYPE_MISMATCH_EXPR_DRAFT_MODE_STR(
+                            this.rootNode.getKeyword(),
+                            typesOfParentHole,
+                            replaceWith.returns
+                        ),
+                        conversionRecords
+                    );
                 } else if (
                     typesOfParentHole?.some((t) => t == DataType.Any) ||
                     hasMatch(typesOfParentHole, [replaceWith.returns])
                 ) {
-                    return InsertionType.Valid;
+                    return new InsertionResult(InsertionType.Valid, "", []);
                 }
             }
 
-            return InsertionType.Invalid;
+            return new InsertionResult(InsertionType.Invalid, "", []);
         }
     }
 
@@ -708,6 +748,10 @@ export abstract class Token implements CodeConstruct {
         return new Position(this.getLineNumber(), this.left);
     }
 
+    getRightPosition(): Position {
+        return new Position(this.getLineNumber(), this.right);
+    }
+
     getSelection(): Selection {
         const line = this.getLineNumber();
 
@@ -726,8 +770,8 @@ export abstract class Token implements CodeConstruct {
 
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression) {}
 
-    typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr) {
-        return InsertionType.Invalid;
+    typeValidateInsertionIntoHole(insertCode: Expression, insertInto: TypedEmptyExpr): InsertionResult {
+        return new InsertionResult(InsertionType.Valid, "", []);
     }
 
     markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
@@ -1434,6 +1478,7 @@ export class VariableReferenceExpr extends Expression {
         const idToken = new NonEditableTkn(id);
         idToken.rootNode = this;
         idToken.indexInRoot = this.tokens.length;
+        this.keywordIndex = this.tokens.length;
         this.tokens.push(idToken);
 
         this.uniqueId = uniqueId;
@@ -1446,6 +1491,10 @@ export class VariableReferenceExpr extends Expression {
         if (validator.atEmptyExpressionHole(providedContext)) return InsertionType.Valid;
         else if (validator.onEmptyLine(providedContext)) return InsertionType.DraftMode;
         else return InsertionType.Invalid;
+    }
+
+    getKeyword(): string {
+        return this.tokens[this.keywordIndex].getRenderText();
     }
 }
 
@@ -1496,6 +1545,14 @@ export class ValueOperationExpr extends Expression {
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    getKeyword(): string {
+        return (this.tokens[this.tokens.length - 1] as Modifier).getModifierText();
+    }
+
+    getVarRef(): VariableReferenceExpr {
+        return this.tokens[0] as VariableReferenceExpr;
     }
 }
 
@@ -1855,10 +1912,13 @@ export class FunctionCallExpr extends Expression implements Importable {
                 const canFunctionBeInsertedAtCurrentHole =
                     providedContext.expressionToRight.canReplaceWithConstruct(this);
 
-                if (canInsertExprIntoThisFunction && canFunctionBeInsertedAtCurrentHole == InsertionType.Valid) {
+                if (
+                    canInsertExprIntoThisFunction &&
+                    canFunctionBeInsertedAtCurrentHole.insertionType == InsertionType.Valid
+                ) {
                     return InsertionType.Valid;
                 } else {
-                    const states = [willItBeDraftMode, canFunctionBeInsertedAtCurrentHole];
+                    const states = [willItBeDraftMode, canFunctionBeInsertedAtCurrentHole.insertionType];
 
                     if (states.some((s) => s == InsertionType.Invalid)) return InsertionType.Invalid;
                     else if (states.every((s) => s == InsertionType.Valid)) return InsertionType.Valid;
@@ -2153,6 +2213,7 @@ export class BinaryOperatorExpr extends Expression {
             if (returns !== DataType.String && returns !== DataType.Number) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
@@ -2162,6 +2223,7 @@ export class BinaryOperatorExpr extends Expression {
             } else {
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
@@ -2170,6 +2232,7 @@ export class BinaryOperatorExpr extends Expression {
         } else if (this.operatorCategory === BinaryOperatorCategory.Arithmetic) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
+            this.keywordIndex = this.tokens.length;
             this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
@@ -2179,6 +2242,7 @@ export class BinaryOperatorExpr extends Expression {
         } else if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
+            this.keywordIndex = this.tokens.length;
             this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
@@ -2189,6 +2253,7 @@ export class BinaryOperatorExpr extends Expression {
             if (this.operator === BinaryOperator.Equal || this.operator === BinaryOperator.NotEqual) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
@@ -2196,6 +2261,7 @@ export class BinaryOperatorExpr extends Expression {
             } else {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
@@ -2798,13 +2864,23 @@ export class TypedEmptyExpr extends Token {
         this.type = type;
     }
 
-    canReplaceWithConstruct(replaceWith: Expression): InsertionType {
+    canReplaceWithConstruct(replaceWith: Expression): InsertionResult {
         //check if the type of replaceWith can be converted into any of the hole's types
         if (hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), this.type)) {
-            return InsertionType.DraftMode;
+            const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
+                ? typeToConversionRecord
+                      .get(replaceWith.returns)
+                      .filter((record) => this.type.indexOf(record.convertTo) > -1)
+                : [];
+
+            return new InsertionResult(
+                InsertionType.DraftMode,
+                TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(this.type, replaceWith.returns),
+                conversionRecords
+            );
         }
 
-        return InsertionType.Invalid;
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     isListElement(): boolean {
