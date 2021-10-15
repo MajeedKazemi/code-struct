@@ -341,6 +341,21 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.DeleteBackMultiLines: {
+                for (
+                    let i = context.lineStatement.rootNode.body.length - 1;
+                    i >= context.lineStatement.indexInRoot;
+                    i--
+                ) {
+                    this.module.editor.indentRecursively(context.lineStatement.rootNode.body[i], { backward: true });
+                    this.module.indentBackStatement(context.lineStatement.rootNode.body[i]);
+                }
+
+                this.module.focus.fireOnNavChangeCallbacks();
+
+                break;
+            }
+
             case EditActionType.IndentBackwards: {
                 this.module.editor.indentRecursively(context.lineStatement, { backward: true });
                 this.module.indentBackStatement(context.lineStatement);

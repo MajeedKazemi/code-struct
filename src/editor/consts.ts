@@ -153,6 +153,7 @@ export enum EditActionType {
     DeleteNextToken,
     DeletePrevToken,
     DeletePrevLine,
+    DeleteBackMultiLines,
     DeleteCurLine,
     DeleteStatement,
     DeleteSelectedModifier,
