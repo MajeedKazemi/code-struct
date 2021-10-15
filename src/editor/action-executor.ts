@@ -194,6 +194,8 @@ export class ActionExecutor {
 
                 if (flashGreen) this.flashGreen(newStatement);
 
+                let scopeHighlight = new ScopeHighlight(this.module.editor, newStatement);
+
                 break;
             }
 
@@ -213,7 +215,7 @@ export class ActionExecutor {
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
                 if (statement.hasBody()) {
-                    let background = new ScopeHighlight(this.module.editor, statement);
+                    let scopeHighlight = new ScopeHighlight(this.module.editor, statement);
                 }
 
                 break;
