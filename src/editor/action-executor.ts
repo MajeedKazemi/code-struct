@@ -201,6 +201,8 @@ export class ActionExecutor {
 
                 if (flashGreen) this.flashGreen(newStatement);
 
+                let scopeHighlight = new ScopeHighlight(this.module.editor, newStatement);
+
                 break;
             }
 
@@ -220,7 +222,7 @@ export class ActionExecutor {
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
                 if (statement.hasBody()) {
-                    let background = new ScopeHighlight(this.module.editor, statement);
+                    let scopeHighlight = new ScopeHighlight(this.module.editor, statement);
                 }
 
                 break;
@@ -343,12 +345,31 @@ export class ActionExecutor {
                     this.module.indentBackStatement(stmt);
                 }
 
+                this.module.focus.fireOnNavChangeCallbacks();
+
+                break;
+            }
+
+            case EditActionType.DeleteBackMultiLines: {
+                for (
+                    let i = context.lineStatement.rootNode.body.length - 1;
+                    i >= context.lineStatement.indexInRoot;
+                    i--
+                ) {
+                    this.module.editor.indentRecursively(context.lineStatement.rootNode.body[i], { backward: true });
+                    this.module.indentBackStatement(context.lineStatement.rootNode.body[i]);
+                }
+
+                this.module.focus.fireOnNavChangeCallbacks();
+
                 break;
             }
 
             case EditActionType.IndentBackwards: {
                 this.module.editor.indentRecursively(context.lineStatement, { backward: true });
                 this.module.indentBackStatement(context.lineStatement);
+
+                this.module.focus.fireOnNavChangeCallbacks();
 
                 break;
             }
@@ -369,12 +390,16 @@ export class ActionExecutor {
                     this.module.indentForwardStatement(stmt);
                 }
 
+                this.module.focus.fireOnNavChangeCallbacks();
+
                 break;
             }
 
             case EditActionType.IndentForwards: {
                 this.module.editor.indentRecursively(context.lineStatement, { backward: false });
                 this.module.indentForwardStatement(context.lineStatement);
+
+                this.module.focus.fireOnNavChangeCallbacks();
 
                 break;
             }
@@ -405,7 +430,7 @@ export class ActionExecutor {
                 const editableText = token.getEditableText();
                 let newText = "";
 
-                if (editableText == "  ") {
+                if (token.isEmptyIdentifier()) {
                     const curText = "";
                     newText = curText + pressedKey;
                 } else {
@@ -430,7 +455,11 @@ export class ActionExecutor {
                         cursorPos.lineNumber,
                         selectedText.endColumn
                     );
-                } else if (context.tokenToRight?.isTextEditable && editableText == "  ") {
+                } else if (
+                    context.tokenToRight?.isTextEditable &&
+                    context.tokenToRight instanceof IdentifierTkn &&
+                    context.tokenToRight.isEmpty
+                ) {
                     editRange = new Range(
                         cursorPos.lineNumber,
                         context.tokenToRight.left,
@@ -544,13 +573,18 @@ export class ActionExecutor {
                     }
 
                     if (identifier != null) {
+                        // reset identifier:
                         identifier.text = "  ";
                         identifier.isEmpty = true;
+
+                        // change editor
                         this.module.editor.executeEdits(
                             new Range(cursorPos.lineNumber, identifier.left, cursorPos.lineNumber, identifier.right),
                             null,
                             "  "
                         );
+
+                        // rebuild ast
                         context.lineStatement.build(context.lineStatement.getLeftPosition());
                         this.module.focus.updateContext({ tokenToSelect: identifier });
 

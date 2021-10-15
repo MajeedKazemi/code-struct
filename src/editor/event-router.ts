@@ -138,6 +138,9 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.canDeletePrevLine(context)) {
                     return new EditAction(EditActionType.DeletePrevLine);
+                } else if (this.module.validator.canDeleteBackMultiEmptyLines(context)) {
+                    return new EditAction(EditActionType.DeleteBackMultiLines);
+                } else if (this.module.validator.canIndentBackIfStatement(context)) {
                 } else if (this.module.validator.canIndentBack(context)) {
                     return new EditAction(EditActionType.IndentBackwards);
                 } else if (this.module.validator.canIndentBackIfStatement(context)) {
@@ -404,11 +407,9 @@ export class EventRouter {
 
             case InsertActionType.InsertRangeExpr:
             case InsertActionType.InsertRandintExpr: {
-                if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: e.getCode(),
-                    });
-                }
+                return new EditAction(EditActionType.InsertExpression, {
+                    expression: e.getCode(),
+                });
 
                 break;
             }

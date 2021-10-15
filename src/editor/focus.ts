@@ -486,7 +486,7 @@ export class Focus {
     /**
      * This function will fire all of the subscribed nav-change callbacks.
      */
-    private fireOnNavChangeCallbacks() {
+    fireOnNavChangeCallbacks() {
         const context = this.getContext();
 
         for (const callback of this.onNavChangeCallbacks) {

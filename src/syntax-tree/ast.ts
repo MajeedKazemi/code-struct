@@ -803,6 +803,11 @@ export interface TextEditable {
      * @param text the updated string to be set to this element.
      */
     setEditedText(text: string): boolean;
+
+    /**
+     * checks if this particular text-editable is an empty identifier -> its string value equals to "  "
+     */
+    isEmptyIdentifier(): boolean;
 }
 
 export interface VariableContainer {
@@ -854,7 +859,9 @@ export class WhileStatement extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -877,7 +884,9 @@ export class IfStatement extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -943,8 +952,9 @@ export class ImportStatement extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        //TODO: This is the same for most Statements so should probably move this functionality into the parent class
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     getImportModuleName(): string {
@@ -1043,7 +1053,9 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     rebuild(pos: Position, fromIndex: number) {
@@ -1265,7 +1277,9 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     rebuild(pos: Position, fromIndex: number) {
@@ -1615,7 +1629,9 @@ export class VarOperationStmt extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     getVarRef(): VariableReferenceExpr {
@@ -2047,7 +2063,9 @@ export class FunctionCallStmt extends Statement implements Importable {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -2144,7 +2162,9 @@ export class ListElementAssignment extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -2557,6 +2577,10 @@ export class EditableTextTkn extends Token implements TextEditable {
 
         return new Position(pos.lineNumber, this.right);
     }
+
+    isEmptyIdentifier(): boolean {
+        return false;
+    }
 }
 
 export class LiteralValExpr extends Expression {
@@ -2758,6 +2782,12 @@ export class IdentifierTkn extends Token implements TextEditable {
 
     setIdentifierText(text: string) {
         this.text = text;
+
+        if (this.text != "  ") this.isEmpty = false;
+    }
+
+    isEmptyIdentifier(): boolean {
+        return this.text == "  ";
     }
 }
 
@@ -2849,6 +2879,10 @@ export class AutocompleteTkn extends Token implements TextEditable {
         (this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
 
         return true;
+    }
+
+    isEmptyIdentifier(): boolean {
+        return false;
     }
 }
 

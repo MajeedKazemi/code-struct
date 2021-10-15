@@ -1,24 +1,24 @@
 import Fuse from "fuse.js";
 import {
-    AssignmentModifier,
-    AugmentedAssignmentModifier,
-    AutocompleteTkn,
-    CodeConstruct,
-    EditableTextTkn,
-    ElseStatement,
-    EmptyLineStmt,
-    IdentifierTkn,
-    IfStatement,
-    ImportStatement,
-    ListLiteralExpression,
-    LiteralValExpr,
-    Modifier,
-    NonEditableTkn,
-    Statement,
-    TypedEmptyExpr,
-    ValueOperationExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
+	AssignmentModifier,
+	AugmentedAssignmentModifier,
+	AutocompleteTkn,
+	CodeConstruct,
+	EditableTextTkn,
+	ElseStatement,
+	EmptyLineStmt,
+	IdentifierTkn,
+	IfStatement,
+	ImportStatement,
+	ListLiteralExpression,
+	LiteralValExpr,
+	Modifier,
+	NonEditableTkn,
+	Statement,
+	TypedEmptyExpr,
+	ValueOperationExpr,
+	VarAssignmentStmt,
+	VariableReferenceExpr
 } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -439,6 +439,40 @@ export class Validator {
                 rootsBody.length != 1 &&
                 context.lineStatement.indexInRoot == rootsBody.length - 1
             );
+        }
+
+        return false;
+    }
+
+    /**
+     * logic:
+     * checks if at the beginning of an empty line
+     * AND if it is inside the body of another statement
+     * AND if every other line after this line is an empty line
+     * AND if the above line is not an empty line
+     * AND if it is not the only line of that body
+     */
+    canDeleteBackMultiEmptyLines(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (
+            context.lineStatement instanceof EmptyLineStmt &&
+            context.lineStatement.rootNode instanceof Statement &&
+            context.lineStatement.rootNode.hasBody() &&
+            !(this.getNextSiblingOfRoot(context) instanceof ElseStatement)
+        ) {
+            const rootsBody = context.lineStatement.rootNode.body;
+            let onlyEmptyLines = true;
+
+            for (let i = context.lineStatement.indexInRoot + 1; i < rootsBody.length; i++) {
+                if (!(rootsBody[i] instanceof EmptyLineStmt)) {
+                    onlyEmptyLines = false;
+
+					break;
+                }
+            }
+
+            return onlyEmptyLines && context.lineStatement.indexInRoot == 1;
         }
 
         return false;
