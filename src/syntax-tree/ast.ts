@@ -815,7 +815,9 @@ export class WhileStatement extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -838,7 +840,9 @@ export class IfStatement extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 
@@ -904,8 +908,9 @@ export class ImportStatement extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        //TODO: This is the same for most Statements so should probably move this functionality into the parent class
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     getImportModuleName(): string {
@@ -1004,7 +1009,9 @@ export class ForStatement extends Statement implements VariableContainer {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     rebuild(pos: Position, fromIndex: number) {
@@ -1226,7 +1233,9 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     rebuild(pos: Position, fromIndex: number) {
@@ -1563,7 +1572,9 @@ export class VarOperationStmt extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onBeginningOfLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     getVarRef(): VariableReferenceExpr {
@@ -1992,7 +2003,9 @@ export class FunctionCallStmt extends Statement implements Importable {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     replaceArgument(index: number, to: CodeConstruct) {
@@ -2089,7 +2102,9 @@ export class ListElementAssignment extends Statement {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.onEmptyLine(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.onEmptyLine(providedContext) && !validator.isAboveElseStatement(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 }
 

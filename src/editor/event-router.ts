@@ -407,11 +407,9 @@ export class EventRouter {
 
             case InsertActionType.InsertRangeExpr:
             case InsertActionType.InsertRandintExpr: {
-                if (!this.module.validator.isAboveElseStatement()) {
-                    return new EditAction(EditActionType.InsertExpression, {
-                        expression: e.getCode(),
-                    });
-                }
+                return new EditAction(EditActionType.InsertExpression, {
+                    expression: e.getCode(),
+                });
 
                 break;
             }
