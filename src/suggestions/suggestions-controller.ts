@@ -303,7 +303,7 @@ class MenuOption {
         let textNode;
 
         text = text.replace(/---/g, "<hole1></hole1>");
-        text = text.replace(/--/g, '<hole2></hole2>');
+        text = text.replace(/--/g, "<hole2></hole2>");
 
         if (useInnerHTML) {
             textNode = document.createElement("div");
@@ -544,7 +544,7 @@ export class MenuController {
         if (this.focusedOptionIndex == 0) {
             this.menus[this.focusedMenuIndex].htmlElement.scrollTop = 0;
             this.topOptionIndex = 0;
-            this.bottomOptionIndex = this.menus[this.focusedMenuIndex].getOptionsInViewport();
+            this.bottomOptionIndex = this.menus[this.focusedMenuIndex].getOptionsInViewport() - 1;
         } else if (this.focusedOptionIndex > this.bottomOptionIndex) {
             this.topOptionIndex++;
             this.bottomOptionIndex++;
