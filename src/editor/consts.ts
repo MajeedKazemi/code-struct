@@ -209,7 +209,7 @@ export enum EditActionType {
     InsertComparisonConversion,
     InsertFunctionConversion,
     InsertMemberCallConversion,
-    InsertMemberAccessConversion
+    InsertMemberAccessConversion,
 }
 
 export enum ConstructName {
@@ -1036,7 +1036,7 @@ export class Actions {
                 [
                     () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
                     () =>
-                        new ValueOperationExpr(null, [
+                        new VarOperationStmt(null, [
                             new MethodCallModifier(
                                 "append",
                                 [new Argument([DataType.Any], "object", false)],
