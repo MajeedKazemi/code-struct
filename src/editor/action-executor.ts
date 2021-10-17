@@ -232,9 +232,9 @@ export class ActionExecutor {
                 //TODO: Might want to change back to use the case above if no new logic is added
                 const statement = action.data?.statement;
 
-                if (statement instanceof VarAssignmentStmt && action.data?.autocompleteData?.identifier.trim()) {
-                    statement.setIdentifier(action.data?.autocompleteData?.identifier.trim());
-                }
+                const id = action.data?.autocompleteData?.identifier?.trim();
+
+                if (statement instanceof VarAssignmentStmt && id) statement.setIdentifier(id);
 
                 this.insertStatement(context, action.data?.statement as Statement);
 
