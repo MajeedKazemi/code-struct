@@ -195,6 +195,21 @@ export class ToolboxButton {
             action.getCode()
         );
     }
+
+    divButtonVisualMode(insertionType: InsertionType) {
+        const element = this.getButtonElement();
+
+        if (insertionType === InsertionType.DraftMode) {
+            element.classList.add(Module.draftModeButtonClass);
+            element.classList.remove(Module.disabledButtonClass);
+        } else if (insertionType === InsertionType.Valid) {
+            element.classList.remove(Module.draftModeButtonClass);
+            element.classList.remove(Module.disabledButtonClass);
+        } else {
+            element.classList.remove(Module.draftModeButtonClass);
+            element.classList.add(Module.disabledButtonClass);
+        }
+    }
 }
 
 /**
@@ -269,6 +284,7 @@ function constructCascadedMenuObj(
     menuItem.appendChild(varContainer);
     menu.appendChild(menuItem);
 
+    let id = 0;
     for (const [key, value] of validActions) {
         const menuItem = document.createElement("div");
         menuItem.classList.add("cascadedMenuContent");
@@ -283,6 +299,8 @@ function constructCascadedMenuObj(
             returnType = " -> " + getUserFriendlyType(code.returns);
         }
 
+        value.cssId = `cascadedMenu-button-${id}`;
+        id++;
         const menuButton = ToolboxButton.createToolboxButtonFromJsonObj(value);
 
         menuButton.getButtonElement().classList.add("cascadedMenuItem");
@@ -294,8 +312,7 @@ function constructCascadedMenuObj(
             menu.remove();
         });
 
-        if (value.insertionResult.insertionType == InsertionType.Invalid)
-            menuButton.getButtonElement().classList.add("disabled");
+        menuButton.divButtonVisualMode(value.insertionResult.insertionType);
 
         menuItem.appendChild(menuButton.container);
         menuItem.appendChild(menuText);
