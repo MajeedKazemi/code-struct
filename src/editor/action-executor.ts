@@ -282,6 +282,20 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.DeleteMultiLineStatement: {
+                while (context.lineStatement.body.length > 0) {
+                    this.module.editor.indentRecursively(
+                        context.lineStatement.body[context.lineStatement.body.length - 1],
+                        { backward: true }
+                    );
+                    this.module.indentBackStatement(context.lineStatement.body[context.lineStatement.body.length - 1]);
+                }
+
+                this.deleteCode(context.lineStatement, { statement: true });
+
+                break;
+            }
+
             case EditActionType.DeleteCurLine: {
                 this.module.deleteLine(context.lineStatement);
                 let range: Range;
