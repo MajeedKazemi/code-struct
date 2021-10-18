@@ -81,8 +81,6 @@ export class Module {
             lastPressedRunButtonId: "",
         };
 
-        loadToolboxFromJson();
-
         this.draftExpressions = [];
 
         Hole.setModule(this);
@@ -160,6 +158,8 @@ export class Module {
         this.menuController.setInstance(this, this.editor);
 
         Util.getInstance(this);
+
+        loadToolboxFromJson();
     }
 
     recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {

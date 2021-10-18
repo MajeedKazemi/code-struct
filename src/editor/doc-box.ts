@@ -1,7 +1,6 @@
 import { editor } from "monaco-editor";
-import { nova, runBtnToOutputWindow } from "../index";
-import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
-import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
+import { runBtnToOutputWindow } from "../index";
+import { clearConsole } from "../pyodide-ts/pyodide-ui";
 
 const INITIAL_Z_INDEX = 500;
 
@@ -52,33 +51,33 @@ export class DocumentationBox {
                 docBody.appendChild(ex[0]);
                 docBoxRunButtons.set(container.id, ex[1]);
 
-                attachPyodideActions(
-                    (() => {
-                        const actions = [];
-                        for (const buttonId of ex[1]) {
-                            actions.push((pyodideController) => {
-                                const button = document.getElementById(buttonId);
-                                button.addEventListener("click", () => {
-                                    try {
-                                        nova.globals.lastPressedRunButtonId = button.id;
+                // attachPyodideActions(
+                //     (() => {
+                //         const actions = [];
+                //         for (const buttonId of ex[1]) {
+                //             actions.push((pyodideController) => {
+                //                 const button = document.getElementById(buttonId);
+                //                 button.addEventListener("click", () => {
+                //                     try {
+                //                         nova.globals.lastPressedRunButtonId = button.id;
 
-                                        pyodideController.runPython(codeString(ex[2].getValue()));
-                                    } catch (err) {
-                                        console.error("Unable to run python code");
-                                        addTextToConsole(
-                                            runBtnToOutputWindow.get(button.id),
-                                            err,
-                                            CONSOLE_ERR_TXT_CLASS
-                                        );
-                                    }
-                                });
-                            });
-                        }
+                //                         pyodideController.runPython(codeString(ex[2].getValue()));
+                //                     } catch (err) {
+                //                         console.error("Unable to run python code");
+                //                         addTextToConsole(
+                //                             runBtnToOutputWindow.get(button.id),
+                //                             err,
+                //                             CONSOLE_ERR_TXT_CLASS
+                //                         );
+                //                     }
+                //                 });
+                //             });
+                //         }
 
-                        return actions;
-                    })(),
-                    []
-                );
+                //         return actions;
+                //     })(),
+                //     []
+                // );
             } else if (item.hasOwnProperty("block-based-image")) {
                 docBody.appendChild(createImage(item));
             }
