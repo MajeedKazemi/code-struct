@@ -81,11 +81,11 @@ export class Module {
             lastPressedRunButtonId: "",
         };
 
-        loadToolboxFromJson();
-
         this.draftExpressions = [];
 
         Hole.setModule(this);
+
+        loadToolboxFromJson();
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
@@ -160,6 +160,8 @@ export class Module {
         this.menuController.setInstance(this, this.editor);
 
         Util.getInstance(this);
+
+        loadToolboxFromJson();
     }
 
     recursiveNotify(code: CodeConstruct, callbackType: CallbackType) {
