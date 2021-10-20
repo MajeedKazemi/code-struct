@@ -55,9 +55,11 @@ export class DocumentationBox {
                 attachPyodideActions(
                     (() => {
                         const actions = [];
+
                         for (const buttonId of ex[1]) {
                             actions.push((pyodideController) => {
                                 const button = document.getElementById(buttonId);
+
                                 button.addEventListener("click", () => {
                                     try {
                                         nova.globals.lastPressedRunButtonId = button.id;
@@ -65,6 +67,7 @@ export class DocumentationBox {
                                         pyodideController.runPython(codeString(ex[2].getValue()));
                                     } catch (err) {
                                         console.error("Unable to run python code");
+
                                         addTextToConsole(
                                             runBtnToOutputWindow.get(button.id),
                                             err,

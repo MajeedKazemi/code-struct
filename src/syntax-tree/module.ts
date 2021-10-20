@@ -81,11 +81,11 @@ export class Module {
             lastPressedRunButtonId: "",
         };
 
-        loadToolboxFromJson();
-
         this.draftExpressions = [];
 
         Hole.setModule(this);
+
+        loadToolboxFromJson();
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
