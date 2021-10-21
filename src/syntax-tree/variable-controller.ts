@@ -5,7 +5,16 @@ import {
     removeVariableReferenceButton,
 } from "../editor/toolbox";
 import { getUserFriendlyType } from "../utilities/util";
-import { CodeConstruct, Expression, ForStatement, Statement, VarAssignmentStmt, VariableReferenceExpr } from "./ast";
+import {
+    CodeConstruct,
+    ElseStatement,
+    Expression,
+    ForStatement,
+    IfStatement,
+    Statement,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+} from "./ast";
 import { DataType } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -151,10 +160,19 @@ export class VariableController {
                 ? closestStatement.scope
                 : (closestStatement.rootNode as Module | Statement).scope;
 
+            const closestStatementScopeIsParentScope = closestStatementScope.isParent(statementAtLineScope);
+            const closestStmtIsIfElseParent =
+                closestStatement.rootNode instanceof IfStatement ||
+                (closestStatement.rootNode instanceof ElseStatement &&
+                    (closestStatement.rootNode as ElseStatement).hasCondition);
+
             //if all types are equal, then it is safe to return that type
             if (types.every((type) => type === firstType)) {
                 return firstType;
-            } else if (statementAtLineScope.parentScope === closestStatementScope) {
+            } else if (
+                statementAtLineScope.parentScope === closestStatementScope ||
+                closestStatementScopeIsParentScope
+            ) {
                 /**
                  * abc = 123
                  * abc = ""
@@ -163,6 +181,12 @@ export class VariableController {
                  *    ref abc here should be string, not Any
                  */
                 return types[types.length - 1];
+            } else if (closestStmtIsIfElseParent) {
+                const parentAssignments =
+                    closestStatementScope.parentScope.getAllAssignmentsToVariableWithinScope(identifier);
+                return parentAssignments.length > 0
+                    ? (parentAssignments[parentAssignments.length - 1].statement as VarAssignmentStmt).dataType
+                    : DataType.Any;
             } else {
                 return DataType.Any;
             }
