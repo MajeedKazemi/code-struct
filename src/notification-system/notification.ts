@@ -12,12 +12,7 @@ const editorDomElementClass = ".lines-content.monaco-editor-background";
 /**
  * Default width of the hover textbox for a hover notification (px).
  */
-const HOVER_NOTIFICATION_DEFAULT_WIDTH = 200;
-
-/**
- * Default height of the hover textbox for a hover notification (px).
- */
-const HOVER_NOTIFICATION_DEFAULT_HEIGHT = 75;
+const HOVER_MESSAGE_DEFAULT_WIDTH = 250;
 
 /**
  * Default width of the text highlight for a hover notification (px).
@@ -32,7 +27,7 @@ const HIGHLIGHT_DEFAULT_HEIGHT = 25;
 /**
  * Represents a visual DOM element that is attached to a code construct in the editor.
  */
-abstract class ConstructVisualElement {
+abstract class CodeHighlight {
     static idPrefix = "visualElement";
     static idCounter = 0;
 
@@ -70,7 +65,7 @@ abstract class ConstructVisualElement {
 
         this.createDomElement();
         ConstructHighlight.idCounter++;
-        this.domElement.id = ConstructVisualElement.idPrefix + ConstructHighlight.idCounter;
+        this.domElement.id = CodeHighlight.idPrefix + ConstructHighlight.idCounter;
 
         const onChange = new Callback(
             (() => {
@@ -127,7 +122,7 @@ abstract class ConstructVisualElement {
     }
 }
 
-export class ConstructHighlight extends ConstructVisualElement {
+export class ConstructHighlight extends CodeHighlight {
     constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]) {
         super(editor, codeToHighlight);
         this.changeHighlightColour(rgbColour);
@@ -217,7 +212,7 @@ export class ConstructHighlight extends ConstructVisualElement {
     }
 }
 
-export class Notification extends ConstructVisualElement {
+export class InlineMessage extends CodeHighlight {
     /**
      * Index into NotficationSystemController.notifications
      */
@@ -237,26 +232,34 @@ export class Notification extends ConstructVisualElement {
 
     protected createDomElement() {
         super.createDomElement();
+
         this.domElement.classList.add("textBox");
 
         this.textElement = document.createElement("div");
+        this.textElement.classList.add("text-container-style");
         this.domElement.appendChild(this.textElement);
 
         document.querySelector(editorDomElementClass).appendChild(this.domElement);
     }
 }
 
-export class HoverNotification extends Notification {
+export class HoverMessage extends InlineMessage {
     private mouseLeftOffset: number;
     private mouseTopOffset: number;
     private highlight: ConstructHighlight;
     private showHighlight: boolean = false;
-    private showTextbox: boolean = false;
+    private showTextBox: boolean = false;
 
-    private notificationHighlightCollisionCheckInterval = 500;
-    private notificationFadeTime = 100;
+    private highlightCheckInterval = 500;
+    private timer;
+    private messageFadeTime = 100;
 
     private buttons = [];
+
+    /**
+     * HTML element that contains the main content of the message.
+     */
+    protected contentEl: HTMLDivElement;
 
     constructor(
         editor: Editor,
@@ -276,10 +279,9 @@ export class HoverNotification extends Notification {
     createButton(txt: string): HTMLDivElement {
         const button = document.createElement("div");
         button.classList.add("button");
-        button.classList.add("draftMode");
-        button.textContent = txt;
+        button.innerHTML = txt.replace(/---/g, "<hole1></hole1>");
 
-        this.domElement.appendChild(button);
+        this.contentEl.appendChild(button);
         this.buttons.push(button);
 
         return button;
@@ -287,15 +289,33 @@ export class HoverNotification extends Notification {
 
     attachButton(button: HTMLDivElement) {
         button.classList.add("button");
-        button.classList.add("draftMode");
-        this.domElement.appendChild(button);
+
+        this.contentEl.appendChild(button);
         this.buttons.push(button);
     }
 
     protected createDomElement() {
-        super.createDomElement();
+        this.domElement = document.createElement("div");
+        this.domElement.classList.add("codeVisual");
 
-        this.setNotificationBoxBounds();
+        const header = document.createElement("div");
+        header.innerText = "Fix This";
+        header.classList.add("hover-msg-header");
+        this.domElement.append(header);
+
+        this.domElement.classList.add("textBox");
+
+        this.contentEl = document.createElement("div");
+        this.contentEl.classList.add("msg-content-container");
+        this.domElement.appendChild(this.contentEl);
+
+        this.textElement = document.createElement("div");
+        this.textElement.classList.add("text-container-style");
+        this.contentEl.appendChild(this.textElement);
+
+        document.querySelector(editorDomElementClass).appendChild(this.domElement);
+
+        this.setHoverMessageBoxBounds();
 
         //set the initial position
         const transform = this.editor.computeBoundingBox(this.selection);
@@ -306,7 +326,7 @@ export class HoverNotification extends Notification {
         //in case we are initially at the top-most line
         this.moveWithinEditor();
 
-        this.domElement.style.zIndex = "1";
+        this.domElement.style.zIndex = "10";
         this.domElement.style.visibility = "hidden";
     }
 
@@ -346,9 +366,9 @@ export class HoverNotification extends Notification {
     }
 
     /**
-     * Set the width, maxWidth and maxHeight of this notification's textbox based on editor window dimensions.
+     * Set the width, maxWidth and maxHeight of this message's textbox based on editor window dimensions.
      */
-    private setNotificationBoxBounds() {
+    private setHoverMessageBoxBounds() {
         const editorDims = {
             width: (
                 document
@@ -363,13 +383,10 @@ export class HoverNotification extends Notification {
         };
 
         this.domElement.style.width = `${
-            0.5 * (editorDims.width > 0 ? editorDims.width : HOVER_NOTIFICATION_DEFAULT_WIDTH)
+            0.67 * (editorDims.width > 0 ? editorDims.width : HOVER_MESSAGE_DEFAULT_WIDTH)
         }px`;
         this.domElement.style.maxWidth = `${
-            0.5 * (editorDims.width > 0 ? editorDims.width : HOVER_NOTIFICATION_DEFAULT_WIDTH)
-        }px`;
-        this.domElement.style.maxHeight = `${
-            0.2 * (editorDims.height > 0 ? editorDims.height : HOVER_NOTIFICATION_DEFAULT_HEIGHT)
+            0.67 * (editorDims.width > 0 ? editorDims.width : HOVER_MESSAGE_DEFAULT_WIDTH)
         }px`;
     }
 
@@ -393,7 +410,7 @@ export class HoverNotification extends Notification {
     }
 
     private scheduleCollisionCheck() {
-        setInterval(() => {
+        this.timer = setInterval(() => {
             if (this.editor) {
                 const collisionElement = this.highlight.getDomElement();
 
@@ -411,18 +428,18 @@ export class HoverNotification extends Notification {
                     y <= collisionElement.offsetTop + collisionElement.offsetHeight - this.editor.scrollOffsetTop
                 ) {
                     this.domElement.style.visibility = "visible";
-                    this.showTextbox = true;
+                    this.showTextBox = true;
                 } else {
-                    this.showTextbox = false;
+                    this.showTextBox = false;
 
                     setTimeout(() => {
                         if (!this.showHighlight) {
                             this.domElement.style.visibility = "hidden";
                         }
-                    }, this.notificationFadeTime);
+                    }, this.messageFadeTime);
                 }
             }
-        }, this.notificationHighlightCollisionCheckInterval);
+        }, this.highlightCheckInterval);
 
         this.domElement.addEventListener("mouseenter", () => {
             this.showHighlight = true;
@@ -433,20 +450,21 @@ export class HoverNotification extends Notification {
             this.showHighlight = false;
 
             setTimeout(() => {
-                if (!this.showTextbox) {
+                if (!this.showTextBox) {
                     this.domElement.style.visibility = "hidden";
                 }
-            }, this.notificationFadeTime);
+            }, this.messageFadeTime);
         });
     }
 
     removeFromDOM() {
         super.removeFromDOM();
         this.highlight.removeFromDOM();
+        if (this.timer) clearInterval(this.timer);
     }
 }
 
-export class PopUpNotification extends Notification {
+export class PopUpMessage extends InlineMessage {
     static warningTime: number = 5000;
 
     constructor(editor: Editor, code: CodeConstruct, warningTxt: string, index: number = -1) {
@@ -466,7 +484,7 @@ export class PopUpNotification extends Notification {
     }
 }
 
-export class CodeBackground extends ConstructVisualElement {
+export class CodeBackground extends CodeHighlight {
     code: Statement;
 
     constructor(editor: Editor, statement: Statement) {
@@ -720,7 +738,8 @@ export class ScopeHighlight {
     }
 
     /**
-     * Update the dimensions of this visual element. Called when the code construct the visual is attached to is updated in some way (moved, inserted into, etc...)
+     * Update the dimensions of this visual element. Called when the code construct
+     * visual is attached to is updated in some way (moved, inserted into, etc...)
      */
     protected updateDimensions(): void {
         const headerDim = LineDimension.compute(this.statement, this.editor);

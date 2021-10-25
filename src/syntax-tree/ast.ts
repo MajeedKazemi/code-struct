@@ -5,28 +5,28 @@ import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
 import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { CodeBackground, HoverNotification, Notification } from "../notification-system/notification";
+import { CodeBackground, HoverMessage, InlineMessage } from "../notification-system/notification";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-    arithmeticOps,
-    AugmentedAssignmentOperator,
-    AutoCompleteType,
-    BinaryOperator,
-    BinaryOperatorCategory,
-    boolOps,
-    comparisonOps,
-    DataType,
-    IndexableTypes,
-    InsertionType,
-    ListTypes,
-    NumberRegex,
-    StringRegex,
-    TAB_SPACES,
-    typeToConversionRecord,
-    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
-    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOp,
+	arithmeticOps,
+	AugmentedAssignmentOperator,
+	AutoCompleteType,
+	BinaryOperator,
+	BinaryOperatorCategory,
+	boolOps,
+	comparisonOps,
+	DataType,
+	IndexableTypes,
+	InsertionType,
+	ListTypes,
+	NumberRegex,
+	StringRegex,
+	TAB_SPACES,
+	typeToConversionRecord,
+	TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+	TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
+	UnaryOp
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -57,7 +57,7 @@ export interface CodeConstruct {
     /**
      * A warning or error notification for this code construct. (null if there are no notifications)
      */
-    notification: Notification;
+    notification: InlineMessage;
 
     /**
      * Whether this code construct is in draft mode or not. Always false for Tokens
@@ -173,7 +173,7 @@ export abstract class Statement implements CodeConstruct {
     hasEmptyToken: boolean;
     callbacks = new Map<string, Array<Callback>>();
     background: CodeBackground = null;
-    notification: HoverNotification = null;
+    notification: HoverMessage = null;
     keywordIndex = -1;
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();

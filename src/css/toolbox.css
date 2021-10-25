@@ -28,7 +28,6 @@
     white-space: nowrap;
 
     box-shadow: 0px 1px 5px 2px #ddd;
-    border: solid 1px #ccc;
 
     transition: 0.15s ease-in-out;
     -webkit-transition: 0.15s ease-in-out;
@@ -41,8 +40,8 @@
     box-shadow: 0px 1px 5px 2px #ccc;
 }
 
-#editor-toolbox hole1 {
-    min-width: 18px;
+hole1 {
+    min-width: 21px;
     height: 18px;
     border-radius: 5px;
     box-shadow: 0px 0px 1px 1px #0000005e inset;
@@ -50,7 +49,7 @@
     display: inline-block;
 }
 
-#editor-toolbox hole2 {
+hole2 {
     margin: 0px 3px;
     display: inline-block;
     box-shadow: none;
@@ -227,7 +226,7 @@
 }
 
 .statement-button {
-    /* border-bottom: solid #05c8ac 3px !important; */
+    border-bottom: solid #fff0 3.5px;
 
     transition: border 0.15s ease-in-out;
     -webkit-transition: border 0.15s ease-in-out;
@@ -241,6 +240,7 @@
 }
 
 .expression-button {
+    border: solid #fff0 3px;
     padding-left: 10px !important;
     padding-right: 10px !important;
     border-radius: 25px !important;
@@ -257,7 +257,7 @@
 }
 
 .modifier-button {
-    /* border-left: solid #0084dd 3px !important; */
+    border-left: solid #fff0 3.5px;
 
     transition: border 0.15s ease-in-out;
     -webkit-transition: border 0.15s ease-in-out;
