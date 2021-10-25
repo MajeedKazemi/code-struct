@@ -340,10 +340,10 @@ function makeDraggable(element: HTMLDivElement) {
         // get the mouse cursor position at startup:
         pos3 = e.clientX;
         pos4 = e.clientY;
-        document.onmouseup = closeDragElement;
+        element.onmouseup = closeDragElement;
 
         // call a function whenever the cursor moves:
-        document.onmousemove = elementDrag;
+        element.onmousemove = elementDrag;
     }
 
     function elementDrag(e) {
@@ -374,7 +374,7 @@ function makeDraggable(element: HTMLDivElement) {
 
     function closeDragElement() {
         // stop moving when mouse button is released:
-        document.onmouseup = null;
-        document.onmousemove = null;
+        element.onmouseup = null;
+        element.onmousemove = null;
     }
 }
