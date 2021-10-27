@@ -1,7 +1,8 @@
 import { EditActionType } from "../editor/consts";
 import { EditAction } from "../editor/data-types";
 import { CSSClasses, TextEnhance } from "../utilities/text-enhance";
-import { CodeConstruct } from "./ast";
+import { getUserFriendlyType } from "../utilities/util";
+import { CodeConstruct, Expression, Modifier } from "./ast";
 import { Module } from "./module";
 
 export const TAB_SPACES = 4;
@@ -247,7 +248,7 @@ const te = new TextEnhance();
 const getTypesString = (types: DataType[]) => {
     let res = "";
     for (const dataType of types) {
-        res += te.getStyledSpan(dataType, CSSClasses.type);
+        res += te.getStyledSpan(getUserFriendlyType(dataType), CSSClasses.type);
         res += ", ";
     }
     res = res.substring(0, res.length - 2);
@@ -269,30 +270,19 @@ export function MISSING_IMPORT_DRAFT_MODE_STR(requiredItem, requiredModule) {
 }
 
 export function TYPE_MISMATCH_EXPR_DRAFT_MODE_STR(construct: string, expectedTypes: DataType[], actualType: DataType) {
-    return `${te.getStyledSpan(
-        construct,
-        CSSClasses.keyword
-    )} expected a value one of the following types: ${getTypesString(
+    return `${te.getStyledSpan(construct, CSSClasses.keyword)} expected a ${getTypesString(
         expectedTypes
-    )} in this hole, but you tried to input a value of type ${te.getStyledSpan(
-        actualType,
+    )}, but you entered a ${te.getStyledSpan(
+        getUserFriendlyType(actualType),
         CSSClasses.type
-    )} instead. A conversion from ${te.getStyledSpan(
-        actualType,
-        CSSClasses.type
-    )} to one of the expected types is possible using:`;
+    )} instead.\nYou can fix this by:`;
 }
 
 export function TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(expectedTypes: DataType[], actualType: DataType) {
-    return `Expected a value one of the following types: ${getTypesString(
-        expectedTypes
-    )}, but you tried to input a value of type ${te.getStyledSpan(
-        actualType,
+    return `Expected a ${getTypesString(expectedTypes)}, but you entered a ${te.getStyledSpan(
+        getUserFriendlyType(actualType),
         CSSClasses.type
-    )} instead. A conversion from ${te.getStyledSpan(
-        actualType,
-        CSSClasses.type
-    )} to one of the expected types is possible using one of:`;
+    )} instead.\n You can fix this by:`;
 }
 
 export function TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
@@ -301,12 +291,9 @@ export function TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
     expectedTypes: DataType[]
 ) {
     return `${te.getStyledSpan(identifier, CSSClasses.identifier)} is a ${te.getStyledSpan(
-        varType,
+        getUserFriendlyType(varType),
         CSSClasses.type
-    )}, but a value of ${getTypesString(expectedTypes)} was expected. You can convert from ${te.getStyledSpan(
-        varType,
-        CSSClasses.type
-    )} to one of the expected types is possible using one of:`;
+    )}, but expected a ${getTypesString(expectedTypes)}. You can fix this by:`;
 }
 
 export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
@@ -318,10 +305,10 @@ export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
         functionName,
         CSSClasses.identifier
     )} returns a value of type ${te.getStyledSpan(
-        actualType,
+        getUserFriendlyType(actualType),
         CSSClasses.type
     )} instead. A conversion from ${te.getStyledSpan(
-        actualType,
+        getUserFriendlyType(actualType),
         CSSClasses.type
     )} to one of the expected types is possible using one of:`;
 }
@@ -355,10 +342,18 @@ export abstract class TypeConversionRecord {
     getConversionButton(itemToConvert: string, module: Module, codeToReplace: CodeConstruct): HTMLDivElement {
         const text = this.getConversionCode(itemToConvert);
         const button = document.createElement("div");
-        button.textContent = text;
+        button.innerHTML = text.replace(/---/g, "<hole1></hole1>");
 
         const actionType = this.editActionType;
         const conversionConstructId = this.conversionConstructId;
+
+        if (!(codeToReplace instanceof Expression) && !(codeToReplace instanceof Modifier)) {
+            button.classList.add("statement-button");
+        } else if (codeToReplace instanceof Modifier) {
+            button.classList.add("modifier-button");
+        } else if (codeToReplace instanceof Expression) {
+            button.classList.add("expression-button");
+        }
 
         button.addEventListener("click", () => {
             module.replaceFocusedExpression;
@@ -404,7 +399,7 @@ export class ComparisonConversionRecord extends TypeConversionRecord {
     }
 
     getConversionCode(itemToConvert): string {
-        return `${itemToConvert} ${this.conversionConstruct} ---`;
+        return `${itemToConvert} ${this.conversionConstruct}&nbsp;---`;
     }
 }
 
@@ -493,7 +488,7 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 "<=",
                 DataType.Boolean,
                 DataType.Number,
-                "--- <= ---",
+                "---&nbsp;<=&nbsp;---",
                 EditActionType.InsertComparisonConversion
             ),
             new ComparisonConversionRecord(
@@ -540,7 +535,7 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 "<=",
                 DataType.Boolean,
                 DataType.String,
-                "--- <= ---",
+                "---&nbsp;<=&nbsp;---",
                 EditActionType.InsertComparisonConversion
             ),
             new ComparisonConversionRecord(

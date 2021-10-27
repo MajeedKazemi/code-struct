@@ -1,10 +1,10 @@
-import { HoverNotification } from "../notification-system/notification";
+import { HoverMessage } from "../notification-system/notification";
 import { Statement } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 
 export class DraftRecord {
     code: Statement;
-    warning: HoverNotification;
+    warning: HoverMessage;
 
     private module: Module; //no point in instantiating the editor itself because it will require an instance of Module anyway
 

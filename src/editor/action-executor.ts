@@ -1362,7 +1362,7 @@ export class ActionExecutor {
                 } else {
                     this.module.openDraftMode(newCode, replacementResult.message, [
                         ...replacementResult.conversionRecords.map((conversionRecord) => {
-                            return conversionRecord.getConversionButton("SOMETHING HERE123", this.module, newCode);
+                            return conversionRecord.getConversionButton(newCode.getRenderText(), this.module, newCode);
                         }),
                     ]);
                 }
