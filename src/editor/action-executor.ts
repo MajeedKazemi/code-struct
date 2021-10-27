@@ -10,6 +10,7 @@ import {
     EmptyLineStmt,
     Expression,
     IdentifierTkn,
+    IfStatement,
     Importable,
     ImportStatement,
     ListAccessModifier,
@@ -277,6 +278,46 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteStatement: {
+                this.deleteCode(context.lineStatement, { statement: true });
+
+                break;
+            }
+
+            case EditActionType.DeleteMultiLineStatement: {
+                if (
+                    context.lineStatement instanceof IfStatement ||
+                    (context.lineStatement instanceof ElseStatement && context.lineStatement.hasCondition)
+                ) {
+                    const elseStatementsAfterIf = [];
+
+                    for (
+                        let i = context.lineStatement.indexInRoot + 1;
+                        i < context.lineStatement.rootNode.body.length;
+                        i++
+                    ) {
+                        const line = context.lineStatement.rootNode.body[i];
+
+                        if (line instanceof ElseStatement) elseStatementsAfterIf.push(line);
+                        else break;
+                    }
+
+                    for (const elseStmt of elseStatementsAfterIf) {
+                        this.module.notificationSystem.addHoverNotification(
+                            elseStmt,
+                            null,
+                            "add if before the first else, or delete this."
+                        );
+                    }
+                }
+
+                while (context.lineStatement.body.length > 0) {
+                    this.module.editor.indentRecursively(
+                        context.lineStatement.body[context.lineStatement.body.length - 1],
+                        { backward: true }
+                    );
+                    this.module.indentBackStatement(context.lineStatement.body[context.lineStatement.body.length - 1]);
+                }
+
                 this.deleteCode(context.lineStatement, { statement: true });
 
                 break;

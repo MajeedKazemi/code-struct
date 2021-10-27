@@ -1,24 +1,24 @@
 import Fuse from "fuse.js";
 import {
-	AssignmentModifier,
-	AugmentedAssignmentModifier,
-	AutocompleteTkn,
-	CodeConstruct,
-	EditableTextTkn,
-	ElseStatement,
-	EmptyLineStmt,
-	IdentifierTkn,
-	IfStatement,
-	ImportStatement,
-	ListLiteralExpression,
-	LiteralValExpr,
-	Modifier,
-	NonEditableTkn,
-	Statement,
-	TypedEmptyExpr,
-	ValueOperationExpr,
-	VarAssignmentStmt,
-	VariableReferenceExpr
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
+    AutocompleteTkn,
+    CodeConstruct,
+    EditableTextTkn,
+    ElseStatement,
+    EmptyLineStmt,
+    IdentifierTkn,
+    IfStatement,
+    ImportStatement,
+    ListLiteralExpression,
+    LiteralValExpr,
+    Modifier,
+    NonEditableTkn,
+    Statement,
+    TypedEmptyExpr,
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
 } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -284,11 +284,37 @@ export class Validator {
 
     /**
      * logic: checks if at the beginning of a statement, and not text editable.
+     * the statement must NOT have a body
      */
     canDeleteNextStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        if (!(context.lineStatement instanceof EmptyLineStmt) && this.module.focus.onBeginningOfLine()) {
+        if (
+            !(context.lineStatement instanceof EmptyLineStmt) &&
+            this.module.focus.onBeginningOfLine() &&
+            !context.lineStatement.hasBody()
+        ) {
+            if (this.module.focus.isTextEditable(providedContext)) {
+                if (context.tokenToRight.isEmpty) return true;
+                else return false;
+            } else return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * logic: checks if at the beginning of a statement, and not text editable.
+     * the statement must have a body
+     */
+    canDeleteNextMultilineStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (
+            !(context.lineStatement instanceof EmptyLineStmt) &&
+            this.module.focus.onBeginningOfLine() &&
+            context.lineStatement.hasBody()
+        ) {
             if (this.module.focus.isTextEditable(providedContext)) {
                 if (context.tokenToRight.isEmpty) return true;
                 else return false;
@@ -309,6 +335,26 @@ export class Validator {
         if (
             !(context.lineStatement instanceof EmptyLineStmt) &&
             !context.lineStatement?.hasBody() &&
+            this.module.focus.onEndOfLine() &&
+            !this.module.focus.isTextEditable(providedContext)
+        ) {
+            if (context.expressionToLeft != null) return false;
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * logic: checks if at the end of a statement, and not text editable.
+     * AND prev item is not an expression that could be deleted by it self.
+     */
+    canDeletePrevMultiLineStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (
+            !(context.lineStatement instanceof EmptyLineStmt) &&
             this.module.focus.onEndOfLine() &&
             !this.module.focus.isTextEditable(providedContext)
         ) {
@@ -468,7 +514,7 @@ export class Validator {
                 if (!(rootsBody[i] instanceof EmptyLineStmt)) {
                     onlyEmptyLines = false;
 
-					break;
+                    break;
                 }
             }
 

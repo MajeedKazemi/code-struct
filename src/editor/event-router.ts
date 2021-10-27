@@ -109,6 +109,8 @@ export class EventRouter {
                     else return new EditAction(EditActionType.DeleteNextChar);
                 } else if (this.module.validator.canDeleteNextStatement(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
+                } else if (this.module.validator.canDeleteNextMultilineStatement(context)) {
+                    return new EditAction(EditActionType.DeleteMultiLineStatement);
                 } else if (this.module.validator.canDeleteCurLine(context)) {
                     return new EditAction(EditActionType.DeleteCurLine);
                 } else if (this.module.validator.canDeleteNextToken(context)) {
@@ -136,6 +138,8 @@ export class EventRouter {
                     else return new EditAction(EditActionType.DeletePrevChar);
                 } else if (this.module.validator.canDeletePrevStatement(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
+                } else if (this.module.validator.canDeletePrevMultiLineStatement(context)) {
+                    return new EditAction(EditActionType.DeleteMultiLineStatement);
                 } else if (this.module.validator.canDeletePrevLine(context)) {
                     return new EditAction(EditActionType.DeletePrevLine);
                 } else if (this.module.validator.canDeleteBackMultiEmptyLines(context)) {

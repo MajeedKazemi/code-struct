@@ -766,7 +766,14 @@ export class ScopeHighlight {
         this.headerElement.style.width = `${maxRight - headerDim.left}px`;
         this.headerElement.style.height = `${headerDim.height}px`;
 
-        const firstLineInBodyDim = LineDimension.compute(this.statement.body[0], this.editor);
+        let firstLineInBody = this.statement.body[0];
+        let firstLineInBodyDim: LineDimension;
+
+        if (firstLineInBody) {
+            firstLineInBodyDim = LineDimension.compute(firstLineInBody, this.editor);
+        } else {
+            firstLineInBodyDim = LineDimension.compute(this.statement, this.editor);
+        }
 
         this.bodyElement.style.top = `${firstLineInBodyDim.top}px`;
         this.bodyElement.style.left = `${firstLineInBodyDim.left}px`;
