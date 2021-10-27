@@ -68,7 +68,6 @@ hole2 {
     padding: 7px 8px;
     white-space: nowrap;
     box-shadow: 0px 1px 5px 2px #ddd;
-    border: solid 1px #ccc;
     transition: 0.15s ease-in-out;
     -webkit-transition: 0.15s ease-in-out;
 }

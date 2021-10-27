@@ -1,6 +1,7 @@
 import {
     Expression,
     ForStatement,
+    ListComma,
     Modifier,
     Statement,
     TypedEmptyExpr,
@@ -346,7 +347,7 @@ export class EditCodeAction extends UserAction {
     getUserFriendlyReturnType(): string {
         const code = this.getCode();
 
-        if (code instanceof Expression && !(code instanceof Modifier))
+        if (code instanceof Expression && !(code instanceof Modifier) && !(code instanceof ListComma))
             return " -> " + getUserFriendlyType(code.returns);
         else return "";
     }
