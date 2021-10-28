@@ -9,24 +9,24 @@ import { CodeBackground, HoverMessage, InlineMessage } from "../notification-sys
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-	arithmeticOps,
-	AugmentedAssignmentOperator,
-	AutoCompleteType,
-	BinaryOperator,
-	BinaryOperatorCategory,
-	boolOps,
-	comparisonOps,
-	DataType,
-	IndexableTypes,
-	InsertionType,
-	ListTypes,
-	NumberRegex,
-	StringRegex,
-	TAB_SPACES,
-	typeToConversionRecord,
-	TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
-	TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-	UnaryOp
+    arithmeticOps,
+    AugmentedAssignmentOperator,
+    AutoCompleteType,
+    BinaryOperator,
+    BinaryOperatorCategory,
+    boolOps,
+    comparisonOps,
+    DataType,
+    IndexableTypes,
+    InsertionType,
+    ListTypes,
+    NumberRegex,
+    StringRegex,
+    TAB_SPACES,
+    typeToConversionRecord,
+    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -1453,10 +1453,15 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     removeAssignment() {
-        (this.rootNode as Module | Statement).scope.references.splice(
-            (this.rootNode as Module | Statement).scope.references.map((ref) => ref.statement).indexOf(this),
-            1
+        const varAssignmentsInScope = (this.rootNode as Module | Statement).scope.references.map(
+            (ref) => ref.statement
         );
+        if (varAssignmentsInScope.indexOf(this) > -1) {
+            varAssignmentsInScope.splice(
+                (this.rootNode as Module | Statement).scope.references.map((ref) => ref.statement).indexOf(this),
+                1
+            );
+        }
     }
 
     private onDelete() {
