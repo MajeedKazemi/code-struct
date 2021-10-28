@@ -3,6 +3,7 @@ import { EditAction } from "../editor/data-types";
 import { CSSClasses, TextEnhance } from "../utilities/text-enhance";
 import { getUserFriendlyType } from "../utilities/util";
 import { CodeConstruct, Expression, Modifier } from "./ast";
+import { Callback, CallbackType } from "./callback";
 import { Module } from "./module";
 
 export const TAB_SPACES = 4;
@@ -366,6 +367,16 @@ export abstract class TypeConversionRecord {
                 module.focus.getContext()
             );
         });
+
+        codeToReplace.subscribe(
+            CallbackType.change,
+            new Callback(() => {
+                button.innerHTML = this.getConversionCode(codeToReplace.getKeyword()).replace(
+                    /---/g,
+                    "<hole1></hole1>"
+                );
+            })
+        );
 
         return button;
     }
