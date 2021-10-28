@@ -374,8 +374,6 @@ export class HoverMessage extends InlineMessage {
                     .getElementsByClassName("margin")[0] as HTMLElement
             ).offsetWidth;
 
-        //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
-        //wrong from time to time...
         this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById("editorArea")).paddingTop);
     }
 
