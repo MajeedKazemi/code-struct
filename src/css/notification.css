@@ -45,7 +45,14 @@
 
     box-shadow: 0 0 7px 1px #888;
     background-color: rgb(197 209 216);
-    overflow: hidden;
+    overflow-y: scroll;
+    overflow-wrap: break-word;
+    scrollbar-width: none;
+
+    max-width: 40vw;
+    width: 40vw;
+    height: fit-content;
+    max-height: 40vh;
 
     display: block;
     height: fit-content;
@@ -53,6 +60,10 @@
     border-radius: 5px;
 
     pointer-events: all;
+}
+
+.codeVisual.textBox::-webkit-scrollbar {
+    display: none;
 }
 
 .codeVisual .text-container-style {

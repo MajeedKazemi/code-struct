@@ -316,8 +316,6 @@ export class HoverMessage extends InlineMessage {
 
         document.querySelector(editorDomElementClass).appendChild(this.domElement);
 
-        this.setHoverMessageBoxBounds();
-
         //set the initial position
         const currentLinePosition = nova.focus.getStatementAtLineNumber(this.code.getLineNumber()).getRightPosition();
         this.domElement.style.top = `${(this.selection.startLineNumber - 1) * this.editor.computeCharHeight()}px`; // 0 is the line below this.code, -1 is this.code's line, -2 is the line above this.code
@@ -360,31 +358,6 @@ export class HoverMessage extends InlineMessage {
         }
 
         this.updateMouseOffsets(); //need to call this in case we went outside of the editor window with the above updates
-    }
-
-    /**
-     * Set the width, maxWidth and maxHeight of this message's textbox based on editor window dimensions.
-     */
-    private setHoverMessageBoxBounds() {
-        const editorDims = {
-            width: (
-                document
-                    .getElementById("editor")
-                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
-            ).offsetWidth,
-            height: (
-                document
-                    .getElementById("editor")
-                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
-            ).offsetHeight,
-        };
-
-        this.domElement.style.width = `${
-            0.67 * (editorDims.width > 0 ? editorDims.width : HOVER_MESSAGE_DEFAULT_WIDTH)
-        }px`;
-        this.domElement.style.maxWidth = `${
-            0.67 * (editorDims.width > 0 ? editorDims.width : HOVER_MESSAGE_DEFAULT_WIDTH)
-        }px`;
     }
 
     /**
