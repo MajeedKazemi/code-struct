@@ -1,6 +1,7 @@
 import { Selection } from "monaco-editor";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
+import { nova } from "../index";
 import { CodeConstruct, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 
@@ -315,16 +316,12 @@ export class HoverMessage extends InlineMessage {
 
         document.querySelector(editorDomElementClass).appendChild(this.domElement);
 
-        this.setHoverMessageBoxBounds();
-
         //set the initial position
-        const transform = this.editor.computeBoundingBox(this.selection);
-
-        this.domElement.style.top = `${(this.selection.startLineNumber - 2) * this.editor.computeCharHeight()}px`; // 0 is the line below this.code, -1 is this.code's line, -2 is the line above this.coded
-        this.domElement.style.left = `${transform.x - this.domElement.offsetWidth / 2}px`;
-
-        //in case we are initially at the top-most line
-        this.moveWithinEditor();
+        const currentLinePosition = nova.focus.getStatementAtLineNumber(this.code.getLineNumber()).getRightPosition();
+        this.domElement.style.top = `${(this.selection.startLineNumber - 1) * this.editor.computeCharHeight()}px`; // 0 is the line below this.code, -1 is this.code's line, -2 is the line above this.code
+        this.domElement.style.left = `${
+            (currentLinePosition.column + 2) * this.editor.computeCharWidth(currentLinePosition.lineNumber) + 10
+        }px`;
 
         this.domElement.style.zIndex = "10";
         this.domElement.style.visibility = "hidden";
@@ -347,47 +344,20 @@ export class HoverMessage extends InlineMessage {
 
             this.selection = newSelection;
 
-            this.domElement.style.left = `${this.domElement.offsetLeft + diff * this.editor.computeCharWidth()}px`;
-        }
-
-        this.updateMouseOffsets(); //need to call this in case we went outside of the editor window with the above updates
-    }
-
-    private moveWithinEditor() {
-        if (this.domElement.offsetLeft < 0) {
             this.domElement.style.left = `${
-                this.selection.startColumn * this.editor.computeCharWidth(this.code.getLineNumber())
+                this.domElement.offsetLeft + diff * this.editor.computeCharWidth(this.selection.startLineNumber)
+            }px`;
+        } else if (this.selection.endColumn != newSelection.endColumn) {
+            const diff = newSelection.endColumn - this.selection.endColumn;
+
+            this.selection = newSelection;
+
+            this.domElement.style.left = `${
+                this.domElement.offsetLeft + diff * this.editor.computeCharWidth(this.selection.startLineNumber)
             }px`;
         }
 
-        if (this.domElement.offsetTop < 0) {
-            this.domElement.style.top = `${this.editor.computeCharHeight()}px`;
-        }
-    }
-
-    /**
-     * Set the width, maxWidth and maxHeight of this message's textbox based on editor window dimensions.
-     */
-    private setHoverMessageBoxBounds() {
-        const editorDims = {
-            width: (
-                document
-                    .getElementById("editor")
-                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
-            ).offsetWidth,
-            height: (
-                document
-                    .getElementById("editor")
-                    .getElementsByClassName("monaco-scrollable-element editor-scrollable vs")[0] as HTMLElement
-            ).offsetHeight,
-        };
-
-        this.domElement.style.width = `${
-            0.67 * (editorDims.width > 0 ? editorDims.width : HOVER_MESSAGE_DEFAULT_WIDTH)
-        }px`;
-        this.domElement.style.maxWidth = `${
-            0.67 * (editorDims.width > 0 ? editorDims.width : HOVER_MESSAGE_DEFAULT_WIDTH)
-        }px`;
+        this.updateMouseOffsets(); //need to call this in case we went outside of the editor window with the above updates
     }
 
     /**
@@ -404,8 +374,6 @@ export class HoverMessage extends InlineMessage {
                     .getElementsByClassName("margin")[0] as HTMLElement
             ).offsetWidth;
 
-        //TODO: This top margin is inconsistent for some reason. Sometimes it is there sometimes it is not, which will make this calculation
-        //wrong from time to time...
         this.mouseTopOffset = parseFloat(window.getComputedStyle(document.getElementById("editorArea")).paddingTop);
     }
 

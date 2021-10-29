@@ -9,24 +9,24 @@ import { CodeBackground, HoverMessage, InlineMessage } from "../notification-sys
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-	arithmeticOps,
-	AugmentedAssignmentOperator,
-	AutoCompleteType,
-	BinaryOperator,
-	BinaryOperatorCategory,
-	boolOps,
-	comparisonOps,
-	DataType,
-	IndexableTypes,
-	InsertionType,
-	ListTypes,
-	NumberRegex,
-	StringRegex,
-	TAB_SPACES,
-	typeToConversionRecord,
-	TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
-	TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-	UnaryOp
+    arithmeticOps,
+    AugmentedAssignmentOperator,
+    AutoCompleteType,
+    BinaryOperator,
+    BinaryOperatorCategory,
+    boolOps,
+    comparisonOps,
+    DataType,
+    IndexableTypes,
+    InsertionType,
+    ListTypes,
+    NumberRegex,
+    StringRegex,
+    TAB_SPACES,
+    typeToConversionRecord,
+    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -127,6 +127,11 @@ export interface CodeConstruct {
      * Calls callback of the given type if this construct is subscribed to it.
      */
     notify(type: CallbackType);
+
+    /**
+     * Returns the keyword for a statement, identifier for a variable and contents for a literal
+     */
+    getKeyword(): string;
 
     /**
      * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
@@ -776,6 +781,10 @@ export abstract class Token implements CodeConstruct {
 
     markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
         this.callbacksToBeDeleted.set(callbackType, callbackId);
+    }
+
+    getKeyword(): string {
+        return this.getRenderText();
     }
 }
 
@@ -2625,6 +2634,10 @@ export class LiteralValExpr extends Expression {
 
     getValue(): string {
         return (this.tokens[this.valueTokenIndex] as Token).text;
+    }
+
+    getKeyword(): string {
+        return this.returns == DataType.String ? '"' + this.getValue() + '"' : this.getValue();
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
