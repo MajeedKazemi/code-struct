@@ -163,6 +163,17 @@ export class Scope {
         const ref = this.references.filter((ref) => ref.statement === currStmt)[0]; //only one reference per var in scope
         ref.statement = newStmt;
     }
+
+    isParent(potentialChild: Scope): boolean {
+        let curr = potentialChild.parentScope;
+        while (curr) {
+            if (curr === this) return true;
+
+            curr = curr.parentScope;
+        }
+
+        return false;
+    }
 }
 
 export class Reference {
