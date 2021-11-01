@@ -17,6 +17,7 @@ import * as ElifDocs from "../docs/elif.json";
 import * as ElseDocs from "../docs/else.json";
 import * as FalseDocs from "../docs/false.json";
 import * as FindDocs from "../docs/find.json";
+import * as FloorDivDocs from "../docs/floor-div.json";
 import * as ForDocs from "../docs/for.json";
 import * as IfDocs from "../docs/if.json";
 import * as ImportDocs from "../docs/import.json";
@@ -44,35 +45,35 @@ import * as CastToStrDocs from "../docs/to-str.json";
 import * as TrueDocs from "../docs/true.json";
 import * as WhileDocs from "../docs/while.json";
 import {
-	Argument,
-	AssignmentModifier,
-	AugmentedAssignmentModifier,
-	BinaryOperatorExpr,
-	ElseStatement,
-	ForStatement,
-	FunctionCallExpr,
-	FunctionCallStmt,
-	IfStatement,
-	ImportStatement,
-	ListAccessModifier,
-	ListComma,
-	ListLiteralExpression,
-	LiteralValExpr,
-	MethodCallModifier,
-	Statement,
-	UnaryOperatorExpr,
-	ValueOperationExpr,
-	VarAssignmentStmt,
-	VarOperationStmt,
-	WhileStatement
+    Argument,
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
+    BinaryOperatorExpr,
+    ElseStatement,
+    ForStatement,
+    FunctionCallExpr,
+    FunctionCallStmt,
+    IfStatement,
+    ImportStatement,
+    ListAccessModifier,
+    ListComma,
+    ListLiteralExpression,
+    LiteralValExpr,
+    MethodCallModifier,
+    Statement,
+    UnaryOperatorExpr,
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VarOperationStmt,
+    WhileStatement,
 } from "../syntax-tree/ast";
 import {
-	AugmentedAssignmentOperator,
-	BinaryOperator,
-	DataType,
-	IdentifierRegex,
-	NumberRegex,
-	UnaryOp
+    AugmentedAssignmentOperator,
+    BinaryOperator,
+    DataType,
+    IdentifierRegex,
+    NumberRegex,
+    UnaryOp,
 } from "../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 
@@ -434,20 +435,6 @@ export class Actions {
             null
         );
 
-        const BinModExpr = new EditCodeAction(
-            "--- % ---",
-            "add-bin-mod-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Mod, DataType.Number),
-            InsertActionType.InsertBinaryExpr,
-            {
-                operator: BinaryOperator.Mod,
-            },
-            ModDocs,
-            ["%"],
-            "",
-            null
-        );
-
         const BinSubExpr = new EditCodeAction(
             "--- - ---",
             "add-bin-sub-expr-btn",
@@ -485,7 +472,35 @@ export class Actions {
                 operator: BinaryOperator.Divide,
             },
             DivDocs,
+            [" "],
+            "/",
+            null
+        );
+
+        const BinFloorDivExpr = new EditCodeAction(
+            "--- // ---",
+            "add-bin-floor-div-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.FloorDiv, DataType.Number),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.FloorDiv,
+            },
+            FloorDivDocs,
             ["/"],
+            "/",
+            null
+        );
+
+        const BinModExpr = new EditCodeAction(
+            "--- % ---",
+            "add-bin-mod-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.Mod, DataType.Number),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.Mod,
+            },
+            ModDocs,
+            ["%"],
             "",
             null
         );
@@ -945,6 +960,7 @@ export class Actions {
             BinSubExpr,
             BinMultExpr,
             BinDivExpr,
+            BinFloorDivExpr,
             BinModExpr,
             BinAndExpr,
             BinOrExpr,
@@ -1184,6 +1200,7 @@ export class Actions {
                 BinSubExpr,
                 BinMultExpr,
                 BinDivExpr,
+                BinFloorDivExpr,
                 BinModExpr,
             ])
         );

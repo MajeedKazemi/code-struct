@@ -1,0 +1,12 @@
+{
+    "title": "floor division",
+    "body": [
+        {
+            "paragraph": "Similar to the normal division operator, but the result will be a rounded number"
+        },
+        {
+            "paragraph": "The below prints 5."
+        },
+        { "example": "a = 2\nb = 10\nprint((b / a))" }
+    ]
+}

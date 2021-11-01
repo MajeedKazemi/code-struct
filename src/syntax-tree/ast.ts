@@ -2998,6 +2998,7 @@ function getAllowedBinaryOperators(type: DataType): Array<BinaryOperator> {
             allowedBinOps.push(BinaryOperator.Subtract);
             allowedBinOps.push(BinaryOperator.Multiply);
             allowedBinOps.push(BinaryOperator.Divide);
+            allowedBinOps.push(BinaryOperator.FloorDiv);
             allowedBinOps.push(BinaryOperator.Mod);
 
             allowedBinOps.push(BinaryOperator.GreaterThan);
