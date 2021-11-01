@@ -38,39 +38,40 @@ import * as ReplaceDocs from "../docs/replace.json";
 import * as SplitDocs from "../docs/split.json";
 import * as StrDocs from "../docs/str.json";
 import * as SubDocs from "../docs/sub.json";
+import * as CastToIntDocs from "../docs/to-int.json";
 import * as CastToStrDocs from "../docs/to-str.json";
 import * as TrueDocs from "../docs/true.json";
 import * as WhileDocs from "../docs/while.json";
 import {
-	Argument,
-	AssignmentModifier,
-	AugmentedAssignmentModifier,
-	BinaryOperatorExpr,
-	ElseStatement,
-	ForStatement,
-	FunctionCallExpr,
-	FunctionCallStmt,
-	IfStatement,
-	ImportStatement,
-	ListAccessModifier,
-	ListComma,
-	ListLiteralExpression,
-	LiteralValExpr,
-	MethodCallModifier,
-	Statement,
-	UnaryOperatorExpr,
-	ValueOperationExpr,
-	VarAssignmentStmt,
-	VarOperationStmt,
-	WhileStatement
+    Argument,
+    AssignmentModifier,
+    AugmentedAssignmentModifier,
+    BinaryOperatorExpr,
+    ElseStatement,
+    ForStatement,
+    FunctionCallExpr,
+    FunctionCallStmt,
+    IfStatement,
+    ImportStatement,
+    ListAccessModifier,
+    ListComma,
+    ListLiteralExpression,
+    LiteralValExpr,
+    MethodCallModifier,
+    Statement,
+    UnaryOperatorExpr,
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VarOperationStmt,
+    WhileStatement,
 } from "../syntax-tree/ast";
 import {
-	AugmentedAssignmentOperator,
-	BinaryOperator,
-	DataType,
-	IdentifierRegex,
-	NumberRegex,
-	UnaryOp
+    AugmentedAssignmentOperator,
+    BinaryOperator,
+    DataType,
+    IdentifierRegex,
+    NumberRegex,
+    UnaryOp,
 } from "../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 
@@ -157,7 +158,7 @@ export enum EditActionType {
     DeleteCurLine,
     DeleteStatement,
     DeleteSelectedModifier,
-	DeleteMultiLineStatement,
+    DeleteMultiLineStatement,
 
     IndentBackwards,
     IndentBackwardsIfStmt,
@@ -891,6 +892,18 @@ export class Actions {
             null
         );
 
+        const CastIntExpr = new EditCodeAction(
+            "int(---)",
+            "add-cast-int-btn",
+            () => new FunctionCallExpr("int", [new Argument([DataType.String], "value", false)], DataType.Number),
+            InsertActionType.InsertCastStrExpr,
+            {},
+            CastToIntDocs,
+            ["("],
+            "int",
+            null
+        );
+
         const VarAssignStmt = new EditCodeAction(
             "var = ---",
             "add-var-btn",
@@ -946,6 +959,7 @@ export class Actions {
             JoinMethodMod,
             SplitMethodMod,
             CastStrExpr,
+            CastIntExpr,
             VarAssignStmt
         );
 
@@ -1173,7 +1187,9 @@ export class Actions {
                 BooleanFalseLiteralExpr,
             ])
         );
-        this.toolboxCategories.push(new ToolboxCategory("Casting", "casting-toolbox-group", [CastStrExpr]));
+        this.toolboxCategories.push(
+            new ToolboxCategory("Casting", "casting-toolbox-group", [CastStrExpr, CastIntExpr])
+        );
         this.toolboxCategories.push(new ToolboxCategory("Imports", "import-ops-toolbox-group", [ImportStmt]));
     }
 

@@ -100,6 +100,13 @@ div.doc-body p span.italics {
     font-style: italic;
 }
 
+div.doc-body p span.code {
+    background-color: #ddd;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-weight: bold;
+}
+
 div.doc-body p span.bold {
     font-weight: bold;
 }

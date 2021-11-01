@@ -1,0 +1,12 @@
+{
+    "title": "int(object: string)",
+    "body": [
+        {
+            "paragraph": "Converts the passed string to a number. Extremely useful when trying to input numbers from the user using the <span class=\"code\">input</span> function"
+        },
+        { "example": "a = \"2\"\nb = \"5\"\ntext_add = a + b\nnumber_add = int(a) + int(b)" },
+        {
+            "paragraph": "In the above example you <span class=\"code\">a</span> and <span class=\"code\">b</span> are string variables. The plus operator will concatenate string values, but will numerically add number values. So because <span class=\"code\">int(\"2\")</span> equals to the numeric value two, and similarly for b, we are able to calculate the numeric addition of the two using <span class=\"code\">int()</span>"
+        }
+    ]
+}
