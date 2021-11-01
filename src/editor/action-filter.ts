@@ -197,6 +197,7 @@ export class ActionFilter {
         );
 
         const validActionsForVar: Map<string, EditCodeAction>[] = [];
+
         for (const refRecord of availableRefs) {
             const varAssignmentStmt = refRecord[0].statement as VarAssignmentStmt;
             const dataType = this.module.variableController.getVariableTypeNearLine(

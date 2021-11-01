@@ -26,6 +26,7 @@ export class Editor {
             minimap: {
                 enabled: false,
             },
+            find: { autoFindInSelection: "never" },
             overviewRulerLanes: 0,
             automaticLayout: true,
             scrollbar: {

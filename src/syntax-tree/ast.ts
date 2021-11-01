@@ -9,24 +9,24 @@ import { CodeBackground, HoverMessage, InlineMessage } from "../notification-sys
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-    arithmeticOps,
-    AugmentedAssignmentOperator,
-    AutoCompleteType,
-    BinaryOperator,
-    BinaryOperatorCategory,
-    boolOps,
-    comparisonOps,
-    DataType,
-    IndexableTypes,
-    InsertionType,
-    ListTypes,
-    NumberRegex,
-    StringRegex,
-    TAB_SPACES,
-    typeToConversionRecord,
-    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
-    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOp,
+	arithmeticOps,
+	AugmentedAssignmentOperator,
+	AutoCompleteType,
+	BinaryOperator,
+	BinaryOperatorCategory,
+	boolOps,
+	comparisonOps,
+	DataType,
+	IndexableTypes,
+	InsertionType,
+	ListTypes,
+	NumberRegex,
+	StringRegex,
+	TAB_SPACES,
+	typeToConversionRecord,
+	TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+	TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
+	UnaryOp
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -2238,6 +2238,7 @@ export class BinaryOperatorExpr extends Expression {
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
 
         this.leftOperandIndex = this.tokens.length;
+
         if (this.operatorCategory === BinaryOperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
             if (returns !== DataType.String && returns !== DataType.Number) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
@@ -2993,10 +2994,11 @@ function getAllowedBinaryOperators(type: DataType): Array<BinaryOperator> {
         }
 
         case DataType.Number: {
-            allowedBinOps.push(BinaryOperator.Add);
+			allowedBinOps.push(BinaryOperator.Add);
             allowedBinOps.push(BinaryOperator.Subtract);
             allowedBinOps.push(BinaryOperator.Multiply);
             allowedBinOps.push(BinaryOperator.Divide);
+            allowedBinOps.push(BinaryOperator.Mod);
 
             allowedBinOps.push(BinaryOperator.GreaterThan);
             allowedBinOps.push(BinaryOperator.GreaterThanEqual);
