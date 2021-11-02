@@ -222,6 +222,14 @@ export class EventRouter {
                 break;
             }
 
+            case KeyPress.DoubleQuote: {
+                if (inTextEditMode && this.module.validator.canConvertAutocompleteToString(context)) {
+                    return new EditAction(EditActionType.ConvertAutocompleteToString);
+                }
+
+                break;
+            }
+
             default: {
                 if (e.key.length == 1) {
                     if (inTextEditMode) {
@@ -458,10 +466,17 @@ export class EventRouter {
             }
 
             case InsertActionType.InsertLiteral: {
-                return new EditAction(EditActionType.InsertLiteral, {
-                    literalType: e.insertData?.literalType,
-                    initialValue: e.insertData?.initialValue,
-                });
+                if (
+                    e.insertData?.literalType === DataType.String &&
+                    context.tokenToRight instanceof ast.AutocompleteTkn
+                ) {
+                    return new EditAction(EditActionType.ConvertAutocompleteToString);
+                } else {
+                    return new EditAction(EditActionType.InsertLiteral, {
+                        literalType: e.insertData?.literalType,
+                        initialValue: e.insertData?.initialValue,
+                    });
+                }
             }
 
             case InsertActionType.InsertBinaryExpr: {

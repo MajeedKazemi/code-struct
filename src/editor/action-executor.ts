@@ -2,40 +2,40 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { ConstructHighlight, ScopeHighlight } from "../notification-system/notification";
 import {
-    AssignmentModifier,
-    AutocompleteTkn,
-    BinaryOperatorExpr,
-    CodeConstruct,
-    ElseStatement,
-    EmptyLineStmt,
-    Expression,
-    IdentifierTkn,
-    IfStatement,
-    Importable,
-    ImportStatement,
-    ListAccessModifier,
-    ListLiteralExpression,
-    LiteralValExpr,
-    Modifier,
-    NonEditableTkn,
-    Statement,
-    TemporaryStmt,
-    Token,
-    TypedEmptyExpr,
-    ValueOperationExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-    VarOperationStmt,
+	AssignmentModifier,
+	AutocompleteTkn,
+	BinaryOperatorExpr,
+	CodeConstruct,
+	ElseStatement,
+	EmptyLineStmt,
+	Expression,
+	IdentifierTkn,
+	IfStatement,
+	Importable,
+	ImportStatement,
+	ListAccessModifier,
+	ListLiteralExpression,
+	LiteralValExpr,
+	Modifier,
+	NonEditableTkn,
+	Statement,
+	TemporaryStmt,
+	Token,
+	TypedEmptyExpr,
+	ValueOperationExpr,
+	VarAssignmentStmt,
+	VariableReferenceExpr,
+	VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
-    AutoCompleteType,
-    BuiltInFunctions,
-    PythonKeywords,
-    TAB_SPACES,
-    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
+	AutoCompleteType,
+	BuiltInFunctions,
+	PythonKeywords,
+	TAB_SPACES,
+	TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+	TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -886,6 +886,21 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(newCode);
+
+                break;
+            }
+
+            case EditActionType.ConvertAutocompleteToString: {
+                const autocompleteToken = context.tokenToRight as AutocompleteTkn;
+                const literalValExpr = new LiteralValExpr(
+                    DataType.String,
+                    autocompleteToken.text,
+                    autocompleteToken.rootNode as Expression | Statement,
+                    autocompleteToken.indexInRoot
+                );
+
+				this.deleteCode(autocompleteToken);
+				this.insertExpression(this.module.focus.getContext(), literalValExpr);
 
                 break;
             }

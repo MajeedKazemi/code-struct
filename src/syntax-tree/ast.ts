@@ -9,24 +9,24 @@ import { CodeBackground, HoverMessage, InlineMessage } from "../notification-sys
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-	arithmeticOps,
-	AugmentedAssignmentOperator,
-	AutoCompleteType,
-	BinaryOperator,
-	BinaryOperatorCategory,
-	boolOps,
-	comparisonOps,
-	DataType,
-	IndexableTypes,
-	InsertionType,
-	ListTypes,
-	NumberRegex,
-	StringRegex,
-	TAB_SPACES,
-	typeToConversionRecord,
-	TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
-	TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-	UnaryOp
+    arithmeticOps,
+    AugmentedAssignmentOperator,
+    AutoCompleteType,
+    BinaryOperator,
+    BinaryOperatorCategory,
+    boolOps,
+    comparisonOps,
+    DataType,
+    IndexableTypes,
+    InsertionType,
+    ListTypes,
+    NumberRegex,
+    StringRegex,
+    TAB_SPACES,
+    typeToConversionRecord,
+    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -2642,7 +2642,10 @@ export class LiteralValExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.atEmptyExpressionHole(providedContext) ||
+            (this.returns == DataType.String && validator.canConvertAutocompleteToString(providedContext))
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
     }
 
     getInitialFocus(): UpdatableContext {
@@ -2994,7 +2997,7 @@ function getAllowedBinaryOperators(type: DataType): Array<BinaryOperator> {
         }
 
         case DataType.Number: {
-			allowedBinOps.push(BinaryOperator.Add);
+            allowedBinOps.push(BinaryOperator.Add);
             allowedBinOps.push(BinaryOperator.Subtract);
             allowedBinOps.push(BinaryOperator.Multiply);
             allowedBinOps.push(BinaryOperator.Divide);

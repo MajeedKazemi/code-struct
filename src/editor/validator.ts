@@ -628,6 +628,14 @@ export class Validator {
         return context.selected && context?.token?.isEmpty && context.token instanceof TypedEmptyExpr;
     }
 
+    canConvertAutocompleteToString(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.tokenToRight instanceof AutocompleteTkn && context.tokenToRight.left != context.lineStatement.left
+        );
+    }
+
     private getPrevSibling(providedContext?: Context): Statement {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 

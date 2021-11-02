@@ -119,6 +119,8 @@ export enum KeyPress {
 
     //TODO: Remove later
     P = "p",
+
+    DoubleQuote = '"',
 }
 
 export enum EditActionType {
@@ -200,6 +202,7 @@ export enum EditActionType {
     InsertStatement,
     InsertExpression,
     WrapExpressionWithItem,
+    ConvertAutocompleteToString,
 
     InsertVarAssignStatement,
     InsertVariableRef,
