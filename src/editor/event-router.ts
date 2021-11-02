@@ -107,6 +107,8 @@ export class EventRouter {
                 ) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToEnd);
                     else return new EditAction(EditActionType.DeleteNextChar);
+                } else if (this.module.validator.canDeleteStringLiteral(context)) {
+                    return new EditAction(EditActionType.DeleteStringLiteral);
                 } else if (this.module.validator.canDeleteNextStatement(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.canDeleteNextMultilineStatement(context)) {
@@ -136,6 +138,8 @@ export class EventRouter {
                 ) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToStart);
                     else return new EditAction(EditActionType.DeletePrevChar);
+                } else if (this.module.validator.canDeleteStringLiteral(context)) {
+                    return new EditAction(EditActionType.DeleteStringLiteral);
                 } else if (this.module.validator.canDeletePrevStatement(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.canDeletePrevMultiLineStatement(context)) {

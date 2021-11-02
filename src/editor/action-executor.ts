@@ -541,6 +541,12 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.DeleteStringLiteral: {
+                this.deleteCode(context.tokenToLeft.rootNode);
+
+                break;
+            }
+
             case EditActionType.DeletePrevChar:
             case EditActionType.DeleteNextChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();

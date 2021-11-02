@@ -366,6 +366,12 @@ export class Validator {
         return false;
     }
 
+    canDeleteStringLiteral(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.tokenToLeft?.text == '"' && context.tokenToRight?.text == '"';
+    }
+
     /**
      * logic: checks if at the beginning of an expression, and not at the beginning of a line (statement)
      */
