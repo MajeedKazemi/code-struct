@@ -6,6 +6,7 @@ import * as AssignDivDocs from "../docs/assign-div.json";
 import * as AssignMultDocs from "../docs/assign-mult.json";
 import * as AssignSubDocs from "../docs/assign-sub.json";
 import * as AssignDocs from "../docs/assign.json";
+import * as RandChoiceDocs from "../docs/choice.json";
 import * as CompEqDocs from "../docs/comp-eq.json";
 import * as CompGtDocs from "../docs/comp-gt.json";
 import * as CompGteDocs from "../docs/comp-gte.json";
@@ -232,7 +233,7 @@ export enum InsertActionType {
     InsertImportStmt,
 
     InsertPrintFunctionStmt,
-    InsertRandintExpr,
+    InsertFunctionExpr,
     InsertRangeExpr,
     InsertLenExpr,
     InsertCastStrExpr,
@@ -293,11 +294,31 @@ export class Actions {
                     null,
                     "random"
                 ),
-            InsertActionType.InsertRandintExpr,
+            InsertActionType.InsertFunctionExpr,
             {},
             RandintDocs,
             ["("],
             "randint",
+            null
+        );
+
+        const RandChoiceExpr = new EditCodeAction(
+            "choice(---)",
+            "add-choice-btn",
+            () =>
+                new FunctionCallExpr(
+                    "choice",
+                    [new Argument([DataType.AnyList], "choices", false)],
+                    DataType.Any,
+                    null,
+                    null,
+                    "random"
+                ),
+            InsertActionType.InsertFunctionExpr,
+            {},
+            RandChoiceDocs,
+            ["("],
+            "choice",
             null
         );
 
@@ -310,7 +331,7 @@ export class Actions {
                     [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
                     DataType.NumberList
                 ),
-            InsertActionType.InsertRangeExpr,
+            InsertActionType.InsertFunctionExpr,
             {},
             RangeDocs,
             ["("],
@@ -949,6 +970,7 @@ export class Actions {
         this.actionsList = new Array<EditCodeAction>(
             PrintStmt,
             RandIntExpr,
+            RandChoiceExpr,
             RangeExpr,
             LenExpr,
             InputExpr,
@@ -1173,8 +1195,9 @@ export class Actions {
                 AugDivAssignmentMod,
             ])
         );
+        this.toolboxCategories.push(new ToolboxCategory("Numbers", "numbers-toolbox-group", [NumberLiteralExpr]));
         this.toolboxCategories.push(
-            new ToolboxCategory("Numbers", "numbers-toolbox-group", [NumberLiteralExpr, RandIntExpr])
+            new ToolboxCategory("Random", "randoms-toolbox-group", [RandChoiceExpr, RandIntExpr])
         );
         this.toolboxCategories.push(
             new ToolboxCategory("Texts", "text-toolbox-group", [

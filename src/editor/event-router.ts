@@ -409,8 +409,7 @@ export class EventRouter {
                 break;
             }
 
-            case InsertActionType.InsertRangeExpr:
-            case InsertActionType.InsertRandintExpr: {
+            case InsertActionType.InsertFunctionExpr: {
                 return new EditAction(EditActionType.InsertExpression, {
                     expression: e.getCode(),
                 });
