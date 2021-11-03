@@ -921,6 +921,7 @@ export class ActionExecutor {
                     autocompleteToken.indexInRoot
                 );
 
+                autocompleteToken.draftModeEnabled = false;
                 this.deleteCode(autocompleteToken);
                 this.insertExpression(this.module.focus.getContext(), literalValExpr);
 
@@ -1007,6 +1008,7 @@ export class ActionExecutor {
                     }),
                     this.module.focus.getContext()
                 );
+
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 
                 break;
@@ -1024,6 +1026,7 @@ export class ActionExecutor {
                         .actionsList.find((element) => element.cssId == action.data.conversionConstructId)
                         .getCodeFunction() as Expression
                 );
+                action.data.codeToReplace.draftModeEnabled = false;
                 this.insertExpression(this.module.focus.getContext(), action.data.codeToReplace as Expression);
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 

@@ -1265,7 +1265,7 @@ export class Actions {
 
 export enum CodeStatus {
     ContainsEmptyHoles,
-    ContainsAutocompleteTkns,
+    ContainsAutocompleteTokens,
     ContainsDraftMode,
     Empty,
     Runnable,

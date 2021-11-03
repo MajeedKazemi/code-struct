@@ -16,19 +16,19 @@ import { NotificationSystemController } from "../notification-system/notificatio
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
-    AutocompleteTkn,
-    CodeConstruct,
-    EmptyLineStmt,
-    Expression,
-    ForStatement,
-    Importable,
-    ImportStatement,
-    ListLiteralExpression,
-    Statement,
-    Token,
-    TypedEmptyExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
+	AutocompleteTkn,
+	CodeConstruct,
+	EmptyLineStmt,
+	Expression,
+	ForStatement,
+	Importable,
+	ImportStatement,
+	ListLiteralExpression,
+	Statement,
+	Token,
+	TypedEmptyExpr,
+	VarAssignmentStmt,
+	VariableReferenceExpr
 } from "./ast";
 import { rebuildBody } from "./body";
 import { CallbackType } from "./callback";
@@ -539,55 +539,54 @@ export class Module {
     }
 
     getCodeStatus(highlightConstructs: boolean = false) {
-        let ret = null;
+        let status = null;
+
         if (this.body.length === 0 || (this.body.length === 1 && this.body[0] instanceof EmptyLineStmt)) {
             return CodeStatus.Empty;
         }
-        const Q: CodeConstruct[] = [];
-        Q.push(...this.body);
 
-        while (Q.length > 0) {
-            let curr: CodeConstruct = Q.splice(0, 1)[0];
+        const stack: CodeConstruct[] = [];
+        stack.push(...this.body);
 
-            if (curr instanceof TypedEmptyExpr && !curr.isListElement()) {
-                ret = ret ?? CodeStatus.ContainsEmptyHoles;
+        while (stack.length > 0) {
+            let cur: CodeConstruct = stack.pop();
 
-                if (highlightConstructs) {
-                    this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
-                }
-            } else if (curr instanceof AutocompleteTkn) {
-                ret = ret ?? CodeStatus.ContainsAutocompleteTkns;
+            if (cur instanceof TypedEmptyExpr && !cur.isListElement()) {
+                status = status ?? CodeStatus.ContainsEmptyHoles;
 
-                if (highlightConstructs) {
-                    this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
-                }
-            } else if (curr.draftModeEnabled) {
-                ret = ret ?? CodeStatus.ContainsDraftMode;
+                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
 
-                if (highlightConstructs) {
-                    this.addHighlightToConstruct(curr, ERROR_HIGHLIGHT_COLOUR);
-                }
-            } else if (curr instanceof Expression && curr.tokens.length > 0) {
-                const addHighlight = curr instanceof ListLiteralExpression && !curr.isHolePlacementValid();
-                ret = addHighlight ? CodeStatus.ContainsEmptyHoles : ret;
+            } else if (cur instanceof AutocompleteTkn) {
+                status = status ?? CodeStatus.ContainsAutocompleteTokens;
 
-                for (let i = 0; i < curr.tokens.length; i++) {
-                    if (curr.tokens[i] instanceof TypedEmptyExpr && addHighlight && i < curr.tokens.length - 2) {
-                        this.addHighlightToConstruct(curr.tokens[i], ERROR_HIGHLIGHT_COLOUR);
+                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+
+            } else if (cur.draftModeEnabled) {
+                status = status ?? CodeStatus.ContainsDraftMode;
+
+                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+
+            } else if (cur instanceof Expression && cur.tokens.length > 0) {
+                const addHighlight = cur instanceof ListLiteralExpression && !cur.isHolePlacementValid();
+                status = addHighlight ? CodeStatus.ContainsEmptyHoles : status;
+
+                for (let i = 0; i < cur.tokens.length; i++) {
+                    if (cur.tokens[i] instanceof TypedEmptyExpr && addHighlight && i < cur.tokens.length - 2) {
+                        this.addHighlightToConstruct(cur.tokens[i], ERROR_HIGHLIGHT_COLOUR);
                     }
-                    Q.push(curr.tokens[i]);
+
+                    stack.push(cur.tokens[i]);
                 }
-            } else if (curr instanceof Statement) {
-                for (const tkn of curr.tokens) {
-                    Q.push(tkn);
+            } else if (cur instanceof Statement) {
+                for (const token of cur.tokens) {
+                    stack.push(token);
                 }
-                if (curr.body.length > 0) {
-                    Q.push(...curr.body);
-                }
+
+                if (cur.body.length > 0) stack.push(...cur.body);
             }
         }
 
-        return ret ?? CodeStatus.Runnable;
+        return status ?? CodeStatus.Runnable;
     }
 
     performActionOnBFS(duringAction: (code: CodeConstruct) => void) {

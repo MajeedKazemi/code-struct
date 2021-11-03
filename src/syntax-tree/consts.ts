@@ -357,7 +357,6 @@ export abstract class TypeConversionRecord {
         }
 
         button.addEventListener("click", () => {
-            module.replaceFocusedExpression;
             module.executer.execute(
                 new EditAction(actionType, {
                     codeToReplace: codeToReplace,
