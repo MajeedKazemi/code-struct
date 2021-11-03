@@ -222,14 +222,6 @@ export class EventRouter {
                 break;
             }
 
-            case KeyPress.DoubleQuote: {
-                if (inTextEditMode && this.module.validator.canConvertAutocompleteToString(context)) {
-                    return new EditAction(EditActionType.ConvertAutocompleteToString, { token: context.tokenToRight });
-                }
-
-                break;
-            }
-
             default: {
                 if (e.key.length == 1) {
                     if (inTextEditMode) {
@@ -253,6 +245,12 @@ export class EventRouter {
                                 if (e.ctrlKey) return new EditAction(EditActionType.Redo);
 
                                 break;
+                        }
+
+                        if (this.module.validator.canConvertAutocompleteToString(context)) {
+                            return new EditAction(EditActionType.ConvertAutocompleteToString, {
+                                token: context.tokenToRight,
+                            });
                         }
 
                         if (this.module.validator.canSwitchLeftNumToAutocomplete(e.key)) {

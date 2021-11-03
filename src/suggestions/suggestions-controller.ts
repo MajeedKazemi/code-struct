@@ -849,10 +849,13 @@ export class MenuController {
                 ) {
                     let extraInfo = null;
 
-                    if (editAction.matchRegex?.test(optionText) || editAction.matchString == optionText)
+                    if (editAction.matchRegex?.test(optionText) || editAction.matchString == optionText) {
                         extraInfo = `press <span class="highlighted-text">${this.convertTerminatingChar(
                             editAction.terminatingChars[0]
                         )}</span> to insert`;
+                    } else {
+                        extraInfo = `press <span class="highlighted-text">Enter</span> to insert`;
+                    }
 
                     option = new MenuOption(
                         optionDisplayText,
