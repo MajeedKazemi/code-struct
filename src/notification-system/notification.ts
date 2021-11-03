@@ -457,7 +457,7 @@ export class CodeBackground extends CodeHighlight {
 
     constructor(editor: Editor, statement: Statement) {
         super(editor, statement);
-        this.changeHighlightColour([33, 33, 255, 0.1]);
+        this.changeHighlightColour([33, 33, 255, 0.125]);
 
         if (statement.hasBody()) {
             for (const line of statement.body) {
@@ -693,11 +693,11 @@ export class ScopeHighlight {
     protected createDomElement(): void {
         this.headerElement = document.createElement("div");
         this.headerElement.classList.add("scope-header-highlight");
-        this.headerElement.style.backgroundColor = "rgba(75, 200, 255, 0.1)";
+        this.headerElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
 
         this.bodyElement = document.createElement("div");
         this.bodyElement.classList.add("scope-body-highlight");
-        this.bodyElement.style.backgroundColor = "rgba(75, 200, 255, 0.1)";
+        this.bodyElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
 
         this.updateDimensions();
 

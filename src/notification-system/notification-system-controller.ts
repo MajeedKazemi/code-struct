@@ -38,9 +38,9 @@ export class NotificationSystemController {
         warningText?: string,
         errMsgType?: ErrorMessage,
         highlightColour: [number, number, number, number] = defaultHighlightColour
-    ) {
+    ): HoverMessage {
         if (!codeToHighlight.notification) {
-            const notif = new HoverMessage(
+            const message = new HoverMessage(
                 this.editor,
                 codeToHighlight,
                 errMsgType ? this.msgGenerator.generateMsg(errMsgType, args) : warningText ?? "Placeholder Text",
@@ -48,11 +48,14 @@ export class NotificationSystemController {
                 this.notifications.length
             );
 
-            this.notifications.push(notif);
-            codeToHighlight.notification = this.notifications[this.notifications.length - 1];
+            this.notifications.push(message);
+            codeToHighlight.notification = message;
+
+            return message;
         } else {
             this.removeNotificationFromConstruct(codeToHighlight);
-            this.addHoverNotification(codeToHighlight, args, warningText, errMsgType, highlightColour);
+
+            return this.addHoverNotification(codeToHighlight, args, warningText, errMsgType, highlightColour);
         }
     }
 

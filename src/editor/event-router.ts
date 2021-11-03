@@ -224,7 +224,7 @@ export class EventRouter {
 
             case KeyPress.DoubleQuote: {
                 if (inTextEditMode && this.module.validator.canConvertAutocompleteToString(context)) {
-                    return new EditAction(EditActionType.ConvertAutocompleteToString);
+                    return new EditAction(EditActionType.ConvertAutocompleteToString, { token: context.tokenToRight });
                 }
 
                 break;
@@ -470,7 +470,7 @@ export class EventRouter {
                     e.insertData?.literalType === DataType.String &&
                     context.tokenToRight instanceof ast.AutocompleteTkn
                 ) {
-                    return new EditAction(EditActionType.ConvertAutocompleteToString);
+                    return new EditAction(EditActionType.ConvertAutocompleteToString, { token: context.tokenToRight });
                 } else {
                     return new EditAction(EditActionType.InsertLiteral, {
                         literalType: e.insertData?.literalType,

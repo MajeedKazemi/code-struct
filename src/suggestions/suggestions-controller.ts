@@ -952,6 +952,13 @@ export class MenuController {
         this.oldScrollOffset = scrollOffset;
     }
 
+    hasNoSuggestions(): boolean {
+        return (
+            this.menus[this.focusedMenuIndex].options.length == 1 &&
+            this.menus[this.focusedMenuIndex].options[0].text == "No suitable options found."
+        );
+    }
+
     private convertTerminatingChar(text: string): string {
         if (text == " ") return "space";
         else return text;

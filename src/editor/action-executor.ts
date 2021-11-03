@@ -2,40 +2,40 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../notification-system/error-msg-generator";
 import { ConstructHighlight, ScopeHighlight } from "../notification-system/notification";
 import {
-	AssignmentModifier,
-	AutocompleteTkn,
-	BinaryOperatorExpr,
-	CodeConstruct,
-	ElseStatement,
-	EmptyLineStmt,
-	Expression,
-	IdentifierTkn,
-	IfStatement,
-	Importable,
-	ImportStatement,
-	ListAccessModifier,
-	ListLiteralExpression,
-	LiteralValExpr,
-	Modifier,
-	NonEditableTkn,
-	Statement,
-	TemporaryStmt,
-	Token,
-	TypedEmptyExpr,
-	ValueOperationExpr,
-	VarAssignmentStmt,
-	VariableReferenceExpr,
-	VarOperationStmt
+    AssignmentModifier,
+    AutocompleteTkn,
+    BinaryOperatorExpr,
+    CodeConstruct,
+    ElseStatement,
+    EmptyLineStmt,
+    Expression,
+    IdentifierTkn,
+    IfStatement,
+    Importable,
+    ImportStatement,
+    ListAccessModifier,
+    ListLiteralExpression,
+    LiteralValExpr,
+    Modifier,
+    NonEditableTkn,
+    Statement,
+    TemporaryStmt,
+    Token,
+    TypedEmptyExpr,
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
-	AutoCompleteType,
-	BuiltInFunctions,
-	PythonKeywords,
-	TAB_SPACES,
-	TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-	TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
+    AutoCompleteType,
+    BuiltInFunctions,
+    PythonKeywords,
+    TAB_SPACES,
+    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -80,6 +80,28 @@ export class ActionExecutor {
                             }
 
                             this.updateAutocompleteMenu(autocompleteTkn);
+
+                            if (
+                                this.module.menuController.hasNoSuggestions() &&
+                                autocompleteTkn.left != autocompleteTkn.getParentStatement().left &&
+                                !autocompleteTkn.notification
+                            ) {
+                                const message = this.module.notificationSystem.addHoverNotification(
+                                    autocompleteTkn,
+                                    {},
+                                    'Did you mean to type in a text? if yes, use <span class="code">"</span> around the text'
+                                );
+
+                                const button = message.createButton("convert to text");
+                                button.addEventListener("click", () => {
+                                    this.module.executer.execute(
+                                        new EditAction(EditActionType.ConvertAutocompleteToString, {
+                                            token: autocompleteTkn,
+                                        }),
+                                        this.module.focus.getContext()
+                                    );
+                                });
+                            }
                         }).bind(this)
                     )
                 );
@@ -112,7 +134,7 @@ export class ActionExecutor {
 
                 if (match) this.performMatchAction(match, autocompleteTkn);
                 else {
-                    let highlight = new ConstructHighlight(this.module.editor, autocompleteTkn, [251, 225, 149, 0.7]);
+                    let highlight = new ConstructHighlight(this.module.editor, autocompleteTkn, [230, 235, 255, 0.7]);
 
                     autocompleteTkn.subscribe(
                         CallbackType.delete,
@@ -891,7 +913,7 @@ export class ActionExecutor {
             }
 
             case EditActionType.ConvertAutocompleteToString: {
-                const autocompleteToken = context.tokenToRight as AutocompleteTkn;
+                const autocompleteToken = action.data.token as AutocompleteTkn;
                 const literalValExpr = new LiteralValExpr(
                     DataType.String,
                     autocompleteToken.text,
@@ -899,8 +921,8 @@ export class ActionExecutor {
                     autocompleteToken.indexInRoot
                 );
 
-				this.deleteCode(autocompleteToken);
-				this.insertExpression(this.module.focus.getContext(), literalValExpr);
+                this.deleteCode(autocompleteToken);
+                this.insertExpression(this.module.focus.getContext(), literalValExpr);
 
                 break;
             }

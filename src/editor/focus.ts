@@ -619,7 +619,7 @@ export class Focus {
         const tokensStack = new Array<CodeConstruct>();
 
         // initialize tokensStack
-        for (const token of statement.tokens) tokensStack.unshift(token);
+        for (const token of statement?.tokens) tokensStack.unshift(token);
 
         while (tokensStack.length > 0) {
             const curToken = tokensStack.pop();
