@@ -1462,10 +1462,15 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     }
 
     removeAssignment() {
-        (this.rootNode as Module | Statement).scope.references.splice(
-            (this.rootNode as Module | Statement).scope.references.map((ref) => ref.statement).indexOf(this),
-            1
+        const varAssignmentsInScope = (this.rootNode as Module | Statement).scope.references.map(
+            (ref) => ref.statement
         );
+        if (varAssignmentsInScope.indexOf(this) > -1) {
+            varAssignmentsInScope.splice(
+                (this.rootNode as Module | Statement).scope.references.map((ref) => ref.statement).indexOf(this),
+                1
+            );
+        }
     }
 
     private onDelete() {
