@@ -1,0 +1,9 @@
+{
+    "title": "Break out of loops",
+    "body": [
+        {
+            "paragraph": "Stops the innermost running loop and breaks out of it (any code after the loop will run next)."
+        },
+        { "example": "for i in range(0, 50):\n\tif i == 25:\n\t\tbreak\n\tprint(i)" }
+    ]
+}

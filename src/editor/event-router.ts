@@ -404,10 +404,7 @@ export class EventRouter {
                 break;
             }
 
-            case InsertActionType.InsertImportStmt:
-            case InsertActionType.InsertWhileStmt:
-            case InsertActionType.InsertIfStmt:
-            case InsertActionType.InsertForStmt:
+            case InsertActionType.InsertStatement:
             case InsertActionType.InsertListIndexAssignment:
             case InsertActionType.InsertPrintFunctionStmt: {
                 if (!this.module.validator.isAboveElseStatement()) {

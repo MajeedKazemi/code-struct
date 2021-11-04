@@ -6,6 +6,7 @@ import * as AssignDivDocs from "../docs/assign-div.json";
 import * as AssignMultDocs from "../docs/assign-mult.json";
 import * as AssignSubDocs from "../docs/assign-sub.json";
 import * as AssignDocs from "../docs/assign.json";
+import * as BreakDocs from "../docs/break.json";
 import * as RandChoiceDocs from "../docs/choice.json";
 import * as CompEqDocs from "../docs/comp-eq.json";
 import * as CompGtDocs from "../docs/comp-gt.json";
@@ -56,6 +57,7 @@ import {
     FunctionCallStmt,
     IfStatement,
     ImportStatement,
+    KeywordStmt,
     ListAccessModifier,
     ListComma,
     ListLiteralExpression,
@@ -76,7 +78,9 @@ import {
     NumberRegex,
     UnaryOp,
 } from "../syntax-tree/consts";
+import { Module } from "../syntax-tree/module";
 import { EditCodeAction } from "./action-filter";
+import { Context } from "./focus";
 
 export enum KeyPress {
     // navigation:
@@ -229,12 +233,9 @@ export enum ConstructName {
 export enum InsertActionType {
     InsertNewVariableStmt,
 
-    InsertWhileStmt,
-    InsertIfStmt,
+    InsertStatement,
     InsertElifStmt,
     InsertElseStmt,
-    InsertForStmt,
-    InsertImportStmt,
 
     InsertPrintFunctionStmt,
     InsertFunctionExpr,
@@ -681,7 +682,7 @@ export class Actions {
             "while (---) :",
             "add-while-expr-btn",
             () => new WhileStatement(),
-            InsertActionType.InsertWhileStmt,
+            InsertActionType.InsertStatement,
             {},
             WhileDocs,
             [" "],
@@ -689,11 +690,37 @@ export class Actions {
             null
         );
 
+        const BreakStmt = new EditCodeAction(
+            "break",
+            "add-break-stmt-btn",
+            () =>
+                new KeywordStmt("break", null, null, (context: Context) => {
+                    let parent = context.lineStatement.rootNode as Statement | Module;
+
+                    while (
+                        !(parent instanceof WhileStatement) &&
+                        !(parent instanceof ForStatement) &&
+                        !(parent instanceof Module)
+                    ) {
+                        parent = parent.rootNode;
+                    }
+
+                    if (parent instanceof Module) return false;
+                    else return true;
+                }),
+            InsertActionType.InsertStatement,
+            {},
+            BreakDocs,
+            ["k"],
+            "brea",
+            null
+        );
+
         const IfStmt = new EditCodeAction(
             "if (---) :",
             "add-if-expr-btn",
             () => new IfStatement(),
-            InsertActionType.InsertIfStmt,
+            InsertActionType.InsertStatement,
             {},
             IfDocs,
             [" "],
@@ -729,7 +756,7 @@ export class Actions {
             "for -- in --- :",
             "add-for-expr-btn",
             () => new ForStatement(),
-            InsertActionType.InsertForStmt,
+            InsertActionType.InsertStatement,
             {},
             ForDocs,
             [" "],
@@ -741,7 +768,7 @@ export class Actions {
             "from --- import --- :",
             "add-import-btn",
             () => new ImportStatement(),
-            InsertActionType.InsertImportStmt,
+            InsertActionType.InsertStatement,
             {},
             ImportDocs,
             [" "],
@@ -999,6 +1026,7 @@ export class Actions {
             UnaryNotExpr,
             FindMethodMod,
             WhileStmt,
+            BreakStmt,
             IfStmt,
             ElifStmt,
             ElseStmt,
@@ -1181,7 +1209,7 @@ export class Actions {
         ]);
 
         this.toolboxCategories.push(
-            new ToolboxCategory("Loops", "loops-toolbox-group", [WhileStmt, ForStmt, RangeExpr])
+            new ToolboxCategory("Loops", "loops-toolbox-group", [WhileStmt, ForStmt, RangeExpr, BreakStmt])
         );
         this.toolboxCategories.push(
             new ToolboxCategory("Conditionals", "conditionals-toolbox-group", [IfStmt, ElifStmt, ElseStmt])

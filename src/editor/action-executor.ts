@@ -983,7 +983,7 @@ export class ActionExecutor {
                     "from --- import --- :",
                     "add-import-btn",
                     () => stmt,
-                    InsertActionType.InsertImportStmt,
+                    InsertActionType.InsertStatement,
                     {},
                     null,
                     [" "],

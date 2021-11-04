@@ -2177,6 +2177,33 @@ export class ListElementAssignment extends Statement {
     }
 }
 
+export class KeywordStmt extends Statement {
+    validator: (context: Context) => boolean;
+
+    constructor(
+        keyword,
+        root?: Statement | Expression,
+        indexInRoot?: number,
+        validator?: (context: Context) => boolean
+    ) {
+        super();
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+        this.validator = validator;
+
+        this.tokens.push(new NonEditableTkn(keyword, this, this.tokens.length));
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.onEmptyLine(providedContext) &&
+            !validator.isAboveElseStatement(providedContext) &&
+            this.validator(providedContext)
+            ? InsertionType.Valid
+            : InsertionType.Invalid;
+    }
+}
+
 export class MemberCallStmt extends Expression {
     operator: BinaryOperator;
 
