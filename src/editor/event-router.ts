@@ -289,7 +289,7 @@ export class EventRouter {
                                     .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                             });
                         }
-                    } else if (this.module.validator.onBeginningOfLine(context) && IdentifierRegex.test(e.key)) {
+                    } else if (this.module.validator.onEmptyLine(context) && IdentifierRegex.test(e.key)) {
                         return new EditAction(EditActionType.OpenAutocomplete, {
                             autocompleteType: AutoCompleteType.StartOfLine,
                             firstChar: e.key,
