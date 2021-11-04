@@ -1,6 +1,6 @@
 import { CodeStatus } from "../editor/consts";
-import { nova } from "../index";
-import { clearConsole, CONSOLE_ERR_TXT_CLASS, CONSOLE_WARN_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
+import { nova, runBtnToOutputWindow } from "../index";
+import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS, CONSOLE_WARN_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 
 const jsModule = {
 	inputPrompt: function (text) {
@@ -45,6 +45,7 @@ export const attachPyodideActions = (afterPyodideLoadedActions, otherActions) =>
 
 const attachMainConsoleRun = (pyodideController) => {
 	const runCodeBtn = document.getElementById("runCodeBtn");
+	let consoleId = runBtnToOutputWindow.get(nova.globals.lastPressedRunButtonId) ?? "outputDiv";
 	runCodeBtn.addEventListener("click", () => {
 		const codeStatus = nova.getCodeStatus(true);
 
@@ -58,34 +59,34 @@ const attachMainConsoleRun = (pyodideController) => {
 					);
 				} catch (err) {
 					console.error("Unable to run python code");
-					addTextToConsole(err, CONSOLE_ERR_TXT_CLASS);
+					addTextToConsole(consoleId, err, CONSOLE_ERR_TXT_CLASS);
 				}
 
 				break;
 
 			case CodeStatus.ContainsAutocompleteTkns:
 				addTextToConsole(
-					"Your code contains unfinished autocomplete elements. Remove or complete them to be able to run your code.",
+					consoleId, "Your code contains unfinished autocomplete elements. Remove or complete them to be able to run your code.",
 					CONSOLE_WARN_TXT_CLASS
 				);
 				break;
 
 			case CodeStatus.ContainsDraftMode:
-				addTextToConsole(
+				addTextToConsole(consoleId,
 					"Your code contains unfinished constructs. Complete the constructs to be able to run your code.",
 					CONSOLE_WARN_TXT_CLASS
 				);
 				break;
 
 			case CodeStatus.ContainsEmptyHoles:
-				addTextToConsole(
+				addTextToConsole(consoleId,
 					"Your code contains empty parts that expect to be filled with values. Fill these in order to be able to run your code.",
 					CONSOLE_WARN_TXT_CLASS
 				);
 				break;
 
 			case CodeStatus.Empty:
-				addTextToConsole(
+				addTextToConsole(consoleId,
 					"Your code is empty! Try inserting something from the toolbox.",
 					CONSOLE_WARN_TXT_CLASS
 				);
