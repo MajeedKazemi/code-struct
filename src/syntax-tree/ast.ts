@@ -1085,34 +1085,44 @@ export class ForStatement extends Statement implements VariableContainer {
         const varController = this.getModule().variableController;
 
         if (currentIdentifier !== oldIdentifier) {
-            const currentIdentifierAssignments = this.scope.getAllVarAssignmentsToNewVar(
-                currentIdentifier,
-                this.getModule(),
-                this.lineNumber,
-                this.loopVar
-            );
+            if (currentIdentifier === "  " && oldIdentifier !== "") {
+                varController.removeVariableRefButton(this.buttonId);
+                varController.addWarningToVarRefs(this.buttonId, this.getModule());
 
-            const oldIdentifierAssignments = (this.rootNode as Statement | Module).scope.getAllVarAssignmentsToNewVar(
-                oldIdentifier,
-                this.getModule(),
-                this.lineNumber,
-                this.loopVar
-            );
-
-            if (this.buttonId === "") {
-                //when we are changing a new var assignment statement
-                this.assignVariable(varController, currentIdentifierAssignments);
+                this.loopVar.updateIdentifier("  ", "  ", false);
+                this.buttonId = "";
             } else {
-                //when we are changing an existing var assignment statement
-                this.reassignVar(this.buttonId, varController, currentIdentifierAssignments, oldIdentifierAssignments);
-            }
+                const currentIdentifierAssignments = this.scope.getAllVarAssignmentsToNewVar(
+                    currentIdentifier,
+                    this.getModule(),
+                    this.lineNumber,
+                    this.loopVar
+                );
 
-            varController.updateVarButtonWithType(
-                this.loopVar.buttonId,
-                this.scope,
-                this.lineNumber,
-                this.getIdentifier()
-            );
+                const oldIdentifierAssignments = (
+                    this.rootNode as Statement | Module
+                ).scope.getAllVarAssignmentsToNewVar(oldIdentifier, this.getModule(), this.lineNumber, this.loopVar);
+
+                if (this.buttonId === "") {
+                    //when we are changing a new var assignment statement
+                    this.assignVariable(varController, currentIdentifierAssignments);
+                } else {
+                    //when we are changing an existing var assignment statement
+                    this.reassignVar(
+                        this.buttonId,
+                        varController,
+                        currentIdentifierAssignments,
+                        oldIdentifierAssignments
+                    );
+                }
+
+                varController.updateVarButtonWithType(
+                    this.loopVar.buttonId,
+                    this.scope,
+                    this.lineNumber,
+                    this.getIdentifier()
+                );
+            }
         }
     }
 
@@ -1200,7 +1210,7 @@ export class ForStatement extends Statement implements VariableContainer {
         if (assignments.length === 0) {
             varController.removeVariableRefButton(this.buttonId);
             varController.addWarningToVarRefs(this.buttonId, this.getModule());
-            //varController.collectRefsToDeletedVar(this.buttonId, this.getModule()); TODO: This needs to be done here as well...
+            this.getModule().variableController.collectRefsToDeletedVar(this.buttonId, this.getModule(), this.scope); //The scope here might need to be this.rootNode.scope because this only runs when the entire loop is being deleted
         }
     }
 }
