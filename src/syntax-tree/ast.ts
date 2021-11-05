@@ -1200,6 +1200,7 @@ export class ForStatement extends Statement implements VariableContainer {
         if (assignments.length === 0) {
             varController.removeVariableRefButton(this.buttonId);
             varController.addWarningToVarRefs(this.buttonId, this.getModule());
+            //varController.collectRefsToDeletedVar(this.buttonId, this.getModule()); TODO: This needs to be done here as well...
         }
     }
 }
@@ -1410,6 +1411,8 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             this.lineNumber,
             this.getIdentifier()
         );
+
+        varController.updateExistingRefsOnReinitialization(this);
     }
 
     assignExistingVariable(currentIdentifierAssignments: Statement[]) {
@@ -1477,9 +1480,8 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         const varController = this.getModule().variableController;
 
         if (this.buttonId !== "") {
-            (this.rootNode as Module | Statement).scope.references = (
-                this.rootNode as Module | Statement
-            ).scope.references.filter((ref) => ref.statement !== this);
+            const assignmentScope = (this.rootNode as Module | Statement).scope;
+            assignmentScope.references = assignmentScope.references.filter((ref) => ref.statement !== this);
 
             //deleting a variable by deleting its identifier first and then immediately deleting the statement without focusing off it
             const assignments = (this.rootNode as Statement | Module).scope.getAllAssignmentsToVariableWithinScope(
@@ -1490,6 +1492,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             if (assignments.length === 0) {
                 varController.removeVariableRefButton(this.buttonId);
                 varController.addWarningToVarRefs(this.buttonId, this.getModule());
+                varController.collectRefsToDeletedVar(this.buttonId, this.getModule(), assignmentScope);
             }
         }
     }

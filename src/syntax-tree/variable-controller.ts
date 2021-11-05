@@ -4,7 +4,7 @@ import {
     createCascadedMenuForVarRef,
     removeVariableReferenceButton,
 } from "../editor/toolbox";
-import { getUserFriendlyType } from "../utilities/util";
+import { getUserFriendlyType, hasMatch, Util } from "../utilities/util";
 import {
     CodeConstruct,
     ElseStatement,
@@ -15,7 +15,7 @@ import {
     VarAssignmentStmt,
     VariableReferenceExpr,
 } from "./ast";
-import { DataType } from "./consts";
+import { DataType, typeToConversionRecord, TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
 
@@ -23,9 +23,13 @@ export class VariableController {
     private variableButtons: HTMLDivElement[];
     private module: Module;
 
+    //<ref, ref's parent scopes, deleted assignment's scope>
+    private refsToDeletedVars: [VariableReferenceExpr, Scope[], Scope][];
+
     constructor(module: Module) {
         this.variableButtons = [];
         this.module = module;
+        this.refsToDeletedVars = [];
     }
 
     addVariableRefButton(assignmentStmt: VarAssignmentStmt) {
@@ -64,13 +68,54 @@ export class VariableController {
 
     addWarningToVarRefs(varId: string, module: Module) {
         const varRefs = this.getVarRefsBFS(varId, module);
-        const notfiSys = module.notificationSystem;
         for (const ref of varRefs) {
-            notfiSys.addHoverNotification(
+            module.openDraftMode(
                 ref,
-                null,
-                "This variable has been removed and cannot be referenced anymore. Consider deleting this reference."
+                "This variable has been removed and cannot be referenced anymore. Consider deleting this reference.",
+                []
             );
+        }
+    }
+
+    updateExistingRefsOnReinitialization(varStmt: VarAssignmentStmt): void {
+        const refsToDeletedVar = this.refsToDeletedVars.filter(
+            (record) => record[0].identifier === varStmt.getIdentifier() && record[0].uniqueId !== varStmt.buttonId
+        );
+
+        for (const ref of refsToDeletedVar) {
+            for (const scope of ref[1]) {
+                if (scope.getAllAssignmentsToVariableWithinScope(varStmt.getIdentifier()).length === 1) {
+                    this.module.closeConstructDraftRecord(ref[0]);
+                    ref[0].uniqueId = varStmt.buttonId;
+                    ref[0].returns = varStmt.dataType;
+
+                    const originalTypes = ref[0].rootNode.typeOfHoles[ref[0].indexInRoot];
+                    if (
+                        !hasMatch(originalTypes, [ref[0].returns]) &&
+                        hasMatch(Util.getInstance().typeConversionMap.get(ref[0].returns), originalTypes)
+                    ) {
+                        const conversionRecords = typeToConversionRecord.has(ref[0].returns)
+                            ? typeToConversionRecord
+                                  .get(ref[0].returns)
+                                  .filter((record) => originalTypes.indexOf(record.convertTo) > -1)
+                            : [];
+                        this.module.openDraftMode(
+                            ref[0],
+                            TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(originalTypes, ref[0].returns),
+                            conversionRecords.map((rec) =>
+                                rec.getConversionButton(ref[0].identifier, this.module, ref[0])
+                            )
+                        );
+                    }
+                }
+            }
+        }
+    }
+
+    collectRefsToDeletedVar(varId: string, module: Module, assignmentScope: Scope): void {
+        const varRefs = this.getVarRefsBFS(varId, module);
+        for (const ref of varRefs) {
+            this.refsToDeletedVars.push([ref, Scope.getAllScopesOfStmt(ref.getParentStatement()), assignmentScope]);
         }
     }
 

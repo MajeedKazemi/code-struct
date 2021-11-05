@@ -56,7 +56,7 @@ export class Scope {
         return validReferences;
     }
 
-    private getAllScopesOfStmt(stmt: Statement) {
+    static getAllScopesOfStmt(stmt: Statement) {
         let currStatement: Statement | Module = stmt;
         const scopes: Scope[] = [];
 
@@ -124,8 +124,8 @@ export class Scope {
         //filter out variable assignments that are not in this scope
         assignments = assignments.filter((assignmentStmt) => {
             if (assignmentStmt !== excludeStmt) {
-                const newAssignmentScopes = this.getAllScopesOfStmt(excludeStmt);
-                const oldAssignmentScopes = this.getAllScopesOfStmt(assignmentStmt);
+                const newAssignmentScopes = Scope.getAllScopesOfStmt(excludeStmt);
+                const oldAssignmentScopes = Scope.getAllScopesOfStmt(assignmentStmt);
                 const matchInfo = hasMatchWithIndex(newAssignmentScopes, oldAssignmentScopes);
 
                 if (lineNumber < assignmentStmt.lineNumber) {
@@ -165,6 +165,8 @@ export class Scope {
     }
 
     isParent(potentialChild: Scope): boolean {
+        if (!potentialChild) return false;
+
         let curr = potentialChild.parentScope;
         while (curr) {
             if (curr === this) return true;
