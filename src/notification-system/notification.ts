@@ -96,7 +96,7 @@ abstract class CodeHighlight {
         this.domElement.remove();
 
         for (const entry of this.callbacks) {
-            this.code.unsubscribe(entry[1], entry[0]);
+            this.code.callbacksToBeDeleted.set(entry[1], entry[0]);
         }
     }
 
@@ -683,7 +683,7 @@ export class ScopeHighlight {
         this.bodyElement.remove();
 
         for (const entry of this.callbacks) {
-            this.statement.unsubscribe(entry[1], entry[0]);
+            this.statement.callbacksToBeDeleted.set(entry[1], entry[0]);
         }
     }
 
