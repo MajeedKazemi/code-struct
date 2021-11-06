@@ -314,6 +314,16 @@ export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
     )} to one of the expected types is possible using one of:`;
 }
 
+export function addClassToDraftModeResolutionButton(button: HTMLDivElement, codeToReplace: CodeConstruct) {
+    if (!(codeToReplace instanceof Expression) && !(codeToReplace instanceof Modifier)) {
+        button.classList.add("statement-button");
+    } else if (codeToReplace instanceof Modifier) {
+        button.classList.add("modifier-button");
+    } else if (codeToReplace instanceof Expression) {
+        button.classList.add("expression-button");
+    }
+}
+
 export abstract class TypeConversionRecord {
     conversionConstruct: string;
     conversionConstructId: string;
@@ -348,13 +358,7 @@ export abstract class TypeConversionRecord {
         const actionType = this.editActionType;
         const conversionConstructId = this.conversionConstructId;
 
-        if (!(codeToReplace instanceof Expression) && !(codeToReplace instanceof Modifier)) {
-            button.classList.add("statement-button");
-        } else if (codeToReplace instanceof Modifier) {
-            button.classList.add("modifier-button");
-        } else if (codeToReplace instanceof Expression) {
-            button.classList.add("expression-button");
-        }
+        addClassToDraftModeResolutionButton(button, codeToReplace);
 
         button.addEventListener("click", () => {
             module.executer.execute(
