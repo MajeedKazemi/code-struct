@@ -223,8 +223,6 @@ export enum EditActionType {
     InsertFunctionConversion,
     InsertMemberCallConversion,
     InsertMemberAccessConversion,
-
-    ReplaceRefWithModifier,
 }
 
 export enum ConstructName {

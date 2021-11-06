@@ -1034,21 +1034,6 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.ReplaceRefWithModifier: {
-                this.module.closeConstructDraftRecord(action.data.codeToReplace);
-                this.deleteCode(action.data.codeToReplace, { statement: true, replaceType: null });
-
-                const stmtToInsert = Actions.instance()
-                    .actionsList.find((element) => element.cssId == action.data.replacementConstructCssId)
-                    .getCodeFunction() as Statement;
-
-                this.insertStatement(this.module.focus.getContext(), stmtToInsert);
-
-                //this.flashGreen(stmtToInsert as CodeConstruct);
-
-                break;
-            }
-
             case EditActionType.SelectClosestTokenAbove: {
                 this.module.focus.navigateUp();
 
