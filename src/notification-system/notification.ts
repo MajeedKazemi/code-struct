@@ -96,7 +96,7 @@ abstract class CodeHighlight {
         this.domElement.remove();
 
         for (const entry of this.callbacks) {
-            this.code.unsubscribe(entry[1], entry[0]);
+            this.code.callbacksToBeDeleted.set(entry[1], entry[0]);
         }
     }
 
@@ -320,7 +320,7 @@ export class HoverMessage extends InlineMessage {
         const currentLinePosition = nova.focus.getStatementAtLineNumber(this.code.getLineNumber()).getRightPosition();
         this.domElement.style.top = `${(this.selection.startLineNumber - 1) * this.editor.computeCharHeight()}px`; // 0 is the line below this.code, -1 is this.code's line, -2 is the line above this.code
         this.domElement.style.left = `${
-            (currentLinePosition.column + 2) * this.editor.computeCharWidth(currentLinePosition.lineNumber) + 10
+            (currentLinePosition.column + 2) * this.editor.computeCharWidthGlobal() + 10
         }px`;
 
         this.domElement.style.zIndex = "10";
@@ -683,7 +683,7 @@ export class ScopeHighlight {
         this.bodyElement.remove();
 
         for (const entry of this.callbacks) {
-            this.statement.unsubscribe(entry[1], entry[0]);
+            this.statement.callbacksToBeDeleted.set(entry[1], entry[0]);
         }
     }
 

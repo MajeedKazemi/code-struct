@@ -30,6 +30,7 @@ import {
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
+    addClassToDraftModeResolutionButton,
     AutoCompleteType,
     BuiltInFunctions,
     PythonKeywords,
@@ -1170,8 +1171,52 @@ export class ActionExecutor {
         let context = providedContext ? providedContext : this.module.focus.getContext();
 
         if (this.module.validator.onBeginningOfLine(context)) {
-            const stmt = new VarOperationStmt(this.createVarReference(buttonId));
+            const varRef = this.createVarReference(buttonId);
+            const stmt = new VarOperationStmt(varRef);
             this.insertStatement(context, stmt);
+
+            const availableActions = this.module.actionFilter
+                .getProcessedInsertionsList()
+                .filter(
+                    (action) =>
+                        action.insertionResult.insertionType !== InsertionType.Invalid &&
+                        (action.insertActionType === InsertActionType.InsertAssignmentModifier ||
+                            action.insertActionType === InsertActionType.InsertAugmentedAssignmentModifier)
+                );
+
+            this.module.openDraftMode(
+                stmt,
+                "Variable references should not be used on empty lines. Try converting it to an assignment statement instead!",
+                (() => {
+                    const buttons = [];
+
+                    for (const action of availableActions) {
+                        const button = document.createElement("div");
+                        addClassToDraftModeResolutionButton(button, stmt);
+
+                        const text = `${varRef.identifier}${action.optionName}`.replace(/---/g, "<hole1></hole1>");
+                        button.innerHTML = text;
+
+                        const modifier = action.getCode();
+                        button.addEventListener("click", () => {
+                            this.module.closeConstructDraftRecord(stmt);
+                            this.module.executer.execute(
+                                new EditAction(EditActionType.InsertAssignmentModifier, {
+                                    codeToReplace: stmt,
+                                    replacementConstructCssId: action.cssId,
+                                    modifier: modifier,
+                                }),
+                                this.module.focus.getContext()
+                            );
+                            this.flashGreen(modifier.rootNode as Statement);
+                        });
+
+                        buttons.push(button);
+                    }
+
+                    return buttons;
+                })()
+            );
 
             if (autocompleteData) {
                 this.flashGreen(stmt);

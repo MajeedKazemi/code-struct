@@ -174,6 +174,20 @@ export class Editor {
         return line.getBoundingClientRect().width / line.innerText.length;
     }
 
+    computeCharWidthGlobal() {
+        const lines = document.getElementsByClassName("view-lines")[0];
+
+        for (let i = 0; i < lines.children.length; i++) {
+            const line = <HTMLElement>lines.children[i]?.children[0];
+
+            if (line.getBoundingClientRect().width !== 0 && line.innerText.length !== 0) {
+                return line.getBoundingClientRect().width / line.innerText.length;
+            }
+        }
+
+        return 0;
+    }
+
     computeCharWidthInvisible(ln = 1): number {
         let width = this.computeCharWidth(ln);
         if (width > 0) return width;

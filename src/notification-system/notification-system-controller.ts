@@ -100,12 +100,13 @@ export class NotificationSystemController {
      */
     removeNotificationFromConstruct(code: CodeConstruct) {
         if (code?.notification) {
+            const indexOfNotif = this.notifications.indexOf(code.notification);
             this.notifications[code.notification.systemIndex].removeFromDOM();
             this.notifications.splice(code.notification.systemIndex, 1);
             code.notification = null;
 
-            for (const notification of this.notifications) {
-                notification.systemIndex--;
+            for (let i = indexOfNotif; i < this.notifications.length; i++) {
+                this.notifications[i].systemIndex--;
             }
         } else {
             console.warn("Could not remove notification from construct: " + code);

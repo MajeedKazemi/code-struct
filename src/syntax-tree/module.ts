@@ -16,19 +16,19 @@ import { NotificationSystemController } from "../notification-system/notificatio
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
-	AutocompleteTkn,
-	CodeConstruct,
-	EmptyLineStmt,
-	Expression,
-	ForStatement,
-	Importable,
-	ImportStatement,
-	ListLiteralExpression,
-	Statement,
-	Token,
-	TypedEmptyExpr,
-	VarAssignmentStmt,
-	VariableReferenceExpr
+    AutocompleteTkn,
+    CodeConstruct,
+    EmptyLineStmt,
+    Expression,
+    ForStatement,
+    Importable,
+    ImportStatement,
+    ListLiteralExpression,
+    Statement,
+    Token,
+    TypedEmptyExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
 } from "./ast";
 import { rebuildBody } from "./body";
 import { CallbackType } from "./callback";
@@ -555,17 +555,14 @@ export class Module {
                 status = status ?? CodeStatus.ContainsEmptyHoles;
 
                 if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
-
             } else if (cur instanceof AutocompleteTkn) {
                 status = status ?? CodeStatus.ContainsAutocompleteTokens;
 
                 if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
-
             } else if (cur.draftModeEnabled) {
                 status = status ?? CodeStatus.ContainsDraftMode;
 
                 if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
-
             } else if (cur instanceof Expression && cur.tokens.length > 0) {
                 const addHighlight = cur instanceof ListLiteralExpression && !cur.isHolePlacementValid();
                 status = addHighlight ? CodeStatus.ContainsEmptyHoles : status;
