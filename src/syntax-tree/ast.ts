@@ -1087,7 +1087,7 @@ export class ForStatement extends Statement implements VariableContainer {
         if (currentIdentifier !== oldIdentifier) {
             if (currentIdentifier === "  " && oldIdentifier !== "") {
                 varController.removeVariableRefButton(this.buttonId);
-                varController.addWarningToVarRefs(this.buttonId, this.getModule());
+                varController.addWarningToVarRefs(this.buttonId, this.getIdentifier(), this.getModule(), this.loopVar);
 
                 this.loopVar.updateIdentifier("  ", "  ", false);
                 this.buttonId = "";
@@ -1140,6 +1140,7 @@ export class ForStatement extends Statement implements VariableContainer {
         } else if (currentIdentifierAssignments.length > 0) {
             this.assignExistingVariable(currentIdentifierAssignments);
         }
+        varController.updateExistingRefsOnReinitialization(this.loopVar);
     }
 
     assignNewVariable(varController: VariableController) {
@@ -1209,8 +1210,7 @@ export class ForStatement extends Statement implements VariableContainer {
 
         if (assignments.length === 0) {
             varController.removeVariableRefButton(this.buttonId);
-            varController.addWarningToVarRefs(this.buttonId, this.getModule());
-            this.getModule().variableController.collectRefsToDeletedVar(this.buttonId, this.getModule(), this.scope); //The scope here might need to be this.rootNode.scope because this only runs when the entire loop is being deleted
+            varController.addWarningToVarRefs(this.buttonId, this.getIdentifier(), this.getModule(), this.loopVar);
         }
     }
 }
@@ -1348,7 +1348,6 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                     varController.getAllAssignmentsToVar(this.buttonId, this.getModule()).length === 0
                 ) {
                     varController.removeVariableRefButton(this.buttonId);
-                    varController.addWarningToVarRefs(this.buttonId, this.getModule());
                 }
 
                 this.buttonId = "";
@@ -1389,6 +1388,8 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                 const insertions = this.getModule().actionFilter.getProcessedVariableInsertions();
                 updateButtonsVisualMode(insertions);
             }
+        } else if (currentIdentifier === this.oldIdentifier) {
+            varController.updateReturnTypeOfRefs(this.buttonId);
         }
     }
 
@@ -1421,7 +1422,6 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             this.lineNumber,
             this.getIdentifier()
         );
-
         varController.updateExistingRefsOnReinitialization(this);
     }
 
@@ -1447,6 +1447,8 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
         );
+
+        this.getModule().variableController.updateExistingRefsOnReinitialization(this);
     }
 
     reassignVar(
@@ -1458,16 +1460,20 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
         //just removed last assignment to the old var
         if (oldIdentifierAssignments.length === 0) {
             varController.removeVariableRefButton(oldVarId);
+            varController.addWarningToVarRefs(this.buttonId, this.oldIdentifier, this.getModule(), this);
         }
 
         if (currentIdentifierAssignments.length === 0) {
             //variable being reassigned to is a new variable
+            varController.addWarningToVarRefs(this.buttonId, this.oldIdentifier, this.getModule(), this);
             this.buttonId = "";
             this.assignNewVariable(varController);
         } else if (currentIdentifierAssignments.length > 0) {
             //variable being reassigned to already exists
             this.assignExistingVariable(currentIdentifierAssignments);
         }
+
+        varController.updateExistingRefsOnReinitialization(this);
     }
 
     onInsertInto(insertCode: Expression) {
@@ -1500,9 +1506,9 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             );
 
             if (assignments.length === 0) {
+                const identifier = this.getIdentifier() === "  " ? this.oldIdentifier : this.getIdentifier();
                 varController.removeVariableRefButton(this.buttonId);
-                varController.addWarningToVarRefs(this.buttonId, this.getModule());
-                varController.collectRefsToDeletedVar(this.buttonId, this.getModule(), assignmentScope);
+                varController.addWarningToVarRefs(this.buttonId, identifier, this.getModule(), this);
             }
         }
     }
