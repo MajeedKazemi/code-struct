@@ -2350,6 +2350,22 @@ export class BinaryOperatorExpr extends Expression {
         this.hasEmptyToken = true;
     }
 
+    getValidLeftOperandTypes(): DataType[] {
+        if (this.areAllHolesEmpty()) {
+            return this.typeOfHoles[this.leftOperandIndex];
+        }
+
+        return [this.getFilledHoleType()];
+    }
+
+    getValidRightOperandTypes(): DataType[] {
+        if (this.areAllHolesEmpty()) {
+            return this.typeOfHoles[this.rightOperandIndex];
+        }
+
+        return [this.getFilledHoleType()];
+    }
+
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
             (validator.atLeftOfExpression(providedContext) &&
@@ -2453,15 +2469,21 @@ export class BinaryOperatorExpr extends Expression {
         }
     }
 
+    private getFilledHoleType(): DataType {
+        let existingLiteralType = null;
+        if (this.tokens[this.leftOperandIndex] instanceof Expression) {
+            existingLiteralType = (this.tokens[this.leftOperandIndex] as Expression).returns;
+        } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
+            existingLiteralType = (this.tokens[this.rightOperandIndex] as Expression).returns;
+        }
+
+        return existingLiteralType;
+    }
+
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
         if (!this.isBoolean()) {
             //Check if one of the holes is not empty and get its type
-            let existingLiteralType = null;
-            if (this.tokens[this.leftOperandIndex] instanceof Expression) {
-                existingLiteralType = (this.tokens[this.leftOperandIndex] as Expression).returns;
-            } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
-                existingLiteralType = (this.tokens[this.rightOperandIndex] as Expression).returns;
-            }
+            let existingLiteralType = this.getFilledHoleType();
 
             //if existingLiteralType is null then both operands are still empty holes and since we are inserting
             //into one of them, the types need to be updated
