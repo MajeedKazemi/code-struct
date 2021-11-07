@@ -66,56 +66,144 @@ export class VariableController {
         }
     }
 
-    addWarningToVarRefs(varId: string, module: Module) {
-        const varRefs = this.getVarRefsBFS(varId, module);
+    updateReturnTypeOfRefs(varId: string): void {
+        const varRefs = this.getVarRefsBFS(varId, this.module);
         for (const ref of varRefs) {
-            module.openDraftMode(
-                ref,
-                "This variable has been removed and cannot be referenced anymore. Consider deleting this reference.",
-                []
-            );
+            const newType = this.getVariableTypeNearLine(this.getScopeOfVarRef(ref), ref.lineNumber, ref.identifier);
+            const typeMismatch = this.updateReturnTypeOfRef(ref, newType);
+            if (!typeMismatch && ref.draftModeEnabled) {
+                //WARNING: Because of this check, this method should NEVER be called when a variable is being deleted as it could remove the wrong warning highlights since we have no way to distinguish them
+                this.module.closeConstructDraftRecord(ref);
+            }
         }
     }
 
-    updateExistingRefsOnReinitialization(varStmt: VarAssignmentStmt): void {
-        const refsToDeletedVar = this.refsToDeletedVars.filter(
-            (record) => record[0].identifier === varStmt.getIdentifier() && record[0].uniqueId !== varStmt.buttonId
-        );
+    private updateReturnTypeOfRef(ref: VariableReferenceExpr, newType: DataType): boolean {
+        ref.returns = newType;
+        const originalTypes = ref.rootNode.typeOfHoles[ref.indexInRoot];
+        if (
+            !hasMatch(originalTypes, [newType]) &&
+            hasMatch(Util.getInstance().typeConversionMap.get(newType), originalTypes)
+        ) {
+            const conversionRecords = typeToConversionRecord.has(newType)
+                ? typeToConversionRecord.get(newType).filter((record) => originalTypes.indexOf(record.convertTo) > -1)
+                : [];
+            this.module.openDraftMode(
+                ref,
+                TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(originalTypes, newType),
+                conversionRecords.map((rec) => rec.getConversionButton(ref.identifier, this.module, ref))
+            );
 
-        for (const ref of refsToDeletedVar) {
-            for (const scope of ref[1]) {
-                if (scope.getAllAssignmentsToVariableWithinScope(varStmt.getIdentifier()).length === 1) {
-                    this.module.closeConstructDraftRecord(ref[0]);
-                    ref[0].uniqueId = varStmt.buttonId;
-                    ref[0].returns = varStmt.dataType;
+            return true;
+        }
 
-                    const originalTypes = ref[0].rootNode.typeOfHoles[ref[0].indexInRoot];
-                    if (
-                        !hasMatch(originalTypes, [ref[0].returns]) &&
-                        hasMatch(Util.getInstance().typeConversionMap.get(ref[0].returns), originalTypes)
-                    ) {
-                        const conversionRecords = typeToConversionRecord.has(ref[0].returns)
-                            ? typeToConversionRecord
-                                  .get(ref[0].returns)
-                                  .filter((record) => originalTypes.indexOf(record.convertTo) > -1)
-                            : [];
-                        this.module.openDraftMode(
-                            ref[0],
-                            TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(originalTypes, ref[0].returns),
-                            conversionRecords.map((rec) =>
-                                rec.getConversionButton(ref[0].identifier, this.module, ref[0])
-                            )
-                        );
+        return false;
+    }
+
+    private getScopeOfVarRef(ref: VariableReferenceExpr): Scope {
+        let currCode: Statement = ref;
+        while (currCode.scope === null) {
+            if (currCode.rootNode instanceof Module) {
+                return currCode.rootNode.scope;
+            }
+
+            currCode = currCode.rootNode as Statement;
+        }
+        return currCode.scope;
+    }
+
+    private doesAssignmentCoverVarRef(
+        ref: VariableReferenceExpr,
+        refScope: Scope,
+        stmtScope: Scope,
+        stmt: VarAssignmentStmt
+    ): boolean {
+        return (stmt.lineNumber < ref.lineNumber && stmtScope === refScope) || stmtScope.isParent(refScope);
+    }
+
+    private pointVarRefToNewVar(ref: VariableReferenceExpr, varId: string, stmt: VarAssignmentStmt): void {
+        ref.uniqueId = stmt.buttonId;
+        this.updateReturnTypeOfRef(ref, stmt.dataType);
+    }
+
+    addWarningToVarRefs(varId: string, varIdentifier: string, module: Module, stmtToExclude: VarAssignmentStmt) {
+        const varRefs = this.getVarRefsBFS(varId, module);
+
+        //put a warning on every var ref that is not covered by a top-level assignment
+        for (const ref of varRefs) {
+            const refScope = this.getScopeOfVarRef(ref);
+
+            //get all assignments to this var within this scope
+            const assignmentsToVarWithinScope = refScope.getAllAssignmentsToVariableWithinScope(
+                varIdentifier,
+                stmtToExclude
+            );
+
+            //find assignment with the smallest line number
+            let topLevelAssignmentWithinScope = null;
+
+            if (assignmentsToVarWithinScope.length > 0) {
+                topLevelAssignmentWithinScope = assignmentsToVarWithinScope[0];
+                for (const reference of assignmentsToVarWithinScope) {
+                    if (reference.statement.lineNumber < topLevelAssignmentWithinScope.statement.lineNumber) {
+                        topLevelAssignmentWithinScope = reference;
+                    }
+                }
+            }
+
+            //if no assignment covers this variable, then we need to put a warning on it
+            if (
+                !topLevelAssignmentWithinScope ||
+                (topLevelAssignmentWithinScope.statement.lineNumber > ref.lineNumber &&
+                    !topLevelAssignmentWithinScope.scope.isParent(refScope))
+            ) {
+                module.openDraftMode(
+                    ref,
+                    "This variable has been removed and cannot be referenced anymore. Consider deleting this reference.",
+                    []
+                );
+            } else {
+                //this reference is actually covered by some assignment and just needs to have its id and type updated. NOTE: Type might not always be updated
+                this.pointVarRefToNewVar(ref, varId, topLevelAssignmentWithinScope.statement);
+
+                //we actually need to make a button for the top level assignment and make all other assignments point to it as well
+                const button = document.getElementById(topLevelAssignmentWithinScope.statement.buttonId);
+                if (!button) {
+                    this.addVariableRefButton(topLevelAssignmentWithinScope.statement);
+                }
+                for (const assignment of assignmentsToVarWithinScope) {
+                    if (assignment !== topLevelAssignmentWithinScope) {
+                        (assignment.statement as VarAssignmentStmt).buttonId =
+                            topLevelAssignmentWithinScope.statement.buttonId;
                     }
                 }
             }
         }
     }
 
-    collectRefsToDeletedVar(varId: string, module: Module, assignmentScope: Scope): void {
-        const varRefs = this.getVarRefsBFS(varId, module);
+    updateExistingRefsOnReinitialization(varStmt: VarAssignmentStmt): void {
+        //update their uniqueId and dataType and perform type checks
+        //find assignment statements below this one that now reference this statement as their top-level statement
+        //update their button id and remove buttons that they currently have
+        //find references that were previously not covered and are covered by this assignment and cover them
+        const varRefs = [];
+        this.module.performActionOnBFS((code) => {
+            if (
+                code instanceof VariableReferenceExpr &&
+                code.identifier === varStmt.getIdentifier() &&
+                code.draftModeEnabled
+            ) {
+                varRefs.push(code);
+            }
+        });
+
         for (const ref of varRefs) {
-            this.refsToDeletedVars.push([ref, Scope.getAllScopesOfStmt(ref.getParentStatement()), assignmentScope]);
+            const refScope = this.getScopeOfVarRef(ref);
+
+            if (this.doesAssignmentCoverVarRef(ref, refScope, varStmt.scope ?? varStmt.rootNode.scope, varStmt)) {
+                this.module.closeConstructDraftRecord(ref);
+                this.pointVarRefToNewVar(ref, varStmt.buttonId, varStmt);
+            }
         }
     }
 
