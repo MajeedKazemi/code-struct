@@ -16,6 +16,7 @@ import {
     ListAccessModifier,
     ListLiteralExpression,
     LiteralValExpr,
+    MethodCallModifier,
     Modifier,
     NonEditableTkn,
     Statement,
@@ -694,6 +695,9 @@ export class ActionExecutor {
                         action.data.modifier instanceof AssignmentModifier &&
                         context.expressionToLeft instanceof VariableReferenceExpr
                     ) {
+                        if (context.expressionToLeft.rootNode.draftModeEnabled) {
+                            this.module.closeConstructDraftRecord(context.expressionToLeft.rootNode);
+                        }
                         const initialBoundary = this.getBoundaries(context.expressionToLeft);
 
                         const varAssignStmt = new VarAssignmentStmt(
@@ -710,6 +714,13 @@ export class ActionExecutor {
 
                         if (flashGreen) this.flashGreen(varAssignStmt);
                     } else {
+                        if (
+                            context.expressionToLeft instanceof VariableReferenceExpr &&
+                            context.expressionToLeft.rootNode.draftModeEnabled
+                        ) {
+                            this.module.closeConstructDraftRecord(context.expressionToLeft.rootNode);
+                        }
+
                         varOpStmt.appendModifier(action.data.modifier);
                         varOpStmt.rebuild(varOpStmt.getLeftPosition(), 0);
 
@@ -771,6 +782,9 @@ export class ActionExecutor {
                     context.expressionToLeft instanceof VariableReferenceExpr &&
                     context.expressionToLeft.rootNode instanceof VarOperationStmt
                 ) {
+                    if (context.expressionToLeft.rootNode.draftModeEnabled) {
+                        this.module.closeConstructDraftRecord(context.expressionToLeft.rootNode);
+                    }
                     const varOpStmt = context.expressionToLeft.rootNode;
 
                     varOpStmt.appendModifier(modifier);
@@ -778,6 +792,15 @@ export class ActionExecutor {
 
                     this.module.editor.insertAtCurPos([modifier]);
                     this.module.focus.updateContext(modifier.getInitialFocus());
+
+                    if (modifier instanceof MethodCallModifier && modifier.returns !== DataType.Void) {
+                        //TODO: PropertyAccessModifier should also be included here once we have them
+                        this.module.openDraftMode(
+                            varOpStmt,
+                            "This statement has no effect since the value it returns is not stored anywhere.",
+                            []
+                        ); //TODO: Offer fixes?
+                    }
                 } else {
                     const exprToLeftRoot = context.expressionToLeft.rootNode as Statement;
                     const exprToLeftIndexInRoot = context.expressionToLeft.indexInRoot;

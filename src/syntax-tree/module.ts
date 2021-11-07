@@ -17,6 +17,7 @@ import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
     AutocompleteTkn,
+    BinaryOperatorExpr,
     CodeConstruct,
     EmptyLineStmt,
     Expression,
@@ -328,6 +329,19 @@ export class Module {
             if (root instanceof ListLiteralExpression) replaceType = DataType.Any;
 
             const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
+            if (item.rootNode instanceof BinaryOperatorExpr) {
+                let allowedTypes = [];
+                if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
+                    allowedTypes = item.rootNode.getValidLeftOperandTypes();
+                } else {
+                    allowedTypes = item.rootNode.getValidRightOperandTypes();
+                }
+
+                if (allowedTypes !== [null]) {
+                    replacedItem.type = allowedTypes;
+                }
+            }
+
             this.recursiveNotify(item, CallbackType.delete);
 
             root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
