@@ -337,7 +337,7 @@ export class Module {
                     allowedTypes = item.rootNode.getValidRightOperandTypes();
                 }
 
-                if (allowedTypes !== [null]) {
+                if (allowedTypes.length > 0) {
                     replacedItem.type = allowedTypes;
                 }
             }

@@ -2360,8 +2360,8 @@ export class BinaryOperatorExpr extends Expression {
         if (this.areAllHolesEmpty()) {
             return this.typeOfHoles[this.leftOperandIndex];
         }
-
-        return [this.getFilledHoleType()];
+        const type = this.getFilledHoleType();
+        return type ? [type] : [];
     }
 
     getValidRightOperandTypes(): DataType[] {
@@ -2369,7 +2369,8 @@ export class BinaryOperatorExpr extends Expression {
             return this.typeOfHoles[this.rightOperandIndex];
         }
 
-        return [this.getFilledHoleType()];
+        const type = this.getFilledHoleType();
+        return type ? [type] : [];
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
