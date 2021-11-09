@@ -24,7 +24,7 @@ import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
 import { isImportable } from "../utilities/util";
-import { DataType, InsertionType, NumberRegex, TAB_SPACES } from "./../syntax-tree/consts";
+import { DataType, InsertionType, NumberRegex } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Context } from "./focus";
 
@@ -464,7 +464,7 @@ export class Validator {
         if (context.lineStatement.lineNumber > 2) {
             const lineAbove = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
 
-            return context.lineStatement.left == lineAbove.left - TAB_SPACES;
+            return context.lineStatement.left < lineAbove.left;
         }
     }
 
