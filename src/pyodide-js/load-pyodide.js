@@ -7,7 +7,9 @@ const exportPromise = new Promise(async ($export) => {
 			indexURL: "https://cdn.jsdelivr.net/pyodide/v0.18.1/full/",
 			stdout: (text) => {
 				let consoleId = runBtnToOutputWindow.get(nova.globals.lastPressedRunButtonId) ?? "outputDiv";
-				addTextToConsole(consoleId, text, CONSOLE_TXT_CLASS);
+				document.getElementById("runCodeBtn").classList.remove("disabled");
+
+				if (text != "Python initialization complete") addTextToConsole(consoleId, text, CONSOLE_TXT_CLASS);
 			},
 		}),
 	});

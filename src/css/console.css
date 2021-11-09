@@ -24,6 +24,11 @@
     margin: 10px 0px 0px 20px;
 }
 
+.run-code-button-container .disabled {
+    background-color: #888;
+    cursor: not-allowed;
+}
+
 #outputDiv {
     color: #000;
     font-size: 14px;
@@ -34,6 +39,7 @@
 
     margin-top: 10px;
     padding-left: 20px;
+    padding: 8px 0 8px 20px;
 }
 
 .consoleTxt {

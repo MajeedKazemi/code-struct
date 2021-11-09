@@ -64,6 +64,7 @@ export class DocumentationBox {
                                     try {
                                         nova.globals.lastPressedRunButtonId = button.id;
 
+                                        clearConsole(ex[3]);
                                         pyodideController.runPython(codeString(ex[2].getValue()));
                                     } catch (err) {
                                         console.error("Unable to run python code");
@@ -231,8 +232,8 @@ function createImage(image): HTMLDivElement {
     return tableElement;
 }
 
-function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeEditor] {
-    const runBtns = [];
+function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeEditor, string] {
+    const runButtons = [];
 
     const editorContainer = document.createElement("div");
     editorContainer.classList.add("doc-editor-container");
@@ -283,7 +284,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
     clearConsoleButton.addEventListener("click", () => {
         clearConsole(consoleOutput.id);
     });
-    runBtns.push(runButton.id);
+    runButtons.push(runButton.id);
 
     const codeEditor = editor.create(exampleEditor, {
         folding: false,
@@ -316,7 +317,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
         codeEditor.setValue(item.example);
     });
 
-    return [editorContainer, runBtns, codeEditor];
+    return [editorContainer, runButtons, codeEditor, consoleOutput.id];
 }
 
 function makeDraggable(element: HTMLDivElement) {

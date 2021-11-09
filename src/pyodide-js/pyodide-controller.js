@@ -48,10 +48,12 @@ const attachMainConsoleRun = (pyodideController) => {
 	let consoleId = runBtnToOutputWindow.get(nova.globals.lastPressedRunButtonId) ?? "outputDiv";
 	runCodeBtn.addEventListener("click", () => {
 		const codeStatus = nova.getCodeStatus(true);
+		clearConsole("outputDiv");
 
 		switch (codeStatus) {
 			case CodeStatus.Runnable:
 				const code = nova.editor.monaco.getValue();
+
 				try {
 					nova.globals.lastPressedRunButtonId = "runCodeBtn";
 					pyodideController.runPython(
@@ -64,7 +66,7 @@ const attachMainConsoleRun = (pyodideController) => {
 
 				break;
 
-			case CodeStatus.ContainsAutocompleteTkns:
+			case CodeStatus.ContainsAutocompleteTokens:
 				addTextToConsole(
 					consoleId, "Your code contains unfinished autocomplete elements. Remove or complete them to be able to run your code.",
 					CONSOLE_WARN_TXT_CLASS

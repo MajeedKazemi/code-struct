@@ -13,5 +13,4 @@ export const addTextToConsole = (consoleId: string, text: string, styleClass: st
 
 export const clearConsole = (consoleId: string) => {
     document.getElementById(consoleId).innerHTML = "";
-    addTextToConsole(consoleId, "Cleared console.", CONSOLE_TXT_CLASS);
 };

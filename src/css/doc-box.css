@@ -123,12 +123,27 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
     margin-bottom: 15px;
 }
 
+.console-output::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+.console-output::-webkit-scrollbar-track {
+    background: #c1c1c1;
+}
+
+.console-output::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #8c8c8c;
+    border-radius: 0px;
+}
+
 .doc-example-console {
     background-color: #ccc;
     height: 125px;
     font-size: 14px;
     font-weight: bold;
-    padding: 5px;
 }
 
 .doc-example-console p {
@@ -182,6 +197,12 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 }
 
 .console-output {
-    height: 100%;
+    height: calc(100% + -45px);
     overflow-y: scroll;
+    padding: 5px;
+}
+
+.doc-example-console-button-container {
+    border-bottom: solid 1px#bbb;
+    padding: 5px;
 }
