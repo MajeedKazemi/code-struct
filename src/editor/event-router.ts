@@ -144,11 +144,10 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.canDeletePrevMultiLineStatement(context)) {
                     return new EditAction(EditActionType.DeleteMultiLineStatement);
-                } else if (this.module.validator.canDeletePrevLine(context)) {
-                    return new EditAction(EditActionType.DeletePrevLine);
                 } else if (this.module.validator.canDeleteBackMultiEmptyLines(context)) {
                     return new EditAction(EditActionType.DeleteBackMultiLines);
-                } else if (this.module.validator.canIndentBackIfStatement(context)) {
+                } else if (this.module.validator.canDeletePrevLine(context)) {
+                    return new EditAction(EditActionType.DeletePrevLine);
                 } else if (this.module.validator.canIndentBack(context)) {
                     return new EditAction(EditActionType.IndentBackwards);
                 } else if (this.module.validator.canIndentBackIfStatement(context)) {

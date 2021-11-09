@@ -112,7 +112,7 @@ export class ActionExecutor {
 
                 switch (action.data.autocompleteType) {
                     case AutoCompleteType.StartOfLine:
-                        this.insertStatement(context, new TemporaryStmt(autocompleteTkn));
+                        this.replaceEmptyStatement(context.lineStatement, new TemporaryStmt(autocompleteTkn));
 
                         break;
 
@@ -242,7 +242,7 @@ export class ActionExecutor {
             case EditActionType.InsertStatement: {
                 const statement = action.data?.statement as Statement;
 
-                this.insertStatement(context, statement);
+                this.replaceEmptyStatement(context.lineStatement, statement);
 
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
@@ -261,7 +261,7 @@ export class ActionExecutor {
 
                 if (statement instanceof VarAssignmentStmt && id) statement.setIdentifier(id);
 
-                this.insertStatement(context, action.data?.statement as Statement);
+                this.replaceEmptyStatement(context.lineStatement, action.data?.statement as Statement);
 
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
@@ -384,6 +384,12 @@ export class ActionExecutor {
 
             case EditActionType.DeletePrevLine: {
                 const prevLine = this.module.focus.getStatementAtLineNumber(context.lineStatement.lineNumber - 1);
+
+                if (prevLine.left != context.lineStatement.left) {
+                    this.module.editor.indentRecursively(context.lineStatement, { backward: false });
+                    this.module.indentForwardStatement(context.lineStatement);
+                }
+
                 const deleteRange = new Range(
                     prevLine.lineNumber,
                     prevLine.left,
@@ -1196,7 +1202,7 @@ export class ActionExecutor {
         if (this.module.validator.onBeginningOfLine(context)) {
             const varRef = this.createVarReference(buttonId);
             const stmt = new VarOperationStmt(varRef);
-            this.insertStatement(context, stmt);
+            this.replaceEmptyStatement(context.lineStatement, stmt);
 
             const availableActions = this.module.actionFilter
                 .getProcessedInsertionsList()
@@ -1438,23 +1444,16 @@ export class ActionExecutor {
         } else this.module.menuController.removeMenus();
     }
 
-    private insertStatement(context: Context, statement: Statement) {
-        const root = context.lineStatement.rootNode as Statement | Module;
+    private replaceEmptyStatement(emptyLine: Statement, statement: Statement) {
+        const root = emptyLine.rootNode as Statement | Module;
 
-        replaceInBody(root, context.lineStatement.indexInRoot, statement);
+        replaceInBody(root, emptyLine.indexInRoot, statement);
 
         if (root instanceof Statement) root.notify(CallbackType.replace);
 
-        var range = new Range(
-            context.lineStatement.lineNumber,
-            statement.left,
-            context.lineStatement.lineNumber,
-            statement.right
-        );
+        var range = new Range(emptyLine.lineNumber, statement.left, emptyLine.lineNumber, statement.right);
 
-        if (context.lineStatement.notification && context.selected) {
-            this.module.notificationSystem.removeNotificationFromConstruct(context.lineStatement);
-        }
+        if (emptyLine.notification) this.module.notificationSystem.removeNotificationFromConstruct(emptyLine);
 
         if (isImportable(statement)) {
             this.checkImports(statement, InsertionType.Valid);

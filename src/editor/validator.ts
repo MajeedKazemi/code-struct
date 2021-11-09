@@ -524,7 +524,7 @@ export class Validator {
                 }
             }
 
-            return onlyEmptyLines && context.lineStatement.indexInRoot == 1;
+            return onlyEmptyLines && context.lineStatement.indexInRoot != 0;
         }
 
         return false;
