@@ -325,6 +325,19 @@ export class Validator {
     }
 
     /**
+     * logic: checks if at the beginning of a multiline statement
+     */
+    canMoveLeftOnEmptyMultilineStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.lineStatement instanceof EmptyLineStmt &&
+            context.lineStatement.indexInRoot == 0 &&
+            context.lineStatement.rootNode instanceof Statement
+        );
+    }
+
+    /**
      * logic: checks if at the end of a statement, and not text editable.
      * AND does not have a body.
      * AND prev item is not an expression that could be deleted by it self.

@@ -140,6 +140,8 @@ export class EventRouter {
                     else return new EditAction(EditActionType.DeletePrevChar);
                 } else if (this.module.validator.canDeleteStringLiteral(context)) {
                     return new EditAction(EditActionType.DeleteStringLiteral);
+                } else if (this.module.validator.canMoveLeftOnEmptyMultilineStatement(context)) {
+                    return new EditAction(EditActionType.SelectPrevToken);
                 } else if (this.module.validator.canDeletePrevStatement(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.canDeletePrevMultiLineStatement(context)) {
