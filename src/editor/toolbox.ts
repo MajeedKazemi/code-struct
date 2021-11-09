@@ -228,7 +228,7 @@ function constructCascadedMenuObj(
 
     const header = document.createElement("div");
     header.classList.add("cascaded-menu-header");
-    header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span></h3>`;
+    header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span>:</h3>`;
     menu.appendChild(header);
 
     menu.addEventListener("mouseover", () => {
@@ -242,49 +242,8 @@ function constructCascadedMenuObj(
         }, 100);
     });
 
-    const menuItem = document.createElement("div");
-    menuItem.classList.add("cascadedMenuContent");
-
-    const varContainer = document.createElement("grid");
-    varContainer.classList.add("var-button-container");
-
-    const button = document.createElement("div");
-    button.classList.add("button");
-    button.id = buttonId;
-
-    varContainer.appendChild(button);
-
-    const typeText = document.createElement("div");
-    typeText.classList.add("var-type-text");
-    varContainer.appendChild(typeText);
-
-    const curContext = module.focus.getContext();
-
-    typeText.innerText =
-        "-> " +
-        getUserFriendlyType(
-            module.variableController.getVariableTypeNearLine(
-                curContext.lineStatement.rootNode.scope,
-                curContext.position.lineNumber,
-                identifier,
-                false
-            )
-        );
-
-    button.textContent = identifier;
-
-    button.addEventListener("click", () => {
-        const action = new EventAction(EventType.OnButtonDown, button.id);
-        module.eventStack.stack.push(action);
-        module.eventStack.apply(action);
-
-        menu.remove();
-    });
-
-    menuItem.appendChild(varContainer);
-    menu.appendChild(menuItem);
-
     let id = 0;
+
     for (const [key, value] of validActions) {
         const menuItem = document.createElement("div");
         menuItem.classList.add("cascadedMenuContent");
