@@ -194,13 +194,13 @@ export class ConstructHighlight extends CodeHighlight {
                     : HIGHLIGHT_DEFAULT_WIDTH;
             height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
         } else {
-            const text = this.code.getRenderText();
-            const transform = this.editor.computeBoundingBox(this.code.getSelection());
+            const selection = this.code.getSelection();
+            const transform = this.editor.computeBoundingBox(selection);
 
-            top = (this.code.getSelection().startLineNumber - 1) * this.editor.computeCharHeight();
+            top = (selection.startLineNumber - 1) * this.editor.computeCharHeight();
             left = transform.x;
             height = Math.floor(this.editor.computeCharHeight() * 0.95);
-            width = text.length * this.editor.computeCharWidthInvisible(lineNumber);
+            width = (selection.endColumn - selection.startColumn) * this.editor.computeCharWidthInvisible(lineNumber);
         }
 
         if (firstInsertion) {
