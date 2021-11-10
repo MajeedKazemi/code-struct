@@ -657,6 +657,10 @@ export class Module {
                 );
 
                 this.validator.validateImports();
+
+                if (code.rootNode instanceof VarAssignmentStmt) {
+                    code.rootNode.onFocusOff();
+                }
             }).bind(this)
         );
     }
