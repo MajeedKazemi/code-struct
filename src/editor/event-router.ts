@@ -405,6 +405,10 @@ export class EventRouter {
                 break;
             }
 
+            case InsertActionType.InsertFormattedStringItem: {
+                return new EditAction(EditActionType.InsertFormattedStringItem);
+            }
+
             case InsertActionType.InsertStatement:
             case InsertActionType.InsertListIndexAssignment:
             case InsertActionType.InsertPrintFunctionStmt: {
@@ -417,18 +421,12 @@ export class EventRouter {
                 break;
             }
 
-            case InsertActionType.InsertFunctionExpr: {
+            case InsertActionType.InsertExpression: {
                 return new EditAction(EditActionType.InsertExpression, {
                     expression: e.getCode(),
                 });
 
                 break;
-            }
-
-            case InsertActionType.InsertListIndexAccessor: {
-                return new EditAction(EditActionType.InsertModifier, {
-                    modifier: e.getCode(),
-                });
             }
 
             case InsertActionType.InsertAssignmentModifier:
@@ -438,6 +436,7 @@ export class EventRouter {
                 });
             }
 
+            case InsertActionType.InsertListIndexAccessor:
             case InsertActionType.InsertListAppendMethod:
             case InsertActionType.InsertStringSplitMethod:
             case InsertActionType.InsertStringJoinMethod:

@@ -6,9 +6,12 @@ import {
     AutocompleteTkn,
     BinaryOperatorExpr,
     CodeConstruct,
+    EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
     Expression,
+    FormattedStringExpr,
+    FStringItemTkn,
     IdentifierTkn,
     IfStatement,
     Importable,
@@ -35,6 +38,7 @@ import {
     AutoCompleteType,
     BuiltInFunctions,
     PythonKeywords,
+    StringRegex,
     TAB_SPACES,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
     TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
@@ -494,20 +498,98 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.InsertFormattedStringItem: {
+                const cursorPos = this.module.editor.monaco.getPosition();
+                const selectedText = this.module.editor.monaco.getSelection();
+                const editableToken = this.module.focus.getTextEditableItem(context);
+                const editableText = editableToken.getEditableText();
+                const token = editableToken.getToken();
+                const formattedStringExpr = token.rootNode as FormattedStringExpr;
+
+                const leftText = token.text.substring(0, cursorPos.column - token.left);
+                const rightText = token.text.substring(cursorPos.column - token.left, token.right);
+
+                const leftToken = token;
+                leftToken.text = leftText;
+                const rightToken = new EditableTextTkn("", StringRegex, formattedStringExpr, token.indexInRoot + 1);
+                rightToken.text = rightText;
+
+                formattedStringExpr.tokens.splice(token.indexInRoot + 1, 0, ...[rightToken]);
+
+                formattedStringExpr.rebuild(formattedStringExpr.getLeftPosition(), 0);
+
+                let rightTokenRange = new Range(
+                    rightToken.getLineNumber(),
+                    rightToken.left,
+                    rightToken.getLineNumber(),
+                    rightToken.right
+                );
+
+                this.module.editor.executeEdits(rightTokenRange, rightToken);
+
+                const fStringToken = new FStringItemTkn(formattedStringExpr, token.indexInRoot + 1);
+
+                formattedStringExpr.tokens.splice(token.indexInRoot + 1, 0, ...[fStringToken]);
+
+                formattedStringExpr.rebuild(formattedStringExpr.getLeftPosition(), 0);
+
+                let editRange: Range;
+
+                if (selectedText.startColumn != selectedText.endColumn) {
+                    editRange = new Range(
+                        cursorPos.lineNumber,
+                        selectedText.startColumn,
+                        cursorPos.lineNumber,
+                        selectedText.endColumn
+                    );
+                } else {
+                    editRange = new Range(
+                        cursorPos.lineNumber,
+                        cursorPos.column,
+                        cursorPos.lineNumber,
+                        cursorPos.column
+                    );
+                }
+
+                this.module.editor.executeEdits(editRange, fStringToken);
+
+                // has to break the editable text token into two pieces
+                // insert the FStringItemTkn between them (+ insert it in the editor)
+                // rebuild things
+                // do anything with types (to ensure proper deleting)
+
+                break;
+            }
+
+            case EditActionType.DeleteFormattedStringItem: {
+                // has to delete the f-string item
+                // merge the two pieces back together
+                // rebuild things
+
+                break;
+            }
+
             case EditActionType.InsertChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-                const token = this.module.focus.getTextEditableItem(context);
-                const editableText = token.getEditableText();
+                const editableToken = this.module.focus.getTextEditableItem(context);
+                const editableText = editableToken.getEditableText();
+                const token = editableToken.getToken();
                 let newText = "";
 
-                if (token.isEmptyIdentifier()) {
+                if (pressedKey == "{" && token.rootNode instanceof FormattedStringExpr) {
+                    this.execute(new EditAction(EditActionType.InsertFormattedStringItem));
+
+                    break;
+                }
+
+                if (token instanceof IdentifierTkn && token.isEmptyIdentifier()) {
                     const curText = "";
                     newText = curText + pressedKey;
                 } else {
                     const curText = editableText.split("");
                     curText.splice(
-                        cursorPos.column - token.getLeft(),
+                        cursorPos.column - token.left,
                         Math.abs(selectedText.startColumn - selectedText.endColumn),
                         pressedKey
                     );
@@ -546,19 +628,19 @@ export class ActionExecutor {
                     );
                 }
 
-                if (token instanceof AutocompleteTkn) {
-                    let match = token.checkMatch(pressedKey);
+                if (editableToken instanceof AutocompleteTkn) {
+                    let match = editableToken.checkMatch(pressedKey);
 
                     if (match) {
-                        this.performMatchAction(match, token);
+                        this.performMatchAction(match, editableToken);
 
                         break;
                     }
 
-                    match = token.isInsertableTerminatingMatch(pressedKey);
+                    match = editableToken.isInsertableTerminatingMatch(pressedKey);
 
                     if (match) {
-                        this.performMatchAction(match, token);
+                        this.performMatchAction(match, editableToken);
 
                         this.execute(this.module.eventRouter.getKeyAction(e));
 
@@ -566,7 +648,7 @@ export class ActionExecutor {
                     }
                 }
 
-                if (token.setEditedText(newText)) this.module.editor.executeEdits(editRange, null, pressedKey);
+                if (editableToken.setEditedText(newText)) this.module.editor.executeEdits(editRange, null, pressedKey);
 
                 break;
             }
@@ -581,11 +663,12 @@ export class ActionExecutor {
             case EditActionType.DeleteNextChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-                const token = this.module.focus.getTextEditableItem(context);
+                const editableToken = this.module.focus.getTextEditableItem(context);
+                const token = editableToken.getToken();
 
                 let newText = "";
 
-                const curText = token.getEditableText().split("");
+                const curText = editableToken.getEditableText().split("");
                 const toDeleteItems =
                     selectedText.startColumn == selectedText.endColumn
                         ? 1
@@ -595,8 +678,8 @@ export class ActionExecutor {
 
                 curText.splice(
                     Math.min(
-                        cursorPos.column - token.getLeft() - toDeletePos,
-                        selectedText.startColumn - token.getLeft() - toDeletePos
+                        cursorPos.column - token.left - toDeletePos,
+                        selectedText.startColumn - token.left - toDeletePos
                     ),
                     toDeleteItems
                 );
@@ -669,7 +752,7 @@ export class ActionExecutor {
                     }
                 }
 
-                if (token.setEditedText(newText)) {
+                if (editableToken.setEditedText(newText)) {
                     let editRange = new Range(
                         cursorPos.lineNumber,
                         cursorPos.column,

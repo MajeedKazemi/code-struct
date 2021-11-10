@@ -52,7 +52,9 @@ import {
     AugmentedAssignmentModifier,
     BinaryOperatorExpr,
     ElseStatement,
+    FormattedStringExpr as FStringExpr,
     ForStatement,
+    FStringItemTkn,
     FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
@@ -109,6 +111,7 @@ export enum KeyPress {
 
     //Typing sys
     OpenBracket = "[",
+    OpenCurlyBraces = "{",
     Comma = ",",
     Plus = "+",
     ForwardSlash = "/",
@@ -223,6 +226,9 @@ export enum EditActionType {
     InsertFunctionConversion,
     InsertMemberCallConversion,
     InsertMemberAccessConversion,
+
+    InsertFormattedStringItem,
+    DeleteFormattedStringItem,
 }
 
 export enum ConstructName {
@@ -234,11 +240,12 @@ export enum InsertActionType {
     InsertNewVariableStmt,
 
     InsertStatement,
+    InsertExpression,
     InsertElifStmt,
     InsertElseStmt,
 
+    InsertFormattedStringItem,
     InsertPrintFunctionStmt,
-    InsertFunctionExpr,
     InsertRangeExpr,
     InsertLenExpr,
     InsertCastStrExpr,
@@ -299,7 +306,7 @@ export class Actions {
                     null,
                     "random"
                 ),
-            InsertActionType.InsertFunctionExpr,
+            InsertActionType.InsertExpression,
             {},
             RandintDocs,
             ["("],
@@ -319,7 +326,7 @@ export class Actions {
                     null,
                     "random"
                 ),
-            InsertActionType.InsertFunctionExpr,
+            InsertActionType.InsertExpression,
             {},
             RandChoiceDocs,
             ["("],
@@ -336,7 +343,7 @@ export class Actions {
                     [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
                     DataType.NumberList
                 ),
-            InsertActionType.InsertFunctionExpr,
+            InsertActionType.InsertExpression,
             {},
             RangeDocs,
             ["("],
@@ -400,11 +407,35 @@ export class Actions {
             null
         );
 
+        const FormattedStringLiteralExpr = new EditCodeAction(
+            "f''",
+            "add-str-btn",
+            () => new FStringExpr(""),
+            InsertActionType.InsertExpression,
+            {},
+            StrDocs,
+            ["'"],
+            "f",
+            null
+        );
+
+        const FormattedStringItem = new EditCodeAction(
+            "{}",
+            "add-str-btn",
+            () => new FStringItemTkn(),
+            InsertActionType.InsertFormattedStringItem,
+            {},
+            StrDocs,
+            ["{"],
+            "",
+            null
+        );
+
         const NumberLiteralExpr = new EditCodeAction(
             "0",
             "add-num-btn",
             () => new LiteralValExpr(DataType.Number, "0"),
-            InsertActionType.InsertLiteral,
+            InsertActionType.InsertExpression,
             {
                 literalType: DataType.Number,
                 initialValue: "0",
@@ -419,7 +450,7 @@ export class Actions {
             "True",
             "add-true-btn",
             () => new LiteralValExpr(DataType.Boolean, "True"),
-            InsertActionType.InsertLiteral,
+            InsertActionType.InsertExpression,
             {
                 literalType: DataType.Boolean,
                 initialValue: "True",
@@ -1006,6 +1037,7 @@ export class Actions {
             LenExpr,
             InputExpr,
             StringLiteralExpr,
+            FormattedStringLiteralExpr,
             NumberLiteralExpr,
             BooleanTrueLiteralExpr,
             BooleanFalseLiteralExpr,
@@ -1234,6 +1266,7 @@ export class Actions {
         this.toolboxCategories.push(
             new ToolboxCategory("Texts", "text-toolbox-group", [
                 StringLiteralExpr,
+                FormattedStringLiteralExpr,
                 SplitMethodMod,
                 JoinMethodMod,
                 FindMethodMod,

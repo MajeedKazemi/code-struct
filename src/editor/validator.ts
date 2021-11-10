@@ -7,6 +7,7 @@ import {
     EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
+    FormattedStringExpr,
     IdentifierTkn,
     IfStatement,
     ImportStatement,
@@ -639,6 +640,12 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.selected && context?.token?.isEmpty && context.token instanceof TypedEmptyExpr;
+    }
+
+    insideFormattedString(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.token instanceof FormattedStringExpr;
     }
 
     canConvertAutocompleteToString(providedContext?: Context): boolean {

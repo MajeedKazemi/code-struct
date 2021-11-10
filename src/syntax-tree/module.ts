@@ -22,6 +22,7 @@ import {
     EmptyLineStmt,
     Expression,
     ForStatement,
+    FStringItemTkn,
     Importable,
     ImportStatement,
     ListLiteralExpression,
@@ -326,7 +327,7 @@ export class Module {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
-            if (root instanceof ListLiteralExpression) replaceType = DataType.Any;
+            if (root instanceof ListLiteralExpression || root instanceof FStringItemTkn) replaceType = DataType.Any;
 
             const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
             if (item.rootNode instanceof BinaryOperatorExpr) {
