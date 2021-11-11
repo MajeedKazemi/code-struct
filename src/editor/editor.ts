@@ -1,4 +1,4 @@
-import { editor, languages, Range, Selection } from "monaco-editor";
+import { editor, KeyCode, KeyMod, languages, Range, Selection } from "monaco-editor";
 import {
     CodeConstruct,
     EditableTextTkn,
@@ -303,6 +303,10 @@ export class Editor {
             wordBasedSuggestions: false,
             renderWhitespace: "none",
             occurrencesHighlight: false,
+        });
+
+        this.monaco.addCommand(KeyMod.CtrlCmd | KeyCode.KEY_Z, () => {
+            return;
         });
 
         this.cursor = new Cursor(this);
