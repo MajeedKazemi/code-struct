@@ -18,6 +18,7 @@ export enum DataType {
     Number = "Number",
     Boolean = "Boolean",
     String = "String",
+    FormattedString = "FormattedString",
     Fractional = "Float",
     Iterator = "Iterator",
     AnyList = "ListAny",

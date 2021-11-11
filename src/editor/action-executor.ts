@@ -6,9 +6,12 @@ import {
     AutocompleteTkn,
     BinaryOperatorExpr,
     CodeConstruct,
+    EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
     Expression,
+    FormattedStringCurlyBracketsExpr,
+    FormattedStringExpr,
     IdentifierTkn,
     IfStatement,
     Importable,
@@ -35,6 +38,7 @@ import {
     AutoCompleteType,
     BuiltInFunctions,
     PythonKeywords,
+    StringRegex,
     TAB_SPACES,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
     TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
@@ -494,20 +498,126 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.InsertFormattedStringItem: {
+                const cursorPos = this.module.editor.monaco.getPosition();
+                const selectedText = this.module.editor.monaco.getSelection();
+                const editableToken = this.module.focus.getTextEditableItem(context);
+                const editableText = editableToken.getEditableText();
+                const token = editableToken.getToken();
+                const formattedStringExpr = token.rootNode as FormattedStringExpr;
+
+                const leftText = token.text.substring(0, cursorPos.column - token.left);
+                const rightText = token.text.substring(cursorPos.column - token.left, token.right);
+
+                const leftToken = token;
+                leftToken.text = leftText;
+                const rightToken = new EditableTextTkn("", StringRegex, formattedStringExpr, token.indexInRoot + 1);
+                rightToken.text = rightText;
+
+                formattedStringExpr.tokens.splice(token.indexInRoot + 1, 0, ...[rightToken]);
+
+                formattedStringExpr.rebuild(formattedStringExpr.getLeftPosition(), 0);
+
+                let rightTokenRange = new Range(
+                    rightToken.getLineNumber(),
+                    rightToken.left,
+                    rightToken.getLineNumber(),
+                    rightToken.right
+                );
+
+                this.module.editor.executeEdits(rightTokenRange, rightToken);
+
+                const fStringToken = new FormattedStringCurlyBracketsExpr(formattedStringExpr, token.indexInRoot + 1);
+
+                formattedStringExpr.tokens.splice(token.indexInRoot + 1, 0, ...[fStringToken]);
+
+                formattedStringExpr.rebuild(formattedStringExpr.getLeftPosition(), 0);
+
+                let editRange: Range;
+
+                if (selectedText.startColumn != selectedText.endColumn) {
+                    editRange = new Range(
+                        cursorPos.lineNumber,
+                        selectedText.startColumn,
+                        cursorPos.lineNumber,
+                        selectedText.endColumn
+                    );
+                } else {
+                    editRange = new Range(
+                        cursorPos.lineNumber,
+                        cursorPos.column,
+                        cursorPos.lineNumber,
+                        cursorPos.column
+                    );
+                }
+
+                this.module.editor.executeEdits(editRange, fStringToken);
+                this.module.focus.updateContext({ tokenToSelect: fStringToken.tokens[1] });
+
+                break;
+            }
+
+            case EditActionType.DeleteFStringCurlyBrackets: {
+                const fStringToRemove = action.data.item as FormattedStringCurlyBracketsExpr;
+
+                const root = fStringToRemove.rootNode;
+
+                const tokenBefore = root.tokens[fStringToRemove.indexInRoot - 1] as EditableTextTkn;
+                const tokenAfter = root.tokens[fStringToRemove.indexInRoot + 1] as EditableTextTkn;
+
+                const indexToReplace = tokenBefore.indexInRoot;
+
+                const newToken = new EditableTextTkn(
+                    tokenBefore.text + tokenAfter.text,
+                    StringRegex,
+                    root,
+                    fStringToRemove.indexInRoot - 1
+                );
+
+                const focusPos = new Position(tokenBefore.getLineNumber(), tokenBefore.right);
+
+                const replaceRange = new Range(
+                    tokenAfter.getLineNumber(),
+                    tokenAfter.right,
+                    tokenBefore.getLineNumber(),
+                    tokenBefore.left
+                );
+
+                this.module.removeItem(fStringToRemove, { replace: false });
+                this.module.removeItem(tokenAfter, { replace: false });
+                this.module.removeItem(tokenBefore, { replace: false });
+
+                root.tokens.splice(indexToReplace, 0, newToken);
+
+                root.rebuild(root.getLeftPosition(), 0);
+
+                this.module.editor.executeEdits(replaceRange, newToken);
+                this.module.focus.updateContext({ positionToMove: focusPos });
+
+                break;
+            }
+
             case EditActionType.InsertChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-                const token = this.module.focus.getTextEditableItem(context);
-                const editableText = token.getEditableText();
+                const editableToken = this.module.focus.getTextEditableItem(context);
+                const editableText = editableToken.getEditableText();
+                const token = editableToken.getToken();
                 let newText = "";
 
-                if (token.isEmptyIdentifier()) {
+                if ((pressedKey == "{" || pressedKey == "}") && token.rootNode instanceof FormattedStringExpr) {
+                    this.execute(new EditAction(EditActionType.InsertFormattedStringItem));
+
+                    break;
+                }
+
+                if (token instanceof IdentifierTkn && token.isEmptyIdentifier()) {
                     const curText = "";
                     newText = curText + pressedKey;
                 } else {
                     const curText = editableText.split("");
                     curText.splice(
-                        cursorPos.column - token.getLeft(),
+                        cursorPos.column - token.left,
                         Math.abs(selectedText.startColumn - selectedText.endColumn),
                         pressedKey
                     );
@@ -546,19 +656,19 @@ export class ActionExecutor {
                     );
                 }
 
-                if (token instanceof AutocompleteTkn) {
-                    let match = token.checkMatch(pressedKey);
+                if (editableToken instanceof AutocompleteTkn) {
+                    let match = editableToken.checkMatch(pressedKey);
 
                     if (match) {
-                        this.performMatchAction(match, token);
+                        this.performMatchAction(match, editableToken);
 
                         break;
                     }
 
-                    match = token.isInsertableTerminatingMatch(pressedKey);
+                    match = editableToken.isInsertableTerminatingMatch(pressedKey);
 
                     if (match) {
-                        this.performMatchAction(match, token);
+                        this.performMatchAction(match, editableToken);
 
                         this.execute(this.module.eventRouter.getKeyAction(e));
 
@@ -566,7 +676,7 @@ export class ActionExecutor {
                     }
                 }
 
-                if (token.setEditedText(newText)) this.module.editor.executeEdits(editRange, null, pressedKey);
+                if (editableToken.setEditedText(newText)) this.module.editor.executeEdits(editRange, null, pressedKey);
 
                 break;
             }
@@ -581,11 +691,12 @@ export class ActionExecutor {
             case EditActionType.DeleteNextChar: {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
-                const token = this.module.focus.getTextEditableItem(context);
+                const editableToken = this.module.focus.getTextEditableItem(context);
+                const token = editableToken.getToken();
 
                 let newText = "";
 
-                const curText = token.getEditableText().split("");
+                const curText = editableToken.getEditableText().split("");
                 const toDeleteItems =
                     selectedText.startColumn == selectedText.endColumn
                         ? 1
@@ -595,8 +706,8 @@ export class ActionExecutor {
 
                 curText.splice(
                     Math.min(
-                        cursorPos.column - token.getLeft() - toDeletePos,
-                        selectedText.startColumn - token.getLeft() - toDeletePos
+                        cursorPos.column - token.left - toDeletePos,
+                        selectedText.startColumn - token.left - toDeletePos
                     ),
                     toDeleteItems
                 );
@@ -669,7 +780,7 @@ export class ActionExecutor {
                     }
                 }
 
-                if (token.setEditedText(newText)) {
+                if (editableToken.setEditedText(newText)) {
                     let editRange = new Range(
                         cursorPos.lineNumber,
                         cursorPos.column,

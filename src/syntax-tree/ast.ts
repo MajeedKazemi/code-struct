@@ -803,20 +803,15 @@ export interface TextEditable {
     getEditableText(): string;
 
     /**
-     * Returns the token's left column
-     */
-    getLeft(): number;
-
-    /**
      * checks if the newly updated string could be set (using a Regex) and rebuilds the item if possible and returns `true`, o.w. returns `false`.
      * @param text the updated string to be set to this element.
      */
     setEditedText(text: string): boolean;
 
     /**
-     * checks if this particular text-editable is an empty identifier -> its string value equals to "  "
+     * Returns the token that corresponds to this text-editable item.
      */
-    isEmptyIdentifier(): boolean;
+    getToken(): Token;
 }
 
 export interface VariableContainer {
@@ -2623,6 +2618,10 @@ export class EditableTextTkn extends Token implements TextEditable {
         this.validatorRegex = regex;
     }
 
+    getToken(): Token {
+        return this;
+    }
+
     getSelection(): Selection {
         const leftPos = this.getLeftPosition();
 
@@ -2660,10 +2659,6 @@ export class EditableTextTkn extends Token implements TextEditable {
         this.notify(CallbackType.change);
 
         return new Position(pos.lineNumber, this.right);
-    }
-
-    isEmptyIdentifier(): boolean {
-        return false;
     }
 }
 
@@ -2733,6 +2728,62 @@ export class LiteralValExpr extends Expression {
             case DataType.Boolean:
                 return { positionToMove: new Position(this.lineNumber, this.right) };
         }
+    }
+}
+
+export class FormattedStringExpr extends Expression {
+    valueTokenIndex: number = 0;
+
+    constructor(value?: string, root?: Statement | Expression, indexInRoot?: number) {
+        super(DataType.String);
+
+        this.tokens.push(new NonEditableTkn("f", this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("'", this, this.tokens.length));
+        this.tokens.push(new EditableTextTkn(value == undefined ? "" : value, StringRegex, this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("'", this, this.tokens.length));
+
+        this.valueTokenIndex = 1;
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+    }
+
+    getValue(): string {
+        return (this.tokens[this.valueTokenIndex] as Token).text;
+    }
+
+    getKeyword(): string {
+        return this.returns == DataType.String ? '"' + this.getValue() + '"' : this.getValue();
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.canInsertFormattedString(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    getInitialFocus(): UpdatableContext {
+        return { positionToMove: new Position(this.lineNumber, this.left + 2) };
+    }
+}
+
+export class FormattedStringCurlyBracketsExpr extends Expression {
+    valueTokenIndex: number = 0;
+
+    constructor(root?: Statement | Expression, indexInRoot?: number) {
+        super(DataType.String);
+
+        this.tokens.push(new NonEditableTkn("{", this, this.tokens.length));
+        this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn("}", this, this.tokens.length));
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.insideFormattedString(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+    }
+
+    getInitialFocus(): UpdatableContext {
+        return { positionToMove: new Position(this.lineNumber, this.left + 1) };
     }
 }
 
@@ -2848,8 +2899,8 @@ export class IdentifierTkn extends Token implements TextEditable {
         this.validatorRegex = RegExp("^[^\\d\\W]\\w*$");
     }
 
-    getLeft(): number {
-        return this.left;
+    getToken(): Token {
+        return this;
     }
 
     getEditableText(): string {
@@ -2917,12 +2968,12 @@ export class AutocompleteTkn extends Token implements TextEditable {
         this.indexInRoot = indexInRoot;
     }
 
-    getEditableText(): string {
-        return this.text;
+    getToken(): Token {
+        return this;
     }
 
-    getLeft(): number {
-        return this.left;
+    getEditableText(): string {
+        return this.text;
     }
 
     isMatch(): EditCodeAction {
@@ -2970,10 +3021,6 @@ export class AutocompleteTkn extends Token implements TextEditable {
         (this.rootNode as Expression).rebuild(this.getLeftPosition(), this.indexInRoot);
 
         return true;
-    }
-
-    isEmptyIdentifier(): boolean {
-        return false;
     }
 }
 

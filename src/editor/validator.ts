@@ -7,6 +7,8 @@ import {
     EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
+    FormattedStringCurlyBracketsExpr as FormattedStringCurlyBracketsExpr,
+    FormattedStringExpr,
     IdentifierTkn,
     IfStatement,
     ImportStatement,
@@ -379,10 +381,27 @@ export class Validator {
         return false;
     }
 
+    canDeletePrevFStringCurlyBrackets(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        // "print(f'{}|')"
+        return context.expressionToLeft instanceof FormattedStringCurlyBracketsExpr;
+    }
+
+    canDeleteNextFStringCurlyBrackets(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        // "print(f'|{}')"
+        return context.expressionToRight instanceof FormattedStringCurlyBracketsExpr;
+    }
+
     canDeleteStringLiteral(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context.tokenToLeft?.text == '"' && context.tokenToRight?.text == '"';
+        return (
+            (context.tokenToLeft?.text == '"' || context.tokenToLeft?.text == "'") &&
+            (context.tokenToRight?.text == '"' || context.tokenToRight?.text == "'")
+        );
     }
 
     /**
@@ -639,6 +658,23 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.selected && context?.token?.isEmpty && context.token instanceof TypedEmptyExpr;
+    }
+
+    insideFormattedString(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.token instanceof FormattedStringExpr;
+    }
+
+    canInsertFormattedString(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.selected &&
+            context?.token?.isEmpty &&
+            context.token instanceof TypedEmptyExpr &&
+            !(context.token.rootNode instanceof FormattedStringCurlyBracketsExpr)
+        );
     }
 
     canConvertAutocompleteToString(providedContext?: Context): boolean {
