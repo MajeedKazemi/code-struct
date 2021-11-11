@@ -9,24 +9,24 @@ import { CodeBackground, HoverMessage, InlineMessage } from "../notification-sys
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-	arithmeticOps,
-	AugmentedAssignmentOperator,
-	AutoCompleteType,
-	BinaryOperator,
-	BinaryOperatorCategory,
-	boolOps,
-	comparisonOps,
-	DataType,
-	IndexableTypes,
-	InsertionType,
-	ListTypes,
-	NumberRegex,
-	StringRegex,
-	TAB_SPACES,
-	typeToConversionRecord,
-	TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
-	TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-	UnaryOp
+    arithmeticOps,
+    AugmentedAssignmentOperator,
+    AutoCompleteType,
+    BinaryOperator,
+    BinaryOperatorCategory,
+    boolOps,
+    comparisonOps,
+    DataType,
+    IndexableTypes,
+    InsertionType,
+    ListTypes,
+    NumberRegex,
+    StringRegex,
+    TAB_SPACES,
+    typeToConversionRecord,
+    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -640,7 +640,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 }
 
 export abstract class Modifier extends Expression {
-    rootNode: ValueOperationExpr | VarOperationStmt;
+    rootNode: Expression | Statement;
     leftExprTypes: Array<DataType>;
 
     constructor() {
@@ -650,8 +650,6 @@ export abstract class Modifier extends Expression {
     getModifierText(): string {
         return "";
     }
-
-    abstract constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression;
 }
 
 /**
@@ -1691,10 +1689,6 @@ export class ListAccessModifier extends Modifier {
     getModifierText(): string {
         return "[---]";
     }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement {
-        return new VarOperationStmt(varRef, [this]);
-    }
 }
 
 export class PropertyAccessorModifier extends Modifier {
@@ -1723,10 +1717,6 @@ export class PropertyAccessorModifier extends Modifier {
 
     getModifierText(): string {
         return `.${this.propertyName}`;
-    }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Expression {
-        return new ValueOperationExpr(varRef, [this]);
     }
 }
 
@@ -1807,14 +1797,6 @@ export class MethodCallModifier extends Modifier {
 
         return str;
     }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression {
-        if (this.returns === DataType.Void) {
-            return new VarOperationStmt(varRef, [this]);
-        } else {
-            return new ValueOperationExpr(varRef, [this]);
-        }
-    }
 }
 
 export class AssignmentModifier extends Modifier {
@@ -1844,10 +1826,6 @@ export class AssignmentModifier extends Modifier {
 
     getModifierText(): string {
         return " = ---";
-    }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement {
-        return new VarAssignmentStmt(varRef.uniqueId, varRef.identifier);
     }
 }
 
@@ -1886,10 +1864,6 @@ export class AugmentedAssignmentModifier extends Modifier {
 
     getModifierText(): string {
         return ` ${this.operation} ---`;
-    }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement {
-        return new VarOperationStmt(varRef, [this]);
     }
 }
 
@@ -2679,14 +2653,26 @@ export class EmptyOperatorTkn extends Token {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
     }
+
+    canReplaceWithConstruct(replaceWith: CodeConstruct): InsertionResult {
+        if (replaceWith instanceof OperatorTkn) {
+            return new InsertionResult(InsertionType.Valid, "", []);
+        } else return new InsertionResult(InsertionType.Invalid, "", []);
+    }
 }
 
-export class OperatorTkn extends Token {
-    constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
-        super(text);
+export class OperatorTkn extends Modifier {
+    constructor(text: string, root?: Statement | Expression, indexInRoot?: number) {
+        super();
+
+        this.tokens.push(new NonEditableTkn(text, this, this.tokens.length));
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atEmptyOperatorTkn(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 

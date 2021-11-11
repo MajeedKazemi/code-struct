@@ -122,6 +122,7 @@ export class ActionExecutor {
 
                         break;
 
+                    case AutoCompleteType.AtEmptyOperatorHole:
                     case AutoCompleteType.AtExpressionHole:
                         this.insertToken(context, autocompleteTkn);
 
@@ -286,10 +287,10 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteNextToken: {
-                if (context.tokenToRight instanceof OperatorTkn) {
-                    this.replaceToken(
-                        context.tokenToRight,
-                        new EmptyOperatorTkn(" ", context.tokenToRight, context.tokenToRight.indexInRoot)
+                if (context.expressionToRight instanceof OperatorTkn) {
+                    this.replaceCode(
+                        context.expressionToRight,
+                        new EmptyOperatorTkn(" ", context.expressionToRight, context.expressionToRight.indexInRoot)
                     );
                 } else if (this.module.validator.atBeginningOfValOperation(context)) {
                     this.deleteCode(context.expressionToRight.rootNode);
@@ -301,10 +302,10 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeletePrevToken: {
-                if (context.tokenToLeft instanceof OperatorTkn) {
-                    this.replaceToken(
-                        context.tokenToLeft,
-                        new EmptyOperatorTkn(" ", context.tokenToLeft, context.tokenToLeft.indexInRoot)
+                if (context.expressionToLeft instanceof OperatorTkn) {
+                    this.replaceCode(
+                        context.expressionToLeft,
+                        new EmptyOperatorTkn(" ", context.expressionToLeft, context.expressionToLeft.indexInRoot)
                     );
                 } else if (
                     context.expressionToLeft instanceof VariableReferenceExpr &&
@@ -752,6 +753,14 @@ export class ActionExecutor {
                             removableExpr.rootNode instanceof TemporaryStmt
                         ) {
                             this.deleteCode(removableExpr.rootNode, { statement: true });
+                        } else if (
+                            removableExpr instanceof AutocompleteTkn &&
+                            removableExpr.autocompleteType == AutoCompleteType.AtEmptyOperatorHole
+                        ) {
+                            this.replaceCode(
+                                removableExpr,
+                                new EmptyOperatorTkn(" ", removableExpr.rootNode, removableExpr.indexInRoot)
+                            );
                         } else if (
                             removableExpr instanceof AutocompleteTkn &&
                             (removableExpr.autocompleteType == AutoCompleteType.RightOfExpression ||
@@ -1297,6 +1306,14 @@ export class ActionExecutor {
 
                 break;
             }
+
+            case EditActionType.InsertOperatorTkn: {
+                this.replaceCode(context.tokenToLeft, action.data.operator);
+
+                if (flashGreen) this.flashGreen(action.data.operator);
+
+                break;
+            }
         }
 
         this.module.editor.monaco.focus();
@@ -1469,7 +1486,7 @@ export class ActionExecutor {
     }
 
     private insertToken(context: Context, code: Token, { toLeft = false, toRight = false } = {}) {
-        if (context.token instanceof TypedEmptyExpr) {
+        if (context.token instanceof TypedEmptyExpr || context.token instanceof EmptyOperatorTkn) {
             if (context.expression != null) {
                 const root = context.expression.rootNode as Statement;
                 root.replace(code, context.expression.indexInRoot);
@@ -1772,14 +1789,14 @@ export class ActionExecutor {
         this.module.editor.executeEdits(range, null, "");
     }
 
-    private replaceToken(token: Token, newToken: Token) {
-        const replacementRange = this.getBoundaries(token);
-        const root = token.rootNode;
+    private replaceCode(code: CodeConstruct, replace: CodeConstruct) {
+        const replacementRange = this.getBoundaries(code);
+        const root = code.rootNode;
 
         if (root instanceof Statement) {
-            root.tokens.splice(token.indexInRoot, 1, newToken);
+            root.tokens.splice(code.indexInRoot, 1, replace);
 
-            this.module.recursiveNotify(token, CallbackType.delete);
+            this.module.recursiveNotify(code, CallbackType.delete);
 
             for (let i = 0; i < root.tokens.length; i++) {
                 root.tokens[i].indexInRoot = i;
@@ -1788,8 +1805,11 @@ export class ActionExecutor {
 
             root.rebuild(root.getLeftPosition(), 0);
 
-            this.module.editor.executeEdits(replacementRange, newToken);
-            this.module.focus.updateContext({ tokenToSelect: newToken });
+            this.module.editor.executeEdits(replacementRange, replace);
+
+            if (replace instanceof Token && replace.isEmpty) {
+                this.module.focus.updateContext({ tokenToSelect: replace });
+            } else this.module.focus.updateContext({ positionToMove: replace.getRightPosition() });
         }
     }
 

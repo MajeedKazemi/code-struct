@@ -7,6 +7,7 @@ import {
     EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
+    EmptyOperatorTkn,
     FormattedStringCurlyBracketsExpr as FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
     IdentifierTkn,
@@ -16,7 +17,6 @@ import {
     LiteralValExpr,
     Modifier,
     NonEditableTkn,
-    OperatorTkn,
     Statement,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -413,7 +413,7 @@ export class Validator {
 
         return (
             !this.module.focus.onBeginningOfLine() &&
-            (context.expressionToRight != null || context.tokenToRight instanceof OperatorTkn) &&
+            context.expressionToRight != null &&
             !this.module.focus.isTextEditable(providedContext)
         );
     }
@@ -424,10 +424,7 @@ export class Validator {
     canDeletePrevToken(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return (
-            (context.expressionToLeft != null || context.tokenToLeft instanceof OperatorTkn) &&
-            !this.module.focus.isTextEditable(providedContext)
-        );
+        return context.expressionToLeft != null && !this.module.focus.isTextEditable(providedContext);
     }
 
     shouldDeleteVarAssignmentOnHole(providedContext?: Context): boolean {
@@ -649,19 +646,33 @@ export class Validator {
     atRightOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context?.expressionToLeft != null && context?.expressionToLeft?.returns != DataType.Void;
+        return (
+            context?.expressionToLeft != null &&
+            context?.expressionToLeft?.returns != null &&
+            context?.expressionToLeft?.returns != DataType.Void
+        );
     }
 
     atLeftOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context?.expressionToRight != null && context?.expressionToRight?.returns != DataType.Void;
+        return (
+            context?.expressionToRight != null &&
+            context?.expressionToRight?.returns != null &&
+            context?.expressionToRight?.returns != DataType.Void
+        );
     }
 
     atEmptyExpressionHole(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.selected && context?.token?.isEmpty && context.token instanceof TypedEmptyExpr;
+    }
+
+    atEmptyOperatorTkn(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.selected && context?.token?.isEmpty && context.token instanceof EmptyOperatorTkn;
     }
 
     insideFormattedString(providedContext?: Context): boolean {

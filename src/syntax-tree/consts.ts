@@ -238,6 +238,7 @@ export enum AutoCompleteType {
     LeftOfExpression,
     RightOfExpression,
     AtExpressionHole,
+    AtEmptyOperatorHole,
 }
 
 export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");

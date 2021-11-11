@@ -279,6 +279,14 @@ export class EventRouter {
                                     .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                             });
                         } else return new EditAction(EditActionType.InsertChar);
+                    } else if (this.module.validator.atEmptyOperatorTkn(context)) {
+                        return new EditAction(EditActionType.OpenAutocomplete, {
+                            autocompleteType: AutoCompleteType.AtEmptyOperatorHole,
+                            firstChar: e.key,
+                            validMatches: this.module.actionFilter
+                                .getProcessedInsertionsList()
+                                .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
+                        });
                     } else if (this.module.validator.atEmptyExpressionHole(context)) {
                         if (["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"].indexOf(e.key) > -1) {
                             return new EditAction(EditActionType.InsertLiteral, {
@@ -568,6 +576,12 @@ export class EventRouter {
             case InsertActionType.InsertValOperationExpr: {
                 return new EditAction(EditActionType.InsertExpression, {
                     expression: e.getCode(),
+                });
+            }
+
+            case InsertActionType.InsertOperatorTkn: {
+                return new EditAction(EditActionType.InsertOperatorTkn, {
+                    operator: e.getCode(),
                 });
             }
         }
