@@ -9,6 +9,7 @@ import {
     EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
+    EmptyOperatorTkn,
     Expression,
     FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
@@ -22,6 +23,7 @@ import {
     MethodCallModifier,
     Modifier,
     NonEditableTkn,
+    OperatorTkn,
     Statement,
     TemporaryStmt,
     Token,
@@ -284,7 +286,12 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteNextToken: {
-                if (this.module.validator.atBeginningOfValOperation(context)) {
+                if (context.tokenToRight instanceof OperatorTkn) {
+                    this.replaceToken(
+                        context.tokenToRight,
+                        new EmptyOperatorTkn(" ", context.tokenToRight, context.tokenToRight.indexInRoot)
+                    );
+                } else if (this.module.validator.atBeginningOfValOperation(context)) {
                     this.deleteCode(context.expressionToRight.rootNode);
                 } else if (context.expressionToRight instanceof Modifier) {
                     this.deleteModifier(context.expressionToRight, { deleting: true });
@@ -294,7 +301,12 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeletePrevToken: {
-                if (
+                if (context.tokenToLeft instanceof OperatorTkn) {
+                    this.replaceToken(
+                        context.tokenToLeft,
+                        new EmptyOperatorTkn(" ", context.tokenToLeft, context.tokenToLeft.indexInRoot)
+                    );
+                } else if (
                     context.expressionToLeft instanceof VariableReferenceExpr &&
                     context.expressionToLeft.rootNode instanceof VarOperationStmt
                 ) {
@@ -1758,6 +1770,27 @@ export class ActionExecutor {
         token.notify(CallbackType.delete);
 
         this.module.editor.executeEdits(range, null, "");
+    }
+
+    private replaceToken(token: Token, newToken: Token) {
+        const replacementRange = this.getBoundaries(token);
+        const root = token.rootNode;
+
+        if (root instanceof Statement) {
+            root.tokens.splice(token.indexInRoot, 1, newToken);
+
+            this.module.recursiveNotify(token, CallbackType.delete);
+
+            for (let i = 0; i < root.tokens.length; i++) {
+                root.tokens[i].indexInRoot = i;
+                root.tokens[i].rootNode = root;
+            }
+
+            root.rebuild(root.getLeftPosition(), 0);
+
+            this.module.editor.executeEdits(replacementRange, newToken);
+            this.module.focus.updateContext({ tokenToSelect: newToken });
+        }
     }
 
     private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {

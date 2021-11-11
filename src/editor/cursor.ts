@@ -39,21 +39,6 @@ export class Cursor {
 
         const transform = this.editor.computeBoundingBox(selection);
 
-        // if (code instanceof TypedEmptyExpr) {
-        //     leftPadding = 3;
-        //     rightPadding = 3;
-        // }
-
-        // if (code instanceof EditableTextTkn) {
-        //     leftPadding = 5;
-        //     rightPadding = 10;
-        // }
-
-        // if (code instanceof IdentifierTkn) {
-        //     leftPadding = 0;
-        //     rightPadding = 5;
-        // }
-
         this.element.style.top = `${transform.y + 5}px`;
         this.element.style.left = `${transform.x - leftPadding}px`;
 

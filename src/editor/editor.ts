@@ -1,5 +1,12 @@
 import { editor, languages, Range, Selection } from "monaco-editor";
-import { CodeConstruct, EditableTextTkn, IdentifierTkn, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
+import {
+    CodeConstruct,
+    EditableTextTkn,
+    EmptyOperatorTkn,
+    IdentifierTkn,
+    Statement,
+    TypedEmptyExpr,
+} from "../syntax-tree/ast";
 import { TAB_SPACES } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Cursor } from "./cursor";
@@ -313,7 +320,12 @@ export class Editor {
     addHoles(code: CodeConstruct) {
         for (const hole of this.holes) if (hole.code == code) return;
 
-        if (code instanceof EditableTextTkn || code instanceof TypedEmptyExpr || code instanceof IdentifierTkn) {
+        if (
+            code instanceof EditableTextTkn ||
+            code instanceof TypedEmptyExpr ||
+            code instanceof IdentifierTkn ||
+            code instanceof EmptyOperatorTkn
+        ) {
             this.holes.push(new Hole(this, code));
         } else if (code instanceof Statement) {
             const statement = <Statement>code;
