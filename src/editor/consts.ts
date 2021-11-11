@@ -65,6 +65,7 @@ import {
     ListLiteralExpression,
     LiteralValExpr,
     MethodCallModifier,
+    OperatorTkn,
     Statement,
     UnaryOperatorExpr,
     ValueOperationExpr,
@@ -229,6 +230,8 @@ export enum EditActionType {
 
     InsertFormattedStringItem,
     DeleteFStringCurlyBrackets,
+
+    InsertOperatorTkn,
 }
 
 export enum ConstructName {
@@ -272,6 +275,8 @@ export enum InsertActionType {
 
     InsertVarOperationStmt,
     InsertValOperationExpr,
+
+    InsertOperatorTkn,
 }
 
 export class Actions {
@@ -562,6 +567,78 @@ export class Actions {
             null
         );
 
+        const AddOperatorTkn = new EditCodeAction(
+            "+",
+            "add-add-op-tkn-btn",
+            () => new OperatorTkn("+"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AddDocs,
+            ["+"],
+            "",
+            null
+        );
+
+        const SubOperatorTkn = new EditCodeAction(
+            "-",
+            "add-sub-op-tkn-btn",
+            () => new OperatorTkn("-"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            SubDocs,
+            ["-"],
+            "",
+            null
+        );
+
+        const MultOperatorTkn = new EditCodeAction(
+            "*",
+            "add-mult-op-tkn-btn",
+            () => new OperatorTkn("*"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            MultDocs,
+            ["*"],
+            "",
+            null
+        );
+
+        const DivOperatorTkn = new EditCodeAction(
+            "/",
+            "add-div-op-tkn-btn",
+            () => new OperatorTkn("/"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            DivDocs,
+            [""],
+            "/",
+            null
+        );
+
+        const FloorDivOperatorTkn = new EditCodeAction(
+            "//",
+            "add-floor-div-op-tkn-btn",
+            () => new OperatorTkn("//"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            DivDocs,
+            ["/"],
+            "/",
+            null
+        );
+
+        const ModOperatorTkn = new EditCodeAction(
+            "%",
+            "add-mod-op-tkn-btn",
+            () => new OperatorTkn("%"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            DivDocs,
+            ["%"],
+            "",
+            null
+        );
+
         const BinAndExpr = new EditCodeAction(
             "--- and ---",
             "add-bin-and-expr-btn",
@@ -584,6 +661,30 @@ export class Actions {
             {
                 operator: BinaryOperator.Or,
             },
+            OrDocs,
+            ["r"],
+            "o",
+            null
+        );
+
+        const AndOperatorTkn = new EditCodeAction(
+            "and",
+            "add-and-op-tkn-btn",
+            () => new OperatorTkn("and"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AndDocs,
+            ["d"],
+            "an",
+            null
+        );
+
+        const OrOperatorTkn = new EditCodeAction(
+            "or",
+            "add-or-op-tkn-btn",
+            () => new OperatorTkn("or"),
+            InsertActionType.InsertOperatorTkn,
+            {},
             OrDocs,
             ["r"],
             "o",
@@ -673,6 +774,78 @@ export class Actions {
             CompGteDocs,
             ["="],
             ">",
+            null
+        );
+
+        const EqOperatorTkn = new EditCodeAction(
+            "==",
+            "add-comp-eq-op-tkn-btn",
+            () => new OperatorTkn("=="),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompEqDocs,
+            ["="],
+            "=",
+            null
+        );
+
+        const NeqOperatorTkn = new EditCodeAction(
+            "!=",
+            "add-comp-neq-op-tkn-btn",
+            () => new OperatorTkn("!="),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            ["="],
+            "!",
+            null
+        );
+
+        const GtOperatorTkn = new EditCodeAction(
+            ">",
+            "add-comp-gt-op-tkn-btn",
+            () => new OperatorTkn(">"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            [" "],
+            ">",
+            null
+        );
+
+        const LtOperatorTkn = new EditCodeAction(
+            "<",
+            "add-comp-lt-op-tkn-btn",
+            () => new OperatorTkn("<"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            [" "],
+            "<",
+            null
+        );
+
+        const GteOperatorTkn = new EditCodeAction(
+            ">=",
+            "add-comp-gte-op-tkn-btn",
+            () => new OperatorTkn(">="),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            ["="],
+            ">",
+            null
+        );
+
+        const LteOperatorTkn = new EditCodeAction(
+            "<=",
+            "add-comp-lte-op-tkn-btn",
+            () => new OperatorTkn("<e"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            ["="],
+            "<",
             null
         );
 
@@ -1047,14 +1220,28 @@ export class Actions {
             BinDivExpr,
             BinFloorDivExpr,
             BinModExpr,
+            AddOperatorTkn,
+            SubOperatorTkn,
+            MultOperatorTkn,
+            DivOperatorTkn,
+            FloorDivOperatorTkn,
+            ModOperatorTkn,
             BinAndExpr,
             BinOrExpr,
+            AndOperatorTkn,
+            OrOperatorTkn,
             BinCompEqExpr,
             BinCompNeqExpr,
             BinCompLtExpr,
             BinCompLteExpr,
             BinCompGtExpr,
             BinCompGteExpr,
+            EqOperatorTkn,
+            NeqOperatorTkn,
+            GtOperatorTkn,
+            LtOperatorTkn,
+            GteOperatorTkn,
+            LteOperatorTkn,
             UnaryNotExpr,
             FindMethodMod,
             WhileStmt,

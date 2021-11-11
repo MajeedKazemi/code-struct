@@ -7,6 +7,7 @@ import {
     EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
+    EmptyOperatorTkn,
     FormattedStringCurlyBracketsExpr as FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
     IdentifierTkn,
@@ -645,19 +646,33 @@ export class Validator {
     atRightOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context?.expressionToLeft != null && context?.expressionToLeft?.returns != DataType.Void;
+        return (
+            context?.expressionToLeft != null &&
+            context?.expressionToLeft?.returns != null &&
+            context?.expressionToLeft?.returns != DataType.Void
+        );
     }
 
     atLeftOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context?.expressionToRight != null && context?.expressionToRight?.returns != DataType.Void;
+        return (
+            context?.expressionToRight != null &&
+            context?.expressionToRight?.returns != null &&
+            context?.expressionToRight?.returns != DataType.Void
+        );
     }
 
     atEmptyExpressionHole(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return context.selected && context?.token?.isEmpty && context.token instanceof TypedEmptyExpr;
+    }
+
+    atEmptyOperatorTkn(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.selected && context?.token?.isEmpty && context.token instanceof EmptyOperatorTkn;
     }
 
     insideFormattedString(providedContext?: Context): boolean {

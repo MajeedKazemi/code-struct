@@ -640,7 +640,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 }
 
 export abstract class Modifier extends Expression {
-    rootNode: ValueOperationExpr | VarOperationStmt;
+    rootNode: Expression | Statement;
     leftExprTypes: Array<DataType>;
 
     constructor() {
@@ -650,8 +650,6 @@ export abstract class Modifier extends Expression {
     getModifierText(): string {
         return "";
     }
-
-    abstract constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression;
 }
 
 /**
@@ -1691,10 +1689,6 @@ export class ListAccessModifier extends Modifier {
     getModifierText(): string {
         return "[---]";
     }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement {
-        return new VarOperationStmt(varRef, [this]);
-    }
 }
 
 export class PropertyAccessorModifier extends Modifier {
@@ -1723,10 +1717,6 @@ export class PropertyAccessorModifier extends Modifier {
 
     getModifierText(): string {
         return `.${this.propertyName}`;
-    }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Expression {
-        return new ValueOperationExpr(varRef, [this]);
     }
 }
 
@@ -1807,14 +1797,6 @@ export class MethodCallModifier extends Modifier {
 
         return str;
     }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement | Expression {
-        if (this.returns === DataType.Void) {
-            return new VarOperationStmt(varRef, [this]);
-        } else {
-            return new ValueOperationExpr(varRef, [this]);
-        }
-    }
 }
 
 export class AssignmentModifier extends Modifier {
@@ -1844,10 +1826,6 @@ export class AssignmentModifier extends Modifier {
 
     getModifierText(): string {
         return " = ---";
-    }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement {
-        return new VarAssignmentStmt(varRef.uniqueId, varRef.identifier);
     }
 }
 
@@ -1886,10 +1864,6 @@ export class AugmentedAssignmentModifier extends Modifier {
 
     getModifierText(): string {
         return ` ${this.operation} ---`;
-    }
-
-    constructFullOperation(varRef: VariableReferenceExpr): Statement {
-        return new VarOperationStmt(varRef, [this]);
     }
 }
 
@@ -2290,7 +2264,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
@@ -2300,7 +2276,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
@@ -2309,7 +2287,9 @@ export class BinaryOperatorExpr extends Expression {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
             this.keywordIndex = this.tokens.length;
-            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+            this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
@@ -2319,7 +2299,9 @@ export class BinaryOperatorExpr extends Expression {
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
             this.keywordIndex = this.tokens.length;
-            this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+            this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+            this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
@@ -2330,7 +2312,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
@@ -2338,7 +2322,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new NonEditableTkn(" " + operator + " ", this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
@@ -2628,10 +2614,6 @@ export class EditableTextTkn extends Token implements TextEditable {
         return new Selection(leftPos.lineNumber, leftPos.column + this.text.length, leftPos.lineNumber, leftPos.column);
     }
 
-    getLeft(): number {
-        return this.left;
-    }
-
     getEditableText(): string {
         return this.text;
     }
@@ -2659,6 +2641,38 @@ export class EditableTextTkn extends Token implements TextEditable {
         this.notify(CallbackType.change);
 
         return new Position(pos.lineNumber, this.right);
+    }
+}
+
+export class EmptyOperatorTkn extends Token {
+    isEmpty = true;
+
+    constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
+        super(text);
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+    }
+
+    canReplaceWithConstruct(replaceWith: CodeConstruct): InsertionResult {
+        if (replaceWith instanceof OperatorTkn) {
+            return new InsertionResult(InsertionType.Valid, "", []);
+        } else return new InsertionResult(InsertionType.Invalid, "", []);
+    }
+}
+
+export class OperatorTkn extends Modifier {
+    constructor(text: string, root?: Statement | Expression, indexInRoot?: number) {
+        super();
+
+        this.tokens.push(new NonEditableTkn(text, this, this.tokens.length));
+
+        this.rootNode = root;
+        this.indexInRoot = indexInRoot;
+    }
+
+    validateContext(validator: Validator, providedContext: Context): InsertionType {
+        return validator.atEmptyOperatorTkn(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
@@ -3057,22 +3071,6 @@ export class TypedEmptyExpr extends Token {
 
     isListElement(): boolean {
         return this.rootNode && this.rootNode instanceof ListLiteralExpression;
-    }
-}
-
-export class OperatorTkn extends Token {
-    operator: string = "";
-
-    constructor(text: string, root?: CodeConstruct, indexInRoot?: number) {
-        super(text);
-
-        this.rootNode = root;
-        this.indexInRoot = indexInRoot;
-        this.operator = text;
-    }
-
-    getSelection(): Selection {
-        return this.rootNode.getSelection();
     }
 }
 
