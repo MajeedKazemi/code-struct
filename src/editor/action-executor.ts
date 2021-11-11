@@ -10,8 +10,8 @@ import {
     ElseStatement,
     EmptyLineStmt,
     Expression,
+    FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
-    FStringItemTkn,
     IdentifierTkn,
     IfStatement,
     Importable,
@@ -527,7 +527,7 @@ export class ActionExecutor {
 
                 this.module.editor.executeEdits(rightTokenRange, rightToken);
 
-                const fStringToken = new FStringItemTkn(formattedStringExpr, token.indexInRoot + 1);
+                const fStringToken = new FormattedStringCurlyBracketsExpr(formattedStringExpr, token.indexInRoot + 1);
 
                 formattedStringExpr.tokens.splice(token.indexInRoot + 1, 0, ...[fStringToken]);
 
@@ -552,19 +552,47 @@ export class ActionExecutor {
                 }
 
                 this.module.editor.executeEdits(editRange, fStringToken);
-
-                // has to break the editable text token into two pieces
-                // insert the FStringItemTkn between them (+ insert it in the editor)
-                // rebuild things
-                // do anything with types (to ensure proper deleting)
+                this.module.focus.updateContext({ tokenToSelect: fStringToken.tokens[1] });
 
                 break;
             }
 
-            case EditActionType.DeleteFormattedStringItem: {
-                // has to delete the f-string item
-                // merge the two pieces back together
-                // rebuild things
+            case EditActionType.DeleteFStringCurlyBrackets: {
+                const fStringToRemove = action.data.item as FormattedStringCurlyBracketsExpr;
+
+                const root = fStringToRemove.rootNode;
+
+                const tokenBefore = root.tokens[fStringToRemove.indexInRoot - 1] as EditableTextTkn;
+                const tokenAfter = root.tokens[fStringToRemove.indexInRoot + 1] as EditableTextTkn;
+
+                const indexToReplace = tokenBefore.indexInRoot;
+
+                const newToken = new EditableTextTkn(
+                    tokenBefore.text + tokenAfter.text,
+                    StringRegex,
+                    root,
+                    fStringToRemove.indexInRoot - 1
+                );
+
+                const focusPos = new Position(tokenBefore.getLineNumber(), tokenBefore.right);
+
+                const replaceRange = new Range(
+                    tokenAfter.getLineNumber(),
+                    tokenAfter.right,
+                    tokenBefore.getLineNumber(),
+                    tokenBefore.left
+                );
+
+                this.module.removeItem(fStringToRemove, { replace: false });
+                this.module.removeItem(tokenAfter, { replace: false });
+                this.module.removeItem(tokenBefore, { replace: false });
+
+                root.tokens.splice(indexToReplace, 0, newToken);
+
+                root.rebuild(root.getLeftPosition(), 0);
+
+                this.module.editor.executeEdits(replaceRange, newToken);
+                this.module.focus.updateContext({ positionToMove: focusPos });
 
                 break;
             }
@@ -577,7 +605,7 @@ export class ActionExecutor {
                 const token = editableToken.getToken();
                 let newText = "";
 
-                if (pressedKey == "{" && token.rootNode instanceof FormattedStringExpr) {
+                if ((pressedKey == "{" || pressedKey == "}") && token.rootNode instanceof FormattedStringExpr) {
                     this.execute(new EditAction(EditActionType.InsertFormattedStringItem));
 
                     break;

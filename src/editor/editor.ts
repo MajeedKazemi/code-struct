@@ -324,11 +324,12 @@ export class Editor {
     executeEdits(range: Range, code: CodeConstruct, overwrite: string = null) {
         let text = overwrite;
 
-        if (overwrite == null) text = code.getRenderText();
+        if (overwrite == null) text = code?.getRenderText() ? code.getRenderText() : "";
 
         this.monaco.executeEdits("module", [{ range: range, text, forceMoveMarkers: true }]);
 
-        this.addHoles(code);
+        if (code) this.addHoles(code);
+
         this.monaco.focus();
     }
 

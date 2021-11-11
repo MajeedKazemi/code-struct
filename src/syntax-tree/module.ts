@@ -21,8 +21,8 @@ import {
     CodeConstruct,
     EmptyLineStmt,
     Expression,
+    FormattedStringCurlyBracketsExpr,
     ForStatement,
-    FStringItemTkn,
     Importable,
     ImportStatement,
     ListLiteralExpression,
@@ -323,29 +323,35 @@ export class Module {
         }
     }
 
-    removeItem(item: CodeConstruct, { replaceType = null }): CodeConstruct {
+    removeItem(item: CodeConstruct, { replaceType = null, replace = true }): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
-            if (root instanceof ListLiteralExpression || root instanceof FStringItemTkn) replaceType = DataType.Any;
+            if (root instanceof ListLiteralExpression || root instanceof FormattedStringCurlyBracketsExpr)
+                replaceType = DataType.Any;
 
-            const replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
-            if (item.rootNode instanceof BinaryOperatorExpr) {
-                let allowedTypes = [];
-                if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
-                    allowedTypes = item.rootNode.getValidLeftOperandTypes();
-                } else {
-                    allowedTypes = item.rootNode.getValidRightOperandTypes();
+            let replacedItem = null;
+
+            if (replace) {
+                replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
+
+                if (item.rootNode instanceof BinaryOperatorExpr) {
+                    let allowedTypes = [];
+                    if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
+                        allowedTypes = item.rootNode.getValidLeftOperandTypes();
+                    } else {
+                        allowedTypes = item.rootNode.getValidRightOperandTypes();
+                    }
+
+                    if (allowedTypes.length > 0) {
+                        replacedItem.type = allowedTypes;
+                    }
                 }
 
-                if (allowedTypes.length > 0) {
-                    replacedItem.type = allowedTypes;
-                }
-            }
+                root.tokens.splice(item.indexInRoot, 1, replacedItem);
+            } else root.tokens.splice(item.indexInRoot, 1);
 
             this.recursiveNotify(item, CallbackType.delete);
-
-            root.tokens.splice(item.indexInRoot, 1, replacedItem)[0];
 
             for (let i = 0; i < root.tokens.length; i++) {
                 root.tokens[i].indexInRoot = i;

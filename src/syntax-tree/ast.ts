@@ -2756,7 +2756,7 @@ export class FormattedStringExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atEmptyExpressionHole(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.canInsertFormattedString(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 
     getInitialFocus(): UpdatableContext {
@@ -2764,7 +2764,7 @@ export class FormattedStringExpr extends Expression {
     }
 }
 
-export class FStringItemTkn extends Expression {
+export class FormattedStringCurlyBracketsExpr extends Expression {
     valueTokenIndex: number = 0;
 
     constructor(root?: Statement | Expression, indexInRoot?: number) {

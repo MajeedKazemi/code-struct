@@ -52,9 +52,9 @@ import {
     AugmentedAssignmentModifier,
     BinaryOperatorExpr,
     ElseStatement,
-    FormattedStringExpr as FStringExpr,
+    FormattedStringCurlyBracketsExpr,
+    FormattedStringExpr as FormattedStringExpr,
     ForStatement,
-    FStringItemTkn,
     FunctionCallExpr,
     FunctionCallStmt,
     IfStatement,
@@ -228,7 +228,7 @@ export enum EditActionType {
     InsertMemberAccessConversion,
 
     InsertFormattedStringItem,
-    DeleteFormattedStringItem,
+    DeleteFStringCurlyBrackets,
 }
 
 export enum ConstructName {
@@ -410,7 +410,7 @@ export class Actions {
         const FormattedStringLiteralExpr = new EditCodeAction(
             "f''",
             "add-str-btn",
-            () => new FStringExpr(""),
+            () => new FormattedStringExpr(""),
             InsertActionType.InsertExpression,
             {},
             StrDocs,
@@ -422,7 +422,7 @@ export class Actions {
         const FormattedStringItem = new EditCodeAction(
             "{}",
             "add-str-btn",
-            () => new FStringItemTkn(),
+            () => new FormattedStringCurlyBracketsExpr(),
             InsertActionType.InsertFormattedStringItem,
             {},
             StrDocs,
