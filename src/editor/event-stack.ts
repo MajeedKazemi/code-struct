@@ -84,7 +84,8 @@ export class EventStack {
 
         module.editor.monaco.onKeyDown((e: IKeyboardEvent) => {
             if (e.ctrlKey && e.code == "KeyZ") {
-                this.undo();
+                // TODO: Temporarily disable undo for now - refer to https://github.com/MajeedKazemi/nova-editor/issues/509
+                // this.undo();
 
                 return;
             }
