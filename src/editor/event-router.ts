@@ -111,6 +111,10 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteFStringCurlyBrackets, {
                         item: context.expressionToRight,
                     });
+                } else if (this.module.validator.canDeleteSelectedFStringCurlyBrackets(context)) {
+                    return new EditAction(EditActionType.DeleteFStringCurlyBrackets, {
+                        item: context.token.rootNode,
+                    });
                 } else if (this.module.validator.canDeleteStringLiteral(context)) {
                     return new EditAction(EditActionType.DeleteStringLiteral);
                 } else if (this.module.validator.canDeleteNextStatement(context)) {
@@ -145,6 +149,10 @@ export class EventRouter {
                 } else if (this.module.validator.canDeletePrevFStringCurlyBrackets(context)) {
                     return new EditAction(EditActionType.DeleteFStringCurlyBrackets, {
                         item: context.expressionToLeft,
+                    });
+                } else if (this.module.validator.canDeleteSelectedFStringCurlyBrackets(context)) {
+                    return new EditAction(EditActionType.DeleteFStringCurlyBrackets, {
+                        item: context.token.rootNode,
                     });
                 } else if (this.module.validator.canDeleteStringLiteral(context)) {
                     return new EditAction(EditActionType.DeleteStringLiteral);

@@ -396,6 +396,15 @@ export class Validator {
         return context.expressionToRight instanceof FormattedStringCurlyBracketsExpr;
     }
 
+    canDeleteSelectedFStringCurlyBrackets(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.token instanceof TypedEmptyExpr &&
+            context.token.rootNode instanceof FormattedStringCurlyBracketsExpr
+        );
+    }
+
     canDeleteStringLiteral(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
