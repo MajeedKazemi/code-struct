@@ -28,6 +28,7 @@ import {
     TemporaryStmt,
     Token,
     TypedEmptyExpr,
+    UnaryOperatorExpr,
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
@@ -278,7 +279,10 @@ export class ActionExecutor {
             case EditActionType.InsertUnaryOperator: {
                 // TODO
                 if (action.data?.replace) {
-                    console.log("insert unary op - replace");
+                    this.insertExpression(
+                        context,
+                        new UnaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
+                    );
                 } else if (action.data?.wrap) {
                     console.log("insert unary op - wrap");
                 }

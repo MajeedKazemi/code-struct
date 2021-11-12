@@ -2597,6 +2597,8 @@ export class UnaryOperatorExpr extends Expression {
         this.indexInRoot = indexInRoot;
         this.operator = operator;
 
+        if (operator === UnaryOp.Not) operatesOn = DataType.Boolean;
+
         this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
         this.tokens.push(new TypedEmptyExpr([operatesOn], this, this.tokens.length));
