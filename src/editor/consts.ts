@@ -849,6 +849,34 @@ export class Actions {
             null
         );
 
+        const BinInExpr = new EditCodeAction(
+            "--- in ---",
+            "add-bin-in-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.In, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.In,
+            },
+            AddDocs,
+            ["n"],
+            "i",
+            null
+        );
+
+        const BinNotInExpr = new EditCodeAction(
+            "--- not in ---",
+            "add-bin-not-in-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.NotIn, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.NotIn,
+            },
+            AddDocs,
+            ["n"],
+            "not i",
+            null
+        );
+
         const UnaryNotExpr = new EditCodeAction(
             "not ---",
             "add-unary-not-expr-btn",
@@ -1266,7 +1294,9 @@ export class Actions {
             SplitMethodMod,
             CastStrExpr,
             CastIntExpr,
-            VarAssignStmt
+            VarAssignStmt,
+            BinInExpr,
+            BinNotInExpr
         );
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
@@ -1489,6 +1519,8 @@ export class Actions {
                 BinCompLteExpr,
                 BinCompGtExpr,
                 BinCompGteExpr,
+                BinInExpr,
+                BinNotInExpr,
             ])
         );
         this.toolboxCategories.push(

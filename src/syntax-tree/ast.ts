@@ -2264,8 +2264,8 @@ export class BinaryOperatorExpr extends Expression {
             if (returns !== DataType.String && returns !== DataType.Number) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
@@ -2276,8 +2276,8 @@ export class BinaryOperatorExpr extends Expression {
             } else {
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
-                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
@@ -2287,8 +2287,8 @@ export class BinaryOperatorExpr extends Expression {
         } else if (this.operatorCategory === BinaryOperatorCategory.Arithmetic) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
-            this.keywordIndex = this.tokens.length;
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+            this.keywordIndex = this.tokens.length;
             this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
@@ -2299,8 +2299,8 @@ export class BinaryOperatorExpr extends Expression {
         } else if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
-            this.keywordIndex = this.tokens.length;
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+            this.keywordIndex = this.tokens.length;
             this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
@@ -2312,18 +2312,46 @@ export class BinaryOperatorExpr extends Expression {
             if (this.operator === BinaryOperator.Equal || this.operator === BinaryOperator.NotEqual) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
-                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+            } else if (this.operator === BinaryOperator.In || this.operator === BinaryOperator.NotIn) {
+                this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.keywordIndex = this.tokens.length;
+                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.rightOperandIndex = this.tokens.length;
+                this.tokens.push(
+                    new TypedEmptyExpr(
+                        [
+                            DataType.String,
+                            DataType.AnyList,
+                            DataType.NumberList,
+                            DataType.StringList,
+                            DataType.BooleanList,
+                        ],
+                        this,
+                        this.tokens.length
+                    )
+                );
+                this.typeOfHoles[this.tokens.length - 1] = [
+                    DataType.String,
+                    DataType.AnyList,
+                    DataType.NumberList,
+                    DataType.StringList,
+                    DataType.BooleanList,
+                ];
             } else {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
+                this.keywordIndex = this.tokens.length;
                 this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;

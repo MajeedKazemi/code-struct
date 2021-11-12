@@ -34,7 +34,7 @@ import {
 } from "./ast";
 import { rebuildBody } from "./body";
 import { CallbackType } from "./callback";
-import { DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
+import { BinaryOperator, DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
@@ -335,7 +335,11 @@ export class Module {
             if (replace) {
                 replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
 
-                if (item.rootNode instanceof BinaryOperatorExpr) {
+                if (
+                    item.rootNode instanceof BinaryOperatorExpr &&
+                    item.rootNode.operator != BinaryOperator.In &&
+                    item.rootNode.operator != BinaryOperator.NotIn
+                ) {
                     let allowedTypes = [];
                     if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
                         allowedTypes = item.rootNode.getValidLeftOperandTypes();
