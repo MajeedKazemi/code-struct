@@ -567,6 +567,30 @@ export class Actions {
             null
         );
 
+        const InOperatorTkn = new EditCodeAction(
+            "in",
+            "add-in-op-tkn-btn",
+            () => new OperatorTkn("in"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AddDocs,
+            ["n"],
+            "i",
+            null
+        );
+
+        const NotInOperatorTkn = new EditCodeAction(
+            "not in",
+            "add-not-in-op-tkn-btn",
+            () => new OperatorTkn("not in"),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AddDocs,
+            ["n"],
+            "not i",
+            null
+        );
+
         const AddOperatorTkn = new EditCodeAction(
             "+",
             "add-add-op-tkn-btn",
@@ -1255,6 +1279,8 @@ export class Actions {
             DivOperatorTkn,
             FloorDivOperatorTkn,
             ModOperatorTkn,
+            InOperatorTkn,
+            NotInOperatorTkn,
             BinAndExpr,
             BinOrExpr,
             AndOperatorTkn,
