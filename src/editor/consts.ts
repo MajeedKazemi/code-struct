@@ -414,7 +414,7 @@ export class Actions {
 
         const FormattedStringLiteralExpr = new EditCodeAction(
             "f''",
-            "add-str-btn",
+            "add-f-str-literal-btn",
             () => new FormattedStringExpr(""),
             InsertActionType.InsertExpression,
             {},
@@ -426,7 +426,7 @@ export class Actions {
 
         const FormattedStringItem = new EditCodeAction(
             "{}",
-            "add-str-btn",
+            "add-f-str-item-btn",
             () => new FormattedStringCurlyBracketsExpr(),
             InsertActionType.InsertFormattedStringItem,
             {},
@@ -1211,6 +1211,7 @@ export class Actions {
             InputExpr,
             StringLiteralExpr,
             FormattedStringLiteralExpr,
+            FormattedStringItem,
             NumberLiteralExpr,
             BooleanTrueLiteralExpr,
             BooleanFalseLiteralExpr,
@@ -1454,6 +1455,7 @@ export class Actions {
             new ToolboxCategory("Texts", "text-toolbox-group", [
                 StringLiteralExpr,
                 FormattedStringLiteralExpr,
+                FormattedStringItem,
                 SplitMethodMod,
                 JoinMethodMod,
                 FindMethodMod,

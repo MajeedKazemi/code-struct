@@ -515,7 +515,6 @@ export class ActionExecutor {
                 const cursorPos = this.module.editor.monaco.getPosition();
                 const selectedText = this.module.editor.monaco.getSelection();
                 const editableToken = this.module.focus.getTextEditableItem(context);
-                const editableText = editableToken.getEditableText();
                 const token = editableToken.getToken();
                 const formattedStringExpr = token.rootNode as FormattedStringExpr;
 

@@ -656,6 +656,7 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return (
+            !this.insideFormattedString(context) &&
             context?.expressionToLeft != null &&
             context?.expressionToLeft?.returns != null &&
             context?.expressionToLeft?.returns != DataType.Void
@@ -666,6 +667,7 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         return (
+            !this.insideFormattedString(context) &&
             context?.expressionToRight != null &&
             context?.expressionToRight?.returns != null &&
             context?.expressionToRight?.returns != DataType.Void
@@ -687,7 +689,11 @@ export class Validator {
     insideFormattedString(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context.token instanceof FormattedStringExpr;
+        return (
+            context.token?.rootNode instanceof FormattedStringExpr ||
+            context.tokenToLeft?.rootNode instanceof FormattedStringExpr ||
+            context.tokenToRight?.rootNode instanceof FormattedStringExpr
+        );
     }
 
     canInsertFormattedString(providedContext?: Context): boolean {
