@@ -1986,6 +1986,27 @@ export class FunctionCallExpr extends Expression implements Importable {
         return this.functionName;
     }
 
+    getFullConstructText(): string {
+        let text = this.getFunctionName();
+        text += "(";
+
+        for (let i = 0; i < this.tokens.length; i++) {
+            const tkn = this.tokens[i];
+
+            if (tkn instanceof Expression || tkn instanceof TypedEmptyExpr) {
+                text += tkn.getKeyword().replace(/   /g, "---");
+
+                if (i < this.tokens.length - 1 && this.args.length > 1) {
+                    text += ",";
+                }
+            }
+        }
+
+        text += ")";
+
+        return text;
+    }
+
     validateImport(importedModule: string, importedItem: string): boolean {
         return this.requiredModule === importedModule && this.getFunctionName() === importedItem;
     }
