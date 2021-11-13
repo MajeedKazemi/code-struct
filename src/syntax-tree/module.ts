@@ -333,7 +333,7 @@ export class Module {
             let replacedItem = null;
 
             if (replace) {
-                replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
+                replacedItem = new TypedEmptyExpr(replaceType ? [replaceType] : root.typeOfHoles[item.indexInRoot]);
 
                 if (item.rootNode instanceof BinaryOperatorExpr) {
                     let allowedTypes = [];

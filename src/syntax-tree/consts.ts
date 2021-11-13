@@ -386,7 +386,7 @@ export abstract class TypeConversionRecord {
                 }
 
                 button.innerHTML = this.getConversionCode(
-                    codeToReplace instanceof FunctionCallExpr ? newConversionText : conversionText
+                    codeToReplace instanceof FunctionCallExpr ? newConversionText : codeToReplace.getKeyword()
                 ).replace(/---/g, "<hole1></hole1>");
             })
         );
@@ -407,6 +407,9 @@ export class CastConversionRecord extends TypeConversionRecord {
     }
 
     getConversionCode(itemToConvert): string {
+        if (ListTypes.indexOf(this.convertTo) > -1) {
+            return `${this.conversionConstruct.substring(0, this.conversionConstruct.length - 1)}${itemToConvert}]`;
+        }
         return `${this.conversionConstruct.substring(0, this.conversionConstruct.length - 1)}${itemToConvert})`;
     }
 }
@@ -529,6 +532,13 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 "add-comp-gt-expr-btn",
                 EditActionType.InsertComparisonConversion
             ),
+            new CastConversionRecord(
+                "[]",
+                DataType.NumberList,
+                DataType.Number,
+                "add-list-literal-btn",
+                EditActionType.InsertTypeCast
+            ),
         ],
     ],
     [
@@ -607,6 +617,14 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 "add-cast-int-btn",
                 EditActionType.InsertTypeCast
             ),
+
+            new CastConversionRecord(
+                "[]",
+                DataType.StringList,
+                DataType.String,
+                "add-list-literal-btn",
+                EditActionType.InsertTypeCast
+            ),
         ],
     ],
     [
@@ -682,6 +700,18 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 DataType.AnyList,
                 "add-len-btn",
                 EditActionType.InsertFunctionConversion
+            ),
+        ],
+    ],
+    [
+        DataType.Boolean,
+        [
+            new CastConversionRecord(
+                "[]",
+                DataType.BooleanList,
+                DataType.Boolean,
+                "add-list-literal-btn",
+                EditActionType.InsertTypeCast
             ),
         ],
     ],

@@ -481,7 +481,11 @@ export abstract class Statement implements CodeConstruct {
     }
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionResult {
-        if (insertInto?.type?.indexOf(insertCode.returns) > -1 || insertInto?.type?.indexOf(DataType.Any) > -1) {
+        if (
+            insertInto?.type?.indexOf(insertCode.returns) > -1 ||
+            insertInto?.type?.indexOf(DataType.Any) > -1 ||
+            (hasMatch(insertInto.type, ListTypes) && insertCode.returns === DataType.AnyList)
+        ) {
             return new InsertionResult(InsertionType.Valid, "", []);
         } //types match or one of them is Any
 
