@@ -29,7 +29,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt,
+    VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
@@ -41,7 +41,7 @@ import {
     StringRegex,
     TAB_SPACES,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -1398,7 +1398,7 @@ export class ActionExecutor {
                     break;
 
                 case AutoCompleteType.AtExpressionHole:
-                    this.deleteCode(token);
+                    this.deleteCode(token, {}, true);
 
                     break;
             }
@@ -1760,12 +1760,12 @@ export class ActionExecutor {
         this.module.editor.executeEdits(range, null, "");
     }
 
-    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
+    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}, autocompleteReplace = false) {
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.removeItem(code, { replaceType });
+        else replacement = this.module.removeItem(code, { replaceType }, autocompleteReplace);
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });
