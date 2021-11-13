@@ -571,25 +571,31 @@ export class Module {
 
         while (stack.length > 0) {
             let cur: CodeConstruct = stack.pop();
+            const hasDraftMode = cur.draftModeEnabled;
 
             if (cur instanceof TypedEmptyExpr && !cur.isListElement()) {
                 status = status ?? CodeStatus.ContainsEmptyHoles;
 
-                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+                if (highlightConstructs && !hasDraftMode) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
             } else if (cur instanceof AutocompleteTkn) {
                 status = status ?? CodeStatus.ContainsAutocompleteTokens;
 
-                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+                if (highlightConstructs && !hasDraftMode) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
             } else if (cur.draftModeEnabled) {
                 status = status ?? CodeStatus.ContainsDraftMode;
 
-                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+                if (highlightConstructs && !hasDraftMode) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
             } else if (cur instanceof Expression && cur.tokens.length > 0) {
                 const addHighlight = cur instanceof ListLiteralExpression && !cur.isHolePlacementValid();
                 status = addHighlight ? CodeStatus.ContainsEmptyHoles : status;
 
                 for (let i = 0; i < cur.tokens.length; i++) {
-                    if (cur.tokens[i] instanceof TypedEmptyExpr && addHighlight && i < cur.tokens.length - 2) {
+                    if (
+                        cur.tokens[i] instanceof TypedEmptyExpr &&
+                        addHighlight &&
+                        i < cur.tokens.length - 2 &&
+                        !hasDraftMode
+                    ) {
                         this.addHighlightToConstruct(cur.tokens[i], ERROR_HIGHLIGHT_COLOUR);
                     }
 
