@@ -487,14 +487,6 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 EditActionType.InsertTypeCast
             ),
 
-            new CastConversionRecord(
-                "int()",
-                DataType.Number,
-                DataType.String,
-                "add-cast-int-btn",
-                EditActionType.InsertTypeCast
-            ),
-
             new ComparisonConversionRecord(
                 "==",
                 DataType.Boolean,
@@ -606,6 +598,14 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 DataType.String,
                 "add-len-btn",
                 EditActionType.InsertFunctionConversion
+            ),
+
+            new CastConversionRecord(
+                "int()",
+                DataType.Number,
+                DataType.String,
+                "add-cast-int-btn",
+                EditActionType.InsertTypeCast
             ),
         ],
     ],
