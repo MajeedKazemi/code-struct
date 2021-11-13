@@ -26,7 +26,7 @@ import {
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOp
+    UnaryOp,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -489,9 +489,10 @@ export abstract class Statement implements CodeConstruct {
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionResult {
         if (
-            insertInto?.type?.indexOf(insertCode.returns) > -1 ||
-            insertInto?.type?.indexOf(DataType.Any) > -1 ||
-            (hasMatch(insertInto.type, ListTypes) && insertCode.returns === DataType.AnyList)
+            (insertInto?.type?.indexOf(insertCode.returns) > -1 ||
+                insertInto?.type?.indexOf(DataType.Any) > -1 ||
+                (hasMatch(insertInto.type, ListTypes) && insertCode.returns === DataType.AnyList)) &&
+            insertCode.returns !== DataType.Void
         ) {
             return new InsertionResult(InsertionType.Valid, "", []);
         } //types match or one of them is Any
@@ -1786,6 +1787,14 @@ export class MethodCallModifier extends Modifier {
         let doTypesMatch = this.leftExprTypes.some((type) =>
             areEqualTypes(providedContext?.expressionToLeft?.returns, type)
         );
+
+        //#514
+        if (
+            providedContext?.expressionToLeft?.rootNode.rootNode instanceof VarOperationStmt &&
+            this.returns === DataType.Void
+        ) {
+            return InsertionType.Invalid;
+        }
 
         //#260/#341
         if (

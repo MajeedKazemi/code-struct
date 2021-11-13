@@ -70,7 +70,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VarOperationStmt,
-    WhileStatement
+    WhileStatement,
 } from "../syntax-tree/ast";
 import {
     AugmentedAssignmentOperator,
@@ -78,7 +78,7 @@ import {
     DataType,
     IdentifierRegex,
     NumberRegex,
-    UnaryOp
+    UnaryOp,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { EditCodeAction } from "./action-filter";
@@ -1189,7 +1189,7 @@ export class Actions {
                 [
                     () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
                     () =>
-                        new ValueOperationExpr(null, [
+                        new VarOperationStmt(null, [
                             new MethodCallModifier(
                                 "append",
                                 [new Argument([DataType.Any], "object", false)],
@@ -1225,7 +1225,7 @@ export class Actions {
                 [
                     () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
                     () =>
-                        new ValueOperationExpr(null, [
+                        new VarOperationStmt(null, [
                             new MethodCallModifier(
                                 "append",
                                 [new Argument([DataType.Any], "object", false)],
