@@ -323,11 +323,7 @@ export class Module {
         }
     }
 
-    removeItem(
-        item: CodeConstruct,
-        { replaceType = null, replace = true },
-        autocompleteReplace = false
-    ): CodeConstruct {
+    removeItem(item: CodeConstruct, { replaceType = null, replace = true }, completeDeletion = true): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
@@ -339,13 +335,8 @@ export class Module {
             if (replace) {
                 replacedItem = new TypedEmptyExpr(replaceType ? [replaceType] : root.typeOfHoles[item.indexInRoot]);
 
-                if (item.rootNode instanceof BinaryOperatorExpr && autocompleteReplace) {
-                    let allowedTypes = [];
-                    if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
-                        allowedTypes = item.rootNode.getValidLeftOperandTypes();
-                    } else {
-                        allowedTypes = item.rootNode.getValidRightOperandTypes();
-                    }
+                if (item.rootNode instanceof BinaryOperatorExpr) {
+                    let allowedTypes = item.rootNode.getCurrentAllowedTypesOfOperand(item.indexInRoot, true);
 
                     if (allowedTypes.length > 0) {
                         replacedItem.type = allowedTypes;

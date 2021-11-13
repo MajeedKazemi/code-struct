@@ -26,7 +26,7 @@ import {
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOp,
+    UnaryOp
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -193,7 +193,14 @@ export abstract class Statement implements CodeConstruct {
 
     checkInsertionAtHole(index: number, givenType: DataType): InsertionResult {
         if (Object.keys(this.typeOfHoles).length > 0) {
-            const holeType = this.typeOfHoles[index];
+            let holeType = this.typeOfHoles[index];
+            if (this instanceof BinaryOperatorExpr) {
+                let allowedTypes = this.getCurrentAllowedTypesOfOperand(index);
+
+                if (allowedTypes.length > 0) {
+                    holeType = allowedTypes;
+                }
+            }
 
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
 
@@ -1597,8 +1604,8 @@ export class ValueOperationExpr extends Expression {
         return (this.tokens[this.tokens.length - 1] as Modifier).getModifierText();
     }
 
-    getVarRef(): VariableReferenceExpr {
-        return this.tokens[0] as VariableReferenceExpr;
+    getVarRef(): Expression {
+        return this.tokens[0] as Expression;
     }
 }
 
@@ -2391,6 +2398,28 @@ export class BinaryOperatorExpr extends Expression {
 
         const type = this.getFilledHoleType();
         return type ? [type] : [];
+    }
+
+    getCurrentAllowedTypesOfOperand(index: number, beingDeleted: boolean = false): DataType[] {
+        let indexOfOtherOperand = index;
+        if (indexOfOtherOperand === this.getLeftOperand().indexInRoot) {
+            indexOfOtherOperand = this.getRightOperand().indexInRoot;
+        } else {
+            indexOfOtherOperand = this.getLeftOperand().indexInRoot;
+        }
+
+        if (beingDeleted && this.tokens[indexOfOtherOperand] instanceof TypedEmptyExpr) {
+            return this.typeOfHoles[index];
+        } else {
+            let allowedTypes = [];
+            if (index === this.getLeftOperand().indexInRoot) {
+                allowedTypes = this.getValidLeftOperandTypes();
+            } else {
+                allowedTypes = this.getValidRightOperandTypes();
+            }
+
+            return allowedTypes;
+        }
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
