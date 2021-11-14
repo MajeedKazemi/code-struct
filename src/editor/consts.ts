@@ -79,7 +79,7 @@ import {
     DataType,
     IdentifierRegex,
     NumberRegex,
-    UnaryOp,
+    UnaryOperator,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { EditCodeAction } from "./action-filter";
@@ -570,7 +570,7 @@ export class Actions {
         const InOperatorTkn = new EditCodeAction(
             "in",
             "add-in-op-tkn-btn",
-            () => new OperatorTkn("in"),
+            () => new OperatorTkn(BinaryOperator.In),
             InsertActionType.InsertOperatorTkn,
             {},
             AddDocs,
@@ -582,7 +582,7 @@ export class Actions {
         const NotInOperatorTkn = new EditCodeAction(
             "not in",
             "add-not-in-op-tkn-btn",
-            () => new OperatorTkn("not in"),
+            () => new OperatorTkn(BinaryOperator.NotIn),
             InsertActionType.InsertOperatorTkn,
             {},
             AddDocs,
@@ -594,7 +594,7 @@ export class Actions {
         const AddOperatorTkn = new EditCodeAction(
             "+",
             "add-add-op-tkn-btn",
-            () => new OperatorTkn("+"),
+            () => new OperatorTkn(BinaryOperator.Add),
             InsertActionType.InsertOperatorTkn,
             {},
             AddDocs,
@@ -606,7 +606,7 @@ export class Actions {
         const SubOperatorTkn = new EditCodeAction(
             "-",
             "add-sub-op-tkn-btn",
-            () => new OperatorTkn("-"),
+            () => new OperatorTkn(BinaryOperator.Subtract),
             InsertActionType.InsertOperatorTkn,
             {},
             SubDocs,
@@ -618,7 +618,7 @@ export class Actions {
         const MultOperatorTkn = new EditCodeAction(
             "*",
             "add-mult-op-tkn-btn",
-            () => new OperatorTkn("*"),
+            () => new OperatorTkn(BinaryOperator.Multiply),
             InsertActionType.InsertOperatorTkn,
             {},
             MultDocs,
@@ -630,7 +630,7 @@ export class Actions {
         const DivOperatorTkn = new EditCodeAction(
             "/",
             "add-div-op-tkn-btn",
-            () => new OperatorTkn("/"),
+            () => new OperatorTkn(BinaryOperator.Divide),
             InsertActionType.InsertOperatorTkn,
             {},
             DivDocs,
@@ -642,7 +642,7 @@ export class Actions {
         const FloorDivOperatorTkn = new EditCodeAction(
             "//",
             "add-floor-div-op-tkn-btn",
-            () => new OperatorTkn("//"),
+            () => new OperatorTkn(BinaryOperator.FloorDiv),
             InsertActionType.InsertOperatorTkn,
             {},
             DivDocs,
@@ -654,7 +654,7 @@ export class Actions {
         const ModOperatorTkn = new EditCodeAction(
             "%",
             "add-mod-op-tkn-btn",
-            () => new OperatorTkn("%"),
+            () => new OperatorTkn(BinaryOperator.Mod),
             InsertActionType.InsertOperatorTkn,
             {},
             DivDocs,
@@ -694,7 +694,7 @@ export class Actions {
         const AndOperatorTkn = new EditCodeAction(
             "and",
             "add-and-op-tkn-btn",
-            () => new OperatorTkn("and"),
+            () => new OperatorTkn(BinaryOperator.And),
             InsertActionType.InsertOperatorTkn,
             {},
             AndDocs,
@@ -706,7 +706,7 @@ export class Actions {
         const OrOperatorTkn = new EditCodeAction(
             "or",
             "add-or-op-tkn-btn",
-            () => new OperatorTkn("or"),
+            () => new OperatorTkn(BinaryOperator.Or),
             InsertActionType.InsertOperatorTkn,
             {},
             OrDocs,
@@ -804,7 +804,7 @@ export class Actions {
         const EqOperatorTkn = new EditCodeAction(
             "==",
             "add-comp-eq-op-tkn-btn",
-            () => new OperatorTkn("=="),
+            () => new OperatorTkn(BinaryOperator.Equal),
             InsertActionType.InsertOperatorTkn,
             {},
             CompEqDocs,
@@ -816,7 +816,7 @@ export class Actions {
         const NeqOperatorTkn = new EditCodeAction(
             "!=",
             "add-comp-neq-op-tkn-btn",
-            () => new OperatorTkn("!="),
+            () => new OperatorTkn(BinaryOperator.NotEqual),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -828,7 +828,7 @@ export class Actions {
         const GtOperatorTkn = new EditCodeAction(
             ">",
             "add-comp-gt-op-tkn-btn",
-            () => new OperatorTkn(">"),
+            () => new OperatorTkn(BinaryOperator.GreaterThan),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -840,7 +840,7 @@ export class Actions {
         const LtOperatorTkn = new EditCodeAction(
             "<",
             "add-comp-lt-op-tkn-btn",
-            () => new OperatorTkn("<"),
+            () => new OperatorTkn(BinaryOperator.LessThan),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -852,7 +852,7 @@ export class Actions {
         const GteOperatorTkn = new EditCodeAction(
             ">=",
             "add-comp-gte-op-tkn-btn",
-            () => new OperatorTkn(">="),
+            () => new OperatorTkn(BinaryOperator.GreaterThanEqual),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -864,7 +864,7 @@ export class Actions {
         const LteOperatorTkn = new EditCodeAction(
             "<=",
             "add-comp-lte-op-tkn-btn",
-            () => new OperatorTkn("<e"),
+            () => new OperatorTkn(BinaryOperator.LessThanEqual),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -904,10 +904,10 @@ export class Actions {
         const UnaryNotExpr = new EditCodeAction(
             "not ---",
             "add-unary-not-expr-btn",
-            () => new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean),
+            () => new UnaryOperatorExpr(UnaryOperator.Not, DataType.Boolean),
             InsertActionType.InsertUnaryExpr,
             {
-                operator: UnaryOp.Not,
+                operator: UnaryOperator.Not,
             },
             NotDocs,
             // TODO: this has ambiguity with not in binary exp
