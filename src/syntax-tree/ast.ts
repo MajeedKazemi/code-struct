@@ -9,22 +9,22 @@ import { CodeBackground, HoverMessage, InlineMessage } from "../notification-sys
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-    AugmentedAssignmentOperator,
-    AutoCompleteType,
-    BinaryOperator,
-    DataType,
-    getOperatorCategory,
-    IndexableTypes,
-    InsertionType,
-    ListTypes,
-    NumberRegex,
-    OperatorCategory,
-    StringRegex,
-    TAB_SPACES,
-    typeToConversionRecord,
-    TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
-    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOperator,
+	AugmentedAssignmentOperator,
+	AutoCompleteType,
+	BinaryOperator,
+	DataType,
+	getOperatorCategory,
+	IndexableTypes,
+	InsertionType,
+	ListTypes,
+	NumberRegex,
+	OperatorCategory,
+	StringRegex,
+	TAB_SPACES,
+	typeToConversionRecord,
+	TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
+	TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
+	UnaryOperator
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -2598,13 +2598,18 @@ export class UnaryOperatorExpr extends Expression {
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atEmptyExpressionHole(providedContext) || validator.atLeftOfExpression(providedContext)
+        return validator.atEmptyExpressionHole(providedContext) ||
+            (validator.atLeftOfExpression(providedContext) &&
+                providedContext?.expressionToRight?.returns == DataType.Boolean) ||
+            providedContext?.expressionToRight?.returns == DataType.Any
             ? InsertionType.Valid
             : InsertionType.Invalid;
     }
 
-    replaceOperand(code: CodeConstruct) {
-        this.replace(code, this.operandIndex);
+    setOperand(code: CodeConstruct) {
+        this.tokens[this.operandIndex] = code;
+        code.indexInRoot = this.operandIndex;
+        code.rootNode = this;
     }
 
     getKeyword(): string {

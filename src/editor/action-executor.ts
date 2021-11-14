@@ -278,14 +278,33 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertUnaryOperator: {
-                // TODO
                 if (action.data?.replace) {
                     this.insertExpression(
                         context,
                         new UnaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
                     );
                 } else if (action.data?.wrap) {
-                    console.log("insert unary op - wrap");
+                    const expr = context.expressionToRight as Expression;
+
+                    const initialBoundary = this.getBoundaries(expr);
+                    const root = expr.rootNode as Statement;
+
+                    const newCode = new UnaryOperatorExpr(
+                        action.data.operator,
+                        expr.returns,
+                        expr.returns,
+                        expr.rootNode,
+                        expr.indexInRoot
+                    );
+
+                    newCode.setOperand(expr);
+                    root.tokens[newCode.indexInRoot] = newCode;
+                    root.rebuild(root.getLeftPosition(), 0);
+
+                    this.module.editor.executeEdits(initialBoundary, newCode);
+                    this.module.focus.updateContext({
+                        positionToMove: newCode.tokens[1].getLeftPosition(),
+                    });
                 }
 
                 break;
