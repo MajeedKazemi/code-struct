@@ -40,6 +40,7 @@ import {
     addClassToDraftModeResolutionButton,
     AutoCompleteType,
     BuiltInFunctions,
+    getOperatorCategory,
     PythonKeywords,
     StringRegex,
     TAB_SPACES,
@@ -1312,6 +1313,11 @@ export class ActionExecutor {
 
             case EditActionType.InsertOperatorTkn: {
                 this.replaceCode(context.tokenToLeft, action.data.operator);
+
+                if (context.tokenToLeft.rootNode instanceof BinaryOperatorExpr) {
+                    context.tokenToLeft.rootNode.operator = action.data.operator;
+                    context.tokenToLeft.rootNode.operatorCategory = getOperatorCategory(action.data.operator);
+                }
 
                 if (flashGreen) this.flashGreen(action.data.operator);
 

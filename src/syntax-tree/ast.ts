@@ -9,24 +9,22 @@ import { CodeBackground, HoverMessage, InlineMessage } from "../notification-sys
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
-    arithmeticOps,
     AugmentedAssignmentOperator,
     AutoCompleteType,
     BinaryOperator,
-    BinaryOperatorCategory,
-    boolOps,
-    comparisonOps,
     DataType,
+    getOperatorCategory,
     IndexableTypes,
     InsertionType,
     ListTypes,
     NumberRegex,
+    OperatorCategory,
     StringRegex,
     TAB_SPACES,
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOp,
+    UnaryOperator,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -2235,7 +2233,7 @@ export class MemberCallStmt extends Expression {
 
 export class BinaryOperatorExpr extends Expression {
     operator: BinaryOperator;
-    operatorCategory: BinaryOperatorCategory;
+    operatorCategory: OperatorCategory;
     private leftOperandIndex: number;
     private rightOperandIndex: number;
 
@@ -2245,22 +2243,13 @@ export class BinaryOperatorExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.operator = operator;
-
-        if (arithmeticOps.indexOf(operator) > -1) {
-            this.operatorCategory = BinaryOperatorCategory.Arithmetic;
-        } else if (boolOps.indexOf(operator) > -1) {
-            this.operatorCategory = BinaryOperatorCategory.Boolean;
-        } else if (comparisonOps.indexOf(operator) > -1) {
-            this.operatorCategory = BinaryOperatorCategory.Comparison;
-        } else {
-            this.operatorCategory = BinaryOperatorCategory.Unspecified;
-        }
+        this.operatorCategory = getOperatorCategory(operator);
 
         this.tokens.push(new NonEditableTkn("(", this, this.tokens.length));
 
         this.leftOperandIndex = this.tokens.length;
 
-        if (this.operatorCategory === BinaryOperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
+        if (this.operatorCategory === OperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
             if (returns !== DataType.String && returns !== DataType.Number) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
@@ -2284,7 +2273,7 @@ export class BinaryOperatorExpr extends Expression {
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
             }
-        } else if (this.operatorCategory === BinaryOperatorCategory.Arithmetic) {
+        } else if (this.operatorCategory === OperatorCategory.Arithmetic) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
@@ -2296,7 +2285,7 @@ export class BinaryOperatorExpr extends Expression {
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
 
             this.returns = DataType.Number;
-        } else if (this.operatorCategory === BinaryOperatorCategory.Boolean) {
+        } else if (this.operatorCategory === OperatorCategory.Boolean) {
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
@@ -2308,7 +2297,7 @@ export class BinaryOperatorExpr extends Expression {
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
 
             this.returns = DataType.Boolean;
-        } else if (this.operatorCategory == BinaryOperatorCategory.Comparison) {
+        } else if (this.operatorCategory == OperatorCategory.Comparison) {
             if (this.operator === BinaryOperator.Equal || this.operator === BinaryOperator.NotEqual) {
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
@@ -2416,15 +2405,15 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     isBoolean(): boolean {
-        return this.operatorCategory === BinaryOperatorCategory.Boolean;
+        return this.operatorCategory === OperatorCategory.Boolean;
     }
 
     isArithmetic(): boolean {
-        return this.operatorCategory === BinaryOperatorCategory.Arithmetic;
+        return this.operatorCategory === OperatorCategory.Arithmetic;
     }
 
     isComparison(): boolean {
-        return this.operatorCategory === BinaryOperatorCategory.Comparison;
+        return this.operatorCategory === OperatorCategory.Comparison;
     }
 
     /**
@@ -2433,7 +2422,7 @@ export class BinaryOperatorExpr extends Expression {
      * @param type new return/operand type
      */
     performTypeUpdatesOnInsertion(type: DataType) {
-        if (this.operatorCategory !== BinaryOperatorCategory.Boolean) {
+        if (this.operatorCategory !== OperatorCategory.Boolean) {
             //in this case the type arrays will always only contain a single type unless it is the + operator
             const leftOperandTypes = (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type;
             const rightOperandTypes = (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type;
@@ -2567,9 +2556,9 @@ export class BinaryOperatorExpr extends Expression {
 
         //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the insertion type
         if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
-            if (this.rootNode.operatorCategory === BinaryOperatorCategory.Arithmetic) {
+            if (this.rootNode.operatorCategory === OperatorCategory.Arithmetic) {
                 TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
-            } else if (this.rootNode.operatorCategory === BinaryOperatorCategory.Comparison) {
+            } else if (this.rootNode.operatorCategory === OperatorCategory.Comparison) {
                 TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
         } else {
@@ -2581,11 +2570,11 @@ export class BinaryOperatorExpr extends Expression {
 }
 
 export class UnaryOperatorExpr extends Expression {
-    operator: UnaryOp;
+    operator: UnaryOperator;
     private operandIndex: number;
 
     constructor(
-        operator: UnaryOp,
+        operator: UnaryOperator,
         returns: DataType,
         operatesOn: DataType = DataType.Any,
         root?: Statement | Expression,
@@ -2597,7 +2586,7 @@ export class UnaryOperatorExpr extends Expression {
         this.indexInRoot = indexInRoot;
         this.operator = operator;
 
-        if (operator === UnaryOp.Not) operatesOn = DataType.Boolean;
+        if (operator === UnaryOperator.Not) operatesOn = DataType.Boolean;
 
         this.tokens.push(new NonEditableTkn("(" + operator + " ", this, this.tokens.length));
         this.operandIndex = this.tokens.length;
@@ -2693,17 +2682,21 @@ export class EmptyOperatorTkn extends Token {
 }
 
 export class OperatorTkn extends Modifier {
-    constructor(text: string, root?: Statement | Expression, indexInRoot?: number) {
+    operator: UnaryOperator | BinaryOperator;
+    operatorCategory: OperatorCategory;
+
+    constructor(operator: UnaryOperator | BinaryOperator, root?: Statement | Expression, indexInRoot?: number) {
         super();
 
-        this.tokens.push(new NonEditableTkn(text, this, this.tokens.length));
+        this.tokens.push(new NonEditableTkn(operator, this, this.tokens.length));
 
+        this.operator = operator;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
-        return validator.atEmptyOperatorTkn(providedContext) ? InsertionType.Valid : InsertionType.Invalid;
+        return validator.canInsertOp(this.operator, providedContext) ? InsertionType.Valid : InsertionType.Invalid;
     }
 }
 
