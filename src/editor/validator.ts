@@ -3,10 +3,13 @@ import {
     AssignmentModifier,
     AugmentedAssignmentModifier,
     AutocompleteTkn,
+    BinaryOperatorExpr,
     CodeConstruct,
     EditableTextTkn,
     ElseStatement,
     EmptyLineStmt,
+    EmptyOperatorTkn,
+    Expression,
     FormattedStringCurlyBracketsExpr as FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
     IdentifierTkn,
@@ -26,7 +29,17 @@ import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { VariableController } from "../syntax-tree/variable-controller";
 import { isImportable } from "../utilities/util";
-import { DataType, InsertionType, NumberRegex } from "./../syntax-tree/consts";
+import {
+    arithmeticOps,
+    BinaryOperator,
+    boolOps,
+    comparisonOps,
+    DataType,
+    InsertionType,
+    NumberRegex,
+    OperatorCategory,
+    UnaryOperator,
+} from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Context } from "./focus";
 
@@ -35,6 +48,36 @@ export class Validator {
 
     constructor(module: Module) {
         this.module = module;
+    }
+
+    /**
+     * determines if the given operator could be replaced with the selected emptyBinaryOperator
+     * logic: based on previous op + newly inserted op + left/right operands
+     * will not add/change draft modes
+     */
+    canInsertOp(operator: BinaryOperator | UnaryOperator, providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const operatorExpr = context.token?.rootNode;
+
+        if (operatorExpr instanceof BinaryOperatorExpr) {
+            const leftOperand = operatorExpr.getLeftOperand();
+            const rightOperand = operatorExpr.getRightOperand();
+
+            const leftOperandCurType = leftOperand instanceof Expression ? leftOperand.returns : null;
+            const rightOperandCurType = rightOperand instanceof Expression ? rightOperand.returns : null;
+
+            if (operatorExpr.operatorCategory === OperatorCategory.Arithmetic) {
+                if (leftOperandCurType === DataType.String || rightOperandCurType === DataType.String) {
+                    return operator === BinaryOperator.Add;
+                } else return arithmeticOps.indexOf(operator) !== -1;
+            } else if (operatorExpr.operatorCategory === OperatorCategory.Comparison) {
+                return comparisonOps.indexOf(operator) !== -1;
+            } else if (operatorExpr.operatorCategory === OperatorCategory.Boolean) {
+                return boolOps.indexOf(operator) !== -1;
+            }
+        }
+
+        return true;
     }
 
     canSwitchLeftNumToAutocomplete(pressedKey: string, providedContext?: Context): boolean {
@@ -395,6 +438,15 @@ export class Validator {
         return context.expressionToRight instanceof FormattedStringCurlyBracketsExpr;
     }
 
+    canDeleteSelectedFStringCurlyBrackets(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return (
+            context.token instanceof TypedEmptyExpr &&
+            context.token.rootNode instanceof FormattedStringCurlyBracketsExpr
+        );
+    }
+
     canDeleteStringLiteral(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
@@ -645,13 +697,23 @@ export class Validator {
     atRightOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context?.expressionToLeft != null && context?.expressionToLeft?.returns != DataType.Void;
+        return (
+            !this.insideFormattedString(context) &&
+            context?.expressionToLeft != null &&
+            context?.expressionToLeft?.returns != null &&
+            context?.expressionToLeft?.returns != DataType.Void
+        );
     }
 
     atLeftOfExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context?.expressionToRight != null && context?.expressionToRight?.returns != DataType.Void;
+        return (
+            !this.insideFormattedString(context) &&
+            context?.expressionToRight != null &&
+            context?.expressionToRight?.returns != null &&
+            context?.expressionToRight?.returns != DataType.Void
+        );
     }
 
     atEmptyExpressionHole(providedContext?: Context): boolean {
@@ -660,10 +722,20 @@ export class Validator {
         return context.selected && context?.token?.isEmpty && context.token instanceof TypedEmptyExpr;
     }
 
+    atEmptyOperatorTkn(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        return context.selected && context?.token?.isEmpty && context.token instanceof EmptyOperatorTkn;
+    }
+
     insideFormattedString(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        return context.token instanceof FormattedStringExpr;
+        return (
+            context.token?.rootNode instanceof FormattedStringExpr ||
+            context.tokenToLeft?.rootNode instanceof FormattedStringExpr ||
+            context.tokenToRight?.rootNode instanceof FormattedStringExpr
+        );
     }
 
     canInsertFormattedString(providedContext?: Context): boolean {

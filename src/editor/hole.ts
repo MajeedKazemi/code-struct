@@ -1,8 +1,10 @@
 import {
     CodeConstruct,
     EditableTextTkn,
+    EmptyOperatorTkn,
     ForStatement,
     IdentifierTkn,
+    OperatorTkn,
     TypedEmptyExpr,
     VarAssignmentStmt,
 } from "../syntax-tree/ast";
@@ -42,14 +44,15 @@ export class Hole {
 
         Hole.holes.push(hole);
 
-        if (code instanceof IdentifierTkn) this.element.classList.add("identifier-hole");
+        if (code instanceof EmptyOperatorTkn) this.element.classList.add("empty-operator-hole");
+        else if (code instanceof IdentifierTkn) this.element.classList.add("identifier-hole");
         else if (code instanceof EditableTextTkn) {
             this.element.classList.add("text-editable-expr-hole");
         } else if (code instanceof TypedEmptyExpr) {
             this.element.classList.add("expression-hole");
         }
 
-        if (code instanceof EditableTextTkn || code instanceof IdentifierTkn) {
+        if (code instanceof EditableTextTkn || code instanceof IdentifierTkn || code instanceof OperatorTkn) {
             code.subscribe(
                 CallbackType.focusEditableHole,
                 new Callback(() => {
@@ -103,14 +106,6 @@ export class Hole {
             );
         }
 
-        /**
-         * &&
-                            hole.code.getLineNumber() <
-                                (refInsertionTypeMap.has(hole.code.rootNode.buttonId)
-                                    ? refInsertionTypeMap.get(hole.code.rootNode.buttonId)[1]
-                                    : -1)
-         */
-
         code.subscribe(
             CallbackType.delete,
             new Callback(() => {
@@ -159,21 +154,6 @@ export class Hole {
                 transform.width = 14;
             }
         }
-
-        // if (code instanceof TypedEmptyExpr) {
-        //     leftPadding = 3;
-        //     rightPadding = 3;
-        // }
-
-        // if (code instanceof EditableTextTkn) {
-        //     leftPadding = 5;
-        //     rightPadding = 10;
-        // }
-
-        // if (code instanceof IdentifierTkn) {
-        //     leftPadding = 0;
-        //     rightPadding = 5;
-        // }
 
         this.element.style.top = `${transform.y + 5}px`;
         this.element.style.left = `${transform.x - leftPadding}px`;

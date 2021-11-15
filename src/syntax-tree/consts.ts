@@ -68,6 +68,13 @@ export enum BinaryOperator {
     NotIn = "not in",
 }
 
+export enum UnaryOperator {
+    Invert = "~",
+    Not = "not",
+    UAdd = "+",
+    USub = "-",
+}
+
 export enum AugmentedAssignmentOperator {
     Add = "+=",
     Subtract = "-=",
@@ -83,7 +90,7 @@ export enum AugmentedAssignmentOperator {
     FloorDiv = "//=",
 }
 
-export const arithmeticOps = [
+export const arithmeticOps: Array<BinaryOperator | UnaryOperator> = [
     BinaryOperator.Add,
     BinaryOperator.Subtract,
     BinaryOperator.Multiply,
@@ -97,8 +104,14 @@ export const arithmeticOps = [
     BinaryOperator.BitAnd,
     BinaryOperator.FloorDiv,
 ];
-export const boolOps = [BinaryOperator.And, BinaryOperator.Or];
-export const comparisonOps = [
+
+export const boolOps: Array<BinaryOperator | UnaryOperator> = [
+    BinaryOperator.And,
+    BinaryOperator.Or,
+    UnaryOperator.Not,
+];
+
+export const comparisonOps: Array<BinaryOperator | UnaryOperator> = [
     BinaryOperator.Equal,
     BinaryOperator.NotEqual,
     BinaryOperator.LessThan,
@@ -111,18 +124,22 @@ export const comparisonOps = [
     BinaryOperator.NotIn,
 ];
 
-export enum BinaryOperatorCategory {
+export enum OperatorCategory {
     Boolean = "Bool",
     Arithmetic = "Arithmetic",
     Comparison = "Comparison",
     Unspecified = "Unspecified",
+    UnaryBoolean = "UnaryBoolean",
 }
 
-export enum UnaryOp {
-    Invert = "~",
-    Not = "not",
-    UAdd = "+",
-    USub = "-",
+export function getOperatorCategory(operator: BinaryOperator | UnaryOperator): OperatorCategory {
+    if (arithmeticOps.indexOf(operator) > -1) {
+        return OperatorCategory.Arithmetic;
+    } else if (boolOps.indexOf(operator) > -1) {
+        return OperatorCategory.Boolean;
+    } else if (comparisonOps.indexOf(operator) > -1) {
+        return OperatorCategory.Comparison;
+    } else return OperatorCategory.Unspecified;
 }
 
 export enum PythonKeywords {
@@ -238,6 +255,7 @@ export enum AutoCompleteType {
     LeftOfExpression,
     RightOfExpression,
     AtExpressionHole,
+    AtEmptyOperatorHole,
 }
 
 export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");

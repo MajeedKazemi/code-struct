@@ -35,28 +35,28 @@ export class EventStack {
         this.attachOnCursorPosChange();
     }
 
-    undo() {
-        // Undo the 'ctrl' press after 'ctrl + z'
-        if (
-            this.stack[this.stack.length - 1].type === EventType.OnKeyDown &&
-            this.stack[this.stack.length - 1].event.ctrlKey
-        ) {
-            this.stack.pop();
-        }
+    // undo() {
+    //     // Undo the 'ctrl' press after 'ctrl + z'
+    //     if (
+    //         this.stack[this.stack.length - 1].type === EventType.OnKeyDown &&
+    //         this.stack[this.stack.length - 1].event.ctrlKey
+    //     ) {
+    //         this.stack.pop();
+    //     }
 
-        // Undo the most recent action
-        this.stack.pop();
+    //     // Undo the most recent action
+    //     this.stack.pop();
 
-        this.module.reset();
+    //     this.module.reset();
 
-        // TODO: find why this needs a timeout, I think its because
-        // monaco's selection doesn't update synchronously after this.module.reset()
-        // If there is a callback on monaco like onUpdateComplete then subscribe to that
-        // and execute this then
-        setTimeout(() => {
-            for (const action of this.stack) this.apply(action);
-        });
-    }
+    //     // TODO: find why this needs a timeout, I think its because
+    //     // monaco's selection doesn't update synchronously after this.module.reset()
+    //     // If there is a callback on monaco like onUpdateComplete then subscribe to that
+    //     // and execute this then
+    //     setTimeout(() => {
+    //         for (const action of this.stack) this.apply(action);
+    //     });
+    // }
 
     attachOnButtonPress() {
         const buttons: Array<HTMLElement> = Array(...(document.querySelectorAll("#editor-toolbox  .button") as any));
@@ -84,7 +84,8 @@ export class EventStack {
 
         module.editor.monaco.onKeyDown((e: IKeyboardEvent) => {
             if (e.ctrlKey && e.code == "KeyZ") {
-                this.undo();
+                // TODO: Temporarily disable undo for now - refer to https://github.com/MajeedKazemi/nova-editor/issues/509
+                // this.undo();
 
                 return;
             }

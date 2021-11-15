@@ -65,6 +65,7 @@ import {
     ListLiteralExpression,
     LiteralValExpr,
     MethodCallModifier,
+    OperatorTkn,
     Statement,
     UnaryOperatorExpr,
     ValueOperationExpr,
@@ -78,7 +79,7 @@ import {
     DataType,
     IdentifierRegex,
     NumberRegex,
-    UnaryOp,
+    UnaryOperator,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { EditCodeAction } from "./action-filter";
@@ -229,6 +230,8 @@ export enum EditActionType {
 
     InsertFormattedStringItem,
     DeleteFStringCurlyBrackets,
+
+    InsertOperatorTkn,
 }
 
 export enum ConstructName {
@@ -272,6 +275,8 @@ export enum InsertActionType {
 
     InsertVarOperationStmt,
     InsertValOperationExpr,
+
+    InsertOperatorTkn,
 }
 
 export class Actions {
@@ -409,7 +414,7 @@ export class Actions {
 
         const FormattedStringLiteralExpr = new EditCodeAction(
             "f''",
-            "add-str-btn",
+            "add-f-str-literal-btn",
             () => new FormattedStringExpr(""),
             InsertActionType.InsertExpression,
             {},
@@ -421,7 +426,7 @@ export class Actions {
 
         const FormattedStringItem = new EditCodeAction(
             "{}",
-            "add-str-btn",
+            "add-f-str-item-btn",
             () => new FormattedStringCurlyBracketsExpr(),
             InsertActionType.InsertFormattedStringItem,
             {},
@@ -562,6 +567,102 @@ export class Actions {
             null
         );
 
+        const InOperatorTkn = new EditCodeAction(
+            "in",
+            "add-in-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.In),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AddDocs,
+            [" "],
+            "in",
+            null
+        );
+
+        const NotInOperatorTkn = new EditCodeAction(
+            "not in",
+            "add-not-in-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.NotIn),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AddDocs,
+            ["n"],
+            "not i",
+            null
+        );
+
+        const AddOperatorTkn = new EditCodeAction(
+            "+",
+            "add-add-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.Add),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AddDocs,
+            ["+"],
+            "",
+            null
+        );
+
+        const SubOperatorTkn = new EditCodeAction(
+            "-",
+            "add-sub-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.Subtract),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            SubDocs,
+            ["-"],
+            "",
+            null
+        );
+
+        const MultOperatorTkn = new EditCodeAction(
+            "*",
+            "add-mult-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.Multiply),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            MultDocs,
+            ["*"],
+            "",
+            null
+        );
+
+        const DivOperatorTkn = new EditCodeAction(
+            "/",
+            "add-div-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.Divide),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            DivDocs,
+            [""],
+            "/",
+            null
+        );
+
+        const FloorDivOperatorTkn = new EditCodeAction(
+            "//",
+            "add-floor-div-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.FloorDiv),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            DivDocs,
+            ["/"],
+            "/",
+            null
+        );
+
+        const ModOperatorTkn = new EditCodeAction(
+            "%",
+            "add-mod-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.Mod),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            DivDocs,
+            ["%"],
+            "",
+            null
+        );
+
         const BinAndExpr = new EditCodeAction(
             "--- and ---",
             "add-bin-and-expr-btn",
@@ -584,6 +685,30 @@ export class Actions {
             {
                 operator: BinaryOperator.Or,
             },
+            OrDocs,
+            ["r"],
+            "o",
+            null
+        );
+
+        const AndOperatorTkn = new EditCodeAction(
+            "and",
+            "add-and-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.And),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            AndDocs,
+            ["d"],
+            "an",
+            null
+        );
+
+        const OrOperatorTkn = new EditCodeAction(
+            "or",
+            "add-or-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.Or),
+            InsertActionType.InsertOperatorTkn,
+            {},
             OrDocs,
             ["r"],
             "o",
@@ -676,18 +801,118 @@ export class Actions {
             null
         );
 
+        const EqOperatorTkn = new EditCodeAction(
+            "==",
+            "add-comp-eq-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.Equal),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompEqDocs,
+            ["="],
+            "=",
+            null
+        );
+
+        const NeqOperatorTkn = new EditCodeAction(
+            "!=",
+            "add-comp-neq-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.NotEqual),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            ["="],
+            "!",
+            null
+        );
+
+        const GtOperatorTkn = new EditCodeAction(
+            ">",
+            "add-comp-gt-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.GreaterThan),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            [" "],
+            ">",
+            null
+        );
+
+        const LtOperatorTkn = new EditCodeAction(
+            "<",
+            "add-comp-lt-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.LessThan),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            [" "],
+            "<",
+            null
+        );
+
+        const GteOperatorTkn = new EditCodeAction(
+            ">=",
+            "add-comp-gte-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.GreaterThanEqual),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            ["="],
+            ">",
+            null
+        );
+
+        const LteOperatorTkn = new EditCodeAction(
+            "<=",
+            "add-comp-lte-op-tkn-btn",
+            () => new OperatorTkn(BinaryOperator.LessThanEqual),
+            InsertActionType.InsertOperatorTkn,
+            {},
+            CompNeDocs,
+            ["="],
+            "<",
+            null
+        );
+
+        const BinInExpr = new EditCodeAction(
+            "--- in ---",
+            "add-bin-in-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.In, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.In,
+            },
+            AddDocs,
+            [" "],
+            "in",
+            null
+        );
+
+        const BinNotInExpr = new EditCodeAction(
+            "--- not in ---",
+            "add-bin-not-in-expr-btn",
+            () => new BinaryOperatorExpr(BinaryOperator.NotIn, DataType.Boolean),
+            InsertActionType.InsertBinaryExpr,
+            {
+                operator: BinaryOperator.NotIn,
+            },
+            AddDocs,
+            ["n"],
+            "not i",
+            null
+        );
+
         const UnaryNotExpr = new EditCodeAction(
             "not ---",
             "add-unary-not-expr-btn",
-            () => new UnaryOperatorExpr(UnaryOp.Not, DataType.Boolean),
+            () => new UnaryOperatorExpr(UnaryOperator.Not, DataType.Boolean),
             InsertActionType.InsertUnaryExpr,
             {
-                operator: UnaryOp.Not,
+                operator: UnaryOperator.Not,
             },
             NotDocs,
             // TODO: this has ambiguity with not in binary exp
-            ["t"],
-            "no",
+            [" "],
+            "not",
             null
         );
 
@@ -1038,6 +1263,7 @@ export class Actions {
             InputExpr,
             StringLiteralExpr,
             FormattedStringLiteralExpr,
+            FormattedStringItem,
             NumberLiteralExpr,
             BooleanTrueLiteralExpr,
             BooleanFalseLiteralExpr,
@@ -1047,14 +1273,30 @@ export class Actions {
             BinDivExpr,
             BinFloorDivExpr,
             BinModExpr,
+            AddOperatorTkn,
+            SubOperatorTkn,
+            MultOperatorTkn,
+            DivOperatorTkn,
+            FloorDivOperatorTkn,
+            ModOperatorTkn,
+            InOperatorTkn,
+            NotInOperatorTkn,
             BinAndExpr,
             BinOrExpr,
+            AndOperatorTkn,
+            OrOperatorTkn,
             BinCompEqExpr,
             BinCompNeqExpr,
             BinCompLtExpr,
             BinCompLteExpr,
             BinCompGtExpr,
             BinCompGteExpr,
+            EqOperatorTkn,
+            NeqOperatorTkn,
+            GtOperatorTkn,
+            LtOperatorTkn,
+            GteOperatorTkn,
+            LteOperatorTkn,
             UnaryNotExpr,
             FindMethodMod,
             WhileStmt,
@@ -1078,7 +1320,9 @@ export class Actions {
             SplitMethodMod,
             CastStrExpr,
             CastIntExpr,
-            VarAssignStmt
+            VarAssignStmt,
+            BinInExpr,
+            BinNotInExpr
         );
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
@@ -1267,6 +1511,7 @@ export class Actions {
             new ToolboxCategory("Texts", "text-toolbox-group", [
                 StringLiteralExpr,
                 FormattedStringLiteralExpr,
+                FormattedStringItem,
                 SplitMethodMod,
                 JoinMethodMod,
                 FindMethodMod,
@@ -1300,6 +1545,8 @@ export class Actions {
                 BinCompLteExpr,
                 BinCompGtExpr,
                 BinCompGteExpr,
+                BinInExpr,
+                BinNotInExpr,
             ])
         );
         this.toolboxCategories.push(

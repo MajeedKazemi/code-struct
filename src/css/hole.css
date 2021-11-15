@@ -32,6 +32,10 @@
     border-style: dashed !important;
 }
 
+.empty-operator-hole {
+    border-radius: 0 !important;
+}
+
 .identifier-hole {
     border-radius: 0 !important;
     border-style: dashed !important;
