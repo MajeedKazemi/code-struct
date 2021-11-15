@@ -1021,7 +1021,7 @@ export class Actions {
         );
 
         const ImportStmt = new EditCodeAction(
-            "from --- import --- :",
+            "from --- import ---",
             "add-import-btn",
             () => new ImportStatement(),
             InsertActionType.InsertStatement,
@@ -1029,6 +1029,30 @@ export class Actions {
             ImportDocs,
             [" "],
             "import",
+            null
+        );
+
+        const ImportRandintStmt = new EditCodeAction(
+            "from random import randint",
+            "add-import-randint-btn",
+            () => new ImportStatement("random", "randint"),
+            InsertActionType.InsertStatement,
+            {},
+            ImportDocs,
+            ["t"],
+            "from random import randin",
+            null
+        );
+
+        const ImportChoiceStmt = new EditCodeAction(
+            "from random import choice",
+            "add-import-choice-btn",
+            () => new ImportStatement("random", "choice"),
+            InsertActionType.InsertStatement,
+            {},
+            ImportDocs,
+            ["e"],
+            "from random import choic",
             null
         );
 
@@ -1322,7 +1346,9 @@ export class Actions {
             CastIntExpr,
             VarAssignStmt,
             BinInExpr,
-            BinNotInExpr
+            BinNotInExpr,
+            ImportRandintStmt,
+            ImportChoiceStmt
         );
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
