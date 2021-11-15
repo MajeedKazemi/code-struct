@@ -6,22 +6,22 @@ import { CodeConstruct, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 
 /**
- * Class name of the DOM element to which notifications are appended to.
+ * Class name of the DOM element to which messages are appended to.
  */
 const editorDomElementClass = ".lines-content.monaco-editor-background";
 
 /**
- * Default width of the hover textbox for a hover notification (px).
+ * Default width of the hover textbox for a hover message (px).
  */
 const HOVER_MESSAGE_DEFAULT_WIDTH = 250;
 
 /**
- * Default width of the text highlight for a hover notification (px).
+ * Default width of the text highlight for a hover message (px).
  */
 const HIGHLIGHT_DEFAULT_WIDTH = 10;
 
 /**
- * Default height of the text highlight for a hover notification (px).
+ * Default height of the text highlight for a hover message (px).
  */
 const HIGHLIGHT_DEFAULT_HEIGHT = 25;
 
@@ -215,7 +215,7 @@ export class ConstructHighlight extends CodeHighlight {
 
 export class InlineMessage extends CodeHighlight {
     /**
-     * Index into NotficationSystemController.notifications
+     * Index into NotficationSystemController.messages
      */
     systemIndex: number;
 
@@ -361,7 +361,7 @@ export class HoverMessage extends InlineMessage {
     }
 
     /**
-     * Update mouse offset values used for collision detection when the notification's position changes. Needs to be called whenever the notif's position changes.
+     * Update mouse offset values used for collision detection when the message's position changes. Needs to be called whenever the message's position changes.
      */
     private updateMouseOffsets() {
         this.mouseLeftOffset =

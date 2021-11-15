@@ -493,7 +493,7 @@ export class MenuController {
 
             const menu = new Menu(menuOptions);
 
-            //TODO: These are the same values as the ones used for mouse offset by the Notifications so maybe make them shared in some util file
+            //TODO: These are the same values as the ones used for mouse offset by the messages so maybe make them shared in some util file
             menu.htmlElement.style.left = `${pos.left + document.getElementById(EDITOR_DOM_ID).offsetLeft}px`;
             menu.htmlElement.style.top = `${
                 pos.top + parseFloat(window.getComputedStyle(document.getElementById(EDITOR_DOM_ID)).paddingTop)
@@ -898,12 +898,12 @@ export class MenuController {
     }
 
     updatePosition(pos: { left: number; top: number }) {
-		const element = this.menus[this.focusedMenuIndex]?.htmlElement;
+        const element = this.menus[this.focusedMenuIndex]?.htmlElement;
 
-		if (element) {
-			element.style.left = `${pos.left}px`;
-			element.style.top = `${pos.top}px`;
-		}
+        if (element) {
+            element.style.left = `${pos.left}px`;
+            element.style.top = `${pos.top}px`;
+        }
     }
 
     getNewMenuPositionFromPosition(position: Position): { left: number; top: number } {

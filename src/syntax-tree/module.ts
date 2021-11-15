@@ -11,8 +11,8 @@ import { Context, Focus } from "../editor/focus";
 import { Hole } from "../editor/hole";
 import { loadToolboxFromJson, updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { ConstructHighlight } from "../notification-system/notification";
-import { NotificationSystemController } from "../notification-system/notification-system-controller";
+import { MessageController } from "../messages/message-controller";
+import { ConstructHighlight } from "../messages/messages";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
@@ -56,7 +56,7 @@ export class Module {
     eventStack: EventStack;
     editor: Editor;
     variableButtons: HTMLDivElement[] = [];
-    notificationSystem: NotificationSystemController;
+    messageController: MessageController;
     menuController: MenuController;
     typeSystem: TypeChecker;
 
@@ -154,7 +154,7 @@ export class Module {
         this.eventRouter = new EventRouter(this);
         this.eventStack = new EventStack(this);
 
-        this.notificationSystem = new NotificationSystemController(this.editor, this);
+        this.messageController = new MessageController(this.editor, this);
 
         this.variableButtons = [];
 
@@ -382,7 +382,7 @@ export class Module {
         this.variableButtons.forEach((button) => button.remove());
         this.variableButtons = [];
 
-        this.notificationSystem.clearAllNotifications();
+        this.messageController.clearAllMessages();
     }
 
     getVarRefHandler(ref: VarAssignmentStmt) {
@@ -538,7 +538,7 @@ export class Module {
             code.draftModeEnabled = false;
             const removedRecord = this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)[0];
 
-            if (removedRecord.warning) removedRecord.removeNotification();
+            if (removedRecord.warning) removedRecord.removeMessage();
 
             code.draftRecord = null;
         } else {
@@ -552,7 +552,7 @@ export class Module {
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
 
         for (const button of actionButtons) {
-            code.notification.attachButton(button);
+            code.message.attachButton(button);
         }
     }
 
@@ -651,7 +651,7 @@ export class Module {
     openImportDraftMode(code: Statement & Importable) {
         this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule), []);
 
-        const button = code.notification.createButton(`import ${code.requiredModule}`);
+        const button = code.message.createButton(`import ${code.requiredModule}`);
         button.addEventListener(
             "click",
             (() => {

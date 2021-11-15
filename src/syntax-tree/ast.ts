@@ -5,7 +5,7 @@ import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
 import { updateButtonsVisualMode } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { CodeBackground, HoverMessage, InlineMessage } from "../notification-system/notification";
+import { CodeBackground, HoverMessage, InlineMessage } from "../messages/messages";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
@@ -53,9 +53,9 @@ export interface CodeConstruct {
     right: number;
 
     /**
-     * A warning or error notification for this code construct. (null if there are no notifications)
+     * A warning or error message for this code construct. (null if there are no messages)
      */
-    notification: InlineMessage;
+    message: InlineMessage;
 
     /**
      * Whether this code construct is in draft mode or not. Always false for Tokens
@@ -176,7 +176,7 @@ export abstract class Statement implements CodeConstruct {
     hasEmptyToken: boolean;
     callbacks = new Map<string, Array<Callback>>();
     background: CodeBackground = null;
-    notification: HoverMessage = null;
+    message: HoverMessage = null;
     keywordIndex = -1;
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();
@@ -674,7 +674,7 @@ export abstract class Token implements CodeConstruct {
     text: string;
     isEmpty: boolean = false;
     callbacks = new Map<string, Array<Callback>>();
-    notification = null;
+    message = null;
     draftModeEnabled = false;
     draftRecord = null;
     codeConstructName = ConstructName.Default;

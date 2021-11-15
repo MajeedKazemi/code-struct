@@ -1,4 +1,4 @@
-import { HoverMessage } from "../notification-system/notification";
+import { HoverMessage } from "../messages/messages";
 import { Statement } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 
@@ -11,12 +11,12 @@ export class DraftRecord {
     constructor(code: Statement, module: Module, txt?: string) {
         this.code = code;
         this.module = module;
-        this.module.notificationSystem.addHoverNotification(code, {}, txt ?? "");
-        this.warning = code.notification;
-        this.code.notification = this.warning;
+        this.module.messageController.addHoverMessage(code, {}, txt ?? "");
+        this.warning = code.message;
+        this.code.message = this.warning;
     }
 
-    removeNotification() {
-        this.module.notificationSystem.removeNotificationFromConstruct(this.code);
+    removeMessage() {
+        this.module.messageController.removeMessageFromConstruct(this.code);
     }
 }
