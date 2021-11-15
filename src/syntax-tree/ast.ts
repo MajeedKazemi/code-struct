@@ -191,7 +191,14 @@ export abstract class Statement implements CodeConstruct {
 
     checkInsertionAtHole(index: number, givenType: DataType): InsertionResult {
         if (Object.keys(this.typeOfHoles).length > 0) {
-            const holeType = this.typeOfHoles[index];
+            let holeType = this.typeOfHoles[index];
+            if (this instanceof BinaryOperatorExpr) {
+                let allowedTypes = this.getCurrentAllowedTypesOfOperand(index);
+
+                if (allowedTypes.length > 0) {
+                    holeType = allowedTypes;
+                }
+            }
 
             let canConvertToParentType = hasMatch(Util.getInstance().typeConversionMap.get(givenType), holeType);
 
@@ -479,7 +486,12 @@ export abstract class Statement implements CodeConstruct {
     }
 
     typeValidateInsertionIntoHole(insertCode: Expression, insertInto?: TypedEmptyExpr): InsertionResult {
-        if (insertInto?.type?.indexOf(insertCode.returns) > -1 || insertInto?.type?.indexOf(DataType.Any) > -1) {
+        if (
+            (insertInto?.type?.indexOf(insertCode.returns) > -1 ||
+                insertInto?.type?.indexOf(DataType.Any) > -1 ||
+                (hasMatch(insertInto.type, ListTypes) && insertCode.returns === DataType.AnyList)) &&
+            insertCode.returns !== DataType.Void
+        ) {
             return new InsertionResult(InsertionType.Valid, "", []);
         } //types match or one of them is Any
 
@@ -1589,8 +1601,8 @@ export class ValueOperationExpr extends Expression {
         return (this.tokens[this.tokens.length - 1] as Modifier).getModifierText();
     }
 
-    getVarRef(): VariableReferenceExpr {
-        return this.tokens[0] as VariableReferenceExpr;
+    getVarRef(): Expression {
+        return this.tokens[0] as Expression;
     }
 }
 
@@ -1764,6 +1776,14 @@ export class MethodCallModifier extends Modifier {
         let doTypesMatch = this.leftExprTypes.some((type) =>
             areEqualTypes(providedContext?.expressionToLeft?.returns, type)
         );
+
+        //#514
+        if (
+            providedContext?.expressionToLeft?.rootNode.rootNode instanceof VarOperationStmt &&
+            this.returns === DataType.Void
+        ) {
+            return InsertionType.Invalid;
+        }
 
         //#260/#341
         if (
@@ -1957,6 +1977,27 @@ export class FunctionCallExpr extends Expression implements Importable {
 
     getKeyword(): string {
         return this.functionName;
+    }
+
+    getFullConstructText(): string {
+        let text = this.getFunctionName();
+        text += "(";
+
+        for (let i = 0; i < this.tokens.length; i++) {
+            const tkn = this.tokens[i];
+
+            if (tkn instanceof Expression || tkn instanceof TypedEmptyExpr) {
+                text += tkn.getKeyword().replace(/   /g, "---");
+
+                if (i < this.tokens.length - 1 && this.args.length > 1) {
+                    text += ",";
+                }
+            }
+        }
+
+        text += ")";
+
+        return text;
     }
 
     validateImport(importedModule: string, importedItem: string): boolean {
@@ -2370,6 +2411,28 @@ export class BinaryOperatorExpr extends Expression {
 
         const type = this.getFilledHoleType();
         return type ? [type] : [];
+    }
+
+    getCurrentAllowedTypesOfOperand(index: number, beingDeleted: boolean = false): DataType[] {
+        let indexOfOtherOperand = index;
+        if (indexOfOtherOperand === this.getLeftOperand().indexInRoot) {
+            indexOfOtherOperand = this.getRightOperand().indexInRoot;
+        } else {
+            indexOfOtherOperand = this.getLeftOperand().indexInRoot;
+        }
+
+        if (beingDeleted && this.tokens[indexOfOtherOperand] instanceof TypedEmptyExpr) {
+            return this.typeOfHoles[index];
+        } else {
+            let allowedTypes = [];
+            if (index === this.getLeftOperand().indexInRoot) {
+                allowedTypes = this.getValidLeftOperandTypes();
+            } else {
+                allowedTypes = this.getValidRightOperandTypes();
+            }
+
+            return allowedTypes;
+        }
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {

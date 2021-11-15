@@ -323,7 +323,7 @@ export class Module {
         }
     }
 
-    removeItem(item: CodeConstruct, { replaceType = null, replace = true }): CodeConstruct {
+    removeItem(item: CodeConstruct, { replaceType = null, replace = true }, completeDeletion = true): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
@@ -333,23 +333,20 @@ export class Module {
             let replacedItem = null;
 
             if (replace) {
-                replacedItem = new TypedEmptyExpr(replaceType ? replaceType : root.typeOfHoles[item.indexInRoot]);
+                replacedItem = new TypedEmptyExpr(replaceType ? [replaceType] : root.typeOfHoles[item.indexInRoot]);
 
                 if (
                     item.rootNode instanceof BinaryOperatorExpr &&
                     item.rootNode.operator != BinaryOperator.In &&
                     item.rootNode.operator != BinaryOperator.NotIn
                 ) {
-                    let allowedTypes = [];
+                    let allowedTypes = item.rootNode.getCurrentAllowedTypesOfOperand(item.indexInRoot, true);
+
                     if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
                         allowedTypes = item.rootNode.getValidLeftOperandTypes();
-                    } else {
-                        allowedTypes = item.rootNode.getValidRightOperandTypes();
-                    }
+                    } else allowedTypes = item.rootNode.getValidRightOperandTypes();
 
-                    if (allowedTypes.length > 0) {
-                        replacedItem.type = allowedTypes;
-                    }
+                    if (allowedTypes.length > 0) replacedItem.type = allowedTypes;
                 }
 
                 root.tokens.splice(item.indexInRoot, 1, replacedItem);
@@ -575,25 +572,31 @@ export class Module {
 
         while (stack.length > 0) {
             let cur: CodeConstruct = stack.pop();
+            const hasDraftMode = cur.draftModeEnabled;
 
             if (cur instanceof TypedEmptyExpr && !cur.isListElement()) {
                 status = status ?? CodeStatus.ContainsEmptyHoles;
 
-                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+                if (highlightConstructs && !hasDraftMode) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
             } else if (cur instanceof AutocompleteTkn) {
                 status = status ?? CodeStatus.ContainsAutocompleteTokens;
 
-                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+                if (highlightConstructs && !hasDraftMode) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
             } else if (cur.draftModeEnabled) {
                 status = status ?? CodeStatus.ContainsDraftMode;
 
-                if (highlightConstructs) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
+                if (highlightConstructs && !hasDraftMode) this.addHighlightToConstruct(cur, ERROR_HIGHLIGHT_COLOUR);
             } else if (cur instanceof Expression && cur.tokens.length > 0) {
                 const addHighlight = cur instanceof ListLiteralExpression && !cur.isHolePlacementValid();
                 status = addHighlight ? CodeStatus.ContainsEmptyHoles : status;
 
                 for (let i = 0; i < cur.tokens.length; i++) {
-                    if (cur.tokens[i] instanceof TypedEmptyExpr && addHighlight && i < cur.tokens.length - 2) {
+                    if (
+                        cur.tokens[i] instanceof TypedEmptyExpr &&
+                        addHighlight &&
+                        i < cur.tokens.length - 2 &&
+                        !hasDraftMode
+                    ) {
                         this.addHighlightToConstruct(cur.tokens[i], ERROR_HIGHLIGHT_COLOUR);
                     }
 
@@ -661,6 +664,10 @@ export class Module {
                 );
 
                 this.validator.validateImports();
+
+                if (code.rootNode instanceof VarAssignmentStmt) {
+                    code.rootNode.onFocusOff();
+                }
             }).bind(this)
         );
     }

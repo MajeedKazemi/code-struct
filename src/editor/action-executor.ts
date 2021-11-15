@@ -1455,7 +1455,7 @@ export class ActionExecutor {
                     break;
 
                 case AutoCompleteType.AtExpressionHole:
-                    this.deleteCode(token);
+                    this.deleteCode(token, {}, false);
 
                     break;
             }
@@ -1760,27 +1760,63 @@ export class ActionExecutor {
 
                 if (replacementResult.insertionType == InsertionType.DraftMode) {
                     const ref = rootOfExprToLeft.getVarRef();
-                    const line = this.module.focus.getContext().lineStatement;
-                    const varType = this.module.variableController.getVariableTypeNearLine(
-                        line.scope,
-                        line.lineNumber,
-                        ref.identifier,
-                        false
-                    );
-                    const expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
-                    this.module.openDraftMode(
-                        rootOfExprToLeft,
-                        TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(ref.identifier, varType, expectedTypes),
-                        [
-                            ...replacementResult.conversionRecords.map((conversionRecord) => {
-                                return conversionRecord.getConversionButton(
-                                    ref.identifier,
-                                    this.module,
-                                    rootOfExprToLeft
-                                );
-                            }),
-                        ]
-                    );
+                    if (ref instanceof VariableReferenceExpr) {
+                        const line = this.module.focus.getContext().lineStatement;
+                        const varType = this.module.variableController.getVariableTypeNearLine(
+                            line.scope,
+                            line.lineNumber,
+                            ref.identifier,
+                            false
+                        );
+
+                        let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
+                        if (rootOfExprToLeft.rootNode instanceof BinaryOperatorExpr) {
+                            expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfOperand(
+                                rootOfExprToLeft.indexInRoot,
+                                false
+                            );
+                        }
+
+                        this.module.openDraftMode(
+                            rootOfExprToLeft,
+                            TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(ref.identifier, varType, expectedTypes),
+                            [
+                                ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                    return conversionRecord.getConversionButton(
+                                        ref.identifier,
+                                        this.module,
+                                        rootOfExprToLeft
+                                    );
+                                }),
+                            ]
+                        );
+                    } else {
+                        let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
+                        if (rootOfExprToLeft.rootNode instanceof BinaryOperatorExpr) {
+                            expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfOperand(
+                                rootOfExprToLeft.indexInRoot,
+                                false
+                            );
+                        }
+
+                        this.module.openDraftMode(
+                            ref,
+                            TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
+                                ref.getKeyword(),
+                                ref.returns,
+                                expectedTypes
+                            ),
+                            [
+                                ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                    return conversionRecord.getConversionButton(
+                                        ref.getKeyword(),
+                                        this.module,
+                                        rootOfExprToLeft
+                                    );
+                                }),
+                            ]
+                        );
+                    }
                 }
                 const value = rootOfExprToLeft.tokens[0];
                 rootOfExprToLeft.rootNode.tokens[rootOfExprToLeft.indexInRoot] = value;
@@ -1841,12 +1877,12 @@ export class ActionExecutor {
         }
     }
 
-    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
+    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}, completeDeletion = true) {
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.removeItem(code, { replaceType });
+        else replacement = this.module.removeItem(code, { replaceType }, completeDeletion);
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });

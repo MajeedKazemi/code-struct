@@ -2,7 +2,7 @@ import { EditActionType } from "../editor/consts";
 import { EditAction } from "../editor/data-types";
 import { CSSClasses, TextEnhance } from "../utilities/text-enhance";
 import { getUserFriendlyType } from "../utilities/util";
-import { CodeConstruct, Expression, Modifier } from "./ast";
+import { CodeConstruct, Expression, FunctionCallExpr, Modifier } from "./ast";
 import { Callback, CallbackType } from "./callback";
 import { Module } from "./module";
 
@@ -370,7 +370,12 @@ export abstract class TypeConversionRecord {
     protected abstract getConversionCode(itemToConvert: string): string;
 
     getConversionButton(itemToConvert: string, module: Module, codeToReplace: CodeConstruct): HTMLDivElement {
-        const text = this.getConversionCode(itemToConvert);
+        let conversionText = itemToConvert;
+        if (codeToReplace instanceof FunctionCallExpr) {
+            conversionText = codeToReplace.getFullConstructText();
+        }
+
+        const text = this.getConversionCode(conversionText);
         const button = document.createElement("div");
         button.innerHTML = text.replace(/---/g, "<hole1></hole1>");
 
@@ -393,10 +398,14 @@ export abstract class TypeConversionRecord {
         codeToReplace.subscribe(
             CallbackType.change,
             new Callback(() => {
-                button.innerHTML = this.getConversionCode(codeToReplace.getKeyword()).replace(
-                    /---/g,
-                    "<hole1></hole1>"
-                );
+                let newConversionText = itemToConvert;
+                if (codeToReplace instanceof FunctionCallExpr) {
+                    newConversionText = codeToReplace.getFullConstructText();
+                }
+
+                button.innerHTML = this.getConversionCode(
+                    codeToReplace instanceof FunctionCallExpr ? newConversionText : codeToReplace.getKeyword()
+                ).replace(/---/g, "<hole1></hole1>");
             })
         );
 
@@ -416,6 +425,9 @@ export class CastConversionRecord extends TypeConversionRecord {
     }
 
     getConversionCode(itemToConvert): string {
+        if (ListTypes.indexOf(this.convertTo) > -1) {
+            return `${this.conversionConstruct.substring(0, this.conversionConstruct.length - 1)}${itemToConvert}]`;
+        }
         return `${this.conversionConstruct.substring(0, this.conversionConstruct.length - 1)}${itemToConvert})`;
     }
 }
@@ -496,14 +508,6 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 EditActionType.InsertTypeCast
             ),
 
-            new CastConversionRecord(
-                "int()",
-                DataType.Number,
-                DataType.String,
-                "add-cast-int-btn",
-                EditActionType.InsertTypeCast
-            ),
-
             new ComparisonConversionRecord(
                 "==",
                 DataType.Boolean,
@@ -545,6 +549,13 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 DataType.Number,
                 "add-comp-gt-expr-btn",
                 EditActionType.InsertComparisonConversion
+            ),
+            new CastConversionRecord(
+                "[]",
+                DataType.NumberList,
+                DataType.Number,
+                "add-list-literal-btn",
+                EditActionType.InsertTypeCast
             ),
         ],
     ],
@@ -615,6 +626,22 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 DataType.String,
                 "add-len-btn",
                 EditActionType.InsertFunctionConversion
+            ),
+
+            new CastConversionRecord(
+                "int()",
+                DataType.Number,
+                DataType.String,
+                "add-cast-int-btn",
+                EditActionType.InsertTypeCast
+            ),
+
+            new CastConversionRecord(
+                "[]",
+                DataType.StringList,
+                DataType.String,
+                "add-list-literal-btn",
+                EditActionType.InsertTypeCast
             ),
         ],
     ],
@@ -691,6 +718,18 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 DataType.AnyList,
                 "add-len-btn",
                 EditActionType.InsertFunctionConversion
+            ),
+        ],
+    ],
+    [
+        DataType.Boolean,
+        [
+            new CastConversionRecord(
+                "[]",
+                DataType.BooleanList,
+                DataType.Boolean,
+                "add-list-literal-btn",
+                EditActionType.InsertTypeCast
             ),
         ],
     ],

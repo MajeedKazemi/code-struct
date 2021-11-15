@@ -70,10 +70,13 @@ export class VariableController {
         const varRefs = this.getVarRefsBFS(varId, this.module);
         for (const ref of varRefs) {
             const newType = this.getVariableTypeNearLine(this.getScopeOfVarRef(ref), ref.lineNumber, ref.identifier);
-            const typeMismatch = this.updateReturnTypeOfRef(ref, newType);
-            if (!typeMismatch && ref.draftModeEnabled) {
-                //WARNING: Because of this check, this method should NEVER be called when a variable is being deleted as it could remove the wrong warning highlights since we have no way to distinguish them
-                this.module.closeConstructDraftRecord(ref);
+
+            if (newType !== ref.returns) {
+                const typeMismatch = this.updateReturnTypeOfRef(ref, newType);
+                if (!typeMismatch && ref.draftModeEnabled) {
+                    //WARNING: Because of this check, this method should NEVER be called when a variable is being deleted as it could remove the wrong warning highlights since we have no way to distinguish them
+                    this.module.closeConstructDraftRecord(ref);
+                }
             }
         }
     }
