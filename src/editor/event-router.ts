@@ -403,7 +403,7 @@ export class EventRouter {
 
         if (this.buttonClicksCount.get(id) > 2) {
             this.buttonClicksCount.set(id, 0);
-            console.log("you can start typing " + id);
+            this.module.notificationManager.showNotification("try typing " + id + " with the keyboard.");
         }
     }
 

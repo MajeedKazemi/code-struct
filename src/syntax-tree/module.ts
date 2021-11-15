@@ -13,6 +13,7 @@ import { loadToolboxFromJson, updateButtonsVisualMode } from "../editor/toolbox"
 import { Validator } from "../editor/validator";
 import { MessageController } from "../messages/message-controller";
 import { ConstructHighlight } from "../messages/messages";
+import { NotificationManager } from "../messages/notifications";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
@@ -59,6 +60,7 @@ export class Module {
     messageController: MessageController;
     menuController: MenuController;
     typeSystem: TypeChecker;
+    notificationManager: NotificationManager;
 
     scope: Scope;
     draftExpressions: DraftRecord[];
@@ -76,6 +78,7 @@ export class Module {
         this.typeSystem = new TypeChecker(this);
         this.variableController = new VariableController(this);
         this.actionFilter = new ActionFilter(this);
+        this.notificationManager = new NotificationManager(this);
 
         this.globals = {
             hoveringOverCascadedMenu: false,
