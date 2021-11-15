@@ -574,8 +574,8 @@ export class Actions {
             InsertActionType.InsertOperatorTkn,
             {},
             AddDocs,
-            ["n"],
-            "i",
+            [" "],
+            "in",
             null
         );
 
@@ -882,8 +882,8 @@ export class Actions {
                 operator: BinaryOperator.In,
             },
             AddDocs,
-            ["n"],
-            "i",
+            [" "],
+            "in",
             null
         );
 
@@ -911,8 +911,8 @@ export class Actions {
             },
             NotDocs,
             // TODO: this has ambiguity with not in binary exp
-            ["t"],
-            "no",
+            [" "],
+            "not",
             null
         );
 
