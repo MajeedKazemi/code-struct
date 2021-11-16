@@ -35,17 +35,29 @@ export class ToolboxController {
                         tooltip.style.top = `${button.getBoundingClientRect().top}px`;
                         tooltip.style.display = "block";
 
+                        setTimeout(() => {
+                            tooltip.style.opacity = "1";
+                        }, 1);
+
                         button.addEventListener("mouseleave", () => {
                             setTimeout(() => {
                                 if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
-                                    tooltip.remove();
+                                    tooltip.style.opacity = "0";
+
+                                    setTimeout(() => {
+                                        tooltip.remove();
+                                    }, 100);
                                 }
                             }, 100);
                         });
 
                         tooltip.addEventListener("mouseleave", () => {
                             if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
-                                tooltip.remove();
+                                tooltip.style.opacity = "0";
+
+                                setTimeout(() => {
+                                    tooltip.remove();
+                                }, 100);
                             }
                         });
                     }
