@@ -6,8 +6,265 @@ import { EditCodeAction } from "./action-filter";
 import { Actions } from "./consts";
 import { DocumentationBox } from "./doc-box";
 import { EventAction, EventStack, EventType } from "./event-stack";
+import { Context } from "./focus";
 
 export const EDITOR_DOM_ID = "editor";
+
+export class ToolboxController {
+    module: Module;
+
+    constructor(module: Module) {
+        this.module = module;
+    }
+
+    addTooltips() {
+        const toolboxCategories = Actions.instance().toolboxCategories;
+
+        for (const constructGroup of toolboxCategories) {
+            for (const item of constructGroup.items) {
+                const button = document.getElementById(item.cssId);
+
+                button.addEventListener("mouseover", () => {
+                    const tooltipId = `tooltip-${item.cssId}`;
+
+                    if (!document.getElementById(tooltipId)) {
+                        const tooltip = this.createTooltip(item);
+                        tooltip.id = tooltipId;
+
+                        tooltip.style.left = `${button.getBoundingClientRect().right + 10}px`;
+                        tooltip.style.top = `${button.getBoundingClientRect().top}px`;
+                        tooltip.style.display = "block";
+
+                        button.addEventListener("mouseleave", () => {
+                            setTimeout(() => {
+                                if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
+                                    tooltip.remove();
+                                }
+                            }, 100);
+                        });
+
+                        tooltip.addEventListener("mouseleave", () => {
+                            if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
+                                tooltip.remove();
+                            }
+                        });
+                    }
+                });
+            }
+        }
+    }
+
+    private createTooltip(code: EditCodeAction): HTMLDivElement {
+        let codeAction = null;
+
+        for (const x of this.module.actionFilter.getProcessedConstructInsertions()) {
+            if (x.cssId == code.cssId) {
+                codeAction = x;
+                break;
+            }
+        }
+
+        const returnType = code.getUserFriendlyReturnType();
+
+        const tooltipContainer = document.createElement("div");
+        tooltipContainer.classList.add("tooltip-container");
+        document.body.appendChild(tooltipContainer);
+
+        const tooltipTop = document.createElement("div");
+        tooltipTop.classList.add("tooltip-top");
+        tooltipContainer.appendChild(tooltipTop);
+
+        // if (documentation.tooltip) {
+        const tooltipHeader = document.createElement("div");
+        tooltipHeader.innerHTML = `<h4>${"some sample header"}</h4>`;
+        tooltipHeader.classList.add("tooltip-header");
+        tooltipTop.appendChild(tooltipHeader);
+
+        const tooltipText = document.createElement("p");
+        tooltipText.classList.add("tooltip-text");
+        tooltipText.innerText = "some dummy text about this little code construct that is either working or not.";
+        tooltipTop.appendChild(tooltipText);
+        // }
+
+        if (returnType) {
+            const typeText = document.createElement("div");
+            typeText.classList.add("return-type-text");
+            typeText.innerHTML = `returns <span class="return-type">${returnType}</span>`;
+
+            tooltipTop.appendChild(typeText);
+        }
+
+        if (codeAction?.insertionResult?.insertionType === InsertionType.Invalid) {
+            const code = codeAction.getCode();
+            const errorMessage = document.createElement("div");
+            errorMessage.classList.add("error-text");
+
+            if (code instanceof Modifier) {
+                errorMessage.innerText = "This can only be inserted after a --- ";
+            } else if (code instanceof Expression) {
+                errorMessage.innerText = "This can only be inserted inside a hole with a matching type";
+            } else if (code instanceof Statement) {
+                errorMessage.innerText = "This can only be inserted at the beginning of a line";
+            } else {
+                errorMessage.innerText = "Whaaat????";
+            }
+
+            tooltipTop.appendChild(errorMessage);
+        } else if (codeAction?.insertionResult?.insertionType === InsertionType.DraftMode) {
+            const warningMessage = document.createElement("div");
+            warningMessage.classList.add("warning-text");
+            warningMessage.innerText = "should convert type after insertion into the selected hole";
+
+            tooltipTop.appendChild(warningMessage);
+        }
+
+        if (code.documentation) {
+            const learnButton = document.createElement("div");
+            learnButton.classList.add("learn-button");
+            learnButton.innerText = "learn more >";
+            tooltipHeader.appendChild(learnButton);
+
+            learnButton.onclick = () => {
+                const doc = new DocumentationBox(code.documentation, code.documentation);
+            };
+        }
+
+        return tooltipContainer;
+    }
+
+    updateButtonsOnContextChange() {
+        this.module.focus.subscribeOnNavChangeCallback(
+            ((c: Context) => {
+                const inserts = this.module.actionFilter.getProcessedInsertionsList();
+
+                // mark draft mode buttons
+                ToolboxController.updateButtonsVisualMode(inserts);
+            }).bind(this)
+        );
+    }
+
+    static updateButtonsVisualMode(insertionRecords: EditCodeAction[]) {
+        for (const insertionRecord of insertionRecords) {
+            const button = document.getElementById(insertionRecord.cssId) as HTMLButtonElement;
+
+            if (button) {
+                if (insertionRecord.insertionResult.insertionType === InsertionType.DraftMode) {
+                    addClassToButton(insertionRecord.cssId, Module.draftModeButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
+                    button.disabled = false;
+                } else if (insertionRecord.insertionResult.insertionType === InsertionType.Valid) {
+                    removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
+                    button.disabled = false;
+                } else {
+                    removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
+                    addClassToButton(insertionRecord.cssId, Module.disabledButtonClass);
+                    button.disabled = true;
+                }
+            }
+        }
+    }
+
+    loadToolboxFromJson() {
+        const toolboxDiv = document.getElementById("editor-toolbox");
+        const toolboxMenu = document.getElementById("toolbox-menu");
+        const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
+
+        const toolboxCategories = Actions.instance().toolboxCategories;
+
+        for (const constructGroup of toolboxCategories) {
+            if (constructGroup) {
+                let categoryDiv;
+
+                categoryDiv = document.createElement("div");
+                categoryDiv.id = constructGroup.id;
+                categoryDiv.classList.add("group");
+
+                const p = document.createElement("p");
+                p.textContent = constructGroup.displayName;
+                categoryDiv.appendChild(p);
+
+                for (const item of constructGroup.items) {
+                    const button = ToolboxButton.createToolboxButtonFromJsonObj(item);
+
+                    categoryDiv.appendChild(button.container);
+                }
+
+                toolboxDiv.insertBefore(categoryDiv, staticDummySpace);
+
+                const menuButton = document.createElement("div");
+                menuButton.classList.add("menu-button");
+                menuButton.innerText = constructGroup.displayName;
+
+                menuButton.addEventListener("click", () => {
+                    document.getElementById(constructGroup.id).scrollIntoView({ behavior: "smooth" });
+                });
+
+                toolboxMenu.appendChild(menuButton);
+            }
+        }
+
+        staticDummySpace.style.minHeight = `${
+            toolboxDiv.clientHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
+        }px`;
+    }
+}
+
+export class ToolboxButton {
+    container: HTMLDivElement;
+
+    constructor(text: string, domId?: string, code?: CodeConstruct) {
+        this.container = document.createElement("div");
+        this.container.classList.add("var-button-container");
+
+        const button = document.createElement("div");
+        button.classList.add("button");
+
+        if (!(code instanceof Expression) && !(code instanceof Modifier)) {
+            button.classList.add("statement-button");
+        } else if (code instanceof Modifier) {
+            button.classList.add("modifier-button");
+        } else if (code instanceof Expression) {
+            button.classList.add("expression-button");
+        }
+
+        this.container.appendChild(button);
+
+        if (domId) button.id = domId;
+
+        let htmlText = text.replace(/---/g, "<hole1></hole1>");
+        htmlText = htmlText.replace(/--/g, "<hole2></hole2>");
+        htmlText = htmlText.trim().replace(/ /g, "&nbsp");
+        button.innerHTML = htmlText;
+    }
+
+    getButtonElement(): Element {
+        return this.container.getElementsByClassName("button")[0];
+    }
+
+    removeFromDOM() {
+        this.container.remove();
+    }
+
+    static createToolboxButtonFromJsonObj(action: EditCodeAction) {
+        return new ToolboxButton(action.optionName, action.cssId, action.getCode());
+    }
+
+    divButtonVisualMode(insertionType: InsertionType) {
+        const element = this.getButtonElement();
+
+        if (insertionType === InsertionType.DraftMode) {
+            element.classList.add(Module.draftModeButtonClass);
+            element.classList.remove(Module.disabledButtonClass);
+        } else if (insertionType === InsertionType.Valid) {
+            element.classList.remove(Module.draftModeButtonClass);
+            element.classList.remove(Module.disabledButtonClass);
+        } else {
+            element.classList.remove(Module.draftModeButtonClass);
+            element.classList.add(Module.disabledButtonClass);
+        }
+    }
+}
 
 export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
     const container = document.createElement("grid");
@@ -47,171 +304,6 @@ export function removeVariableReferenceButton(buttonId: string): void {
     document.getElementById("vars-button-grid").removeChild(parent.parentElement);
 }
 
-export function addClassToButton(buttonId: string, className: string) {
-    const button = document.getElementById(buttonId);
-
-    if (button) {
-        button.classList.add(className);
-    }
-}
-
-export function removeClassFromButton(buttonId: string, className: string) {
-    const button = document.getElementById(buttonId);
-
-    if (button) {
-        button.classList.remove(className);
-    }
-}
-
-export function updateButtonsVisualMode(insertionRecords: EditCodeAction[]) {
-    for (const insertionRecord of insertionRecords) {
-        const button = document.getElementById(insertionRecord.cssId) as HTMLButtonElement;
-
-        if (button) {
-            if (insertionRecord.insertionResult.insertionType === InsertionType.DraftMode) {
-                addClassToButton(insertionRecord.cssId, Module.draftModeButtonClass);
-                removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
-                button.disabled = false;
-            } else if (insertionRecord.insertionResult.insertionType === InsertionType.Valid) {
-                removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
-                removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
-                button.disabled = false;
-            } else {
-                removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
-                addClassToButton(insertionRecord.cssId, Module.disabledButtonClass);
-                button.disabled = true;
-            }
-        }
-    }
-}
-
-export function loadToolboxFromJson() {
-    const toolboxDiv = document.getElementById("editor-toolbox");
-    const toolboxMenu = document.getElementById("toolbox-menu");
-    const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
-
-    const toolboxCategories = Actions.instance().toolboxCategories;
-
-    for (const constructGroup of toolboxCategories) {
-        if (constructGroup) {
-            let categoryDiv;
-
-            categoryDiv = document.createElement("div");
-            categoryDiv.id = constructGroup.id;
-            categoryDiv.classList.add("group");
-
-            const p = document.createElement("p");
-            p.textContent = constructGroup.displayName;
-            categoryDiv.appendChild(p);
-
-            for (const item of constructGroup.items) {
-                const button = ToolboxButton.createToolboxButtonFromJsonObj(item);
-
-                categoryDiv.appendChild(button.container);
-            }
-
-            toolboxDiv.insertBefore(categoryDiv, staticDummySpace);
-
-            const menuButton = document.createElement("div");
-            menuButton.classList.add("menu-button");
-            menuButton.innerText = constructGroup.displayName;
-
-            menuButton.addEventListener("click", () => {
-                document.getElementById(constructGroup.id).scrollIntoView({ behavior: "smooth" });
-            });
-
-            toolboxMenu.appendChild(menuButton);
-        }
-    }
-
-    staticDummySpace.style.minHeight = `${
-        toolboxDiv.clientHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
-    }px`;
-}
-
-export class ToolboxButton {
-    container: HTMLDivElement;
-
-    constructor(text: string, domId?: string, returnType?: string, documentation?: any, code?: CodeConstruct) {
-        this.container = document.createElement("div");
-        this.container.classList.add("var-button-container");
-
-        const button = document.createElement("div");
-        button.classList.add("button");
-
-        if (!(code instanceof Expression) && !(code instanceof Modifier)) {
-            button.classList.add("statement-button");
-        } else if (code instanceof Modifier) {
-            button.classList.add("modifier-button");
-        } else if (code instanceof Expression) {
-            button.classList.add("expression-button");
-        }
-
-        this.container.appendChild(button);
-
-        if (returnType) {
-            const typeText = document.createElement("div");
-            typeText.classList.add("var-type-text");
-            typeText.innerText = returnType;
-
-            this.container.appendChild(typeText);
-        }
-
-        if (domId) button.id = domId;
-
-        // TODO: different types of holes should look differently
-        let htmlText = text.replace(/---/g, "<hole1></hole1>");
-        htmlText = htmlText.replace(/--/g, "<hole2></hole2>");
-        htmlText = htmlText.trim().replace(/ /g, "&nbsp");
-        button.innerHTML = htmlText;
-
-        if (documentation) {
-            const learnButton = document.createElement("div");
-            learnButton.classList.add("learn-button");
-            learnButton.innerText = "learn";
-
-            learnButton.onclick = () => {
-                const doc = new DocumentationBox(domId, documentation);
-            };
-
-            this.container.appendChild(learnButton);
-        }
-    }
-
-    getButtonElement(): Element {
-        return this.container.getElementsByClassName("button")[0];
-    }
-
-    removeFromDOM() {
-        this.container.remove();
-    }
-
-    static createToolboxButtonFromJsonObj(action: EditCodeAction) {
-        return new ToolboxButton(
-            action.optionName,
-            action.cssId,
-            action.getUserFriendlyReturnType(),
-            action.documentation,
-            action.getCode()
-        );
-    }
-
-    divButtonVisualMode(insertionType: InsertionType) {
-        const element = this.getButtonElement();
-
-        if (insertionType === InsertionType.DraftMode) {
-            element.classList.add(Module.draftModeButtonClass);
-            element.classList.remove(Module.disabledButtonClass);
-        } else if (insertionType === InsertionType.Valid) {
-            element.classList.remove(Module.draftModeButtonClass);
-            element.classList.remove(Module.disabledButtonClass);
-        } else {
-            element.classList.remove(Module.draftModeButtonClass);
-            element.classList.add(Module.disabledButtonClass);
-        }
-    }
-}
-
 /**
  * Create the cascaded menu div object and its options along with their action handlers.
  */
@@ -231,17 +323,6 @@ function constructCascadedMenuObj(
     header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span>:</h3>`;
     menu.appendChild(header);
 
-    menu.addEventListener("mouseover", () => {
-        setTimeout(() => {
-            const element = document.getElementById(`${buttonId}-cascadedMenu`);
-            const button = document.getElementById(buttonId);
-
-            if (element && !element.matches(":hover") && !button.matches(":hover")) {
-                element.remove();
-            }
-        }, 100);
-    });
-
     let id = 0;
 
     for (const [key, value] of validActions) {
@@ -255,7 +336,7 @@ function constructCascadedMenuObj(
         let returnType = null;
 
         if (code instanceof Expression && code.returns != DataType.Void) {
-            returnType = " -> " + getUserFriendlyType(code.returns);
+            returnType = " : " + getUserFriendlyType(code.returns);
         }
 
         value.cssId = `cascadedMenu-button-${id}`;
@@ -333,7 +414,8 @@ export function createCascadedMenuForVarRef(buttonId: string, identifier: string
     const button = document.getElementById(buttonId);
 
     button.addEventListener("mouseover", () => {
-        createAndAttachCascadedMenu(buttonId, getVarOptions(identifier, buttonId, module), module, identifier); //it is important that these options are regenerated on each mouseover
+        //it is important that these options are regenerated on each mouseover
+        createAndAttachCascadedMenu(buttonId, getVarOptions(identifier, buttonId, module), module, identifier);
     });
 
     button.addEventListener("mouseleave", () => {
@@ -354,3 +436,19 @@ window.onresize = () => {
         20
     }px`;
 };
+
+function removeClassFromButton(buttonId: string, className: string) {
+    const button = document.getElementById(buttonId);
+
+    if (button) {
+        button.classList.remove(className);
+    }
+}
+
+function addClassToButton(buttonId: string, className: string) {
+    const button = document.getElementById(buttonId);
+
+    if (button) {
+        button.classList.add(className);
+    }
+}

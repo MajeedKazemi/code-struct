@@ -9,7 +9,7 @@ import { EventRouter } from "../editor/event-router";
 import { EventStack } from "../editor/event-stack";
 import { Context, Focus } from "../editor/focus";
 import { Hole } from "../editor/hole";
-import { loadToolboxFromJson, updateButtonsVisualMode } from "../editor/toolbox";
+import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { MessageController } from "../messages/message-controller";
 import { ConstructHighlight } from "../messages/messages";
@@ -61,6 +61,7 @@ export class Module {
     menuController: MenuController;
     typeSystem: TypeChecker;
     notificationManager: NotificationManager;
+    toolboxController: ToolboxController;
 
     scope: Scope;
     draftExpressions: DraftRecord[];
@@ -79,6 +80,7 @@ export class Module {
         this.variableController = new VariableController(this);
         this.actionFilter = new ActionFilter(this);
         this.notificationManager = new NotificationManager(this);
+        this.toolboxController = new ToolboxController(this);
 
         this.globals = {
             hoveringOverCascadedMenu: false,
@@ -90,7 +92,8 @@ export class Module {
 
         Hole.setModule(this);
 
-        loadToolboxFromJson();
+        this.toolboxController.loadToolboxFromJson();
+        this.toolboxController.addTooltips();
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
@@ -114,24 +117,7 @@ export class Module {
             Hole.highlightValidVarHoles(c);
         });
 
-        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to refactor this one to
-        //use methods like above code
-        this.focus.subscribeOnNavChangeCallback(
-            ((c: Context) => {
-                // if (
-                //     !(
-                //         c.tokenToLeft instanceof AutocompleteTkn ||
-                //         c.tokenToRight instanceof AutocompleteTkn ||
-                //         c.token instanceof AutocompleteTkn
-                //     )
-                // ) {
-                const inserts = this.actionFilter.getProcessedInsertionsList();
-
-                //mark draft mode buttons
-                updateButtonsVisualMode(inserts);
-                // }
-            }).bind(this)
-        );
+        this.toolboxController.updateButtonsOnContextChange();
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const menuController = MenuController.getInstance();

@@ -1,14 +1,14 @@
 import {
-    Expression,
-    ForStatement,
-    ListComma,
-    Modifier,
-    Statement,
-    TypedEmptyExpr,
-    ValueOperationExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-    VarOperationStmt,
+	Expression,
+	ForStatement,
+	ListComma,
+	Modifier,
+	Statement,
+	TypedEmptyExpr,
+	ValueOperationExpr,
+	VarAssignmentStmt,
+	VariableReferenceExpr,
+	VarOperationStmt
 } from "../syntax-tree/ast";
 import { InsertionType, TypeConversionRecord } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
@@ -349,7 +349,7 @@ export class EditCodeAction extends UserAction {
         const code = this.getCode();
 
         if (code instanceof Expression && !(code instanceof Modifier) && !(code instanceof ListComma))
-            return " -> " + getUserFriendlyType(code.returns);
+            return getUserFriendlyType(code.returns);
         else return "";
     }
 

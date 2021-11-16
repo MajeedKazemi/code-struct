@@ -3,7 +3,7 @@ import { EditCodeAction, InsertionResult } from "../editor/action-filter";
 import { ConstructName } from "../editor/consts";
 import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
-import { updateButtonsVisualMode } from "../editor/toolbox";
+import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeBackground, HoverMessage, InlineMessage } from "../messages/messages";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
@@ -1389,7 +1389,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                     this.getIdentifier()
                 );
                 const insertions = this.getModule().actionFilter.getProcessedVariableInsertions();
-                updateButtonsVisualMode(insertions);
+                ToolboxController.updateButtonsVisualMode(insertions);
             }
         } else if (currentIdentifier === this.oldIdentifier) {
             varController.updateReturnTypeOfRefs(this.buttonId);
