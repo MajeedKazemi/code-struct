@@ -1869,6 +1869,7 @@ export class AugmentedAssignmentModifier extends Modifier {
         this.typeOfHoles[this.tokens.length - 1] = [...this.leftExprTypes];
 
         this.operation = operation;
+        this.hasEmptyToken = true;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
