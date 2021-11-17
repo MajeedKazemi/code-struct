@@ -49,16 +49,16 @@ body {
     width: fit-content;
 }
 
-.button:active {
-    box-shadow: none;
-    background-color: #f3f5fa !important;
-}
-
-.button.disabled {
+.button.button-invalid {
     opacity: 0.4;
     cursor: not-allowed;
+    border: solid 2px #c5c5c5;
 }
 
-.button.draftModeButton {
-    background-color: rgb(255, 255, 230);
+.button.button-valid {
+    background-color: rgb(150 255 185);
+}
+
+.button.button-draft-mode {
+    background-color: rgb(255 254 195);
 }

@@ -46,9 +46,6 @@ const ERROR_HIGHLIGHT_COLOUR: [number, number, number, number] = [255, 153, 153,
  * The main body of the code which includes an array of statements.
  */
 export class Module {
-    static draftModeButtonClass = "draftModeButton";
-    static disabledButtonClass = "disabled";
-
     body = new Array<Statement>();
     focus: Focus;
     validator: Validator;

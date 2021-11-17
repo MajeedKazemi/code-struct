@@ -11,6 +11,10 @@ import { Context } from "./focus";
 export const EDITOR_DOM_ID = "editor";
 
 export class ToolboxController {
+    static draftModeButtonClass = "button-draft-mode";
+    static invalidButtonClass = "button-invalid";
+    static validButtonClass = "button-valid";
+
     module: Module;
 
     constructor(module: Module) {
@@ -161,16 +165,19 @@ export class ToolboxController {
 
             if (button) {
                 if (insertionRecord.insertionResult.insertionType === InsertionType.DraftMode) {
-                    addClassToButton(insertionRecord.cssId, Module.draftModeButtonClass);
-                    removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, ToolboxController.invalidButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, ToolboxController.validButtonClass);
+                    addClassToButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
                     button.disabled = false;
                 } else if (insertionRecord.insertionResult.insertionType === InsertionType.Valid) {
-                    removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
-                    removeClassFromButton(insertionRecord.cssId, Module.disabledButtonClass);
+                    addClassToButton(insertionRecord.cssId, ToolboxController.validButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, ToolboxController.invalidButtonClass);
                     button.disabled = false;
                 } else {
-                    removeClassFromButton(insertionRecord.cssId, Module.draftModeButtonClass);
-                    addClassToButton(insertionRecord.cssId, Module.disabledButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
+                    removeClassFromButton(insertionRecord.cssId, ToolboxController.validButtonClass);
+                    addClassToButton(insertionRecord.cssId, ToolboxController.invalidButtonClass);
                     button.disabled = true;
                 }
             }
@@ -266,14 +273,17 @@ export class ToolboxButton {
         const element = this.getButtonElement();
 
         if (insertionType === InsertionType.DraftMode) {
-            element.classList.add(Module.draftModeButtonClass);
-            element.classList.remove(Module.disabledButtonClass);
+            element.classList.add(ToolboxController.draftModeButtonClass);
+            element.classList.remove(ToolboxController.invalidButtonClass);
+            element.classList.remove(ToolboxController.validButtonClass);
         } else if (insertionType === InsertionType.Valid) {
-            element.classList.remove(Module.draftModeButtonClass);
-            element.classList.remove(Module.disabledButtonClass);
+            element.classList.remove(ToolboxController.draftModeButtonClass);
+            element.classList.remove(ToolboxController.invalidButtonClass);
+            element.classList.add(ToolboxController.validButtonClass);
         } else {
-            element.classList.remove(Module.draftModeButtonClass);
-            element.classList.add(Module.disabledButtonClass);
+            element.classList.remove(ToolboxController.validButtonClass);
+            element.classList.remove(ToolboxController.draftModeButtonClass);
+            element.classList.add(ToolboxController.invalidButtonClass);
         }
     }
 }
@@ -334,6 +344,17 @@ function constructCascadedMenuObj(
     header.classList.add("cascaded-menu-header");
     header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span>:</h3>`;
     menu.appendChild(header);
+
+    menu.addEventListener("mouseover", () => {
+        setTimeout(() => {
+            const element = document.getElementById(`${buttonId}-cascadedMenu`);
+            const button = document.getElementById(buttonId);
+
+            if (element && !element.matches(":hover") && !button.matches(":hover")) {
+                element.remove();
+            }
+        }, 100);
+    });
 
     let id = 0;
 

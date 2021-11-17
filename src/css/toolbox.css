@@ -4,7 +4,7 @@
 
     box-shadow: 20px -50px 50px -15px #ccc;
 
-    min-width: 490px;
+    min-width: 350px;
 
     font-family: Consolas, "Courier New", monospace;
 }
@@ -63,12 +63,13 @@ hole2 {
 }
 
 #vars-button-grid .button {
-    font-size: 13px;
-    padding: 7px 8px;
+    font-size: 16px;
+    padding: 6px 10px;
     white-space: nowrap;
     box-shadow: 0px 1px 5px 2px #ddd;
     transition: 0.15s ease-in-out;
     -webkit-transition: 0.15s ease-in-out;
+    font-weight: bold;
 }
 
 #vars-button-grid .button:hover {
@@ -273,7 +274,7 @@ hole2 {
 }
 
 .tooltip-container .return-type-text .return-type {
-    padding: 2px 5px;
+    padding: 0 5px;
     border-radius: 3px;
     background-color: #8d97a3;
     color: #000;
