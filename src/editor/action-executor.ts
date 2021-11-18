@@ -2,50 +2,50 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../messages/error-msg-generator";
 import { ConstructHighlight, ScopeHighlight } from "../messages/messages";
 import {
-    AssignmentModifier,
-    AutocompleteTkn,
-    BinaryOperatorExpr,
-    CodeConstruct,
-    EditableTextTkn,
-    ElseStatement,
-    EmptyLineStmt,
-    EmptyOperatorTkn,
-    Expression,
-    FormattedStringCurlyBracketsExpr,
-    FormattedStringExpr,
-    IdentifierTkn,
-    IfStatement,
-    Importable,
-    ImportStatement,
-    ListAccessModifier,
-    ListLiteralExpression,
-    LiteralValExpr,
-    MethodCallModifier,
-    Modifier,
-    NonEditableTkn,
-    OperatorTkn,
-    Statement,
-    TemporaryStmt,
-    Token,
-    TypedEmptyExpr,
-    UnaryOperatorExpr,
-    ValueOperationExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-    VarOperationStmt,
+	AssignmentModifier,
+	AutocompleteTkn,
+	BinaryOperatorExpr,
+	CodeConstruct,
+	EditableTextTkn,
+	ElseStatement,
+	EmptyLineStmt,
+	EmptyOperatorTkn,
+	Expression,
+	FormattedStringCurlyBracketsExpr,
+	FormattedStringExpr,
+	IdentifierTkn,
+	IfStatement,
+	Importable,
+	ImportStatement,
+	ListAccessModifier,
+	ListLiteralExpression,
+	LiteralValExpr,
+	MethodCallModifier,
+	Modifier,
+	NonEditableTkn,
+	OperatorTkn,
+	Statement,
+	TemporaryStmt,
+	Token,
+	TypedEmptyExpr,
+	UnaryOperatorExpr,
+	ValueOperationExpr,
+	VarAssignmentStmt,
+	VariableReferenceExpr,
+	VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
-    addClassToDraftModeResolutionButton,
-    AutoCompleteType,
-    BuiltInFunctions,
-    getOperatorCategory,
-    PythonKeywords,
-    StringRegex,
-    TAB_SPACES,
-    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
+	addClassToDraftModeResolutionButton,
+	AutoCompleteType,
+	BuiltInFunctions,
+	getOperatorCategory,
+	PythonKeywords,
+	StringRegex,
+	TAB_SPACES,
+	TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+	TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -1086,6 +1086,10 @@ export class ActionExecutor {
                 this.module.focus.updateContext({
                     positionToMove: new Position(newCode.lineNumber, newCode.right),
                 });
+
+                if (newCode.rootNode instanceof Statement) {
+                    newCode.rootNode.onInsertInto(newCode);
+                }
 
                 if (!isValidRootInsertion) {
                     this.module.closeConstructDraftRecord(expr);
