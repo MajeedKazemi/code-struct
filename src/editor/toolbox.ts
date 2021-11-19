@@ -115,14 +115,23 @@ export class ToolboxController {
             const errorMessage = document.createElement("div");
             errorMessage.classList.add("error-text");
 
-            if (code instanceof Modifier) {
-                errorMessage.innerText = "This can only be inserted after a --- ";
-            } else if (code instanceof Expression) {
-                errorMessage.innerText = "This can only be inserted inside a hole with a matching type";
-            } else if (code instanceof Statement) {
-                errorMessage.innerText = "This can only be inserted at the beginning of a line";
+            const tooltip = code.getSimpleInvalidTooltip();
+
+            //TODO: #526 this should be changed when that functionality is updated.
+            //What likely needs to happen here is that the first if statement is the only thing that is kept. In fact, probably only its body will be necessary
+            //or some form of it (if we decide to go with message codes that map to text instead of actual text)
+            if (tooltip !== "") {
+                errorMessage.innerText = tooltip;
             } else {
-                errorMessage.innerText = "Whaaat????";
+                if (code instanceof Modifier) {
+                    errorMessage.innerText = "This can only be inserted after a --- ";
+                } else if (code instanceof Expression) {
+                    errorMessage.innerText = "This can only be inserted inside a hole with a matching type";
+                } else if (code instanceof Statement) {
+                    errorMessage.innerText = "This can only be inserted at the beginning of a line";
+                } else {
+                    errorMessage.innerText = "Whaaat????";
+                }
             }
 
             tooltipTop.appendChild(errorMessage);

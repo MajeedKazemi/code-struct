@@ -68,6 +68,9 @@ export interface CodeConstruct {
 
     callbacksToBeDeleted: Map<CallbackType, string>;
 
+    simpleDraftTooltip: string;
+    simpleInvalidTooltip: string;
+
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
      * @param pos the left position to start building the nodes from
@@ -131,6 +134,7 @@ export interface CodeConstruct {
      */
     getKeyword(): string;
 
+    //TODO: #526 already returns an insertion result so could also immediately populate it with a context-based message (which it probably does, needs to be checked InsertionResult does have a message field)
     /**
      * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
      *
@@ -159,6 +163,20 @@ export interface CodeConstruct {
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 
     markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void;
+
+    //TODO: This functionality needs to be merged with what Issue #526
+    //This should be completely unnecessary once this is integrated with our validation inside of action-filter.ts and validaiton methods such as validateContext
+    /**
+     * Return a tooltip for the toolbox giving a general reason for why this construct cannot be inserted. This tooltip WILL NOT
+     * have detailed, context-based information.
+     */
+    getSimpleInvalidTooltip(): string;
+
+    /**
+     * Return a tooltip for the toolbox giving a general reason for why this construct would trigger draft mode. This tooltip WILL NOT
+     * have detailed, context-based information.
+     */
+    getSimpleDraftTooltip(): string;
 }
 
 /**
@@ -184,11 +202,14 @@ export abstract class Statement implements CodeConstruct {
     draftRecord: DraftRecord = null;
     codeConstructName = ConstructName.Default;
     callbacksToBeDeleted = new Map<CallbackType, string>();
+    simpleDraftTooltip = "";
+    simpleInvalidTooltip = "";
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
     }
 
+    //TODO: See if this needs any changes for #526
     checkInsertionAtHole(index: number, givenType: DataType): InsertionResult {
         if (Object.keys(this.typeOfHoles).length > 0) {
             let holeType = this.typeOfHoles[index];
@@ -510,6 +531,7 @@ export abstract class Statement implements CodeConstruct {
      */
     onInsertInto(insertCode: CodeConstruct) {}
 
+    //TODO: #526 should be changed to return InsertionResult and populate that result with an appropriate message/code
     abstract validateContext(validator: Validator, providedContext: Context): InsertionType;
 
     //actions that need to occur when the focus is switched off of this statement
@@ -519,6 +541,14 @@ export abstract class Statement implements CodeConstruct {
 
     markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
         this.callbacksToBeDeleted.set(callbackType, callbackId);
+    }
+
+    getSimpleDraftTooltip(): string {
+        return this.simpleDraftTooltip;
+    }
+
+    getSimpleInvalidTooltip(): string {
+        return this.simpleInvalidTooltip;
     }
 }
 
@@ -565,6 +595,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
      */
     performTypeUpdatesOnInsertion(type: DataType) {}
 
+    //TODO: see if this needs any changes for #526
     /**
      * Return whether this construct can be repalced with replaceWith.
      * Can replace a bin expression in only two cases
@@ -679,6 +710,8 @@ export abstract class Token implements CodeConstruct {
     draftRecord = null;
     codeConstructName = ConstructName.Default;
     callbacksToBeDeleted = new Map<CallbackType, string>();
+    simpleDraftTooltip = "";
+    simpleInvalidTooltip = "";
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -793,6 +826,14 @@ export abstract class Token implements CodeConstruct {
 
     getKeyword(): string {
         return this.getRenderText();
+    }
+
+    getSimpleDraftTooltip(): string {
+        return this.simpleDraftTooltip;
+    }
+
+    getSimpleInvalidTooltip(): string {
+        return this.simpleInvalidTooltip;
     }
 }
 
