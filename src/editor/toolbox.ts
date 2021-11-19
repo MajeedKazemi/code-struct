@@ -138,7 +138,8 @@ export class ToolboxController {
         } else if (codeAction?.insertionResult?.insertionType === InsertionType.DraftMode) {
             const warningMessage = document.createElement("div");
             warningMessage.classList.add("warning-text");
-            warningMessage.innerText = "should convert type after insertion into the selected hole";
+            warningMessage.innerText =
+                "Inserting this will cause a type mismatch and will require you to convert the inserted expression to the correct type";
 
             tooltipTop.appendChild(warningMessage);
         }

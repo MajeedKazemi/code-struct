@@ -6,6 +6,7 @@ import { Context, UpdatableContext } from "../editor/focus";
 import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeBackground, HoverMessage, InlineMessage } from "../messages/messages";
+import { TextEnhance } from "../utilities/text-enhance";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
@@ -30,6 +31,8 @@ import { Module } from "./module";
 import { Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
+
+const textEnhancer = new TextEnhance();
 
 export interface CodeConstruct {
     /**
@@ -962,6 +965,8 @@ export class ElseStatement extends Statement {
         this.scope = new Scope();
 
         if (this.hasCondition) this.hasEmptyToken = true;
+
+        this.simpleInvalidTooltip = `Can only be inserted directly below an if statement.`;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1729,6 +1734,8 @@ export class ListAccessModifier extends Modifier {
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
+
+        this.simpleInvalidTooltip = "Can only be inserted after a variable that is a list.";
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -2268,6 +2275,10 @@ export class KeywordStmt extends Statement {
         this.validator = validator;
 
         this.tokens.push(new NonEditableTkn(keyword, this, this.tokens.length));
+
+        if (keyword === "break") {
+            this.simpleInvalidTooltip = "Can only be inserted on an empty line within a loop.";
+        }
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -2926,6 +2937,8 @@ export class FormattedStringCurlyBracketsExpr extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+
+        this.simpleInvalidTooltip = "Can only be inserted within an f'' string expression.";
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
