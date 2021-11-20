@@ -11,5 +11,9 @@
             "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
         },
         { "example": "a = 1\nb = 5\nwhile a <= b:\n\ta += 1\nprint(a)\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Is Less or Equal?",
+        "body": "Compares two values. Returns True if the left value is less than or equal to the right value."
+    }
 }

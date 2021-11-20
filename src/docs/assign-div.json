@@ -8,5 +8,9 @@
             "paragraph": "The below will print 5. It is equivalent to a = a / 2"
         },
         { "example": "a = 10\na /= 2\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Divide Value from Itself",
+        "body": "Divides the variable by a given value (on the right) and assigns the result back to the variable"
+    }
 }

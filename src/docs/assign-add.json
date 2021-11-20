@@ -8,5 +8,9 @@
             "paragraph": "The below will print 4. It is equivalent to <span class=\"italics\">a = a + 2</span>."
         },
         { "example": "a = 2\na += 2\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Add Value to Itself",
+        "body": "Adds a value (on the right) to the variable and assigns the result back to the variable"
+    }
 }

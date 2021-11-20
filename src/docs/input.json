@@ -11,5 +11,9 @@
         {
             "paragraph": "<span class=\"bold\">NOTE: The value returned by the <span class=\"italics bold\">input()</span> function is always text and has to be cast to other datatypes if you are expecting anything other than a text. </span>"
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Ask Text from User",
+        "body": "Displays a message that prompts the user to enter a text. The entered text will be returned."
+    }
 }

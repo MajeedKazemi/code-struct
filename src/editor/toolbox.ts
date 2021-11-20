@@ -76,6 +76,7 @@ export class ToolboxController {
         for (const x of this.module.actionFilter.getProcessedConstructInsertions()) {
             if (x.cssId == code.cssId) {
                 codeAction = x;
+
                 break;
             }
         }
@@ -90,17 +91,18 @@ export class ToolboxController {
         tooltipTop.classList.add("tooltip-top");
         tooltipContainer.appendChild(tooltipTop);
 
-        // if (documentation.tooltip) {
         const tooltipHeader = document.createElement("div");
-        tooltipHeader.innerHTML = `<h4>${"some sample header"}</h4>`;
         tooltipHeader.classList.add("tooltip-header");
-        tooltipTop.appendChild(tooltipHeader);
-
         const tooltipText = document.createElement("p");
         tooltipText.classList.add("tooltip-text");
-        tooltipText.innerText = "some dummy text about this little code construct that is either working or not.";
-        tooltipTop.appendChild(tooltipText);
-        // }
+
+        if (code.documentation.tooltip) {
+            tooltipHeader.innerHTML = `<h4>${code.documentation.tooltip.title}</h4>`;
+            tooltipTop.appendChild(tooltipHeader);
+
+            tooltipText.innerText = code.documentation.tooltip.body;
+            tooltipTop.appendChild(tooltipText);
+        }
 
         if (returnType) {
             const typeText = document.createElement("div");
@@ -167,15 +169,15 @@ export class ToolboxController {
                 if (insertionRecord.insertionResult.insertionType === InsertionType.DraftMode) {
                     removeClassFromButton(insertionRecord.cssId, ToolboxController.invalidButtonClass);
                     removeClassFromButton(insertionRecord.cssId, ToolboxController.validButtonClass);
-                    addClassToButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
+                    // addClassToButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
                     button.disabled = false;
                 } else if (insertionRecord.insertionResult.insertionType === InsertionType.Valid) {
                     addClassToButton(insertionRecord.cssId, ToolboxController.validButtonClass);
-                    removeClassFromButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
+                    // removeClassFromButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
                     removeClassFromButton(insertionRecord.cssId, ToolboxController.invalidButtonClass);
                     button.disabled = false;
                 } else {
-                    removeClassFromButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
+                    // removeClassFromButton(insertionRecord.cssId, ToolboxController.draftModeButtonClass);
                     removeClassFromButton(insertionRecord.cssId, ToolboxController.validButtonClass);
                     addClassToButton(insertionRecord.cssId, ToolboxController.invalidButtonClass);
                     button.disabled = true;
@@ -273,16 +275,16 @@ export class ToolboxButton {
         const element = this.getButtonElement();
 
         if (insertionType === InsertionType.DraftMode) {
-            element.classList.add(ToolboxController.draftModeButtonClass);
+            // element.classList.add(ToolboxController.draftModeButtonClass);
             element.classList.remove(ToolboxController.invalidButtonClass);
             element.classList.remove(ToolboxController.validButtonClass);
         } else if (insertionType === InsertionType.Valid) {
-            element.classList.remove(ToolboxController.draftModeButtonClass);
+            // element.classList.remove(ToolboxController.draftModeButtonClass);
             element.classList.remove(ToolboxController.invalidButtonClass);
             element.classList.add(ToolboxController.validButtonClass);
         } else {
             element.classList.remove(ToolboxController.validButtonClass);
-            element.classList.remove(ToolboxController.draftModeButtonClass);
+            // element.classList.remove(ToolboxController.draftModeButtonClass);
             element.classList.add(ToolboxController.invalidButtonClass);
         }
     }

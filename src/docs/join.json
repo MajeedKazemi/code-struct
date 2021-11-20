@@ -8,5 +8,9 @@
             "paragraph": "The below example will print \"Anna-John-Peter\" as a single text object."
         },
         { "example": "names = [\"Anna\", \"John\", \"Peter\"]\njoinedNames = \"-\".join(names)\nprint(joinedNames)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Call Join Method",
+        "body": "Uses this text as a separator to join a list of values together into a new text."
+    }
 }

@@ -13,5 +13,9 @@
         {
             "example": "items = [1, 2, 3]\na = len(items)\nprint(a)"
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Length of List or Text",
+        "body": "returns the number of items in an object, or the number of characters in a text"
+    }
 }

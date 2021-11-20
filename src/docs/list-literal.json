@@ -5,10 +5,16 @@
             "paragraph": "Inserts an empty list into a hole. The list can be populated with multiple values after creation by navigating inside the list and inserting a value. New values in a list are separated by a comma."
         },
         { "example": "a = []" },
-        {"example": "a = [1, 2, 3]"},
+        { "example": "a = [1, 2, 3]" },
         {
             "paragraph": "Lists can store a variety of types and even different types within the same list."
         },
-        {"example": "a = [\"cat\", \"dog\", \"parrot\"]\nb = [1, \"cat\", true]\nc = [1, [1, \"dog\"], \"cat\", [true]]"}
-    ]
+        {
+            "example": "a = [\"cat\", \"dog\", \"parrot\"]\nb = [1, \"cat\", true]\nc = [1, [1, \"dog\"], \"cat\", [true]]"
+        }
+    ],
+    "tooltip": {
+        "title": "Insert Editable List",
+        "body": "Inserts an empty list. Press comma before or after each item to add a new empty item."
+    }
 }

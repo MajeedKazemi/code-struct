@@ -10,5 +10,9 @@
             "paragraph": "<span class=\"bold\">print()</span> can also be used with variables."
         },
         { "example": "a = \"abc\"\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Display Text in Console",
+        "body": "Displays the textual value of its argument in the console"
+    }
 }

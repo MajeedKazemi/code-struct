@@ -1,13 +1,19 @@
 {
-    "title": "Equal",
+    "title": "Is Equal?",
     "body": [
         {
             "paragraph": "A comparison operator (<span class=\"bold\">==</span>) that returns <span class=\"bold\">true</span> if the item on the left of the operator is equal the item to the right of the operator. Returns <span class=\"bold\">false</span> otherwise."
         },
-        {"example": "a = 2\nb = 3\nif a == c:\n\tprint(\"a is equal to c\")\n\nif b == a:\n\tprint(\"This will not print because the condition is false.\")"},
+        {
+            "example": "a = 2\nb = 3\nif a == c:\n\tprint(\"a is equal to c\")\n\nif b == a:\n\tprint(\"This will not print because the condition is false.\")"
+        },
         {
             "paragraph": "Most often used to compare two values and subsequently execute or not execute a block of code based on the value of the comparison."
         },
-        {"example": "a = 5\nb = 5\nwhile a == b:\n\ta += 1\nprint(a)\nprint(a)"}
-    ]
+        { "example": "a = 5\nb = 5\nwhile a == b:\n\ta += 1\nprint(a)\nprint(a)" }
+    ],
+    "tooltip": {
+        "title": "Is Equal?",
+        "body": "Compares two values. Returns True if they are equal, otherwise False."
+    }
 }

@@ -8,5 +8,9 @@
             "paragraph": "The below prints 5.0"
         },
         { "example": "a = 2\nb = 10\nprint((b / a))" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert Division",
+        "body": "Divides the values to the left of the operator by the right value"
+    }
 }

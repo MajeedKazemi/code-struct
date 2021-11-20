@@ -289,7 +289,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
     const codeEditor = editor.create(exampleEditor, {
         folding: false,
         value: item.example,
-        language: "python",
+        language: "python3.6",
         dimension: { width: 200, height: 100 },
         minimap: {
             enabled: false,
@@ -303,6 +303,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
             vertical: "auto",
             horizontal: "auto",
             verticalSliderSize: 5,
+            horizontalSliderSize: 5,
             scrollByPage: false,
         },
         fontSize: 13,
