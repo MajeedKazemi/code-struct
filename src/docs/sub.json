@@ -8,5 +8,9 @@
             "paragraph": "The below prints 10."
         },
         { "example": "a = 20\nb = 10\nprint((a - b))" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert Subtraction",
+        "body": "Subtracts the value to the right of the operator from the value to the left"
+    }
 }

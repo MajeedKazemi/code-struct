@@ -8,5 +8,9 @@
             "paragraph": "The below prints 10."
         },
         { "example": "a = 2\nb = 5\nprint((b * a))" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert Multiplication",
+        "body": "Multiplies the values to the left and right of the operator"
+    }
 }

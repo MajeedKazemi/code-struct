@@ -8,5 +8,9 @@
             "paragraph": "The below example will print 4 because text is 0-indexed. "
         },
         { "example": "name = \"Zimmer\"\nindexOfE = name.find(\"e\")\nprint(indexOfE)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Call Find Method",
+        "body": "Finds the first occurrence of the argument's textual value in the text"
+    }
 }

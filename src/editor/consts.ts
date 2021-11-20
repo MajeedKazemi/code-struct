@@ -17,12 +17,15 @@ import * as CompNeDocs from "../docs/comp-ne.json";
 import * as DivDocs from "../docs/div.json";
 import * as ElifDocs from "../docs/elif.json";
 import * as ElseDocs from "../docs/else.json";
+import * as FStringItemDocs from "../docs/f-str-item.json";
+import * as FStringDocs from "../docs/f-str.json";
 import * as FalseDocs from "../docs/false.json";
 import * as FindDocs from "../docs/find.json";
 import * as FloorDivDocs from "../docs/floor-div.json";
 import * as ForDocs from "../docs/for.json";
 import * as IfDocs from "../docs/if.json";
 import * as ImportDocs from "../docs/import.json";
+import * as InDocs from "../docs/in.json";
 import * as InputDocs from "../docs/input.json";
 import * as JoinDocs from "../docs/join.json";
 import * as LenDocs from "../docs/len.json";
@@ -32,6 +35,7 @@ import * as ListItemDocs from "../docs/list-item.json";
 import * as ListLiteralDocs from "../docs/list-literal.json";
 import * as ModDocs from "../docs/mod.json";
 import * as MultDocs from "../docs/mult.json";
+import * as NotInDocs from "../docs/not-in.json";
 import * as NotDocs from "../docs/not.json";
 import * as NumDocs from "../docs/num.json";
 import * as OrDocs from "../docs/or.json";
@@ -47,39 +51,39 @@ import * as CastToStrDocs from "../docs/to-str.json";
 import * as TrueDocs from "../docs/true.json";
 import * as WhileDocs from "../docs/while.json";
 import {
-    Argument,
-    AssignmentModifier,
-    AugmentedAssignmentModifier,
-    BinaryOperatorExpr,
-    ElseStatement,
-    FormattedStringCurlyBracketsExpr,
-    FormattedStringExpr as FormattedStringExpr,
-    ForStatement,
-    FunctionCallExpr,
-    FunctionCallStmt,
-    IfStatement,
-    ImportStatement,
-    KeywordStmt,
-    ListAccessModifier,
-    ListComma,
-    ListLiteralExpression,
-    LiteralValExpr,
-    MethodCallModifier,
-    OperatorTkn,
-    Statement,
-    UnaryOperatorExpr,
-    ValueOperationExpr,
-    VarAssignmentStmt,
-    VarOperationStmt,
-    WhileStatement,
+	Argument,
+	AssignmentModifier,
+	AugmentedAssignmentModifier,
+	BinaryOperatorExpr,
+	ElseStatement,
+	FormattedStringCurlyBracketsExpr,
+	FormattedStringExpr,
+	ForStatement,
+	FunctionCallExpr,
+	FunctionCallStmt,
+	IfStatement,
+	ImportStatement,
+	KeywordStmt,
+	ListAccessModifier,
+	ListComma,
+	ListLiteralExpression,
+	LiteralValExpr,
+	MethodCallModifier,
+	OperatorTkn,
+	Statement,
+	UnaryOperatorExpr,
+	ValueOperationExpr,
+	VarAssignmentStmt,
+	VarOperationStmt,
+	WhileStatement
 } from "../syntax-tree/ast";
 import {
-    AugmentedAssignmentOperator,
-    BinaryOperator,
-    DataType,
-    IdentifierRegex,
-    NumberRegex,
-    UnaryOperator,
+	AugmentedAssignmentOperator,
+	BinaryOperator,
+	DataType,
+	IdentifierRegex,
+	NumberRegex,
+	UnaryOperator
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { EditCodeAction } from "./action-filter";
@@ -418,7 +422,7 @@ export class Actions {
             () => new FormattedStringExpr(""),
             InsertActionType.InsertExpression,
             {},
-            StrDocs,
+            FStringDocs,
             ["'"],
             "f",
             null
@@ -430,7 +434,7 @@ export class Actions {
             () => new FormattedStringCurlyBracketsExpr(),
             InsertActionType.InsertFormattedStringItem,
             {},
-            StrDocs,
+            FStringItemDocs,
             ["{"],
             "",
             null
@@ -573,7 +577,7 @@ export class Actions {
             () => new OperatorTkn(BinaryOperator.In),
             InsertActionType.InsertOperatorTkn,
             {},
-            AddDocs,
+            InDocs,
             [" "],
             "in",
             null
@@ -585,7 +589,7 @@ export class Actions {
             () => new OperatorTkn(BinaryOperator.NotIn),
             InsertActionType.InsertOperatorTkn,
             {},
-            AddDocs,
+            NotInDocs,
             ["n"],
             "not i",
             null
@@ -881,7 +885,7 @@ export class Actions {
             {
                 operator: BinaryOperator.In,
             },
-            AddDocs,
+            InDocs,
             [" "],
             "in",
             null
@@ -895,7 +899,7 @@ export class Actions {
             {
                 operator: BinaryOperator.NotIn,
             },
-            AddDocs,
+            NotInDocs,
             ["n"],
             "not i",
             null
@@ -1585,7 +1589,7 @@ export class Actions {
             ])
         );
         this.toolboxCategories.push(
-            new ToolboxCategory("Casting", "casting-toolbox-group", [CastStrExpr, CastIntExpr])
+            new ToolboxCategory("Converts", "convert-ops-toolbox-group", [CastStrExpr, CastIntExpr])
         );
         this.toolboxCategories.push(new ToolboxCategory("Imports", "import-ops-toolbox-group", [ImportStmt]));
     }

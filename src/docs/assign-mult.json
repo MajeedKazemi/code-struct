@@ -8,5 +8,9 @@
             "paragraph": "The below will print 10. It is equivalent to a = a * 2"
         },
         { "example": "a = 5\na *= 2\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Multiplies Value to Itself",
+        "body": "Multiplies the variable by a value (on the right) and assigns the result back to the variable"
+    }
 }

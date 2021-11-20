@@ -47,6 +47,7 @@ body {
     width: -webkit-fit-content;
     width: -moz-fit-content;
     width: fit-content;
+    border: solid 2px #fff;
 }
 
 .button.button-invalid {
@@ -56,7 +57,7 @@ body {
 }
 
 .button.button-valid {
-    background-color: rgb(150 255 185);
+    font-weight: bold;
 }
 
 .button.button-draft-mode {

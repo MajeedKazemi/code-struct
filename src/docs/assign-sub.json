@@ -8,5 +8,9 @@
             "paragraph": "The below will print 3. It is equivalent to <span class=\"italics\">a = a - 2</span>."
         },
         { "example": "a = 5\na -= 2\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Subtracts Value from Itself",
+        "body": "Subtracts a value (on the right) from the variable and assigns the result back to the variable"
+    }
 }

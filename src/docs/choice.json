@@ -8,5 +8,9 @@
         {
             "paragraph": "The above code will pick a random item from the list of numbers 1-6, and checks if the number is equal to six."
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert Choice from List",
+        "body": "Randomly selects and returns an item from the given list. needs to be imported from the random module."
+    }
 }

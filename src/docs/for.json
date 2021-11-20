@@ -10,5 +10,8 @@
         },
         { "example": "for i in range(1, 10):\n\tprint(i)" }
     ],
-    "tooltip": "iterates over a list of numbers using a counter variable"
+    "tooltip": {
+        "title": "Repeats with Iterator",
+        "body": "Creates an iterator variable from a sequence to repeated execute the indented code below the for loop"
+    }
 }

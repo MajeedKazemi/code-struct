@@ -5,5 +5,9 @@
             "paragraph": "Assigns a new value to an existing variable. Requires a reference to the variable to already be inserted before using this modifier."
         },
         { "example": "a = 123\nprint(a)\na=321\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Set Value to Variable",
+        "body": "Allows assigning a new value to an existing variable"
+    }
 }

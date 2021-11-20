@@ -10,5 +10,9 @@
         {
             "paragraph": "the mod operator only works on numbers."
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert Modulo",
+        "body": "Calculates the remainder of the division between the values to the left and right of the operator."
+    }
 }

@@ -4,6 +4,10 @@
         {
             "paragraph": "Insert a new empty list element that can be filled with the value you want to insert into a list. Should be used either when focused on an empty element of a list or just to the right of an existing or empty element."
         },
-        {"example": "a = [1, 2, 3]"}
-    ]
+        { "example": "a = [1, 2, 3]" }
+    ],
+    "tooltip": {
+        "title": "Insert List Item",
+        "body": "Inserts a new empty element inside a list."
+    }
 }
