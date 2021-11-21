@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Insert Subtraction",
-        "body": "Subtracts the value to the right of the operator from the value to the left"
+        "body": "Subtracts the value to the right of the operator from the value to the left."
     }
 }

@@ -7,7 +7,7 @@
         { "example": "a = [1, 2, 3]" }
     ],
     "tooltip": {
-        "title": "Insert List Item",
+        "title": "Insert List Element",
         "body": "Inserts a new empty element inside a list."
     }
 }

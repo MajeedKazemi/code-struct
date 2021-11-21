@@ -8,6 +8,6 @@
     ],
     "tooltip": {
         "title": "Create Variable Assignment",
-        "body": "Allows assigning any value to a variable using it's identifier"
+        "body": "Allows to store a value and give it a name to reference it by later."
     }
 }

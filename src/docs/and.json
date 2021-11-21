@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "And Operator",
-        "body": "Used to combine conditional expressions. Results in True if both the left and right expressions are True, otherwise False."
+        "body": "Used to combine conditional expressions. Results in True if both the left and right expressions are True; returns False otherwise."
     }
 }

@@ -2,7 +2,7 @@
     "title": "elif statement",
     "body": [
         {
-            "paragraph": "A conditional statement that can only be used after an if-statement and allows us to add more cases to create an <span class=\"italics bold\">if block</span>. It executes only if the statements above it evaluate to <span class=\"bold\">false</span>."
+            "paragraph": "A conditional statement that can only be used after an <span class=\"bold\">if</span> statement and allows us to add more cases to create an <span class=\"italics bold\">if block</span>. It executes only if the statements above it evaluate to <span class=\"bold\">false</span>."
         },
         {
             "example": "a = 3\nif a > 10:\n\tprint(\"a is larger than 10\")\nelif a < 10:\n\tprint(\"a is smaller than 10\")"
@@ -15,7 +15,7 @@
         }
     ],
     "tooltip": {
-        "title": "Insert elif Statement",
-        "body": "Short for else-if: allows adding more conditional cases to an existing if statement"
+        "title": "Insert Elif Statement",
+        "body": "Short for else-if; adds another case to an existing if statement."
     }
 }

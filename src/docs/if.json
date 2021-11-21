@@ -14,7 +14,7 @@
         },
         { "example": "a = 3\nif a < 10:\n\tprint(\"Success!\")" },
         {
-            "paragraph": "The below example, however, will not print anything because the code inside the if-statement will not be run since the condition is <span class=\"bold\">false</span>."
+            "paragraph": "The below example, however, will not print anything because the code inside the if statement will not be run since the condition is <span class=\"bold\">false</span>."
         },
         { "example": "a = 3\nif a > 10:\n\tprint(\"Success!\")" }
     ],

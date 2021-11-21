@@ -7,6 +7,6 @@
     ],
     "tooltip": {
         "title": "Insert a Number",
-        "body": "Inserts a number that could be statically edited."
+        "body": "Inserts a number and edit its value."
     }
 }

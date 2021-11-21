@@ -15,7 +15,7 @@
         }
     ],
     "tooltip": {
-        "title": "Length of List or Text",
-        "body": "returns the number of items in an object, or the number of characters in a text"
+        "title": "Get Length of List or Text",
+        "body": "Returns the number of items in an object, or the number of characters in a text."
     }
 }

@@ -7,7 +7,7 @@
         { "example": "a = 123\nprint(a)\na=321\nprint(a)" }
     ],
     "tooltip": {
-        "title": "Set Value to Variable",
-        "body": "Allows assigning a new value to an existing variable"
+        "title": "Update Value of Variable",
+        "body": "Allows assigning a new value to an existing variable."
     }
 }

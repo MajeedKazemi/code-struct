@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Call Replace Method",
-        "body": "Replaces all occurrences of the first argument with the value of the second argument in the text"
+        "body": "Replaces all occurrences of the first argument with the value of the second argument in the text."
     }
 }

@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Generate a Random Number",
-        "body": "Returns a randomly generated number from the given range. needs to be imported from the random module."
+        "body": "Returns a randomly generated number from the given range. Needs to be imported from the random module."
     }
 }

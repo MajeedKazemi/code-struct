@@ -2,7 +2,7 @@
     "title": "Add to Variable",
     "body": [
         {
-            "paragraph": "Adds a value to an existing variable and reassigns it back to the variable."
+            "paragraph": "Adds a value to an existing variable and stores it back in the variable."
         },
         {
             "paragraph": "The below will print 4. It is equivalent to <span class=\"italics\">a = a + 2</span>."
@@ -10,7 +10,7 @@
         { "example": "a = 2\na += 2\nprint(a)" }
     ],
     "tooltip": {
-        "title": "Add Value to Itself",
-        "body": "Adds a value (on the right) to the variable and assigns the result back to the variable"
+        "title": "Add Value to Variable",
+        "body": "Adds the value on the right-hand side of the += sign to the specified variable and stores the result in the variable."
     }
 }

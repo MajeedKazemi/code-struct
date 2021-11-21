@@ -13,6 +13,6 @@
     ],
     "tooltip": {
         "title": "Display Text in Console",
-        "body": "Displays the textual value of its argument in the console"
+        "body": "Displays the textual value of its argument in the console."
     }
 }

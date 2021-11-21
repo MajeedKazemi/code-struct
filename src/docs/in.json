@@ -10,6 +10,6 @@
     ],
     "tooltip": {
         "title": "Inside?",
-        "body": "Returns True if the left item is inside the right item. Otherwise, False."
+        "body": "Returns True if the left item is inside the right item; returns False otherwise."
     }
 }

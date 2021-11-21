@@ -10,6 +10,6 @@
     ],
     "tooltip": {
         "title": "Insert Formattable Text",
-        "body": "Inserts an editable, formattable text: used along with the {} operator to include non-static values and variables inside the text"
+        "body": "Inserts an editable, formattable text; used along with the {} operator to include non-static values and variables inside the text."
     }
 }

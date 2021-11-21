@@ -13,7 +13,7 @@
         { "example": "a = 1\nb = 5\nwhile a <= b:\n\ta += 1\nprint(a)\nprint(a)" }
     ],
     "tooltip": {
-        "title": "Is Less or Equal?",
+        "title": "Is Less Than or Equal?",
         "body": "Compares two values. Returns True if the left value is less than or equal to the right value."
     }
 }

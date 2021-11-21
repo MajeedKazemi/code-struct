@@ -2,15 +2,15 @@
     "title": "floor division",
     "body": [
         {
-            "paragraph": "Similar to the normal division operator, but the result will be a rounded number"
+            "paragraph": "Similar to the normal division operator, but the result will be a number that is always rounded down."
         },
         {
-            "paragraph": "The below prints 5."
+            "paragraph": "The below prints 3 whereas with regular division it would print 3.5."
         },
-        { "example": "a = 2\nb = 10\nprint((b / a))" }
+        { "example": "a = 2\nb = 7\nprint((b / a))" }
     ],
     "tooltip": {
         "title": "Insert Floor Division",
-        "body": "Performs integer division between the values to the left and right of the operator (with no remainder)"
+        "body": "Performs integer division (remainder is discarded and always result is always rounded down) between the values to the left and right of the operator."
     }
 }

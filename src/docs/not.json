@@ -13,6 +13,6 @@
     ],
     "tooltip": {
         "title": "Not Operator",
-        "body": "Changes the boolean state of an expression. True becomes False, and False becomes True."
+        "body": "Flips the truth value of an expression. True becomes False, and False becomes True."
     }
 }

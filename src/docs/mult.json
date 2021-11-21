@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Insert Multiplication",
-        "body": "Multiplies the values to the left and right of the operator"
+        "body": "Multiplies the values to the left and right of the operator."
     }
 }

@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Insert Choice from List",
-        "body": "Randomly selects and returns an item from the given list. needs to be imported from the random module."
+        "body": "Randomly selects and returns an item from the given list. Needs to be imported from the random module."
     }
 }

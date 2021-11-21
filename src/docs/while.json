@@ -8,7 +8,7 @@
         { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" }
     ],
     "tooltip": {
-        "title": "Repeats While True",
-        "body": "repeatedly executes the indented code below the while loop as long as the condition is True"
+        "title": "Repeatedly Run Indented Code",
+        "body": "Repeatedly executes the indented code below the while loop as long as the condition is True."
     }
 }

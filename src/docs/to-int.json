@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Converts Text to Number",
-        "body": "Converts the type of the passed textual number, to an actual number. Extremely useful when trying to input numbers from the user."
+        "body": "Converts a number text to an actual number. Extremely useful when trying to input numbers from the user."
     }
 }

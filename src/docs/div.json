@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Insert Division",
-        "body": "Divides the values to the left of the operator by the right value"
+        "body": "Divides the values to the left of the operator by the right value."
     }
 }
