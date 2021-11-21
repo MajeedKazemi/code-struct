@@ -964,9 +964,12 @@ export class ElseStatement extends Statement {
 
         this.scope = new Scope();
 
-        if (this.hasCondition) this.hasEmptyToken = true;
-
-        this.simpleInvalidTooltip = Tooltip.InvalidInsertElseElif;
+        if (this.hasCondition) {
+            this.hasEmptyToken = true;
+            this.simpleInvalidTooltip = Tooltip.InvalidInsertElif;
+        } else {
+            this.simpleInvalidTooltip = Tooltip.InvalidInsertElse;
+        }
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1868,6 +1871,7 @@ export class MethodCallModifier extends Modifier {
 
 export class AssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
+    simpleInvalidTooltip = Tooltip.InvalidAugmentedAssignment;
 
     constructor(root?: VarOperationStmt, indexInRoot?: number) {
         super();
@@ -1899,6 +1903,7 @@ export class AssignmentModifier extends Modifier {
 export class AugmentedAssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
     private operation: AugmentedAssignmentOperator;
+    simpleInvalidTooltip = Tooltip.InvalidAugmentedAssignment;
 
     constructor(operation: AugmentedAssignmentOperator, root?: VarOperationStmt, indexInRoot?: number) {
         super();
