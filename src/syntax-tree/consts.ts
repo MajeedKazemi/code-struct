@@ -273,6 +273,7 @@ export enum Tooltip {
     InvalidInsertModifier = "Can only be inserted after a variable reference or a literal value of the appropriate type.",
     InvalidInsertExpression = "Can only be inserted inside a hole (<hole1 class='errorTooltipHole'></hole1>) of matching type.",
     InvalidAugmentedAssignment = "Can only be inserted after a variable reference on an empty line.",
+    TypeMismatch = "Inserting this will cause a type mismatch and will require you to convert the inserted expression to the correct type",
 }
 
 //-------------------

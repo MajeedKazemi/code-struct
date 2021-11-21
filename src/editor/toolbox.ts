@@ -1,5 +1,5 @@
 import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
-import { DataType, InsertionType } from "../syntax-tree/consts";
+import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
 import { EditCodeAction } from "./action-filter";
@@ -140,8 +140,7 @@ export class ToolboxController {
         } else if (codeAction?.insertionResult?.insertionType === InsertionType.DraftMode) {
             const warningMessage = document.createElement("div");
             warningMessage.classList.add("warning-text");
-            warningMessage.innerHTML =
-                "Inserting this will cause a type mismatch and will require you to convert the inserted expression to the correct type";
+            warningMessage.innerHTML = Tooltip.TypeMismatch;
 
             tooltipTop.appendChild(warningMessage);
         }
