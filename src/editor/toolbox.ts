@@ -113,7 +113,7 @@ export class ToolboxController {
         }
 
         if (codeAction?.insertionResult?.insertionType === InsertionType.Invalid) {
-            const code = codeAction.getCode();
+            const code = codeAction.getCode() as CodeConstruct;
             const errorMessage = document.createElement("div");
             errorMessage.classList.add("error-text");
 
@@ -123,16 +123,16 @@ export class ToolboxController {
             //What likely needs to happen here is that the first if statement is the only thing that is kept. In fact, probably only its body will be necessary
             //or some form of it (if we decide to go with message codes that map to text instead of actual text)
             if (tooltip !== "") {
-                errorMessage.innerText = tooltip;
+                errorMessage.innerHTML = tooltip;
             } else {
                 if (code instanceof Modifier) {
-                    errorMessage.innerText = "This can only be inserted after a --- ";
+                    errorMessage.innerHTML = "This can only be inserted after a --- ";
                 } else if (code instanceof Expression) {
-                    errorMessage.innerText = "This can only be inserted inside a hole with a matching type";
+                    errorMessage.innerHTML = "This can only be inserted inside a hole with a matching type";
                 } else if (code instanceof Statement) {
-                    errorMessage.innerText = "This can only be inserted at the beginning of a line";
+                    errorMessage.innerHTML = "This can only be inserted at the beginning of a line";
                 } else {
-                    errorMessage.innerText = "Whaaat????";
+                    errorMessage.innerHTML = "Whaaat????";
                 }
             }
 
@@ -140,7 +140,7 @@ export class ToolboxController {
         } else if (codeAction?.insertionResult?.insertionType === InsertionType.DraftMode) {
             const warningMessage = document.createElement("div");
             warningMessage.classList.add("warning-text");
-            warningMessage.innerText =
+            warningMessage.innerHTML =
                 "Inserting this will cause a type mismatch and will require you to convert the inserted expression to the correct type";
 
             tooltipTop.appendChild(warningMessage);

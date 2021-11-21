@@ -262,6 +262,17 @@ export const IdentifierRegex = RegExp("^[^\\d\\W]\\w*$");
 export const NumberRegex = RegExp("^(([+-][0-9]+)|(([+-][0-9]*)\\.([0-9]+))|([0-9]*)|(([0-9]*)\\.([0-9]*)))$");
 export const StringRegex = RegExp('^([^\\r\\n\\"]*)$');
 
+export enum Tooltip {
+    None = "",
+    InvalidInsertElseElif = "Can only be inserted directly below an if statement.",
+    InvalidInsertListElementAccess = "Can only be inserted after a variable that is a list.",
+    InvalidInsertBreak = "Can only be inserted on an empty line within a loop.",
+    InvalidInsertCurlyBraceWithinFString = "Can only be inserted within an f'' string expression.",
+    InvalidInsertStatement = "Can only be inserted on an empty line.",
+    InvalidInsertModifier = "Can only be inserted after a variable reference or a literal value of the appropriate type.",
+    InvalidInsertExpression = "Can only insert inside a hole (<hole1 class='errorTooltipHole'></hole1>) of matching type.",
+}
+
 //-------------------
 const te = new TextEnhance();
 

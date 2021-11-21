@@ -6,7 +6,6 @@ import { Context, UpdatableContext } from "../editor/focus";
 import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeBackground, HoverMessage, InlineMessage } from "../messages/messages";
-import { TextEnhance } from "../utilities/text-enhance";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
@@ -22,6 +21,7 @@ import {
     OperatorCategory,
     StringRegex,
     TAB_SPACES,
+    Tooltip,
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
@@ -31,8 +31,6 @@ import { Module } from "./module";
 import { Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
-
-const textEnhancer = new TextEnhance();
 
 export interface CodeConstruct {
     /**
@@ -71,8 +69,8 @@ export interface CodeConstruct {
 
     callbacksToBeDeleted: Map<CallbackType, string>;
 
-    simpleDraftTooltip: string;
-    simpleInvalidTooltip: string;
+    simpleDraftTooltip: Tooltip;
+    simpleInvalidTooltip: Tooltip;
 
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
@@ -173,13 +171,13 @@ export interface CodeConstruct {
      * Return a tooltip for the toolbox giving a general reason for why this construct cannot be inserted. This tooltip WILL NOT
      * have detailed, context-based information.
      */
-    getSimpleInvalidTooltip(): string;
+    getSimpleInvalidTooltip(): Tooltip;
 
     /**
      * Return a tooltip for the toolbox giving a general reason for why this construct would trigger draft mode. This tooltip WILL NOT
      * have detailed, context-based information.
      */
-    getSimpleDraftTooltip(): string;
+    getSimpleDraftTooltip(): Tooltip;
 }
 
 /**
@@ -205,8 +203,8 @@ export abstract class Statement implements CodeConstruct {
     draftRecord: DraftRecord = null;
     codeConstructName = ConstructName.Default;
     callbacksToBeDeleted = new Map<CallbackType, string>();
-    simpleDraftTooltip = "";
-    simpleInvalidTooltip = "";
+    simpleDraftTooltip = Tooltip.None;
+    simpleInvalidTooltip = Tooltip.InvalidInsertStatement;
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -546,11 +544,11 @@ export abstract class Statement implements CodeConstruct {
         this.callbacksToBeDeleted.set(callbackType, callbackId);
     }
 
-    getSimpleDraftTooltip(): string {
+    getSimpleDraftTooltip(): Tooltip {
         return this.simpleDraftTooltip;
     }
 
-    getSimpleInvalidTooltip(): string {
+    getSimpleInvalidTooltip(): Tooltip {
         return this.simpleInvalidTooltip;
     }
 }
@@ -563,6 +561,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
     // TODO: can change this to an Array to enable type checking when returning multiple items
     returns: DataType;
+    simpleInvalidTooltip = Tooltip.InvalidInsertExpression;
 
     constructor(returns: DataType) {
         super();
@@ -686,6 +685,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 export abstract class Modifier extends Expression {
     rootNode: Expression | Statement;
     leftExprTypes: Array<DataType>;
+    simpleInvalidTooltip = Tooltip.InvalidInsertModifier;
 
     constructor() {
         super(null);
@@ -713,8 +713,8 @@ export abstract class Token implements CodeConstruct {
     draftRecord = null;
     codeConstructName = ConstructName.Default;
     callbacksToBeDeleted = new Map<CallbackType, string>();
-    simpleDraftTooltip = "";
-    simpleInvalidTooltip = "";
+    simpleDraftTooltip = Tooltip.None;
+    simpleInvalidTooltip = Tooltip.None;
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -831,11 +831,11 @@ export abstract class Token implements CodeConstruct {
         return this.getRenderText();
     }
 
-    getSimpleDraftTooltip(): string {
+    getSimpleDraftTooltip(): Tooltip {
         return this.simpleDraftTooltip;
     }
 
-    getSimpleInvalidTooltip(): string {
+    getSimpleInvalidTooltip(): Tooltip {
         return this.simpleInvalidTooltip;
     }
 }
@@ -966,7 +966,7 @@ export class ElseStatement extends Statement {
 
         if (this.hasCondition) this.hasEmptyToken = true;
 
-        this.simpleInvalidTooltip = `Can only be inserted directly below an if statement.`;
+        this.simpleInvalidTooltip = Tooltip.InvalidInsertElseElif;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1735,7 +1735,7 @@ export class ListAccessModifier extends Modifier {
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
 
-        this.simpleInvalidTooltip = "Can only be inserted after a variable that is a list.";
+        this.simpleInvalidTooltip = Tooltip.InvalidInsertListElementAccess;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -2277,7 +2277,7 @@ export class KeywordStmt extends Statement {
         this.tokens.push(new NonEditableTkn(keyword, this, this.tokens.length));
 
         if (keyword === "break") {
-            this.simpleInvalidTooltip = "Can only be inserted on an empty line within a loop.";
+            this.simpleInvalidTooltip = Tooltip.InvalidInsertBreak;
         }
     }
 
@@ -2938,7 +2938,7 @@ export class FormattedStringCurlyBracketsExpr extends Expression {
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
-        this.simpleInvalidTooltip = "Can only be inserted within an f'' string expression.";
+        this.simpleInvalidTooltip = Tooltip.InvalidInsertCurlyBraceWithinFString;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
