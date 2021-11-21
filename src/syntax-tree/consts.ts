@@ -267,6 +267,7 @@ export enum Tooltip {
     InvalidInsertElse = "Can only be inserted directly below an if or elif statement.",
     InvalidInsertElif = "Can only be inserted directly below an if statement.",
     InvalidInsertListElementAccess = "Can only be inserted after a variable that is a list.",
+    InvalidInsertListComma = "Can only be inserted after or before the elements inside a list",
     InvalidInsertBreak = "Can only be inserted on an empty line within a loop.",
     InvalidInsertCurlyBraceWithinFString = "Can only be inserted within an f'' string expression.",
     InvalidInsertStatement = "Can only be inserted on an empty line.",

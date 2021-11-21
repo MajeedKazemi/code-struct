@@ -3042,6 +3042,8 @@ export class ListLiteralExpression extends Expression {
 export class ListComma extends Expression {
     constructor() {
         super(DataType.Void);
+
+        this.simpleInvalidTooltip = Tooltip.InvalidInsertListComma;
     }
 
     // this is the only reason why we have this ListCommaDummy expression :)
