@@ -12,6 +12,6 @@
     ],
     "tooltip": {
         "title": "Create Iterable Sequence",
-        "body": "Generates a sequence of numbers based on the arguments. Usually used with a for loop."
+        "body": "Generates a sequence of numbers based on the two inputs. Usually used with a for loop."
     }
 }

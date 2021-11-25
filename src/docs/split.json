@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Call Split Method",
-        "body": "Splits the text into a list of components based on the argument (as a separator)."
+        "body": "Splits the text into a list of components based on the input (as a separator)."
     }
 }

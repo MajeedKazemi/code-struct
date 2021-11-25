@@ -11,6 +11,6 @@
     ],
     "tooltip": {
         "title": "Call Find Method",
-        "body": "Finds the first occurrence of the argument's textual value in the text."
+        "body": "Finds the first occurrence of the input's textual value in the text."
     }
 }
