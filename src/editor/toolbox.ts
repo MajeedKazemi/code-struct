@@ -39,6 +39,10 @@ export class ToolboxController {
                         tooltip.style.top = `${button.getBoundingClientRect().top}px`;
                         tooltip.style.display = "block";
 
+                        button.addEventListener("click", () => {
+                            tooltip.remove();
+                        });
+
                         setTimeout(() => {
                             tooltip.style.opacity = "1";
                         }, 1);
