@@ -145,19 +145,19 @@ export function getUserFriendlyType(type: DataType): string {
         case DataType.Any:
             return "any";
         case DataType.AnyList:
-            return "list[any]";
+            return "list of any";
         case DataType.Boolean:
             return "boolean";
         case DataType.BooleanList:
-            return "list[boolean]";
+            return "list of booleans";
         case DataType.Number:
             return "number";
         case DataType.NumberList:
-            return "list[number]";
+            return "list of numbers";
         case DataType.String:
             return "text";
         case DataType.StringList:
-            return "list[text]";
+            return "list of texts";
         case DataType.Iterator:
             return "iterator";
         default:

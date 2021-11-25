@@ -11,7 +11,7 @@
         { "example": "for i in range(1, 10):\n\tprint(i)" }
     ],
     "tooltip": {
-        "title": "Run Indented Code a Specific Number of Times",
+        "title": "Run Indented Code with Iterator",
         "body": "Creates an iterator variable from a sequence to repeatedly execute the indented code below the for loop."
     }
 }

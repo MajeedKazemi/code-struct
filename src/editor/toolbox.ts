@@ -380,7 +380,7 @@ function constructCascadedMenuObj(
         let returnType = null;
 
         if (code instanceof Expression && code.returns != DataType.Void) {
-            returnType = " : " + getUserFriendlyType(code.returns);
+            returnType = getUserFriendlyType(code.returns);
         }
 
         value.cssId = `cascadedMenu-button-${id}`;
