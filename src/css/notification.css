@@ -4,8 +4,7 @@
     position: fixed;
     bottom: calc(30% + 25px);
     right: 25px;
-    width: 300px;
-    height: 100px;
+    width: 450px;
     z-index: 9999;
     background-color: rgb(102 65 173 / 50%);
     font-family: Consolas, "Courier New", monospace;
@@ -14,8 +13,48 @@
     transform: scale(0.75);
 }
 
+.notification-container .message {
+    font-size: 17px;
+}
+
+.notification-container .message .code {
+    background-color: #64a;
+    border-radius: 4px;
+    padding: 3px 5px;
+    color: #fff;
+    font-weight: bold;
+}
+
 .animate {
     transition: all 0.2s ease-in-out;
     opacity: 1;
     transform: scale(1);
+}
+
+.key-animation-container {
+    margin-top: 10px;
+}
+
+.key-animation-container .key-span {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 5px 5px;
+    border-radius: 4px;
+    background-color: #0ff;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+expr-hole {
+    border-radius: 2px;
+    margin: 0px 3px;
+    min-width: 21px;
+    height: 10px;
+    display: inline-block;
+}
+
+id-hole {
+    height: 10px;
+    width: 8px;
+    display: inline-block;
 }

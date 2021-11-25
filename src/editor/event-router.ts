@@ -401,9 +401,11 @@ export class EventRouter {
         if (this.buttonClicksCount.has(id)) this.buttonClicksCount.set(id, this.buttonClicksCount.get(id) + 1);
         else this.buttonClicksCount.set(id, 1);
 
-        if (this.buttonClicksCount.get(id) > 2) {
+        if (this.buttonClicksCount.get(id) == 2) {
             this.buttonClicksCount.set(id, 0);
-            this.module.notificationManager.showNotification("try typing " + id + " with the keyboard.");
+
+            const action = Actions.instance().actionsMap.get(id);
+			this.module.notificationManager.showTypingMessage(action);
         }
     }
 
