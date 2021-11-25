@@ -8,5 +8,9 @@
         {
             "paragraph": "In the above example you would not be able to compare <span class\"italics\">a</span> to <span class\"italics\">c</span> before performing the conversion."
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Converts Anything to Text",
+        "body": "Converts the passed object to its textual representation."
+    }
 }

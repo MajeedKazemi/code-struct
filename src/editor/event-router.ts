@@ -10,6 +10,7 @@ import { Context } from "./focus";
 export class EventRouter {
     module: Module;
     curPosition: Position;
+    buttonClicksCount = new Map<string, number>();
 
     constructor(module: Module) {
         this.module = module;
@@ -384,10 +385,25 @@ export class EventRouter {
 
         if (this.module.variableController.isVariableReferenceButton(id)) {
             this.module.executer.insertVariableReference(id, context);
+            this.incrementButtonClicks("insert-var");
         } else {
             const action = Actions.instance().actionsMap.get(id);
 
-            if (action) this.module.executer.execute(this.routeToolboxEvents(action, context), context);
+            if (action) {
+                this.module.executer.execute(this.routeToolboxEvents(action, context), context);
+
+                this.incrementButtonClicks(id);
+            }
+        }
+    }
+
+    incrementButtonClicks(id: string) {
+        if (this.buttonClicksCount.has(id)) this.buttonClicksCount.set(id, this.buttonClicksCount.get(id) + 1);
+        else this.buttonClicksCount.set(id, 1);
+
+        if (this.buttonClicksCount.get(id) > 2) {
+            this.buttonClicksCount.set(id, 0);
+            this.module.notificationManager.showNotification("try typing " + id + " with the keyboard.");
         }
     }
 

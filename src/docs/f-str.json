@@ -1,0 +1,15 @@
+{
+    "title": "formatted text",
+    "body": [
+        {
+            "paragraph": "Works like a simple <span class=\"code\">\"\"</span> text object, with the ability to include other expressions, variables and values inside <span class=\"code\">{ }</span>:"
+        },
+        {
+            "example": "age = 16\nname = \"Alex\"\nprint(f'My name is {name} and I am {age} years old')"
+        }
+    ],
+    "tooltip": {
+        "title": "Insert Formattable Text",
+        "body": "Inserts an editable, formattable text; used along with the {} operator to include non-static values and variables inside the text."
+    }
+}

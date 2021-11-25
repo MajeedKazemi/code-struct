@@ -236,9 +236,9 @@ export class VariableController {
                 } else {
                     button.parentElement.parentElement.style.display = "grid";
 
-                    button.parentElement.parentElement.children[1].innerHTML =
-                        "-> " +
-                        getUserFriendlyType(this.getVariableTypeNearLine(scope, lineNumber, button.textContent));
+                    button.parentElement.parentElement.children[1].innerHTML = getUserFriendlyType(
+                        this.getVariableTypeNearLine(scope, lineNumber, button.textContent)
+                    );
                 }
             }
         }
@@ -247,8 +247,9 @@ export class VariableController {
     updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string) {
         this.variableButtons.filter(
             (button) => button.id === buttonId
-        )[0].parentElement.parentElement.children[1].innerHTML =
-            "-> " + getUserFriendlyType(this.getVariableTypeNearLine(scope, lineNumber, identifier, false));
+        )[0].parentElement.parentElement.children[1].innerHTML = getUserFriendlyType(
+            this.getVariableTypeNearLine(scope, lineNumber, identifier, false)
+        );
     }
 
     getVariableTypeNearLine(

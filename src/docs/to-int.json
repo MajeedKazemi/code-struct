@@ -8,5 +8,9 @@
         {
             "paragraph": "In the above example you <span class=\"code\">a</span> and <span class=\"code\">b</span> are string variables. The plus operator will concatenate string values, but will numerically add number values. So because <span class=\"code\">int(\"2\")</span> equals to the numeric value two, and similarly for b, we are able to calculate the numeric addition of the two using <span class=\"code\">int()</span>"
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Converts Text to Number",
+        "body": "Converts a number text to an actual number. Extremely useful when trying to input numbers from the user."
+    }
 }

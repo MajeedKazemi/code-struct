@@ -3,9 +3,9 @@ import { EditCodeAction, InsertionResult } from "../editor/action-filter";
 import { ConstructName } from "../editor/consts";
 import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
-import { updateButtonsVisualMode } from "../editor/toolbox";
+import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { CodeBackground, HoverMessage, InlineMessage } from "../notification-system/notification";
+import { CodeBackground, HoverMessage, InlineMessage } from "../messages/messages";
 import { areEqualTypes, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
@@ -21,6 +21,7 @@ import {
     OperatorCategory,
     StringRegex,
     TAB_SPACES,
+    Tooltip,
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
@@ -53,9 +54,9 @@ export interface CodeConstruct {
     right: number;
 
     /**
-     * A warning or error notification for this code construct. (null if there are no notifications)
+     * A warning or error message for this code construct. (null if there are no messages)
      */
-    notification: InlineMessage;
+    message: InlineMessage;
 
     /**
      * Whether this code construct is in draft mode or not. Always false for Tokens
@@ -67,6 +68,9 @@ export interface CodeConstruct {
     codeConstructName: ConstructName;
 
     callbacksToBeDeleted: Map<CallbackType, string>;
+
+    simpleDraftTooltip: Tooltip;
+    simpleInvalidTooltip: Tooltip;
 
     /**
      * Builds the left and right positions of this node and all of its children nodes recursively.
@@ -131,6 +135,7 @@ export interface CodeConstruct {
      */
     getKeyword(): string;
 
+    //TODO: #526 already returns an insertion result so could also immediately populate it with a context-based message (which it probably does, needs to be checked InsertionResult does have a message field)
     /**
      * Determine whether insertCode can be inserted into a hole belonging to the expression/statement this call was made from.
      *
@@ -159,6 +164,20 @@ export interface CodeConstruct {
     performPostInsertionUpdates(insertInto?: TypedEmptyExpr, insertCode?: Expression): void;
 
     markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void;
+
+    //TODO: This functionality needs to be merged with what Issue #526
+    //This should be completely unnecessary once this is integrated with our validation inside of action-filter.ts and validaiton methods such as validateContext
+    /**
+     * Return a tooltip for the toolbox giving a general reason for why this construct cannot be inserted. This tooltip WILL NOT
+     * have detailed, context-based information.
+     */
+    getSimpleInvalidTooltip(): Tooltip;
+
+    /**
+     * Return a tooltip for the toolbox giving a general reason for why this construct would trigger draft mode. This tooltip WILL NOT
+     * have detailed, context-based information.
+     */
+    getSimpleDraftTooltip(): Tooltip;
 }
 
 /**
@@ -176,7 +195,7 @@ export abstract class Statement implements CodeConstruct {
     hasEmptyToken: boolean;
     callbacks = new Map<string, Array<Callback>>();
     background: CodeBackground = null;
-    notification: HoverMessage = null;
+    message: HoverMessage = null;
     keywordIndex = -1;
     hole = null;
     typeOfHoles = new Map<number, Array<DataType>>();
@@ -184,11 +203,14 @@ export abstract class Statement implements CodeConstruct {
     draftRecord: DraftRecord = null;
     codeConstructName = ConstructName.Default;
     callbacksToBeDeleted = new Map<CallbackType, string>();
+    simpleDraftTooltip = Tooltip.None;
+    simpleInvalidTooltip = Tooltip.InvalidInsertStatement;
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
     }
 
+    //TODO: See if this needs any changes for #526
     checkInsertionAtHole(index: number, givenType: DataType): InsertionResult {
         if (Object.keys(this.typeOfHoles).length > 0) {
             let holeType = this.typeOfHoles[index];
@@ -510,6 +532,7 @@ export abstract class Statement implements CodeConstruct {
      */
     onInsertInto(insertCode: CodeConstruct) {}
 
+    //TODO: #526 should be changed to return InsertionResult and populate that result with an appropriate message/code
     abstract validateContext(validator: Validator, providedContext: Context): InsertionType;
 
     //actions that need to occur when the focus is switched off of this statement
@@ -519,6 +542,14 @@ export abstract class Statement implements CodeConstruct {
 
     markCallbackForDeletion(callbackType: CallbackType, callbackId: string): void {
         this.callbacksToBeDeleted.set(callbackType, callbackId);
+    }
+
+    getSimpleDraftTooltip(): Tooltip {
+        return this.simpleDraftTooltip;
+    }
+
+    getSimpleInvalidTooltip(): Tooltip {
+        return this.simpleInvalidTooltip;
     }
 }
 
@@ -530,6 +561,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
     // TODO: can change this to an Array to enable type checking when returning multiple items
     returns: DataType;
+    simpleInvalidTooltip = Tooltip.InvalidInsertExpression;
 
     constructor(returns: DataType) {
         super();
@@ -565,6 +597,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
      */
     performTypeUpdatesOnInsertion(type: DataType) {}
 
+    //TODO: see if this needs any changes for #526
     /**
      * Return whether this construct can be repalced with replaceWith.
      * Can replace a bin expression in only two cases
@@ -652,6 +685,7 @@ export abstract class Expression extends Statement implements CodeConstruct {
 export abstract class Modifier extends Expression {
     rootNode: Expression | Statement;
     leftExprTypes: Array<DataType>;
+    simpleInvalidTooltip = Tooltip.InvalidInsertModifier;
 
     constructor() {
         super(null);
@@ -674,11 +708,13 @@ export abstract class Token implements CodeConstruct {
     text: string;
     isEmpty: boolean = false;
     callbacks = new Map<string, Array<Callback>>();
-    notification = null;
+    message = null;
     draftModeEnabled = false;
     draftRecord = null;
     codeConstructName = ConstructName.Default;
     callbacksToBeDeleted = new Map<CallbackType, string>();
+    simpleDraftTooltip = Tooltip.None;
+    simpleInvalidTooltip = Tooltip.None;
 
     constructor(text: string, root?: CodeConstruct) {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
@@ -793,6 +829,14 @@ export abstract class Token implements CodeConstruct {
 
     getKeyword(): string {
         return this.getRenderText();
+    }
+
+    getSimpleDraftTooltip(): Tooltip {
+        return this.simpleDraftTooltip;
+    }
+
+    getSimpleInvalidTooltip(): Tooltip {
+        return this.simpleInvalidTooltip;
     }
 }
 
@@ -920,7 +964,12 @@ export class ElseStatement extends Statement {
 
         this.scope = new Scope();
 
-        if (this.hasCondition) this.hasEmptyToken = true;
+        if (this.hasCondition) {
+            this.hasEmptyToken = true;
+            this.simpleInvalidTooltip = Tooltip.InvalidInsertElif;
+        } else {
+            this.simpleInvalidTooltip = Tooltip.InvalidInsertElse;
+        }
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1389,7 +1438,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                     this.getIdentifier()
                 );
                 const insertions = this.getModule().actionFilter.getProcessedVariableInsertions();
-                updateButtonsVisualMode(insertions);
+                ToolboxController.updateButtonsVisualMode(insertions);
             }
         } else if (currentIdentifier === this.oldIdentifier) {
             varController.updateReturnTypeOfRefs(this.buttonId);
@@ -1688,6 +1737,8 @@ export class ListAccessModifier extends Modifier {
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
         this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
+
+        this.simpleInvalidTooltip = Tooltip.InvalidInsertListElementAccess;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1820,6 +1871,7 @@ export class MethodCallModifier extends Modifier {
 
 export class AssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
+    simpleInvalidTooltip = Tooltip.InvalidAugmentedAssignment;
 
     constructor(root?: VarOperationStmt, indexInRoot?: number) {
         super();
@@ -1851,6 +1903,7 @@ export class AssignmentModifier extends Modifier {
 export class AugmentedAssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
     private operation: AugmentedAssignmentOperator;
+    simpleInvalidTooltip = Tooltip.InvalidAugmentedAssignment;
 
     constructor(operation: AugmentedAssignmentOperator, root?: VarOperationStmt, indexInRoot?: number) {
         super();
@@ -1869,6 +1922,7 @@ export class AugmentedAssignmentModifier extends Modifier {
         this.typeOfHoles[this.tokens.length - 1] = [...this.leftExprTypes];
 
         this.operation = operation;
+        this.hasEmptyToken = true;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -2226,6 +2280,10 @@ export class KeywordStmt extends Statement {
         this.validator = validator;
 
         this.tokens.push(new NonEditableTkn(keyword, this, this.tokens.length));
+
+        if (keyword === "break") {
+            this.simpleInvalidTooltip = Tooltip.InvalidInsertBreak;
+        }
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -2884,6 +2942,8 @@ export class FormattedStringCurlyBracketsExpr extends Expression {
 
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
+
+        this.simpleInvalidTooltip = Tooltip.InvalidInsertCurlyBraceWithinFString;
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -2982,6 +3042,8 @@ export class ListLiteralExpression extends Expression {
 export class ListComma extends Expression {
     constructor() {
         super(DataType.Void);
+
+        this.simpleInvalidTooltip = Tooltip.InvalidInsertListComma;
     }
 
     // this is the only reason why we have this ListCommaDummy expression :)

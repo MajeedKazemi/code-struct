@@ -349,7 +349,7 @@ export class EditCodeAction extends UserAction {
         const code = this.getCode();
 
         if (code instanceof Expression && !(code instanceof Modifier) && !(code instanceof ListComma))
-            return " -> " + getUserFriendlyType(code.returns);
+            return getUserFriendlyType(code.returns);
         else return "";
     }
 
@@ -357,6 +357,7 @@ export class EditCodeAction extends UserAction {
         return this.getCodeFunction();
     }
 
+    //TODO: #526 this might need some updates when that is implemented
     validateAction(validator: Validator, context: Context): InsertionResult {
         const code = this.getCode();
         const astInsertionType = code.validateContext(validator, context);
@@ -390,7 +391,7 @@ export class EditCodeAction extends UserAction {
     }
 }
 
-//TODO: Data class, needs to be removed.
+//TODO: #526, if we decide to go with message codes, should include the code that would map to the message.
 export class InsertionResult {
     insertionType: InsertionType;
     message: string;

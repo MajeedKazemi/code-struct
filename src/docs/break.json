@@ -2,8 +2,12 @@
     "title": "Break out of loops",
     "body": [
         {
-            "paragraph": "Stops the innermost running loop and breaks out of it (any code after the loop will run next)."
+            "paragraph": "Stops the innermost running loop (either a for or a while loop) and breaks out of it (any code after the loop will run next)."
         },
         { "example": "for i in range(0, 50):\n\tif i == 25:\n\t\tbreak\n\tprint(i)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert Break inside Loop",
+        "body": "Stops the innermost running loop (for, while) and breaks out of it."
+    }
 }

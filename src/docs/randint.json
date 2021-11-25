@@ -8,5 +8,9 @@
         {
             "paragraph": "Could print any of the following numbers: 0, 1, 2, 3, 4, 5, 6, 7, 8, 9"
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Generate a Random Number",
+        "body": "Returns a randomly generated number from the given range. Needs to be imported from the random module."
+    }
 }

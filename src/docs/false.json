@@ -4,5 +4,9 @@
         {
             "paragraph": "Inserts a boolean value of <span class=\"bold\">false</span> into an empty hole."
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert False",
+        "body": "Inserts a False boolean value."
+    }
 }

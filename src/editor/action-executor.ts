@@ -1,6 +1,6 @@
 import { Position, Range } from "monaco-editor";
-import { ErrorMessage } from "../notification-system/error-msg-generator";
-import { ConstructHighlight, ScopeHighlight } from "../notification-system/notification";
+import { ErrorMessage } from "../messages/error-msg-generator";
+import { ConstructHighlight, ScopeHighlight } from "../messages/messages";
 import {
     AssignmentModifier,
     AutocompleteTkn,
@@ -94,12 +94,12 @@ export class ActionExecutor {
                             if (
                                 this.module.menuController.hasNoSuggestions() &&
                                 autocompleteTkn.left != autocompleteTkn.getParentStatement().left &&
-                                !autocompleteTkn.notification
+                                !autocompleteTkn.message
                             ) {
-                                const message = this.module.notificationSystem.addHoverNotification(
+                                const message = this.module.messageController.addHoverMessage(
                                     autocompleteTkn,
                                     {},
-                                    'Did you mean to type in a text? if yes, use <span class="code">"</span> around the text'
+                                    `Did you want to create a text message? use double quotes before and after the text, like this: <span class="code">"</span>your desired text<span class="code">"</span>`
                                 );
 
                                 const button = message.createButton("convert to text");
@@ -367,7 +367,7 @@ export class ActionExecutor {
                     }
 
                     for (const elseStmt of elseStatementsAfterIf) {
-                        this.module.notificationSystem.addHoverNotification(
+                        this.module.messageController.addHoverMessage(
                             elseStmt,
                             null,
                             "add if before the first else, or delete this."
@@ -1087,6 +1087,10 @@ export class ActionExecutor {
                     positionToMove: new Position(newCode.lineNumber, newCode.right),
                 });
 
+                if (newCode.rootNode instanceof Statement) {
+                    newCode.rootNode.onInsertInto(newCode);
+                }
+
                 if (!isValidRootInsertion) {
                     this.module.closeConstructDraftRecord(expr);
                     this.module.openDraftMode(newCode, "DEBUG THIS", []);
@@ -1559,8 +1563,8 @@ export class ActionExecutor {
                     context.token.rootNode.onInsertInto(code);
                 }
 
-                if (context.token.notification && context.selected) {
-                    this.module.notificationSystem.removeNotificationFromConstruct(context.token);
+                if (context.token.message && context.selected) {
+                    this.module.messageController.removeMessageFromConstruct(context.token);
                 }
 
                 // replaces expression with the newly inserted expression
@@ -1578,7 +1582,7 @@ export class ActionExecutor {
                 this.module.editor.executeEdits(range, expr);
 
                 //TODO: This should probably run only if the insert above was successful, we cannot assume that it was
-                if (!context.token.notification) {
+                if (!context.token.message) {
                     const newContext = code.getInitialFocus();
                     this.module.focus.updateContext(newContext);
                 }
@@ -1621,7 +1625,7 @@ export class ActionExecutor {
 
         var range = new Range(emptyLine.lineNumber, statement.left, emptyLine.lineNumber, statement.right);
 
-        if (emptyLine.notification) this.module.notificationSystem.removeNotificationFromConstruct(emptyLine);
+        if (emptyLine.message) this.module.messageController.removeMessageFromConstruct(emptyLine);
 
         if (isImportable(statement)) {
             this.checkImports(statement, InsertionType.Valid);
@@ -1905,13 +1909,13 @@ export class ActionExecutor {
             context.tokenToRight instanceof IdentifierTkn
         ) {
             if (Object.keys(PythonKeywords).indexOf(identifierText) > -1) {
-                this.module.notificationSystem.addPopUpNotification(
+                this.module.messageController.addPopUpMessage(
                     focusedNode,
                     { identifier: identifierText },
                     ErrorMessage.identifierIsKeyword
                 );
             } else if (Object.keys(BuiltInFunctions).indexOf(identifierText) > -1) {
-                this.module.notificationSystem.addPopUpNotification(
+                this.module.messageController.addPopUpMessage(
                     focusedNode,
                     { identifier: identifierText },
                     ErrorMessage.identifierIsBuiltInFunc

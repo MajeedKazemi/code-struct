@@ -1,8 +1,14 @@
 {
     "title": "while loop",
     "body": [
-        { "paragraph": "A while loop repeatedly executes a set of statements as long as a condition is true" },
+        {
+            "paragraph": "A while loop consists of two parts: (a) the repeating condition, and (b) the body of the loop. The body of the loop (indented statements below the while loop) will repeatedly be executed as long as the condition is true and will stop immediately when it becomes False."
+        },
         { "example": "while True :\n\tprint(\"an infinite loop\")" },
         { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Repeatedly Run Indented Code",
+        "body": "Repeatedly executes the indented code below the while loop as long as the condition is True."
+    }
 }

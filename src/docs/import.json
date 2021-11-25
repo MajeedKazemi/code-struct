@@ -10,9 +10,13 @@
         {
             "paragraph": "The below will import two functions from the random module, <span class=\"bold\">randint()</span> and <span class=\"bold\">randrange()</span>."
         },
-        {"example": "from random import randint\nfrom random import randrange"},
+        { "example": "from random import randint\nfrom random import choice" },
         {
             "paragraph": "The functions can then be used inside your program below the lines they were imported on."
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Imports A Function",
+        "body": "Loads a particular function from a module."
+    }
 }

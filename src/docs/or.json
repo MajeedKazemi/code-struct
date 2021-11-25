@@ -4,7 +4,13 @@
         {
             "paragraph": "A boolean operator used to combine conditional expressions together. Evaluates to true as long as at least one of the expressions it contains is <span class=\"bold\">true</span>."
         },
-        {"example": "if (true or true):\n\tprint(true)\n\nif (true or false):\n\tprint(\"true\")\n\nif (false or true):\n\tprint(\"still true\")\n\nif (false or false):\n\tprint(\"false\")"},
-        {"example": "a = 5\nb = 7\nc=2\n\nif ((a > c) and (b < c)):\n\tprint(\"Only the first expression is true.\")"}
-    ]
+        {
+            "example": "if (true or true):\n\tprint(true)\n\nif (true or false):\n\tprint(\"true\")\n\nif (false or true):\n\tprint(\"still true\")\n\nif (false or false):\n\tprint(\"false\")"
+        },
+        { "example": "a = 5\nb = 7\nc=2\n\nif ((a > c) and (b < c)):\n\tprint(\"Only the first expression is true.\")" }
+    ],
+    "tooltip": {
+        "title": "Or Operator",
+        "body": "Used to combine conditional expressions. Results in True as long as at least one of the left and right expressions is True; returns False otherwise."
+    }
 }

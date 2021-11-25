@@ -9,11 +9,15 @@
         },
         { "example": "a = 2\nb = 5\nprint((a + b))" },
         {
-            "paragraph": "the add operator also works on texts."
+            "paragraph": "The addition operator also works on texts."
         },
         {
             "paragraph": "The example below prints \"hello world\"."
         },
         { "example": "a = \"hello\"\nb = \"world\"\nprint((a + \" \" + b))" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert Addition",
+        "body": "Adds the values to the left and right of the operator."
+    }
 }

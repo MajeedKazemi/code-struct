@@ -9,10 +9,11 @@ import { EventRouter } from "../editor/event-router";
 import { EventStack } from "../editor/event-stack";
 import { Context, Focus } from "../editor/focus";
 import { Hole } from "../editor/hole";
-import { loadToolboxFromJson, updateButtonsVisualMode } from "../editor/toolbox";
+import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
-import { ConstructHighlight } from "../notification-system/notification";
-import { NotificationSystemController } from "../notification-system/notification-system-controller";
+import { MessageController } from "../messages/message-controller";
+import { ConstructHighlight } from "../messages/messages";
+import { NotificationManager } from "../messages/notifications";
 import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
@@ -45,9 +46,6 @@ const ERROR_HIGHLIGHT_COLOUR: [number, number, number, number] = [255, 153, 153,
  * The main body of the code which includes an array of statements.
  */
 export class Module {
-    static draftModeButtonClass = "draftModeButton";
-    static disabledButtonClass = "disabled";
-
     body = new Array<Statement>();
     focus: Focus;
     validator: Validator;
@@ -56,9 +54,11 @@ export class Module {
     eventStack: EventStack;
     editor: Editor;
     variableButtons: HTMLDivElement[] = [];
-    notificationSystem: NotificationSystemController;
+    messageController: MessageController;
     menuController: MenuController;
     typeSystem: TypeChecker;
+    notificationManager: NotificationManager;
+    toolboxController: ToolboxController;
 
     scope: Scope;
     draftExpressions: DraftRecord[];
@@ -76,6 +76,8 @@ export class Module {
         this.typeSystem = new TypeChecker(this);
         this.variableController = new VariableController(this);
         this.actionFilter = new ActionFilter(this);
+        this.notificationManager = new NotificationManager(this);
+        this.toolboxController = new ToolboxController(this);
 
         this.globals = {
             hoveringOverCascadedMenu: false,
@@ -87,7 +89,8 @@ export class Module {
 
         Hole.setModule(this);
 
-        loadToolboxFromJson();
+        this.toolboxController.loadToolboxFromJson();
+        this.toolboxController.addTooltips();
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
@@ -111,24 +114,7 @@ export class Module {
             Hole.highlightValidVarHoles(c);
         });
 
-        //TODO: Don't know where functionality like this should go, but once we decide on that, it would be better to refactor this one to
-        //use methods like above code
-        this.focus.subscribeOnNavChangeCallback(
-            ((c: Context) => {
-                // if (
-                //     !(
-                //         c.tokenToLeft instanceof AutocompleteTkn ||
-                //         c.tokenToRight instanceof AutocompleteTkn ||
-                //         c.token instanceof AutocompleteTkn
-                //     )
-                // ) {
-                const inserts = this.actionFilter.getProcessedInsertionsList();
-
-                //mark draft mode buttons
-                updateButtonsVisualMode(inserts);
-                // }
-            }).bind(this)
-        );
+        this.toolboxController.updateButtonsOnContextChange();
 
         this.focus.subscribeOnNavChangeCallback((c: Context) => {
             const menuController = MenuController.getInstance();
@@ -154,7 +140,7 @@ export class Module {
         this.eventRouter = new EventRouter(this);
         this.eventStack = new EventStack(this);
 
-        this.notificationSystem = new NotificationSystemController(this.editor, this);
+        this.messageController = new MessageController(this.editor, this);
 
         this.variableButtons = [];
 
@@ -382,7 +368,7 @@ export class Module {
         this.variableButtons.forEach((button) => button.remove());
         this.variableButtons = [];
 
-        this.notificationSystem.clearAllNotifications();
+        this.messageController.clearAllMessages();
     }
 
     getVarRefHandler(ref: VarAssignmentStmt) {
@@ -538,7 +524,7 @@ export class Module {
             code.draftModeEnabled = false;
             const removedRecord = this.draftExpressions.splice(this.draftExpressions.indexOf(code.draftRecord), 1)[0];
 
-            if (removedRecord.warning) removedRecord.removeNotification();
+            if (removedRecord.warning) removedRecord.removeMessage();
 
             code.draftRecord = null;
         } else {
@@ -552,7 +538,7 @@ export class Module {
         code.draftRecord = this.draftExpressions[this.draftExpressions.length - 1];
 
         for (const button of actionButtons) {
-            code.notification.attachButton(button);
+            code.message.attachButton(button);
         }
     }
 
@@ -651,7 +637,7 @@ export class Module {
     openImportDraftMode(code: Statement & Importable) {
         this.openDraftMode(code, MISSING_IMPORT_DRAFT_MODE_STR(code.getKeyword(), code.requiredModule), []);
 
-        const button = code.notification.createButton(`import ${code.requiredModule}`);
+        const button = code.message.createButton(`import ${code.requiredModule}`);
         button.addEventListener(
             "click",
             (() => {

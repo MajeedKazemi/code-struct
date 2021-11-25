@@ -3,12 +3,13 @@
 @import url("toolbox.css");
 @import url("cursor.css");
 @import url("hole.css");
-@import url("notification.css");
+@import url("messages.css");
 @import url("suggestion-menu.css");
 @import url("construct-doc.css");
 @import url("draft-mode.css");
 @import url("cascaded-menu.css");
 @import url("console.css");
+@import url("notification.css");
 
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&display=swap");
 
@@ -46,18 +47,19 @@ body {
     width: -webkit-fit-content;
     width: -moz-fit-content;
     width: fit-content;
+    border: solid 2px #fff;
 }
 
-.button:active {
-    box-shadow: none;
-    background-color: #f3f5fa !important;
-}
-
-.button.disabled {
+.button.button-invalid {
     opacity: 0.4;
     cursor: not-allowed;
+    border: solid 2px #c5c5c5;
 }
 
-.button.draftModeButton {
-    background-color: rgb(255, 255, 230);
+.button.button-valid {
+    font-weight: bold;
+}
+
+.button.button-draft-mode {
+    background-color: rgb(255 254 195);
 }

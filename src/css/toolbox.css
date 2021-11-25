@@ -4,7 +4,7 @@
 
     box-shadow: 20px -50px 50px -15px #ccc;
 
-    min-width: 490px;
+    min-width: 350px;
 
     font-family: Consolas, "Courier New", monospace;
 }
@@ -26,7 +26,6 @@
     padding: 7px 8px;
 
     white-space: nowrap;
-
     box-shadow: 0px 1px 5px 2px #ddd;
 
     transition: 0.15s ease-in-out;
@@ -64,12 +63,13 @@ hole2 {
 }
 
 #vars-button-grid .button {
-    font-size: 13px;
-    padding: 7px 8px;
+    font-size: 16px;
+    padding: 6px 10px;
     white-space: nowrap;
     box-shadow: 0px 1px 5px 2px #ddd;
     transition: 0.15s ease-in-out;
     -webkit-transition: 0.15s ease-in-out;
+    font-weight: bold;
 }
 
 #vars-button-grid .button:hover {
@@ -81,16 +81,6 @@ hole2 {
     margin-top: 8px;
     align-items: center;
     justify-content: left;
-}
-
-.var-type-text {
-    grid-row-start: 1;
-    grid-row-end: 1;
-    grid-column-start: 2;
-    grid-column-end: 3;
-
-    align-self: center;
-    font-size: 14px;
 }
 
 #editor-toolbox .group {
@@ -194,19 +184,23 @@ hole2 {
 }
 
 .learn-button {
-    border-radius: 6px;
-    border: solid 1px #d9d9d9;
+    position: relative;
+    border-radius: 5px;
+    border: solid 1px #fff;
     padding: 0px 10px;
-    visibility: hidden;
-    margin-left: auto;
     margin-right: 10px;
     font-size: 14px;
-    display: flex;
+    color: #006a93;
+    display: inline-flex;
     flex-direction: column;
     justify-content: center;
+    font-weight: bold;
     align-items: center;
-    height: 25px;
+    box-shadow: 0 0 6px 1px rgb(0 71 99);
+    font-family: Consolas, "Courier New", monospace;
+    height: 20px;
     cursor: pointer;
+    background-color: #fff;
 
     transition: background-color 0.15s ease-in-out;
     -webkit-transition: background-color 0.15s ease-in-out;
@@ -215,13 +209,81 @@ hole2 {
     -ms-transition: background-color 0.15s ease-in-out;
 }
 
-.learn-button:hover {
-    background-color: #05c8ac;
+.tooltip-container {
+    font-family: "Courier New", Courier, monospace;
+    position: fixed;
+    display: none;
     color: #fff;
+    border-radius: 10px;
+    width: 450px;
+    overflow: hidden;
+    background: rgb(0 162 225);
+    box-shadow: 0 0px 30px 5px rgb(145 184 218);
+    opacity: 0;
+
+    transition: opacity 0.1s ease-in-out;
+    -webkit-transition: opacity 0.1s ease-in-out;
+    -moz-transition: opacity 0.1s ease-in-out;
+    -o-transition: opacity 0.1s ease-in-out;
+    -ms-transition: opacity 0.1s ease-in-out;
 }
 
-.var-button-container:hover > .learn-button {
-    visibility: visible;
+.tooltip-container .tooltip-top {
+    background-color: rgb(0 106 147);
+    font-size: 14px;
+}
+
+.tooltip-container .tooltip-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.tooltip-container .tooltip-header h4 {
+    font-weight: bold;
+    font-size: 16px;
+    margin: 0;
+    padding: 10px;
+}
+
+.tooltip-container .tooltip-text {
+    font-size: 14px;
+    padding: 0 10px 10px;
+    margin: 0;
+}
+
+.tooltip-container .error-text {
+    padding: 5px 10px;
+    color: #000;
+    background-color: rgb(255 200 200);
+    box-shadow: 0px 0px 10px 0px rgb(0 65 72);
+}
+
+.tooltip-container .warning-text {
+    padding: 5px 10px;
+    color: #000;
+    background-color: rgb(255 255 205);
+    box-shadow: 0px 0px 10px 0px rgb(0 65 72);
+}
+
+.tooltip-container .return-type-text {
+    padding: 5px 10px;
+    background-color: rgb(0 133 147);
+    box-shadow: 0px 0px 10px 0px rgb(0 65 72);
+}
+
+.tooltip-container .return-type-text .return-type {
+    padding: 0 5px;
+    border-radius: 3px;
+    background-color: #8d97a3;
+    color: #000;
+    font-weight: bold;
+}
+
+.tooltip-container .learn-button:hover {
+    background-color: rgb(0 106 147);
+    color: #fff;
 }
 
 .statement-button {
@@ -267,4 +329,14 @@ hole2 {
 
 .modifier-button:hover {
     border-left: solid #05c8ac 3.5px !important;
+}
+
+.var-type-text {
+    grid-row-start: 1;
+    grid-row-end: 1;
+    grid-column-start: 2;
+    grid-column-end: 3;
+
+    align-self: center;
+    font-size: 14px;
 }

@@ -1,0 +1,15 @@
+{
+    "title": "formatted text item",
+    "body": [
+        {
+            "paragraph": "Can only be used inside a <span class=\"code\">f''</span>. Allows inserting any value (number, text, variable, list, etc...) as part of the text by simply using <span class=\"code\">{ }</span> inside a <span class=\"code\">f''</span>."
+        },
+        {
+            "example": "age = 16\nname = \"Alex\"\nprint(f'My name is {name} and I am {age} years old')"
+        }
+    ],
+    "tooltip": {
+        "title": "Formatted Text Item",
+        "body": "Converts the item to its textual value. Can only be used inside a formatted text (f'')."
+    }
+}

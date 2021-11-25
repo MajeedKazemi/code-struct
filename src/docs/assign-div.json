@@ -2,11 +2,15 @@
     "title": "Divide a Variable",
     "body": [
         {
-            "paragraph": "Divides the value of an existing variable by the value of the given expression and reassigns it back."
+            "paragraph": "Divides the value of an existing variable by the value of the given expression and stores the result back in the same variable."
         },
         {
             "paragraph": "The below will print 5. It is equivalent to a = a / 2"
         },
         { "example": "a = 10\na /= 2\nprint(a)" }
-    ]
+    ],
+    "tooltip": {
+        "title": "Divide Variable by Value",
+        "body": "Divides the variable by the value given on the right-hand side of the /= sign and stores the result back in the variable."
+    }
 }

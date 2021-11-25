@@ -4,5 +4,9 @@
         {
             "paragraph": "Inserts a numeric value (0 by default) into an empty hole."
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Insert a Number",
+        "body": "Inserts a number and edit its value."
+    }
 }

@@ -1,0 +1,15 @@
+{
+    "title": "Inside?",
+    "body": [
+        {
+            "paragraph": "A comparison that checks if the left item is not inside the right item. Some possible options: (1) The left item could be a number and the right item be a list of numbers. (2) The right item could be a text and the right item be a larger text or a list of texts."
+        },
+        {
+            "example": "from random import randint\na = randint(1, 10)\nb = [1, 2, 3, 4, 5]\nif a in b:\n\tprint(\"a is inside b\")\n\nif a not in b:\n\tprint(\"a is not inside b\")"
+        }
+    ],
+    "tooltip": {
+        "title": "Inside?",
+        "body": "Returns True if the left item is inside the right item; returns False otherwise."
+    }
+}

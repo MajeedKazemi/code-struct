@@ -8,7 +8,11 @@
             "example": "a = 2\nb = 2\nif not (a == b):\n\tprint(\"Will not print.\")\n\nif not (b != a):\n\tprint(\"b is equal to a\")"
         },
         {
-            "paragraph": "In the code above the first condition evalues to <span class=\"bold\">false</span> because the value of <span class=\"italics\">a == b</span> is actually <span class=\"bold\">true</span>."
+            "paragraph": "In the code above the first condition evaluates to <span class=\"bold\">false</span> because the value of <span class=\"italics\">a == b</span> is actually <span class=\"bold\">true</span>."
         }
-    ]
+    ],
+    "tooltip": {
+        "title": "Not Operator",
+        "body": "Flips the truth value of an expression. True becomes False, and False becomes True."
+    }
 }

@@ -40,3 +40,8 @@
     border-radius: 0 !important;
     border-style: dashed !important;
 }
+
+.errorTooltipHole {
+    position: relative;
+    top: 5px;
+}
