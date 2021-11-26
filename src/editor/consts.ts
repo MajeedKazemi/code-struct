@@ -344,14 +344,9 @@ export class Actions {
         );
 
         const RangeExpr = new EditCodeAction(
-            "range(---, ---)",
+            "range(---)",
             "add-range-btn",
-            () =>
-                new FunctionCallExpr(
-                    "range",
-                    [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
-                    DataType.NumberList
-                ),
+            () => new FunctionCallExpr("range", [new Argument([DataType.Number], "end", false)], DataType.NumberList),
             InsertActionType.InsertExpression,
             {},
             RangeDocs,
