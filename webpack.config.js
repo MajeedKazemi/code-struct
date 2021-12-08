@@ -1,7 +1,6 @@
 const path = require("path");
 const HtmlWebPackPlugin = require("html-webpack-plugin");
-const CopyWebPackPlugin = require("copy-webpack-plugin");
-
+var ExtractTextWebPackPlugin = require('extract-text-webpack-plugin');
 
 module.exports = {
 	mode: "development",
@@ -36,14 +35,23 @@ module.exports = {
 				test: /\.ttf$/,
 				use: ["file-loader"],
 			},
+			{
+				test: /\.(png|jpg|gif)$/,
+				use: [
+					{
+						loader: 'file-loader',
+						options: {
+							name: '[path][name].[ext]',
+							context: path.resolve(__dirname, "src/"),
+							outputPath: 'dist/'
+						}
+					}
+				]
+			},
 		],
 	},
 	plugins: [
-		new CopyWebPackPlugin({
-			patterns: [
-				{ from: 'src/images', to: 'images' }
-			]
-		}), new HtmlWebPackPlugin({
+		new HtmlWebPackPlugin({
 			hash: true,
 			template: "./src/index.html",
 			filename: "./index.html",

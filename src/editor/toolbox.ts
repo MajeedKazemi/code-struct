@@ -108,6 +108,14 @@ export class ToolboxController {
             tooltipTop.appendChild(tooltipText);
         }
 
+        if (code.documentation.useCases) {
+            for (const useCase of code.documentation.useCases) {
+                const useCaseSlider = this.createUseCaseSlider(useCase.path, useCase.max, useCase.extension);
+
+                tooltipContainer.appendChild(useCaseSlider);
+            }
+        }
+
         if (returnType) {
             const typeText = document.createElement("div");
             typeText.classList.add("return-type-text");
@@ -124,8 +132,6 @@ export class ToolboxController {
             const tooltip = code.getSimpleInvalidTooltip();
 
             //TODO: #526 this should be changed when that functionality is updated.
-            //What likely needs to happen here is that the first if statement is the only thing that is kept. In fact, probably only its body will be necessary
-            //or some form of it (if we decide to go with message codes that map to text instead of actual text)
             if (tooltip !== "") {
                 errorMessage.innerHTML = tooltip;
             } else {
@@ -135,8 +141,6 @@ export class ToolboxController {
                     errorMessage.innerHTML = "This can only be inserted inside a hole with a matching type";
                 } else if (code instanceof Statement) {
                     errorMessage.innerHTML = "This can only be inserted at the beginning of a line";
-                } else {
-                    errorMessage.innerHTML = "Whaaat????";
                 }
             }
 
@@ -161,6 +165,36 @@ export class ToolboxController {
         }
 
         return tooltipContainer;
+    }
+
+    private createUseCaseSlider(path: string, max: number, extension: string): HTMLDivElement {
+        const sliderContainer = document.createElement("div");
+        sliderContainer.classList.add("slider-container");
+        const slider = document.createElement("input");
+        slider.classList.add("range-slider");
+        slider.type = "range";
+        slider.min = "1";
+        slider.max = max.toString();
+        slider.value = "1";
+
+        sliderContainer.append(slider);
+
+        const slides = [];
+
+        for (let i = 1; i < max + 1; i++) {
+            slides.push(`${path}${i}.${extension}`);
+        }
+
+        const slideImage = document.createElement("img");
+        sliderContainer.append(slideImage);
+        slideImage.classList.add("slider-image");
+        slideImage.src = slides[0];
+
+        slider.oninput = () => {
+            slideImage.src = slides[parseInt(slider.value) - 1];
+        };
+
+        return sliderContainer;
     }
 
     updateButtonsOnContextChange() {
