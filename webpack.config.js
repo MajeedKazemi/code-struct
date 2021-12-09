@@ -1,6 +1,5 @@
 const path = require("path");
 const HtmlWebPackPlugin = require("html-webpack-plugin");
-var ExtractTextWebPackPlugin = require('extract-text-webpack-plugin');
 
 module.exports = {
 	mode: "development",
@@ -34,19 +33,6 @@ module.exports = {
 			{
 				test: /\.ttf$/,
 				use: ["file-loader"],
-			},
-			{
-				test: /\.(png|jpg|gif)$/,
-				use: [
-					{
-						loader: 'file-loader',
-						options: {
-							name: '[path][name].[ext]',
-							context: path.resolve(__dirname, "src/"),
-							outputPath: 'dist/'
-						}
-					}
-				]
 			},
 		],
 	},

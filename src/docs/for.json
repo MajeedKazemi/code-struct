@@ -14,5 +14,7 @@
         "title": "Run Indented Code with Iterator",
         "body": "Creates an iterator variable from a sequence to repeatedly execute the indented code below the for loop."
     },
-    "useCases": [{ "path": "src/images/use-cases/for-loop-items/", "max": 17, "extension": "jpg" }]
+    "useCases": [
+        { "path": "http://cdn.majeed.cc/pydoc/images/use-cases/for-loop-items/", "max": 17, "extension": "jpg" }
+    ]
 }
