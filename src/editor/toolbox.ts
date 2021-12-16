@@ -110,7 +110,12 @@ export class ToolboxController {
 
         if (code.documentation.useCases) {
             for (const useCase of code.documentation.useCases) {
-                const useCaseSlider = this.createUseCaseSlider(useCase.path, useCase.max, useCase.extension);
+                const useCaseSlider = this.createUseCaseSlider(
+                    useCase.path,
+                    useCase.max,
+                    useCase.extension,
+                    useCase.prefix
+                );
 
                 tooltipContainer.appendChild(useCaseSlider);
             }
@@ -167,7 +172,7 @@ export class ToolboxController {
         return tooltipContainer;
     }
 
-    private createUseCaseSlider(path: string, max: number, extension: string): HTMLDivElement {
+    private createUseCaseSlider(path: string, max: number, extension: string, prefix: string): HTMLDivElement {
         const sliderContainer = document.createElement("div");
         sliderContainer.classList.add("slider-container");
         const slider = document.createElement("input");
@@ -177,12 +182,45 @@ export class ToolboxController {
         slider.max = max.toString();
         slider.value = "1";
 
+        const sliderLabel = document.createElement("div");
+        sliderLabel.classList.add("slider-label");
+        sliderLabel.innerText = `${slider.value} / ${max}`;
+
+        const updateSlide = () => {
+            slideImage.src = slides[parseInt(slider.value) - 1];
+            sliderLabel.innerText = `${slider.value} / ${max}`;
+        };
+
+        const nextBtn = document.createElement("div");
+        nextBtn.classList.add("slider-btn");
+        nextBtn.innerText = ">";
+        nextBtn.addEventListener("click", () => {
+            if (slider.value != max.toString()) {
+                slider.value = (parseInt(slider.value) + 1).toString();
+                updateSlide();
+            }
+        });
+
+        const prevBtn = document.createElement("div");
+        prevBtn.classList.add("slider-btn");
+        prevBtn.innerText = "<";
+        prevBtn.addEventListener("click", () => {
+            if (slider.value != "1") {
+                slider.value = (parseInt(slider.value) - 1).toString();
+                updateSlide();
+            }
+        });
+
+        sliderContainer.appendChild(prevBtn);
         sliderContainer.append(slider);
+        sliderContainer.appendChild(nextBtn);
+        sliderContainer.appendChild(sliderLabel);
 
         const slides = [];
 
         for (let i = 1; i < max + 1; i++) {
-            slides.push(`${path}${i}.${extension}`);
+            if (prefix) slides.push(`${path}${prefix}${i}.${extension}`);
+            else slides.push(`${path}${i}.${extension}`);
         }
 
         const slideImage = document.createElement("img");
@@ -191,7 +229,7 @@ export class ToolboxController {
         slideImage.src = slides[0];
 
         slider.oninput = () => {
-            slideImage.src = slides[parseInt(slider.value) - 1];
+            updateSlide();
         };
 
         return sliderContainer;

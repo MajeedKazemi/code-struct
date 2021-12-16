@@ -10,5 +10,13 @@
     "tooltip": {
         "title": "Repeatedly Run Indented Code",
         "body": "Repeatedly executes the indented code below the while loop as long as the condition is True."
-    }
+    },
+    "useCases": [
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/1-while-counter/",
+            "max": 30,
+            "extension": "PNG",
+            "prefix": "Slide"
+        }
+    ]
 }

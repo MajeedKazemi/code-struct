@@ -15,6 +15,29 @@
         "body": "Creates an iterator variable from a sequence to repeatedly execute the indented code below the for loop."
     },
     "useCases": [
-        { "path": "http://cdn.majeed.cc/pydoc/images/use-cases/for-loop-items/", "max": 17, "extension": "jpg" }
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/2-for-loop-list/",
+            "max": 25,
+            "extension": "PNG",
+            "prefix": "Slide"
+        },
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-for-loop-range/",
+            "max": 21,
+            "extension": "PNG",
+            "prefix": "Slide"
+        },
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/4-for-loop-range-list/",
+            "max": 30,
+            "extension": "PNG",
+            "prefix": "Slide"
+        },
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/5-for-loop-string/",
+            "max": 21,
+            "extension": "PNG",
+            "prefix": "Slide"
+        }
     ]
 }

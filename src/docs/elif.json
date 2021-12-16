@@ -17,5 +17,19 @@
     "tooltip": {
         "title": "Insert Elif Statement",
         "body": "Short for else-if; adds another case to an existing if statement."
-    }
+    },
+    "useCases": [
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-single-elif/",
+            "max": 11,
+            "extension": "PNG",
+            "prefix": "Slide"
+        },
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-double-elif/",
+            "max": 13,
+            "extension": "PNG",
+            "prefix": "Slide"
+        }
+    ]
 }

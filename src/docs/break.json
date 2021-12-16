@@ -9,5 +9,13 @@
     "tooltip": {
         "title": "Insert Break inside Loop",
         "body": "Stops the innermost running loop (for, while) and breaks out of it."
-    }
+    },
+    "useCases": [
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-break/",
+            "max": 30,
+            "extension": "PNG",
+            "prefix": "Slide"
+        }
+    ]
 }

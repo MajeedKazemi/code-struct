@@ -33,6 +33,11 @@
     -moz-transition: 0.15s ease-in-out;
     -o-transition: 0.15s ease-in-out;
     -ms-transition: 0.15s ease-in-out;
+
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
 }
 
 #editor-toolbox .button:hover {
@@ -215,7 +220,7 @@ hole2 {
     display: none;
     color: #fff;
     border-radius: 10px;
-    width: 550px;
+    width: 500px;
     overflow: hidden;
     background: rgb(0 162 225);
     box-shadow: 0 0px 30px 5px rgb(145 184 218);
@@ -290,14 +295,33 @@ hole2 {
 }
 
 .tooltip-container .slider-container .range-slider {
-    display: block;
-    width: calc(100% - 30px);
+    display: inline-block;
+    width: calc(100% - 60px);
     margin: 0 auto;
+}
+
+.tooltip-container .slider-container .slider-btn {
+    display: inline-block;
+    cursor: pointer;
+
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
 }
 
 .tooltip-container .slider-container .slider-image {
     width: 100%;
     display: block;
+}
+
+.tooltip-container .slider-container .slider-label {
+    margin: auto 3px;
+    padding: 15px 3px 15px 3px;
+    border-radius: 3px;
+    background-color: #69a;
+    color: #000;
+    width: 100px;
 }
 
 .statement-button {

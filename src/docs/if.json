@@ -21,5 +21,13 @@
     "tooltip": {
         "title": "Insert If Statement",
         "body": "Will only execute the indented block of code below it when the condition is true"
-    }
+    },
+    "useCases": [
+        {
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/6-if/",
+            "max": 13,
+            "extension": "PNG",
+            "prefix": "Slide"
+        }
+    ]
 }
