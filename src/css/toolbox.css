@@ -291,23 +291,60 @@ hole2 {
     color: #fff;
 }
 
-.tooltip-container .slider-container {
+.tooltip-container .use-cases-container {
+    height: 325px;
+    overflow-y: scroll;
+}
+
+.tooltip-container .use-cases-container::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+.tooltip-container .use-cases-container::-webkit-scrollbar-track {
+    background: #ebebeb;
+}
+
+.tooltip-container .use-cases-container::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #b8ccd1;
+    border-radius: 0px;
+}
+
+.tooltip-container .single-use-case-container {
+    margin: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #fff;
+    box-shadow: 0 0px 6px 2px #0d638b;
+}
+
+.tooltip-container .single-use-case-container .use-case-title {
+    background-color: #790093;
+    padding: 5px 10px;
+    font-weight: bold;
+    font-size: 14px;
 }
 
 .tooltip-container .slider-container .range-slider {
     display: inline-block;
-    width: calc(100% - 60px);
-    margin: 0 auto;
+    flex-grow: 1;
 }
 
 .tooltip-container .slider-container .slider-btn {
     display: inline-block;
     cursor: pointer;
-
-    -webkit-user-select: none; /* Safari */
-    -moz-user-select: none; /* Firefox */
-    -ms-user-select: none; /* IE10+/Edge */
-    user-select: none; /* Standard */
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: #029ad7;
+    margin: 0 10px 0;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
 }
 
 .tooltip-container .slider-container .slider-image {
@@ -315,13 +352,32 @@ hole2 {
     display: block;
 }
 
+.tooltip-container .slider-container .labels-container {
+    display: flex;
+    font-size: 14px;
+}
+
 .tooltip-container .slider-container .slider-label {
-    margin: auto 3px;
-    padding: 15px 3px 15px 3px;
-    border-radius: 3px;
-    background-color: #69a;
-    color: #000;
-    width: 100px;
+    border: solid 2px #00719e;
+    margin: 10px 0 10px 10px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background-color: #0a82b1;
+    color: #ffffff;
+}
+
+.tooltip-container .slider-container .explanation-container {
+    border: solid 2px #005c7f;
+    margin: 10px 10px 9px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background-color: #006a93;
+    color: #ffffff;
+}
+
+.tooltip-container .slider-container .buttons-container {
+    display: flex;
+    margin-top: 3px;
 }
 
 .statement-button {

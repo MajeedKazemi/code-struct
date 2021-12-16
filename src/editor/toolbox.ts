@@ -109,16 +109,23 @@ export class ToolboxController {
         }
 
         if (code.documentation.useCases) {
+            const useCasesContainer = document.createElement("div");
+            useCasesContainer.classList.add("use-cases-container");
+
             for (const useCase of code.documentation.useCases) {
                 const useCaseSlider = this.createUseCaseSlider(
                     useCase.path,
                     useCase.max,
                     useCase.extension,
-                    useCase.prefix
+                    useCase.prefix,
+                    useCase.explanations,
+                    useCase.title
                 );
 
-                tooltipContainer.appendChild(useCaseSlider);
+                useCasesContainer.appendChild(useCaseSlider);
             }
+
+            tooltipContainer.appendChild(useCasesContainer);
         }
 
         if (returnType) {
@@ -172,9 +179,26 @@ export class ToolboxController {
         return tooltipContainer;
     }
 
-    private createUseCaseSlider(path: string, max: number, extension: string, prefix: string): HTMLDivElement {
+    private createUseCaseSlider(
+        path: string,
+        max: number,
+        extension: string,
+        prefix: string,
+        explanations: any[],
+        title: string
+    ): HTMLDivElement {
+        const useCaseContainer = document.createElement("div");
+        useCaseContainer.classList.add("single-use-case-container");
+
+        const useCaseTitle = document.createElement("div");
+        useCaseTitle.classList.add("use-case-title");
+        useCaseTitle.innerText = title;
+        useCaseContainer.appendChild(useCaseTitle);
+
         const sliderContainer = document.createElement("div");
         sliderContainer.classList.add("slider-container");
+        useCaseContainer.appendChild(sliderContainer);
+
         const slider = document.createElement("input");
         slider.classList.add("range-slider");
         slider.type = "range";
@@ -182,18 +206,30 @@ export class ToolboxController {
         slider.max = max.toString();
         slider.value = "1";
 
-        const sliderLabel = document.createElement("div");
-        sliderLabel.classList.add("slider-label");
-        sliderLabel.innerText = `${slider.value} / ${max}`;
+        const labelsContainer = document.createElement("div");
+        labelsContainer.classList.add("labels-container");
+
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.classList.add("buttons-container");
+
+        const explanationContainer = document.createElement("div");
+        explanationContainer.classList.add("explanation-container");
+        explanationContainer.style.visibility = "hidden";
 
         const updateSlide = () => {
             slideImage.src = slides[parseInt(slider.value) - 1];
-            sliderLabel.innerText = `${slider.value} / ${max}`;
+
+            if (explanations) {
+                const explanation = explanations.find((exp) => exp.slide == parseInt(slider.value));
+                explanationContainer.innerText = explanation ? explanation.text : "";
+                explanationContainer.style.visibility = explanation ? "visible" : "hidden";
+            }
         };
 
         const nextBtn = document.createElement("div");
         nextBtn.classList.add("slider-btn");
         nextBtn.innerText = ">";
+
         nextBtn.addEventListener("click", () => {
             if (slider.value != max.toString()) {
                 slider.value = (parseInt(slider.value) + 1).toString();
@@ -211,11 +247,6 @@ export class ToolboxController {
             }
         });
 
-        sliderContainer.appendChild(prevBtn);
-        sliderContainer.append(slider);
-        sliderContainer.appendChild(nextBtn);
-        sliderContainer.appendChild(sliderLabel);
-
         const slides = [];
 
         for (let i = 1; i < max + 1; i++) {
@@ -226,13 +257,22 @@ export class ToolboxController {
         const slideImage = document.createElement("img");
         sliderContainer.append(slideImage);
         slideImage.classList.add("slider-image");
-        slideImage.src = slides[0];
 
         slider.oninput = () => {
             updateSlide();
         };
 
-        return sliderContainer;
+        updateSlide();
+
+        buttonsContainer.appendChild(prevBtn);
+        buttonsContainer.append(slider);
+        buttonsContainer.appendChild(nextBtn);
+        sliderContainer.appendChild(buttonsContainer);
+
+        labelsContainer.appendChild(explanationContainer);
+        sliderContainer.appendChild(labelsContainer);
+
+        return useCaseContainer;
     }
 
     updateButtonsOnContextChange() {

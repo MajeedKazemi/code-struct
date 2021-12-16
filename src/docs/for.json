@@ -16,24 +16,28 @@
     },
     "useCases": [
         {
+            "title": "go through a list of items one by one",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/2-for-loop-list/",
             "max": 25,
             "extension": "PNG",
             "prefix": "Slide"
         },
         {
+            "title": "go through a sequence of numbers created by range",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-for-loop-range/",
             "max": 21,
             "extension": "PNG",
             "prefix": "Slide"
         },
         {
+            "title": "go through a list of items using their indices",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/4-for-loop-range-list/",
             "max": 30,
             "extension": "PNG",
             "prefix": "Slide"
         },
         {
+            "title": "go through every character of a string",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/5-for-loop-string/",
             "max": 21,
             "extension": "PNG",
