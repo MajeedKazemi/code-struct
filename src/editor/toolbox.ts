@@ -47,27 +47,27 @@ export class ToolboxController {
                             tooltip.style.opacity = "1";
                         }, 1);
 
-                        button.addEventListener("mouseleave", () => {
-                            setTimeout(() => {
-                                if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
-                                    tooltip.style.opacity = "0";
+                        // button.addEventListener("mouseleave", () => {
+                        //     setTimeout(() => {
+                        //         if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
+                        //             tooltip.style.opacity = "0";
 
-                                    setTimeout(() => {
-                                        tooltip.remove();
-                                    }, 100);
-                                }
-                            }, 100);
-                        });
+                        //             setTimeout(() => {
+                        //                 tooltip.remove();
+                        //             }, 100);
+                        //         }
+                        //     }, 100);
+                        // });
 
-                        tooltip.addEventListener("mouseleave", () => {
-                            if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
-                                tooltip.style.opacity = "0";
+                        // tooltip.addEventListener("mouseleave", () => {
+                        //     if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
+                        //         tooltip.style.opacity = "0";
 
-                                setTimeout(() => {
-                                    tooltip.remove();
-                                }, 100);
-                            }
-                        });
+                        //         setTimeout(() => {
+                        //             tooltip.remove();
+                        //         }, 100);
+                        //     }
+                        // });
                     }
                 });
             }
@@ -113,16 +113,9 @@ export class ToolboxController {
             useCasesContainer.classList.add("use-cases-container");
 
             for (const useCase of code.documentation.useCases) {
-                const useCaseSlider = this.createUseCaseSlider(
-                    useCase.path,
-                    useCase.max,
-                    useCase.extension,
-                    useCase.prefix,
-                    useCase.explanations,
-                    useCase.title
-                );
+                const useCaseComp = new UseCaseSliderComponent(useCase);
 
-                useCasesContainer.appendChild(useCaseSlider);
+                useCasesContainer.appendChild(useCaseComp.element);
             }
 
             tooltipContainer.appendChild(useCasesContainer);
@@ -177,102 +170,6 @@ export class ToolboxController {
         }
 
         return tooltipContainer;
-    }
-
-    private createUseCaseSlider(
-        path: string,
-        max: number,
-        extension: string,
-        prefix: string,
-        explanations: any[],
-        title: string
-    ): HTMLDivElement {
-        const useCaseContainer = document.createElement("div");
-        useCaseContainer.classList.add("single-use-case-container");
-
-        const useCaseTitle = document.createElement("div");
-        useCaseTitle.classList.add("use-case-title");
-        useCaseTitle.innerText = title;
-        useCaseContainer.appendChild(useCaseTitle);
-
-        const sliderContainer = document.createElement("div");
-        sliderContainer.classList.add("slider-container");
-        useCaseContainer.appendChild(sliderContainer);
-
-        const slider = document.createElement("input");
-        slider.classList.add("range-slider");
-        slider.type = "range";
-        slider.min = "1";
-        slider.max = max.toString();
-        slider.value = "1";
-
-        const labelsContainer = document.createElement("div");
-        labelsContainer.classList.add("labels-container");
-
-        const buttonsContainer = document.createElement("div");
-        buttonsContainer.classList.add("buttons-container");
-
-        const explanationContainer = document.createElement("div");
-        explanationContainer.classList.add("explanation-container");
-        explanationContainer.style.visibility = "hidden";
-
-        const updateSlide = () => {
-            slideImage.src = slides[parseInt(slider.value) - 1];
-
-            if (explanations) {
-                const explanation = explanations.find((exp) => exp.slide == parseInt(slider.value));
-                explanationContainer.innerText = explanation ? explanation.text : "";
-                explanationContainer.style.visibility = explanation ? "visible" : "hidden";
-            }
-        };
-
-        const nextBtn = document.createElement("div");
-        nextBtn.classList.add("slider-btn");
-        nextBtn.innerText = ">";
-
-        nextBtn.addEventListener("click", () => {
-            if (slider.value != max.toString()) {
-                slider.value = (parseInt(slider.value) + 1).toString();
-                updateSlide();
-            }
-        });
-
-        const prevBtn = document.createElement("div");
-        prevBtn.classList.add("slider-btn");
-        prevBtn.innerText = "<";
-        prevBtn.addEventListener("click", () => {
-            if (slider.value != "1") {
-                slider.value = (parseInt(slider.value) - 1).toString();
-                updateSlide();
-            }
-        });
-
-        const slides = [];
-
-        for (let i = 1; i < max + 1; i++) {
-            if (prefix) slides.push(`${path}${prefix}${i}.${extension}`);
-            else slides.push(`${path}${i}.${extension}`);
-        }
-
-        const slideImage = document.createElement("img");
-        sliderContainer.append(slideImage);
-        slideImage.classList.add("slider-image");
-
-        slider.oninput = () => {
-            updateSlide();
-        };
-
-        updateSlide();
-
-        buttonsContainer.appendChild(prevBtn);
-        buttonsContainer.append(slider);
-        buttonsContainer.appendChild(nextBtn);
-        sliderContainer.appendChild(buttonsContainer);
-
-        labelsContainer.appendChild(explanationContainer);
-        sliderContainer.appendChild(labelsContainer);
-
-        return useCaseContainer;
     }
 
     updateButtonsOnContextChange() {
@@ -610,5 +507,125 @@ function addClassToButton(buttonId: string, className: string) {
 
     if (button) {
         button.classList.add(className);
+    }
+}
+
+class UseCaseSliderComponent {
+    element: HTMLDivElement;
+    expanded: boolean;
+
+    constructor(useCase: any) {
+        this.element = this.createUseCaseComponent(
+            useCase.path,
+            useCase.max,
+            useCase.extension,
+            useCase.prefix,
+            useCase.explanations,
+            useCase.title
+        );
+
+        this.expanded = false;
+    }
+
+    createUseCaseComponent(
+        path: string,
+        max: number,
+        extension: string,
+        prefix: string,
+        explanations: any[],
+        title: string
+    ): HTMLDivElement {
+        const useCaseContainer = document.createElement("div");
+        useCaseContainer.classList.add("single-use-case-container");
+
+        const useCaseTitle = document.createElement("div");
+        useCaseTitle.classList.add("use-case-title");
+        useCaseTitle.innerText = title;
+        useCaseContainer.appendChild(useCaseTitle);
+
+        const sliderContainer = document.createElement("div");
+        sliderContainer.classList.add("slider-container");
+        sliderContainer.style.maxHeight = "0px";
+        useCaseContainer.appendChild(sliderContainer);
+
+        const slider = document.createElement("input");
+        slider.classList.add("range-slider");
+        slider.type = "range";
+        slider.min = "1";
+        slider.max = max.toString();
+        slider.value = "1";
+
+        const labelsContainer = document.createElement("div");
+        labelsContainer.classList.add("labels-container");
+
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.classList.add("buttons-container");
+
+        const explanationContainer = document.createElement("div");
+        explanationContainer.classList.add("explanation-container");
+        explanationContainer.style.visibility = "hidden";
+
+        const updateSlide = () => {
+            slideImage.src = slides[parseInt(slider.value) - 1];
+
+            if (explanations) {
+                const explanation = explanations.find((exp) => exp.slide == parseInt(slider.value));
+                explanationContainer.innerText = explanation ? explanation.text : "";
+                explanationContainer.style.visibility = explanation ? "visible" : "hidden";
+            }
+        };
+
+        const nextBtn = document.createElement("div");
+        nextBtn.classList.add("slider-btn");
+        nextBtn.innerText = ">";
+
+        nextBtn.addEventListener("click", () => {
+            if (slider.value != max.toString()) {
+                slider.value = (parseInt(slider.value) + 1).toString();
+                updateSlide();
+            }
+        });
+
+        const prevBtn = document.createElement("div");
+        prevBtn.classList.add("slider-btn");
+        prevBtn.innerText = "<";
+        prevBtn.addEventListener("click", () => {
+            if (slider.value != "1") {
+                slider.value = (parseInt(slider.value) - 1).toString();
+                updateSlide();
+            }
+        });
+
+        const slides = [];
+
+        for (let i = 1; i < max + 1; i++) {
+            if (prefix) slides.push(`${path}${prefix}${i}.${extension}`);
+            else slides.push(`${path}${i}.${extension}`);
+        }
+
+        const slideImage = document.createElement("img");
+        sliderContainer.append(slideImage);
+        slideImage.classList.add("slider-image");
+
+        slider.oninput = () => {
+            updateSlide();
+        };
+
+        updateSlide();
+
+        buttonsContainer.appendChild(prevBtn);
+        buttonsContainer.append(slider);
+        buttonsContainer.appendChild(nextBtn);
+        sliderContainer.appendChild(buttonsContainer);
+
+        labelsContainer.appendChild(explanationContainer);
+        sliderContainer.appendChild(labelsContainer);
+
+        useCaseTitle.addEventListener("click", () => {
+            sliderContainer.style.maxHeight = this.expanded ? "0px" : "1000px";
+            this.expanded = !this.expanded;
+        });
+
+        return useCaseContainer;
     }
 }

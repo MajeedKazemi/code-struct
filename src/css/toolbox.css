@@ -325,6 +325,25 @@ hole2 {
     padding: 5px 10px;
     font-weight: bold;
     font-size: 14px;
+    cursor: pointer;
+
+    transition: background-color 0.3s ease-in-out;
+    -webkit-transition: background-color 0.3s ease-in-out;
+    -moz-transition: background-color 0.3s ease-in-out;
+    -o-transition: background-color 0.3s ease-in-out;
+    -ms-transition: background-color 0.3s ease-in-out;
+}
+
+.tooltip-container .single-use-case-container .use-case-title:hover {
+    background-color: #550068;
+}
+
+.tooltip-container .slider-container {
+    transition: max-height 0.3s ease-in-out;
+    -webkit-transition: max-height 0.3s ease-in-out;
+    -moz-transition: max-height 0.3s ease-in-out;
+    -o-transition: max-height 0.3s ease-in-out;
+    -ms-transition: max-height 0.3s ease-in-out;
 }
 
 .tooltip-container .slider-container .range-slider {
