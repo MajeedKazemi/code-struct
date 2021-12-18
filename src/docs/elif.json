@@ -16,16 +16,18 @@
     ],
     "tooltip": {
         "title": "Insert Elif Statement",
-        "body": "Short for else-if; adds another case to an existing if statement."
+        "body": "Short for else-if; adds another case to an existing if statement. The `elif` will only run when previous `if` or `elif` statement is false"
     },
     "useCases": [
         {
+            "title": "using elif after an if statement",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-single-elif/",
             "max": 11,
             "extension": "PNG",
             "prefix": "Slide"
         },
         {
+            "title": "using elif after another elif statement",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-double-elif/",
             "max": 13,
             "extension": "PNG",

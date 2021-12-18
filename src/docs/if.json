@@ -24,6 +24,7 @@
     },
     "useCases": [
         {
+            "title": "check the value of a variable",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/6-if/",
             "max": 13,
             "extension": "PNG",

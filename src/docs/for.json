@@ -16,21 +16,21 @@
     },
     "useCases": [
         {
-            "title": "go through a list of items one by one",
+            "title": "go through a list of items",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/2-for-loop-list/",
             "max": 25,
             "extension": "PNG",
             "prefix": "Slide"
         },
         {
-            "title": "go through a sequence of numbers created by range",
+            "title": "go through a sequence of numbers",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-for-loop-range/",
             "max": 21,
             "extension": "PNG",
             "prefix": "Slide"
         },
         {
-            "title": "go through a list of items using their indices",
+            "title": "go through a list of items using indices",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/4-for-loop-range-list/",
             "max": 30,
             "extension": "PNG",

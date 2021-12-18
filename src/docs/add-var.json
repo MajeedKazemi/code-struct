@@ -9,34 +9,5 @@
     "tooltip": {
         "title": "Create Variable Assignment",
         "body": "Allows to store a value and give it a name to reference it by later."
-    },
-    "useCases": [
-        {
-            "title": "break out of a while loop on some condition",
-            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-break/",
-            "max": 30,
-            "extension": "PNG",
-            "prefix": "Slide",
-            "explanations": [
-                { "slide": 5, "text": "variable i is defined and set to 0" },
-                { "slide": 6, "text": "should repeat the while statements if i < 10" },
-                { "slide": 7, "text": "i is 0 and less than 10 -> should repeat" },
-                { "slide": 9, "text": "i is 0, so i + 1 is 1" },
-                { "slide": 11, "text": "i becomes 1" },
-                { "slide": 12, "text": "should enter the if statements if i equals 3" },
-                { "slide": 13, "text": "i is 1 so shouldn't enter the if" },
-                { "slide": 16, "text": "i is 1, so i + 1 is 2" },
-                { "slide": 14, "text": "should continue repeating because i is 1" },
-                { "slide": 18, "text": "i becomes 2" },
-                { "slide": 20, "text": "i is not equal to 3" },
-                { "slide": 21, "text": "should continue repeating because i is 2" },
-                { "slide": 23, "text": "i is 2, so i + 1 is 3" },
-                { "slide": 25, "text": "i becomes 3" },
-                { "slide": 27, "text": "is equal to 3 -> should enter if" },
-                { "slide": 28, "text": "break out of the current loop" },
-                { "slide": 29, "text": "won't check the while condition as we used break" },
-                { "slide": 30, "text": "will print 'done'" }
-            ]
-        }
-    ]
+    }
 }

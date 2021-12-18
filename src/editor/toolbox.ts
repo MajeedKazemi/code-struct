@@ -527,6 +527,14 @@ class UseCaseSliderComponent {
         this.expanded = false;
     }
 
+    updateExpanded: () => void;
+
+    setExpanded(expanded: boolean) {
+        this.expanded = expanded;
+
+        this.updateExpanded();
+    }
+
     createUseCaseComponent(
         path: string,
         max: number,
@@ -535,13 +543,29 @@ class UseCaseSliderComponent {
         explanations: any[],
         title: string
     ): HTMLDivElement {
+        const comp = document.createElement("div");
+
+        const spacingDiv = document.createElement("div");
+        spacingDiv.classList.add("spacing");
+        comp.appendChild(spacingDiv);
+
         const useCaseContainer = document.createElement("div");
         useCaseContainer.classList.add("single-use-case-container");
+        comp.appendChild(useCaseContainer);
+
+        const useCaseTitleContainer = document.createElement("div");
+        useCaseTitleContainer.classList.add("use-case-title");
+        useCaseContainer.appendChild(useCaseTitleContainer);
 
         const useCaseTitle = document.createElement("div");
-        useCaseTitle.classList.add("use-case-title");
+        useCaseTitle.classList.add("use-case-title-header");
         useCaseTitle.innerText = title;
-        useCaseContainer.appendChild(useCaseTitle);
+        useCaseTitleContainer.appendChild(useCaseTitle);
+
+        const useCaseLearnButton = document.createElement("div");
+        useCaseLearnButton.classList.add("use-case-learn-button");
+        useCaseLearnButton.innerHTML = "learn";
+        useCaseTitleContainer.appendChild(useCaseLearnButton);
 
         const sliderContainer = document.createElement("div");
         sliderContainer.classList.add("slider-container");
@@ -563,15 +587,15 @@ class UseCaseSliderComponent {
 
         const explanationContainer = document.createElement("div");
         explanationContainer.classList.add("explanation-container");
-        explanationContainer.style.visibility = "hidden";
+        explanationContainer.style.opacity = "0.0";
 
         const updateSlide = () => {
             slideImage.src = slides[parseInt(slider.value) - 1];
 
             if (explanations) {
                 const explanation = explanations.find((exp) => exp.slide == parseInt(slider.value));
-                explanationContainer.innerText = explanation ? explanation.text : "";
-                explanationContainer.style.visibility = explanation ? "visible" : "hidden";
+                explanationContainer.innerText = explanation ? explanation.text : "-";
+                explanationContainer.style.opacity = explanation ? "1.0" : "0.0";
             }
         };
 
@@ -621,11 +645,23 @@ class UseCaseSliderComponent {
         labelsContainer.appendChild(explanationContainer);
         sliderContainer.appendChild(labelsContainer);
 
-        useCaseTitle.addEventListener("click", () => {
-            sliderContainer.style.maxHeight = this.expanded ? "0px" : "1000px";
+        this.updateExpanded = () => {
+            useCaseLearnButton.style.opacity = this.expanded ? "0" : "1.0";
+            sliderContainer.style.maxHeight = this.expanded ? "1000px" : "0px";
+            useCaseTitleContainer.style.backgroundColor = this.expanded ? "#cfe3eb" : "#fff";
+
+            if (this.expanded)
+                setTimeout(() => {
+                    comp.scrollIntoView({ behavior: "smooth" });
+                }, 150);
+        };
+
+        useCaseTitleContainer.addEventListener("click", () => {
             this.expanded = !this.expanded;
+
+            this.updateExpanded();
         });
 
-        return useCaseContainer;
+        return comp;
     }
 }

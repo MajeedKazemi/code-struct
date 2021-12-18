@@ -13,6 +13,7 @@
     },
     "useCases": [
         {
+            "title": "repeatedly increment a variable",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/1-while-counter/",
             "max": 30,
             "extension": "PNG",
