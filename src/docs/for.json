@@ -14,8 +14,9 @@
         "title": "Run Indented Code with Iterator",
         "body": "Creates an iterator variable from a sequence to repeatedly execute the indented code below the for loop."
     },
-    "useCases": [
+    "tips": [
         {
+            "type": "use-case",
             "title": "go through a list of items",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/2-for-loop-list/",
             "max": 25,
@@ -23,6 +24,7 @@
             "prefix": "Slide"
         },
         {
+            "type": "use-case",
             "title": "go through a sequence of numbers",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-for-loop-range/",
             "max": 21,
@@ -30,6 +32,7 @@
             "prefix": "Slide"
         },
         {
+            "type": "use-case",
             "title": "go through a list of items using indices",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/4-for-loop-range-list/",
             "max": 30,
@@ -37,6 +40,7 @@
             "prefix": "Slide"
         },
         {
+            "type": "use-case",
             "title": "go through every character of a string",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/5-for-loop-string/",
             "max": 21,

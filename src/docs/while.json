@@ -11,8 +11,9 @@
         "title": "Repeatedly Run Indented Code",
         "body": "Repeatedly executes the indented code below the while loop as long as the condition is True."
     },
-    "useCases": [
+    "tips": [
         {
+            "type": "use-case",
             "title": "repeatedly increment a variable",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/1-while-counter/",
             "max": 30,

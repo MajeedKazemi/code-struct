@@ -10,8 +10,9 @@
         "title": "Insert Break inside Loop",
         "body": "Stops the innermost running loop (for, while) and breaks out of it."
     },
-    "useCases": [
+    "tips": [
         {
+            "type": "use-case",
             "title": "break out of a while loop on some condition",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-break/",
             "max": 30,

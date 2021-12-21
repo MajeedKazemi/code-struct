@@ -318,6 +318,30 @@ hole2 {
     border-radius: 0px;
 }
 
+.tooltip-container .quick-tip {
+    margin: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #fff;
+    border: solid 1px #ccc;
+    padding: 5px;
+}
+
+.tooltip-container .quick-tip .quick-tip-text {
+    font-size: 13px;
+    color: #000;
+}
+
+.tooltip-container .quick-tip .quick-tip-title {
+    font-size: 13px;
+    color: #fff;
+    background-color: #00aeae;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-right: 5px;
+    font-weight: bold;
+}
+
 .tooltip-container .single-use-case-container {
     margin: 0 10px;
     border-radius: 5px;

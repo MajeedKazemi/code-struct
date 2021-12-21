@@ -108,14 +108,20 @@ export class ToolboxController {
             tooltipTop.appendChild(tooltipText);
         }
 
-        if (code.documentation.useCases) {
+        if (code.documentation.tips) {
             const useCasesContainer = document.createElement("div");
             useCasesContainer.classList.add("use-cases-container");
 
-            for (const useCase of code.documentation.useCases) {
-                const useCaseComp = new UseCaseSliderComponent(useCase);
+            for (const tip of code.documentation.tips) {
+                if (tip.type == "use-case") {
+                    const useCaseComp = new UseCaseSliderComponent(tip);
 
-                useCasesContainer.appendChild(useCaseComp.element);
+                    useCasesContainer.appendChild(useCaseComp.element);
+                } else if (tip.type == "quick") {
+                    const quickComp = new QuickTipComponent(tip.text);
+
+                    useCasesContainer.appendChild(quickComp.element);
+                }
             }
 
             tooltipContainer.appendChild(useCasesContainer);
@@ -647,7 +653,7 @@ class UseCaseSliderComponent {
 
         this.updateExpanded = () => {
             useCaseLearnButton.style.opacity = this.expanded ? "0" : "1.0";
-            sliderContainer.style.maxHeight = this.expanded ? "1000px" : "0px";
+            sliderContainer.style.maxHeight = this.expanded ? `${sliderContainer.scrollHeight}px` : "0px";
             useCaseTitleContainer.style.backgroundColor = this.expanded ? "#cfe3eb" : "#fff";
 
             if (this.expanded)
@@ -663,5 +669,31 @@ class UseCaseSliderComponent {
         });
 
         return comp;
+    }
+}
+
+class QuickTipComponent {
+    element: HTMLDivElement;
+
+    constructor(text: any) {
+        this.element = this.createComponent(text);
+    }
+
+    createComponent(text: string): HTMLDivElement {
+        const component = document.createElement("div");
+        component.classList.add("quick-tip");
+
+        const titleEl = document.createElement("span");
+        titleEl.classList.add("quick-tip-title");
+        titleEl.innerText = "tip";
+        component.appendChild(titleEl);
+
+        const textEl = document.createElement("span");
+        textEl.classList.add("quick-tip-text");
+        textEl.innerText = text;
+
+        component.appendChild(textEl);
+
+        return component;
     }
 }
