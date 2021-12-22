@@ -18,7 +18,6 @@ import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
     AutocompleteTkn,
-    BinaryOperatorExpr,
     CodeConstruct,
     EmptyLineStmt,
     Expression,
@@ -35,7 +34,7 @@ import {
 } from "./ast";
 import { rebuildBody } from "./body";
 import { CallbackType } from "./callback";
-import { BinaryOperator, DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
+import { DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
@@ -309,7 +308,18 @@ export class Module {
         }
     }
 
-    removeItem(item: CodeConstruct, { replaceType = null, replace = true }, completeDeletion = true): CodeConstruct {
+    private rebuildOnConstructDeletion(item: CodeConstruct, root: Statement) {
+        this.recursiveNotify(item, CallbackType.delete);
+
+        for (let i = 0; i < root.tokens.length; i++) {
+            root.tokens[i].indexInRoot = i;
+            root.tokens[i].rootNode = root;
+        }
+
+        root.rebuild(root.getLeftPosition(), 0);
+    }
+
+    replaceItem(item: CodeConstruct, replaceType: DataType): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
@@ -317,40 +327,31 @@ export class Module {
                 replaceType = DataType.Any;
 
             let replacedItem = null;
+            root.onDeleteFrom({ operandBeingDeletedIndex: item.indexInRoot });
+            const allowedTypes = root.getCurrentAllowedTypesOfHole(item.indexInRoot, true);
 
-            if (replace) {
-                replacedItem = new TypedEmptyExpr(replaceType ? [replaceType] : root.typeOfHoles[item.indexInRoot]);
+            replacedItem = new TypedEmptyExpr(
+                replaceType !== null ? [replaceType] : root.typeOfHoles[item.indexInRoot]
+            );
 
-                if (
-                    item.rootNode instanceof BinaryOperatorExpr &&
-                    item.rootNode.operator != BinaryOperator.In &&
-                    item.rootNode.operator != BinaryOperator.NotIn
-                ) {
-                    let allowedTypes = item.rootNode.getCurrentAllowedTypesOfOperand(item.indexInRoot, true);
+            if (allowedTypes.length > 0) replacedItem.type = allowedTypes;
 
-                    if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
-                        allowedTypes = item.rootNode.getValidLeftOperandTypes();
-                    } else allowedTypes = item.rootNode.getValidRightOperandTypes();
+            root.tokens.splice(item.indexInRoot, 1, replacedItem);
 
-                    if (allowedTypes.length > 0) replacedItem.type = allowedTypes;
-                }
-
-                root.tokens.splice(item.indexInRoot, 1, replacedItem);
-            } else root.tokens.splice(item.indexInRoot, 1);
-
-            this.recursiveNotify(item, CallbackType.delete);
-
-            for (let i = 0; i < root.tokens.length; i++) {
-                root.tokens[i].indexInRoot = i;
-                root.tokens[i].rootNode = root;
-            }
-
-            root.rebuild(root.getLeftPosition(), 0);
+            this.rebuildOnConstructDeletion(item, root);
 
             return replacedItem;
         }
 
         return null;
+    }
+
+    removeItem(item: CodeConstruct): void {
+        const root = item.rootNode;
+        if (root instanceof Statement) {
+            root.tokens.splice(item.indexInRoot, 1);
+            this.rebuildOnConstructDeletion(item, root);
+        }
     }
 
     reset() {

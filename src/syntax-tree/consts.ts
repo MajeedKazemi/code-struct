@@ -749,3 +749,53 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
         ],
     ],
 ]);
+
+export const definedBinOpsForType = new Map<DataType, BinaryOperator[]>([
+    [
+        DataType.String,
+        [
+            BinaryOperator.Add,
+            BinaryOperator.GreaterThan,
+            BinaryOperator.LessThan,
+            BinaryOperator.GreaterThanEqual,
+            BinaryOperator.LessThanEqual,
+            BinaryOperator.Equal,
+            BinaryOperator.NotEqual,
+        ],
+    ],
+
+    [
+        DataType.Number,
+        [
+            BinaryOperator.Add,
+            BinaryOperator.Multiply,
+            BinaryOperator.Subtract,
+            BinaryOperator.Divide,
+            BinaryOperator.GreaterThan,
+            BinaryOperator.LessThan,
+            BinaryOperator.GreaterThanEqual,
+            BinaryOperator.LessThanEqual,
+            BinaryOperator.Equal,
+            BinaryOperator.NotEqual,
+            BinaryOperator.Mod,
+        ],
+    ],
+
+    [DataType.Boolean, [BinaryOperator.And, BinaryOperator.Or]],
+]);
+
+export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataType.Boolean, [UnaryOperator.Not]]]);
+
+export const definedBinOpsBetweenType = new Map<DataType, BinaryOperator[]>([]);
+
+export function getAllowedBinaryOperatorsForType(type: DataType): BinaryOperator[] {
+    if (definedBinOpsForType.has(type)) return definedBinOpsForType.get(type);
+
+    return [];
+}
+
+export function getAllowedUnaryOperatorsForType(type: DataType): UnaryOperator[] {
+    if (definedBinOpsForType.has(type)) return definedUnaryOpsForType.get(type);
+
+    return [];
+}

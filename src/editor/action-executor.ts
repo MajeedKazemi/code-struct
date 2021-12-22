@@ -619,9 +619,9 @@ export class ActionExecutor {
                     tokenBefore.left
                 );
 
-                this.module.removeItem(fStringToRemove, { replace: false });
-                this.module.removeItem(tokenAfter, { replace: false });
-                this.module.removeItem(tokenBefore, { replace: false });
+                this.module.removeItem(fStringToRemove);
+                this.module.removeItem(tokenAfter);
+                this.module.removeItem(tokenBefore);
 
                 root.tokens.splice(indexToReplace, 0, newToken);
 
@@ -1459,7 +1459,7 @@ export class ActionExecutor {
                     break;
 
                 case AutoCompleteType.AtExpressionHole:
-                    this.deleteCode(token, {}, false);
+                    this.deleteCode(token, {});
 
                     break;
             }
@@ -1774,12 +1774,10 @@ export class ActionExecutor {
                         );
 
                         let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
-                        if (rootOfExprToLeft.rootNode instanceof BinaryOperatorExpr) {
-                            expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfOperand(
-                                rootOfExprToLeft.indexInRoot,
-                                false
-                            );
-                        }
+                        expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
+                            rootOfExprToLeft.indexInRoot,
+                            false
+                        );
 
                         this.module.openDraftMode(
                             rootOfExprToLeft,
@@ -1796,12 +1794,10 @@ export class ActionExecutor {
                         );
                     } else {
                         let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
-                        if (rootOfExprToLeft.rootNode instanceof BinaryOperatorExpr) {
-                            expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfOperand(
-                                rootOfExprToLeft.indexInRoot,
-                                false
-                            );
-                        }
+                        expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
+                            rootOfExprToLeft.indexInRoot,
+                            false
+                        );
 
                         this.module.openDraftMode(
                             ref,
@@ -1881,12 +1877,12 @@ export class ActionExecutor {
         }
     }
 
-    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}, completeDeletion = true) {
+    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.removeItem(code, { replaceType }, completeDeletion);
+        else replacement = this.module.replaceItem(code, replaceType);
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });
