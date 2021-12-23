@@ -7,7 +7,6 @@ export function getUser(): string {
     if (isUserRetrieved) return user;
     else {
         retrieveUser();
-        isUserRetrieved = true;
 
         return user;
     }
@@ -25,6 +24,8 @@ export function retrieveUser() {
         user = storedUser;
         console.log("welcome back, " + user);
     }
+
+    isUserRetrieved = true;
 }
 
 function getItemPrompt(item: string): string {
