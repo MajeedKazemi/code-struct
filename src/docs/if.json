@@ -1,28 +1,20 @@
 {
     "title": "if statement",
-    "body": [
-        {
-            "paragraph": "The if conditional statement will execute a block of code only if its condition is <span class=\"bold\">true</span>. Its condition can be filled with anything that evaluates to <span class=\"bold\">true</span> or <span class=\"bold\">false</span>."
-        },
-        {
-            "block-based-image": "images/if-stmt-block.png",
-            "text-based-image": "images/if-stmt-text.png",
-            "alt": "a block-based version of a conditional if statement on the right and it's text-based version equivalent on the left"
-        },
-        {
-            "paragraph": "The below example will print \"Success!\"."
-        },
-        { "example": "a = 3\nif a < 10:\n\tprint(\"Success!\")" },
-        {
-            "paragraph": "The below example, however, will not print anything because the code inside the if statement will not be run since the condition is <span class=\"bold\">false</span>."
-        },
-        { "example": "a = 3\nif a > 10:\n\tprint(\"Success!\")" }
-    ],
     "tooltip": {
         "title": "Insert If Statement",
         "body": "Will only execute the indented block of code below it when the condition is true"
     },
     "tips": [
+        {
+            "type": "executable",
+            "id": "ex-if-1",
+            "example": "a = 3\nif a < 10:\n\tprint(\"Success!\")"
+        },
+        {
+            "type": "executable",
+            "id": "ex-if-2",
+            "example": "a = 3\nif a > 10:\n\tprint(\"Success!\")"
+        },
         {
             "type": "use-case",
             "title": "check the value of a variable",

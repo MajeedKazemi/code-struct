@@ -1,23 +1,19 @@
 {
     "title": "add",
-    "body": [
-        {
-            "paragraph": "Performs the addition of the value to the right of the operator to the value to the left on the operator."
-        },
-        {
-            "paragraph": "The example below prints 7."
-        },
-        { "example": "a = 2\nb = 5\nprint((a + b))" },
-        {
-            "paragraph": "The addition operator also works on texts."
-        },
-        {
-            "paragraph": "The example below prints \"hello world\"."
-        },
-        { "example": "a = \"hello\"\nb = \"world\"\nprint((a + \" \" + b))" }
-    ],
     "tooltip": {
         "title": "Insert Addition",
         "body": "Adds the values to the left and right of the operator."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-sum-numbers",
+            "example": "a = 2\nb = 5\nprint((a + b))"
+        },
+        {
+            "type": "executable",
+            "id": "ex-sum-strings",
+            "example": "a = \"hello\"\nb = \"world\"\nprint((a + \" \" + b))"
+        }
+    ]
 }

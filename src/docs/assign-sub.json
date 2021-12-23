@@ -1,16 +1,14 @@
 {
     "title": "Subtract from Variable",
-    "body": [
-        {
-            "paragraph": "Subtracts a value from an existing variable and stores the result back in the variable."
-        },
-        {
-            "paragraph": "The below will print 3. It is equivalent to <span class=\"italics\">a = a - 2</span>."
-        },
-        { "example": "a = 5\na -= 2\nprint(a)" }
-    ],
     "tooltip": {
         "title": "Subtract Value from Variable",
         "body": "Subtracts the value on the right-hand side of the -= sign from the specified variable and stores the result back in the variable."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-var-sub-by-val",
+            "example": "a = 5\na -= 2\nprint(a)"
+        }
+    ]
 }

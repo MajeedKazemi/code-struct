@@ -1,18 +1,19 @@
 {
     "title": "print(message: any)",
-    "body": [
-        {
-            "paragraph": "The <span class=\"bold\">print()</span> function will display a message in the console as text. It can accept anything as its input and will try to convert it to text before displaying it."
-        },
-        { "paragraph": "The below will print 123 to the console." },
-        { "example": "print(123)" },
-        {
-            "paragraph": "<span class=\"bold\">print()</span> can also be used with variables."
-        },
-        { "example": "a = \"abc\"\nprint(a)" }
-    ],
     "tooltip": {
         "title": "Display Text in Console",
         "body": "Displays the textual value of its input in the console."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-print-num-str",
+            "example": "print(123)\nprint(\"Hello World!\")"
+        },
+        {
+            "type": "executable",
+            "id": "ex-print-var",
+            "example": "a = \"abc\"\nprint(a)"
+        }
+    ]
 }

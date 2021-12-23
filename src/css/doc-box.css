@@ -115,11 +115,10 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 }
 
 .doc-editor-container {
-    width: 100%;
     border-radius: 5px;
     overflow: hidden;
     box-shadow: 0 0 5px 1px #888;
-    margin-bottom: 15px;
+    margin: 10px;
 }
 
 .console-output::-webkit-scrollbar {
@@ -140,7 +139,6 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 
 .doc-example-console {
     background-color: #ccc;
-    height: 125px;
     font-size: 14px;
     font-weight: bold;
 }
@@ -154,7 +152,8 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
     background-color: #d9e7ee;
     font-weight: bold;
     padding: 5px 15px;
-    font-size: 12px;
+    font-size: 14px;
+    color: #000;
 }
 
 .doc-example-btn {
@@ -196,9 +195,20 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 }
 
 .console-output {
-    height: calc(100% + -45px);
+    height: 100px;
+    max-height: 0px;
     overflow-y: scroll;
+
+    transition: max-height 0.2s ease-in-out;
+    -webkit-transition: max-height 0.2s ease-in-out;
+    -moz-transition: max-height 0.2s ease-in-out;
+    -o-transition: max-height 0.2s ease-in-out;
+    -ms-transition: max-height 0.2s ease-in-out;
+}
+
+.console-output-open {
     padding: 5px;
+    max-height: 100px;
 }
 
 .doc-example-console-button-container {

@@ -1,16 +1,15 @@
 {
     "title": "Create/Reassign Variable",
-    "body": [
-        {
-            "paragraph": "Creates a new variable with the left hole expecting an identifier (name) for the variable. The second hole expects the value that will be stored in the variable."
-        },
-        { "example": "name = \"John\"" }
-    ],
     "tooltip": {
         "title": "Create Variable Assignment",
         "body": "Allows to store a value and give it a name to reference it by later."
     },
     "tips": [
+        {
+            "type": "executable",
+            "id": "ex-declare-print-var",
+            "example": "name = \"John\"\nprint(name)"
+        },
         {
             "type": "quick",
             "text": "A variable is created the moment you first assign a value to it."

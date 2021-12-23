@@ -12,5 +12,12 @@
     "tooltip": {
         "title": "Converts Anything to Text",
         "body": "Converts the passed object to its textual representation."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-str-cast",
+            "example": "a = 2\nc = \"2\"\nprint(str(a) == c)"
+        }
+    ]
 }

@@ -4,7 +4,6 @@
         {
             "paragraph": "A for loop can be used to go through a sequence of elements one-by-one. \n\n Notice the usage of \"animal\", this is the variable that holds the current value of our item."
         },
-        { "example": "lst = [\"cat\", \"dog\", \"mouse\", \"parrot\"]\nfor animal in lst:\n\tprint(animal)" },
         {
             "paragraph": "A for loop can also be used together with the <span class=\"bold\">range()</span> function call to go through a sequence of numbers."
         },
@@ -22,6 +21,11 @@
         {
             "type": "quick",
             "text": "for loops can be used with the `range` function to work like a counter"
+        },
+        {
+            "type": "executable",
+            "id": "ex-for-list-items",
+            "example": "lst = [\"cat\", \"dog\", \"mouse\", \"parrot\"]\nfor animal in lst:\n\tprint(animal)"
         },
         {
             "type": "use-case",

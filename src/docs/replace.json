@@ -1,16 +1,14 @@
 {
     "title": "replace(old: text, new: text)",
-    "body": [
-        {
-            "paragraph": "Replaces all occurrences of <span class=\"italics\">oldValue</span> with <span class=\"italics\">newValue</span> in the text the function is being called from. Returns a new text object."
-        },
-        {
-            "paragraph": "The below example will print \"Jan\". "
-        },
-        { "example": "name  = \"John\"\nname = name.replace(\"oh\", \"a\")\nprint(name)" }
-    ],
     "tooltip": {
         "title": "Call Replace Method",
         "body": "Replaces all occurrences of the first input with the value of the second input in the text."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-replace",
+            "example": "name  = \"John\"\nname = name.replace(\"oh\", \"a\")\nprint(name)"
+        }
+    ]
 }

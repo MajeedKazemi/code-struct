@@ -1,16 +1,14 @@
 {
     "title": "choice(choices: list[any])",
-    "body": [
-        {
-            "paragraph": "Randomly selects and returns an item from the given list"
-        },
-        { "example": "from random import choice\n\nif choice([1, 2, 3, 4, 5, 6]) == 6:\n\tprint(\"Rolled Six!\")" },
-        {
-            "paragraph": "The above code will pick a random item from the list of numbers 1-6, and checks if the number is equal to six."
-        }
-    ],
     "tooltip": {
         "title": "Insert Choice from List",
         "body": "Randomly selects and returns an item from the given list. Needs to be imported from the random module."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-choice",
+            "example": "from random import choice\n\nif choice([1, 2, 3, 4, 5, 6]) == 6:\n\tprint(\"Rolled Six!\")"
+        }
+    ]
 }

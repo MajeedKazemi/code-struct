@@ -7,7 +7,7 @@ const INITIAL_Z_INDEX = 500;
 
 export const docBoxRunButtons = new Map<string, string[]>();
 
-export class DocumentationBox {
+export class ExecutableCode {
     private static exampleCounter = 0;
     private static openBoxes: DocBoxMeta[] = [];
     private static pressedEscape = false;
@@ -34,7 +34,6 @@ export class DocumentationBox {
         container.appendChild(headerDiv);
 
         document.body.appendChild(container);
-        makeDraggable(headerDiv);
 
         // the documentation:
         const docBody = document.createElement("div");
@@ -89,62 +88,62 @@ export class DocumentationBox {
         }
 
         window.addEventListener("mousedown", function (e) {
-            if (container.contains(e.target as Element)) DocumentationBox.focusBox(container.id);
+            if (container.contains(e.target as Element)) ExecutableCode.focusBox(container.id);
             else headerDiv.classList.remove("focused-header");
         });
 
         closeButton.onclick = () => {
-            DocumentationBox.closeBox(container.id);
+            ExecutableCode.closeBox(container.id);
         };
 
         document.addEventListener("keydown", (ev) => {
             if (ev.key == "Escape") {
-                DocumentationBox.pressedEscape = true;
+                ExecutableCode.pressedEscape = true;
             }
         });
 
         document.addEventListener("keyup", (ev) => {
-            if (ev.key == "Escape" && DocumentationBox.pressedEscape) {
-                const focusedBox = DocumentationBox.openBoxes.find((box) => box.isFocused);
-                if (focusedBox) DocumentationBox.closeBox(focusedBox.id);
+            if (ev.key == "Escape" && ExecutableCode.pressedEscape) {
+                const focusedBox = ExecutableCode.openBoxes.find((box) => box.isFocused);
+                if (focusedBox) ExecutableCode.closeBox(focusedBox.id);
 
-                DocumentationBox.pressedEscape = false;
+                ExecutableCode.pressedEscape = false;
             }
         });
 
-        DocumentationBox.addNewBox(container.id);
+        ExecutableCode.addNewBox(container.id);
     }
 
     static getNewConsoleId(): string {
-        return "console-id-" + DocumentationBox.exampleCounter++;
+        return "console-id-" + ExecutableCode.exampleCounter++;
     }
 
     static addNewBox(id: string) {
         let newZIndex = INITIAL_Z_INDEX;
 
-        if (DocumentationBox.openBoxes.length > 0) {
-            newZIndex = Math.max(...DocumentationBox.openBoxes.map((box) => box.zIndex)) + 1;
+        if (ExecutableCode.openBoxes.length > 0) {
+            newZIndex = Math.max(...ExecutableCode.openBoxes.map((box) => box.zIndex)) + 1;
         }
 
-        DocumentationBox.openBoxes.push(new DocBoxMeta(id, true, newZIndex));
-        DocumentationBox.setZIndex(id, newZIndex);
-        DocumentationBox.focusBox(id);
+        ExecutableCode.openBoxes.push(new DocBoxMeta(id, true, newZIndex));
+        ExecutableCode.setZIndex(id, newZIndex);
+        ExecutableCode.focusBox(id);
     }
 
     static closeBox(id: string) {
         // should become the highest
-        DocumentationBox.focusBox(id);
+        ExecutableCode.focusBox(id);
 
         document.getElementById(id).remove();
-        DocumentationBox.openBoxes.splice(
-            DocumentationBox.openBoxes.findIndex((box) => box.id == id),
+        ExecutableCode.openBoxes.splice(
+            ExecutableCode.openBoxes.findIndex((box) => box.id == id),
             1
         );
 
-        const maxZIndex = Math.max(...DocumentationBox.openBoxes.map((box) => box.zIndex));
-        const maxZIndexId = DocumentationBox.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
+        const maxZIndex = Math.max(...ExecutableCode.openBoxes.map((box) => box.zIndex));
+        const maxZIndexId = ExecutableCode.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
 
-        if (maxZIndexId) DocumentationBox.focusBox(maxZIndexId);
+        if (maxZIndexId) ExecutableCode.focusBox(maxZIndexId);
 
         for (const buttonId of docBoxRunButtons.get(id)) {
             runBtnToOutputWindow.delete(buttonId);
@@ -157,26 +156,26 @@ export class DocumentationBox {
     }
 
     static focusBox(id: string) {
-        const box = DocumentationBox.openBoxes.find((box) => box.id == id);
+        const box = ExecutableCode.openBoxes.find((box) => box.id == id);
         const boxElement = document.getElementById(box?.id);
 
         if (box && boxElement) {
             const boxHeader = boxElement.getElementsByClassName("doc-box-header")[0];
             boxHeader.classList.add("focused-header");
 
-            const maxZIndex = Math.max(...DocumentationBox.openBoxes.map((box) => box.zIndex));
-            const maxZIndexId = DocumentationBox.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
+            const maxZIndex = Math.max(...ExecutableCode.openBoxes.map((box) => box.zIndex));
+            const maxZIndexId = ExecutableCode.openBoxes.find((box) => box.zIndex == maxZIndex)?.id;
 
             box.zIndex = maxZIndex;
             box.isFocused = true;
-            DocumentationBox.setZIndex(box.id, box.zIndex);
+            ExecutableCode.setZIndex(box.id, box.zIndex);
 
-            DocumentationBox.openBoxes.forEach((box) => {
+            ExecutableCode.openBoxes.forEach((box) => {
                 if (box.id != id) {
                     box.isFocused = false;
 
                     if (maxZIndexId != id && box.zIndex != INITIAL_Z_INDEX) box.zIndex--;
-                    DocumentationBox.setZIndex(box.id, box.zIndex);
+                    ExecutableCode.setZIndex(box.id, box.zIndex);
                 }
             });
         }
@@ -232,8 +231,8 @@ function createImage(image): HTMLDivElement {
     return tableElement;
 }
 
-function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeEditor, string] {
-    const codeLines = item.example.split("\n").length;
+export function createExample(example: string): [HTMLDivElement, string[], editor.IStandaloneCodeEditor, string] {
+    const codeLines = example.split("\n").length;
     const runButtons = [];
 
     const editorContainer = document.createElement("div");
@@ -257,7 +256,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
     buttonContainer.classList.add("doc-example-console-button-container");
     exampleConsole.appendChild(buttonContainer);
 
-    const consoleId = DocumentationBox.getNewConsoleId();
+    const consoleId = ExecutableCode.getNewConsoleId();
 
     const runButton = document.createElement("div");
     runButton.innerText = "> Run";
@@ -290,7 +289,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
 
     const codeEditor = editor.create(exampleEditor, {
         folding: false,
-        value: item.example,
+        value: example,
         language: "python3.6",
         dimension: { width: 200, height: codeLines * 20 },
         minimap: {
@@ -321,68 +320,16 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
     });
 
     resetConsoleButton.addEventListener("click", () => {
-        codeEditor.setValue(item.example);
+        codeEditor.setValue(example);
     });
 
+    runButton.addEventListener("click", () => {
+            consoleOutput.classList.add("console-output-open");
+    });
+
+	clearConsoleButton.addEventListener("click", () => {
+		consoleOutput.classList.remove("console-output-open");
+	})
+
     return [editorContainer, runButtons, codeEditor, consoleOutput.id];
-}
-
-function makeDraggable(element: HTMLDivElement) {
-    var pos1 = 0,
-        pos2 = 0,
-        pos3 = 0,
-        pos4 = 0;
-
-    if (document.getElementById(element.id + "header")) {
-        // if present, the header is where you move the DIV from:
-        document.getElementById(element.id + "header").onmousedown = dragMouseDown;
-    } else {
-        // otherwise, move the DIV from anywhere inside the DIV:
-        element.onmousedown = dragMouseDown;
-    }
-
-    function dragMouseDown(e) {
-        e = e || window.event;
-        e.preventDefault();
-
-        // get the mouse cursor position at startup:
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-        element.onmouseup = closeDragElement;
-
-        // call a function whenever the cursor moves:
-        element.onmousemove = elementDrag;
-    }
-
-    function elementDrag(e) {
-        e = e || window.event;
-        e.preventDefault();
-
-        // calculate the new cursor position:
-        pos1 = pos3 - e.clientX;
-        pos2 = pos4 - e.clientY;
-        pos3 = e.clientX;
-        pos4 = e.clientY;
-
-        if (
-            element.parentElement.offsetTop - pos2 > 0 &&
-            window.innerHeight - (element.parentElement.offsetTop - pos2 + element.parentElement.clientHeight) > 0
-        ) {
-            // set the element's new position:
-            element.parentElement.style.top = element.parentElement.offsetTop - pos2 + "px";
-        }
-
-        if (
-            element.parentElement.offsetLeft - pos1 > 0 &&
-            window.innerWidth - (element.parentElement.offsetLeft - pos1 + element.parentElement.clientWidth) > 0
-        ) {
-            element.parentElement.style.left = element.parentElement.offsetLeft - pos1 + "px";
-        }
-    }
-
-    function closeDragElement() {
-        // stop moving when mouse button is released:
-        element.onmouseup = null;
-        element.onmousemove = null;
-    }
 }

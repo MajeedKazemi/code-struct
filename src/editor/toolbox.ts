@@ -1,3 +1,6 @@
+import { nova, runBtnToOutputWindow } from "../index";
+import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
+import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
 import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
@@ -5,10 +8,12 @@ import { getUserFriendlyType } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { EditCodeAction } from "./action-filter";
 import { Actions } from "./consts";
+import { createExample } from "./doc-box";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import { Context } from "./focus";
 
 export const EDITOR_DOM_ID = "editor";
+export const docBoxRunButtons = new Map<string, string[]>();
 
 export class ToolboxController {
     static draftModeButtonClass = "button-draft-mode";
@@ -139,6 +144,43 @@ export class ToolboxController {
                     const quickComp = new QuickTipComponent(tip.text);
 
                     useCasesContainer.appendChild(quickComp.element);
+                } else if (tip.type == "executable") {
+                    const ex = createExample(tip.example);
+                    useCasesContainer.appendChild(ex[0]);
+
+                    docBoxRunButtons.set(tip.id, ex[1]);
+
+                    attachPyodideActions(
+                        (() => {
+                            const actions = [];
+
+                            for (const buttonId of ex[1]) {
+                                actions.push((pyodideController) => {
+                                    const button = document.getElementById(buttonId);
+
+                                    button.addEventListener("click", () => {
+                                        try {
+                                            nova.globals.lastPressedRunButtonId = button.id;
+
+                                            clearConsole(ex[3]);
+                                            pyodideController.runPython(codeString(ex[2].getValue()));
+                                        } catch (err) {
+                                            console.error("Unable to run python code");
+
+                                            addTextToConsole(
+                                                runBtnToOutputWindow.get(button.id),
+                                                err,
+                                                CONSOLE_ERR_TXT_CLASS
+                                            );
+                                        }
+                                    });
+                                });
+                            }
+
+                            return actions;
+                        })(),
+                        []
+                    );
                 }
             }
 
@@ -181,17 +223,6 @@ export class ToolboxController {
 
             tooltipTop.appendChild(warningMessage);
         }
-
-        // if (code.documentation) {
-        //     const learnButton = document.createElement("div");
-        //     learnButton.classList.add("learn-button");
-        //     learnButton.innerText = "learn more >";
-        //     tooltipHeader.appendChild(learnButton);
-
-        //     learnButton.onclick = () => {
-        //         const doc = new DocumentationBox(code.documentation, code.documentation);
-        //     };
-        // }
 
         return [tooltipContainer, sendUsageFunctions];
     }
