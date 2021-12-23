@@ -4,7 +4,6 @@ import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
 import { EditCodeAction } from "./action-filter";
 import { Actions } from "./consts";
-import { DocumentationBox } from "./doc-box";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import { Context } from "./focus";
 
@@ -47,27 +46,27 @@ export class ToolboxController {
                             tooltip.style.opacity = "1";
                         }, 1);
 
-                        // button.addEventListener("mouseleave", () => {
-                        //     setTimeout(() => {
-                        //         if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
-                        //             tooltip.style.opacity = "0";
+                        button.addEventListener("mouseleave", () => {
+                            setTimeout(() => {
+                                if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
+                                    tooltip.style.opacity = "0";
 
-                        //             setTimeout(() => {
-                        //                 tooltip.remove();
-                        //             }, 100);
-                        //         }
-                        //     }, 100);
-                        // });
+                                    setTimeout(() => {
+                                        tooltip.remove();
+                                    }, 100);
+                                }
+                            }, 100);
+                        });
 
-                        // tooltip.addEventListener("mouseleave", () => {
-                        //     if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
-                        //         tooltip.style.opacity = "0";
+                        tooltip.addEventListener("mouseleave", () => {
+                            if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
+                                tooltip.style.opacity = "0";
 
-                        //         setTimeout(() => {
-                        //             tooltip.remove();
-                        //         }, 100);
-                        //     }
-                        // });
+                                setTimeout(() => {
+                                    tooltip.remove();
+                                }, 100);
+                            }
+                        });
                     }
                 });
             }
@@ -164,16 +163,16 @@ export class ToolboxController {
             tooltipTop.appendChild(warningMessage);
         }
 
-        if (code.documentation) {
-            const learnButton = document.createElement("div");
-            learnButton.classList.add("learn-button");
-            learnButton.innerText = "learn more >";
-            tooltipHeader.appendChild(learnButton);
+        // if (code.documentation) {
+        //     const learnButton = document.createElement("div");
+        //     learnButton.classList.add("learn-button");
+        //     learnButton.innerText = "learn more >";
+        //     tooltipHeader.appendChild(learnButton);
 
-            learnButton.onclick = () => {
-                const doc = new DocumentationBox(code.documentation, code.documentation);
-            };
-        }
+        //     learnButton.onclick = () => {
+        //         const doc = new DocumentationBox(code.documentation, code.documentation);
+        //     };
+        // }
 
         return tooltipContainer;
     }
@@ -568,10 +567,10 @@ class UseCaseSliderComponent {
         useCaseTitle.innerText = title;
         useCaseTitleContainer.appendChild(useCaseTitle);
 
-        const useCaseLearnButton = document.createElement("div");
-        useCaseLearnButton.classList.add("use-case-learn-button");
-        useCaseLearnButton.innerHTML = "learn";
-        useCaseTitleContainer.appendChild(useCaseLearnButton);
+        // const useCaseLearnButton = document.createElement("div");
+        // useCaseLearnButton.classList.add("use-case-learn-button");
+        // useCaseLearnButton.innerHTML = "learn";
+        // useCaseTitleContainer.appendChild(useCaseLearnButton);
 
         const sliderContainer = document.createElement("div");
         sliderContainer.classList.add("slider-container");
@@ -652,7 +651,6 @@ class UseCaseSliderComponent {
         sliderContainer.appendChild(labelsContainer);
 
         this.updateExpanded = () => {
-            useCaseLearnButton.style.opacity = this.expanded ? "0" : "1.0";
             sliderContainer.style.maxHeight = this.expanded ? `${sliderContainer.scrollHeight}px` : "0px";
             useCaseTitleContainer.style.backgroundColor = this.expanded ? "#cfe3eb" : "#fff";
 

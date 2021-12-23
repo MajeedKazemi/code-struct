@@ -11,10 +11,18 @@
         { "example": "for i in range(1, 10):\n\tprint(i)" }
     ],
     "tooltip": {
-        "title": "Run Indented Code with Iterator",
-        "body": "Creates an iterator variable from a sequence to repeatedly execute the indented code below the for loop."
+        "title": "loop through a sequence of elements",
+        "body": "executes a set of statements for each element in a sequence (like a `range`, a `list`, or a `string`). "
     },
     "tips": [
+        {
+            "type": "quick",
+            "text": "for loops have two inputs: a variable name, and a sequence of items. the created variable is used to hold the current item, and the sequence is the list of items to go through."
+        },
+        {
+            "type": "quick",
+            "text": "for loops can be used with the `range` function to work like a counter"
+        },
         {
             "type": "use-case",
             "title": "go through a list of items",

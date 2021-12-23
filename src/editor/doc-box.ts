@@ -233,6 +233,7 @@ function createImage(image): HTMLDivElement {
 }
 
 function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeEditor, string] {
+    const codeLines = item.example.split("\n").length;
     const runButtons = [];
 
     const editorContainer = document.createElement("div");
@@ -245,6 +246,7 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
 
     const exampleEditor = document.createElement("div");
     exampleEditor.classList.add("doc-editor");
+    exampleEditor.style.height = codeLines * 20 + "px";
     editorContainer.appendChild(exampleEditor);
 
     const exampleConsole = document.createElement("div");
@@ -290,15 +292,18 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
         folding: false,
         value: item.example,
         language: "python3.6",
-        dimension: { width: 200, height: 100 },
+        dimension: { width: 200, height: codeLines * 20 },
         minimap: {
             enabled: false,
         },
         overviewRulerLanes: 0,
         overviewRulerBorder: false,
         contextmenu: false,
+        codeLens: false,
+        dragAndDrop: false,
         mouseWheelScrollSensitivity: 0,
         automaticLayout: true,
+        scrollBeyondLastLine: false,
         scrollbar: {
             vertical: "auto",
             horizontal: "auto",
@@ -306,8 +311,9 @@ function createExample(item): [HTMLDivElement, string[], editor.IStandaloneCodeE
             horizontalSliderSize: 5,
             scrollByPage: false,
         },
-        fontSize: 13,
-        lineHeight: 19,
+        occurrencesHighlight: false,
+        fontSize: 14,
+        lineHeight: 20,
     });
 
     codeEditor.onDidChangeModelContent(() => {

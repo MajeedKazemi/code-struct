@@ -8,17 +8,26 @@
         { "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1" }
     ],
     "tooltip": {
-        "title": "Repeatedly Run Indented Code",
-        "body": "Repeatedly executes the indented code below the while loop as long as the condition is True."
+        "title": "repeatedly execute code while true",
+        "body": "repeatedly executes the code block inside the while loop as long as the condition remains `True`."
     },
     "tips": [
+        {
+            "type": "quick",
+            "text": "the `while` loop in Python compared to the `repeat until` block in Scratch: the `while` loop in Python repeats code as long as the condition is `True`, and stops when the condition becomes `False`. However, the `repeat until` block in Scratch repeats code as long as the condition is `False`, and stops when the condition becomes `True`."
+        },
         {
             "type": "use-case",
             "title": "repeatedly increment a variable",
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/1-while-counter/",
             "max": 30,
+            "prefix": "Slide",
             "extension": "PNG",
-            "prefix": "Slide"
+            "explanations": [
+                { "slide": 7, "text": "i is less than 3 so the condition holds true" },
+                { "slide": 28, "text": "i is no longer less than 3 so the condition is false" },
+                { "slide": 29, "text": "should execute the next line after the while loop" }
+            ]
         }
     ]
 }

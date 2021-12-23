@@ -299,7 +299,7 @@ hole2 {
 }
 
 .tooltip-container .spacing {
-    height: 10px;
+    height: 5px;
 }
 
 .tooltip-container .use-cases-container::-webkit-scrollbar {
@@ -372,7 +372,7 @@ hole2 {
 }
 
 .tooltip-container .single-use-case-container .use-case-title .use-case-title-header {
-    margin-top: 4px;
+    /* margin-top: 4px; */
 }
 
 .tooltip-container .single-use-case-container .use-case-learn-button {
@@ -432,7 +432,7 @@ hole2 {
 }
 
 .tooltip-container .slider-container .slider-image {
-    width: 100%;
+    width: 470px;
     display: block;
 }
 
