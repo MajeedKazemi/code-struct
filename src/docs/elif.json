@@ -25,7 +25,8 @@
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-single-elif/",
             "max": 11,
             "extension": "PNG",
-            "prefix": "Slide"
+            "prefix": "Slide",
+            "id": "elif-after-if"
         },
         {
             "type": "use-case",
@@ -33,7 +34,8 @@
             "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-double-elif/",
             "max": 13,
             "extension": "PNG",
-            "prefix": "Slide"
+            "prefix": "Slide",
+            "id": "elif-after-elif"
         }
     ]
 }

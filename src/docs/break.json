@@ -18,6 +18,7 @@
             "max": 30,
             "extension": "PNG",
             "prefix": "Slide",
+            "id": "break-while-on-condition",
             "explanations": [
                 { "slide": 5, "text": "variable i is defined and set to 0" },
                 { "slide": 6, "text": "should repeat the while statements if i < 10" },

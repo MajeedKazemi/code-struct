@@ -23,6 +23,7 @@
             "max": 30,
             "prefix": "Slide",
             "extension": "PNG",
+            "id": "while-increment-var",
             "explanations": [
                 { "slide": 7, "text": "i is less than 3 so the condition holds true" },
                 { "slide": 28, "text": "i is no longer less than 3 so the condition is false" },
