@@ -910,7 +910,7 @@ export class Actions {
             },
             NotDocs,
             // TODO: this has ambiguity with not in binary exp
-            [" "],
+            [" ", "("],
             "not",
             null
         );
@@ -934,13 +934,13 @@ export class Actions {
         );
 
         const WhileStmt = new EditCodeAction(
-            "while (---) :",
+            "while --- :",
             "add-while-expr-btn",
             () => new WhileStatement(),
             InsertActionType.InsertStatement,
             {},
             WhileDocs,
-            [" "],
+            [" ", "("],
             "while",
             null
         );
@@ -972,25 +972,25 @@ export class Actions {
         );
 
         const IfStmt = new EditCodeAction(
-            "if (---) :",
+            "if --- :",
             "add-if-expr-btn",
             () => new IfStatement(),
             InsertActionType.InsertStatement,
             {},
             IfDocs,
-            [" "],
+            [" ", "("],
             "if",
             null
         );
 
         const ElifStmt = new EditCodeAction(
-            "elif (---) :",
+            "elif --- :",
             "add-elif-expr-btn",
             () => new ElseStatement(true),
             InsertActionType.InsertElifStmt,
             {},
             ElifDocs,
-            [" "],
+            [" ", "("],
             "elif",
             null
         );
