@@ -16,6 +16,7 @@
         "build": "node node_modules/webpack/bin/webpack.js --progress"
     },
     "dependencies": {
+        "axios": "^0.24.0",
         "fuse.js": "^6.4.6",
         "monaco-editor": "^0.25.2"
     },

@@ -2,6 +2,7 @@ import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr }
 import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
+import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { EditCodeAction } from "./action-filter";
 import { Actions } from "./consts";
 import { EventAction, EventStack, EventType } from "./event-stack";
@@ -31,7 +32,8 @@ export class ToolboxController {
                     const tooltipId = `tooltip-${item.cssId}`;
 
                     if (!document.getElementById(tooltipId)) {
-                        const tooltip = this.createTooltip(item);
+                        const [tooltip, sendUsageFunctions] = this.createTooltip(item);
+                        const tooltipStartTime = Date.now();
                         tooltip.id = tooltipId;
 
                         tooltip.style.left = `${button.getBoundingClientRect().right + 10}px`;
@@ -46,12 +48,24 @@ export class ToolboxController {
                             tooltip.style.opacity = "1";
                         }, 1);
 
+                        const sendDurationLogEvent = () => {
+                            Logger.Instance().queueEvent(
+                                new LogEvent(LogType.TooltipHoverDuration, {
+                                    name: item.cssId,
+                                    duration: Date.now() - tooltipStartTime,
+                                })
+                            );
+                        };
+
                         button.addEventListener("mouseleave", () => {
                             setTimeout(() => {
                                 if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
                                     tooltip.style.opacity = "0";
 
                                     setTimeout(() => {
+                                        sendDurationLogEvent();
+                                        sendUsageFunctions.forEach((f) => f());
+
                                         tooltip.remove();
                                     }, 100);
                                 }
@@ -63,6 +77,9 @@ export class ToolboxController {
                                 tooltip.style.opacity = "0";
 
                                 setTimeout(() => {
+                                    sendDurationLogEvent();
+                                    sendUsageFunctions.forEach((f) => f());
+
                                     tooltip.remove();
                                 }, 100);
                             }
@@ -73,8 +90,9 @@ export class ToolboxController {
         }
     }
 
-    private createTooltip(code: EditCodeAction): HTMLDivElement {
+    private createTooltip(code: EditCodeAction): [HTMLDivElement, Array<() => void>] {
         let codeAction = null;
+        const sendUsageFunctions: Array<() => void> = [];
 
         for (const x of this.module.actionFilter.getProcessedConstructInsertions()) {
             if (x.cssId == code.cssId) {
@@ -113,9 +131,10 @@ export class ToolboxController {
 
             for (const tip of code.documentation.tips) {
                 if (tip.type == "use-case") {
-                    const useCaseComp = new UseCaseSliderComponent(tip);
+                    const useCaseComp = new UseCaseSliderComponent(tip, code.cssId);
 
                     useCasesContainer.appendChild(useCaseComp.element);
+                    sendUsageFunctions.push(useCaseComp.sendUsage);
                 } else if (tip.type == "quick") {
                     const quickComp = new QuickTipComponent(tip.text);
 
@@ -174,7 +193,7 @@ export class ToolboxController {
         //     };
         // }
 
-        return tooltipContainer;
+        return [tooltipContainer, sendUsageFunctions];
     }
 
     updateButtonsOnContextChange() {
@@ -518,15 +537,18 @@ function addClassToButton(buttonId: string, className: string) {
 class UseCaseSliderComponent {
     element: HTMLDivElement;
     expanded: boolean;
+    sendUsage: () => void;
 
-    constructor(useCase: any) {
+    constructor(useCase: any, buttonId: string) {
         this.element = this.createUseCaseComponent(
             useCase.path,
             useCase.max,
             useCase.extension,
             useCase.prefix,
             useCase.explanations,
-            useCase.title
+            useCase.title,
+            useCase.id,
+            buttonId
         );
 
         this.expanded = false;
@@ -546,9 +568,12 @@ class UseCaseSliderComponent {
         extension: string,
         prefix: string,
         explanations: any[],
-        title: string
+        title: string,
+        id: string,
+        buttonId: string
     ): HTMLDivElement {
         const comp = document.createElement("div");
+        let useCaseUsed = false;
 
         const spacingDiv = document.createElement("div");
         spacingDiv.classList.add("spacing");
@@ -602,6 +627,14 @@ class UseCaseSliderComponent {
                 explanationContainer.innerText = explanation ? explanation.text : "-";
                 explanationContainer.style.opacity = explanation ? "1.0" : "0.0";
             }
+
+            if (currentSlide.index != parseInt(slider.value) - 1) {
+                slideUsage[currentSlide.index].time += Date.now() - currentSlide.startTime;
+                slideUsage[currentSlide.index].count++;
+
+                currentSlide.index = parseInt(slider.value) - 1;
+                currentSlide.startTime = Date.now();
+            }
         };
 
         const nextBtn = document.createElement("div");
@@ -610,6 +643,8 @@ class UseCaseSliderComponent {
 
         nextBtn.addEventListener("click", () => {
             if (slider.value != max.toString()) {
+                useCaseUsed = true;
+
                 slider.value = (parseInt(slider.value) + 1).toString();
                 updateSlide();
             }
@@ -620,23 +655,32 @@ class UseCaseSliderComponent {
         prevBtn.innerText = "<";
         prevBtn.addEventListener("click", () => {
             if (slider.value != "1") {
+                useCaseUsed = true;
+
                 slider.value = (parseInt(slider.value) - 1).toString();
                 updateSlide();
             }
         });
 
         const slides = [];
+        const slideUsage = [];
 
         for (let i = 1; i < max + 1; i++) {
             if (prefix) slides.push(`${path}${prefix}${i}.${extension}`);
             else slides.push(`${path}${i}.${extension}`);
+
+            slideUsage.push({ time: 0, count: 0 });
         }
+
+        let currentSlide = { startTime: Date.now(), index: 0 };
 
         const slideImage = document.createElement("img");
         sliderContainer.append(slideImage);
         slideImage.classList.add("slider-image");
 
         slider.oninput = () => {
+            useCaseUsed = true;
+
             updateSlide();
         };
 
@@ -654,10 +698,17 @@ class UseCaseSliderComponent {
             sliderContainer.style.maxHeight = this.expanded ? `${sliderContainer.scrollHeight}px` : "0px";
             useCaseTitleContainer.style.backgroundColor = this.expanded ? "#cfe3eb" : "#fff";
 
-            if (this.expanded)
+            if (this.expanded) {
+                Logger.Instance().queueEvent(
+                    new LogEvent(LogType.OpenUseCase, { "use-case": id, "button-id": buttonId })
+                );
+            }
+
+            if (this.expanded) {
                 setTimeout(() => {
                     comp.scrollIntoView({ behavior: "smooth" });
                 }, 150);
+            }
         };
 
         useCaseTitleContainer.addEventListener("click", () => {
@@ -665,6 +716,18 @@ class UseCaseSliderComponent {
 
             this.updateExpanded();
         });
+
+        this.sendUsage = () => {
+            if (useCaseUsed) {
+                Logger.Instance().queueEvent(
+                    new LogEvent(LogType.UseCaseSlideUsage, {
+                        "use-case": id,
+                        "button-id": buttonId,
+                        "slide-usage": slideUsage,
+                    })
+                );
+            }
+        };
 
         return comp;
     }
