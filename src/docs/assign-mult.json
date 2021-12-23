@@ -1,16 +1,14 @@
 {
     "title": "Multiply a Variable",
-    "body": [
-        {
-            "paragraph": "Multiplies the value of an existing variable by the value of the provided expression and stores the result back in the variable."
-        },
-        {
-            "paragraph": "The below will print 10. It is equivalent to a = a * 2"
-        },
-        { "example": "a = 5\na *= 2\nprint(a)" }
-    ],
     "tooltip": {
         "title": "Multiply Variable by Value",
         "body": "Multiplies the variable by the value on the right-hand side of the *= sign and stores the result back in the variable."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-var-mul-by-val",
+            "example": "a = 5\na *= 2\nprint(a)"
+        }
+    ]
 }

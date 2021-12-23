@@ -1,13 +1,28 @@
 {
     "title": "Create/Reassign Variable",
-    "body": [
-        {
-            "paragraph": "Creates a new variable with the left hole expecting an identifier (name) for the variable. The second hole expects the value that will be stored in the variable."
-        },
-        { "example": "name = \"John\"" }
-    ],
     "tooltip": {
         "title": "Create Variable Assignment",
         "body": "Allows to store a value and give it a name to reference it by later."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-declare-print-var",
+            "example": "name = \"John\"\nprint(name)"
+        },
+        {
+            "type": "quick",
+            "text": "A variable is created the moment you first assign a value to it."
+        },
+        {
+            "type": "bullet-point",
+            "title": "variable naming",
+            "bullets": [
+                "Variable names can only contain letters, numbers, and underscores",
+                "Variable names are case-sensitive (\"x\" and \"X\" are different)",
+                "A variable name must start with a letter or the underscore character",
+                "A variable name cannot start with a number"
+            ]
+        }
+    ]
 }

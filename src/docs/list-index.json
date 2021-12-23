@@ -1,20 +1,19 @@
 {
     "title": "List Element Access",
-    "body": [
-        {
-            "paragraph": "Used after a list or a variable of type list to access an element of the list at the provided index. <span class=\"bold\">Lists are 0-indexed meaning that the first element of a list is at position 0 and not 1.</span>"
-        },
-        {
-            "paragraph": "The below code will print 1 (the first element of the list)."
-        },
-        { "example": "a = [1, 2, 3]\nprint(a[0])" },
-        {
-            "paragraph": "After being accessed, the element can be used just like any other value."
-        },
-        { "example": "a = [1, 2, 3]\nif a[1] == 2:\n\tprint(\"The second element of the list is equal to 2.\")" }
-    ],
     "tooltip": {
         "title": "Access List Element",
         "body": "Adds a list accessor to a list (or a text) to access an element of the list at the provided index."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-list-index-1",
+            "example": "a = [1, 2, 3]\nprint(a[0])"
+        },
+        {
+            "type": "executable",
+            "id": "ex-list-index-2",
+            "example": "a = [1, 2, 3]\nif a[1] == 2:\n\tprint(\"The second element of the list is equal to 2.\")"
+        }
+    ]
 }

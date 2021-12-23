@@ -1,21 +1,19 @@
 {
     "title": "len(iterable: list/text)",
-    "body": [
-        {
-            "paragraph": "<span class=\"bold\">len()</span> returns the number of items in an object; the number of characters in a text object."
-        },
-        {
-            "example": "greeting = \"Hello World!\"\na = len(greeting)\nprint(a)"
-        },
-        {
-            "paragraph": "It can also be used on lists."
-        },
-        {
-            "example": "items = [1, 2, 3]\na = len(items)\nprint(a)"
-        }
-    ],
     "tooltip": {
         "title": "Get Length of List or Text",
         "body": "Returns the number of items in an object, or the number of characters in a text."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-len-1",
+            "example": "greeting = \"Hello World!\"\na = len(greeting)\nprint(a)"
+        },
+        {
+            "type": "executable",
+            "id": "ex-len-2",
+            "example": "items = [1, 2, 3]\na = len(items)\nprint(a)"
+        }
+    ]
 }

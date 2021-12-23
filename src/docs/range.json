@@ -1,17 +1,14 @@
 {
     "title": "range(end: number)",
-    "body": [
-        {
-            "paragraph": "Returns a sequence of numbers from 0 to the provided input."
-        },
-        {
-            "paragraph": "A for loop can be used together with the <span class=\"bold\">range()</span> function call to go through a sequence of numbers."
-        },
-
-        { "example": "for i in range(10):\n\tprint(i)" }
-    ],
     "tooltip": {
         "title": "Create Iterable Sequence",
         "body": "Generates a sequence of numbers from 0 to the provided input. Usually used with a for loop."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-range",
+            "example": "for i in range(10):\n\tprint(i)"
+        }
+    ]
 }

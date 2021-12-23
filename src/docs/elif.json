@@ -1,21 +1,37 @@
 {
     "title": "elif statement",
-    "body": [
+    "tooltip": {
+        "title": "Insert Elif Statement",
+        "body": "Short for else-if; adds another case to an existing if statement. The `elif` will only run when previous `if` or `elif` statement is false"
+    },
+    "tips": [
         {
-            "paragraph": "A conditional statement that can only be used after an <span class=\"bold\">if</span> statement and allows us to add more cases to create an <span class=\"italics bold\">if block</span>. It executes only if the statements above it evaluate to <span class=\"bold\">false</span>."
-        },
-        {
+            "type": "executable",
+            "id": "ex-elif-1",
             "example": "a = 3\nif a > 10:\n\tprint(\"a is larger than 10\")\nelif a < 10:\n\tprint(\"a is smaller than 10\")"
         },
         {
-            "paragraph": "<span class=\"bold\">elif</span> statements allow us to group related conditions together and we can have multiple of them in one <span class=\"bold\">if block</span>."
+            "type": "executable",
+            "id": "ex-elif-2",
+            "example": "a = 5\nif a > 3:\n\tprint(3)\nelif a > 4:\n\tprint(4)\nelif a == 5:\n\tprint(5)\nelif a > 6:\n\tprint(6)"
         },
         {
-            "example": "a = 5\nif a > 3:\n\tprint(3)\nelif a > 4:\n\tprint(4)\nelif a == 5:\n\tprint(5)\nelif a > 6:\n\tprint(6)"
+            "type": "use-case",
+            "title": "using elif after an if statement",
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-single-elif/",
+            "max": 11,
+            "extension": "PNG",
+            "prefix": "Slide",
+            "id": "elif-after-if"
+        },
+        {
+            "type": "use-case",
+            "title": "using elif after another elif statement",
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/7-if-double-elif/",
+            "max": 13,
+            "extension": "PNG",
+            "prefix": "Slide",
+            "id": "elif-after-elif"
         }
-    ],
-    "tooltip": {
-        "title": "Insert Elif Statement",
-        "body": "Short for else-if; adds another case to an existing if statement."
-    }
+    ]
 }

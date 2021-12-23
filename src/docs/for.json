@@ -4,14 +4,64 @@
         {
             "paragraph": "A for loop can be used to go through a sequence of elements one-by-one. \n\n Notice the usage of \"animal\", this is the variable that holds the current value of our item."
         },
-        { "example": "lst = [\"cat\", \"dog\", \"mouse\", \"parrot\"]\nfor animal in lst:\n\tprint(animal)" },
         {
             "paragraph": "A for loop can also be used together with the <span class=\"bold\">range()</span> function call to go through a sequence of numbers."
         },
         { "example": "for i in range(1, 10):\n\tprint(i)" }
     ],
     "tooltip": {
-        "title": "Run Indented Code with Iterator",
-        "body": "Creates an iterator variable from a sequence to repeatedly execute the indented code below the for loop."
-    }
+        "title": "loop through a sequence of elements",
+        "body": "executes a set of statements for each element in a sequence (like a `range`, a `list`, or a `string`). "
+    },
+    "tips": [
+        {
+            "type": "quick",
+            "text": "for loops have two inputs: a variable name, and a sequence of items. the created variable is used to hold the current item, and the sequence is the list of items to go through."
+        },
+        {
+            "type": "quick",
+            "text": "for loops can be used with the `range` function to work like a counter"
+        },
+        {
+            "type": "executable",
+            "id": "ex-for-list-items",
+            "example": "lst = [\"cat\", \"dog\", \"mouse\", \"parrot\"]\nfor animal in lst:\n\tprint(animal)"
+        },
+        {
+            "type": "use-case",
+            "title": "go through a list of items",
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/2-for-loop-list/",
+            "max": 25,
+            "extension": "PNG",
+            "prefix": "Slide",
+            "id": "loop-list-items"
+        },
+        {
+            "type": "use-case",
+            "title": "go through a sequence of numbers",
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/3-for-loop-range/",
+            "max": 21,
+            "extension": "PNG",
+            "prefix": "Slide",
+            "id": "loop-sequence-nums"
+        },
+        {
+            "type": "use-case",
+            "title": "go through a list of items using indices",
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/4-for-loop-range-list/",
+            "max": 30,
+            "extension": "PNG",
+            "prefix": "Slide",
+            "id": "loop-list-items-using-indices"
+        },
+        {
+            "type": "use-case",
+            "title": "go through every character of a string",
+            "path": "https://cdn.majeed.cc/pydoc/images/use-cases/5-for-loop-string/",
+            "max": 21,
+            "extension": "PNG",
+            "prefix": "Slide",
+            "id": "loop-chars-of-str"
+        }
+    ]
 }

@@ -33,6 +33,11 @@
     -moz-transition: 0.15s ease-in-out;
     -o-transition: 0.15s ease-in-out;
     -ms-transition: 0.15s ease-in-out;
+
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
 }
 
 #editor-toolbox .button:hover {
@@ -215,7 +220,7 @@ hole2 {
     display: none;
     color: #fff;
     border-radius: 10px;
-    width: 450px;
+    width: 500px;
     overflow: hidden;
     background: rgb(0 162 225);
     box-shadow: 0 0px 30px 5px rgb(145 184 218);
@@ -284,6 +289,185 @@ hole2 {
 .tooltip-container .learn-button:hover {
     background-color: rgb(0 106 147);
     color: #fff;
+}
+
+.tooltip-container .use-cases-container {
+    max-height: 300px;
+    overflow-y: scroll;
+    background-color: #fff;
+    padding-bottom: 10px;
+}
+
+.tooltip-container .spacing {
+    height: 5px;
+}
+
+.tooltip-container .use-cases-container::-webkit-scrollbar {
+    background: #ccc;
+    margin: 5px;
+    width: 8px;
+}
+
+.tooltip-container .use-cases-container::-webkit-scrollbar-track {
+    background: #ebebeb;
+}
+
+.tooltip-container .use-cases-container::-webkit-scrollbar-thumb {
+    border: none;
+    background-color: #b8ccd1;
+    border-radius: 0px;
+}
+
+.tooltip-container .quick-tip {
+    margin: 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #fff;
+    border: solid 1px #ccc;
+    padding: 5px;
+}
+
+.tooltip-container .quick-tip .quick-tip-text {
+    font-size: 13px;
+    color: #000;
+}
+
+.tooltip-container .quick-tip .quick-tip-title {
+    font-size: 13px;
+    color: #fff;
+    background-color: #00aeae;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-right: 5px;
+    font-weight: bold;
+}
+
+.tooltip-container .single-use-case-container {
+    margin: 0 10px;
+    border-radius: 5px;
+    overflow: hidden;
+    background-color: #fff;
+    color: #000;
+    font-weight: bold;
+    border: solid 1px #ccc;
+}
+
+.tooltip-container .single-use-case-container .use-case-title {
+    padding: 5px 5px 5px 10px;
+    font-weight: bold;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+}
+
+.tooltip-container .single-use-case-container .use-case-title:hover {
+    background-color: #cfe3eb !important;
+}
+
+.tooltip-container .single-use-case-container .use-case-title .use-case-title-header {
+    /* margin-top: 4px; */
+}
+
+.tooltip-container .single-use-case-container .use-case-learn-button {
+    color: #000000;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 14px;
+    padding: 3px 10px;
+    border: solid 1px #006a938c;
+    background-color: #006a931f;
+
+    transition: background-color 0.2s ease-in-out;
+    -webkit-transition: background-color 0.2s ease-in-out;
+    -moz-transition: background-color 0.2s ease-in-out;
+    -o-transition: background-color 0.2s ease-in-out;
+    -ms-transition: background-color 0.2s ease-in-out;
+
+    transition: opacity 0.4 ease-in-out;
+    -webkit-transition: opacity 0.4 ease-in-out;
+    -moz-transition: opacity 0.4 ease-in-out;
+    -o-transition: opacity 0.4 ease-in-out;
+    -ms-transition: opacity 0.4 ease-in-out;
+}
+
+.tooltip-container .single-use-case-container .use-case-learn-button:hover {
+    background-color: #006a9338;
+}
+
+.tooltip-container .slider-container {
+    font-family: Consolas, "Courier New", monospace;
+
+    transition: max-height 0.15s ease-in-out;
+    -webkit-transition: max-height 0.15s ease-in-out;
+    -moz-transition: max-height 0.15s ease-in-out;
+    -o-transition: max-height 0.15s ease-in-out;
+    -ms-transition: max-height 0.15s ease-in-out;
+}
+
+.tooltip-container .slider-container .range-slider {
+    display: inline-block;
+    flex-grow: 1;
+}
+
+.tooltip-container .slider-container .slider-btn {
+    display: inline-block;
+    cursor: pointer;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    background-color: #029ad7;
+    margin: 0 10px 0;
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-weight: bold;
+    box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+}
+
+.tooltip-container .slider-container .slider-image {
+    width: 470px;
+    display: block;
+}
+
+.tooltip-container .slider-container .labels-container {
+    display: flex;
+    font-size: 14px;
+}
+
+.tooltip-container .slider-container .slider-label {
+    border: solid 2px #00719e;
+    margin: 10px 0 10px 10px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background-color: #0a82b1;
+    color: #ffffff;
+}
+
+.tooltip-container .slider-container .explanation-container {
+    border: solid 2px #7b0078;
+    margin: 10px 10px 9px;
+    padding: 3px 7px;
+    border-radius: 5px;
+    background-color: #b000ac;
+    color: #ffffff;
+
+    transition: opacity 0.4s ease-in-out;
+    -webkit-transition: opacity 0.4s ease-in-out;
+    -moz-transition: opacity 0.4s ease-in-out;
+    -o-transition: opacity 0.4s ease-in-out;
+    -ms-transition: opacity 0.4s ease-in-out;
+}
+
+.tooltip-container .slider-container .buttons-container {
+    display: flex;
+    margin-top: 3px;
 }
 
 .statement-button {

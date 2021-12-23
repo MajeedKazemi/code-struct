@@ -1,20 +1,14 @@
 {
     "title": "input(prompt: text)",
-    "body": [
-        {
-            "paragraph": "The <span class=\"bold\">input()</span> function allows the program to ask the user for input. The prompt that is included will be displayed to the user before asking them for input."
-        },
-        {
-            "paragraph": "The below example with ask the user's name and print it to the console."
-        },
-        {
-            "paragraph": "<span class=\"bold\">NOTE: The value returned by the <span class=\"italics bold\">input()</span> function is always text and has to be cast to other datatypes if you are expecting anything other than a text. </span>"
-        },
-        { "example": "name = input(\"Hi! What’s your name?\")\nprint(name)" }
-
-    ],
     "tooltip": {
         "title": "Ask User for Textual Input",
         "body": "Displays a message that prompts the user to enter some text. The entered text will be returned."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-input-1",
+            "example": "name = input(\"Hi! What’s your name?\")\nprint(name)"
+        }
+    ]
 }

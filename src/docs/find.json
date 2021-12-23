@@ -1,16 +1,14 @@
 {
     "title": "find(txt: text)",
-    "body": [
-        {
-            "paragraph": "Finds the first occurrence of the specified text value in the text the function is being called from and returns its index; -1 if the value was not found."
-        },
-        {
-            "paragraph": "The below example will print 4 because text is 0-indexed. "
-        },
-        { "example": "name = \"Zimmer\"\nindexOfE = name.find(\"e\")\nprint(indexOfE)" }
-    ],
     "tooltip": {
         "title": "Call Find Method",
         "body": "Finds the first occurrence of the input's textual value in the text."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-find-1",
+            "example": "name = \"Zimmer\"\nindexOfE = name.find(\"e\")\nprint(indexOfE)"
+        }
+    ]
 }

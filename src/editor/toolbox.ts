@@ -1,14 +1,19 @@
+import { nova, runBtnToOutputWindow } from "../index";
+import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
+import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
 import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
+import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { EditCodeAction } from "./action-filter";
 import { Actions } from "./consts";
-import { DocumentationBox } from "./doc-box";
+import { createExample } from "./doc-box";
 import { EventAction, EventStack, EventType } from "./event-stack";
 import { Context } from "./focus";
 
 export const EDITOR_DOM_ID = "editor";
+export const docBoxRunButtons = new Map<string, string[]>();
 
 export class ToolboxController {
     static draftModeButtonClass = "button-draft-mode";
@@ -32,7 +37,8 @@ export class ToolboxController {
                     const tooltipId = `tooltip-${item.cssId}`;
 
                     if (!document.getElementById(tooltipId)) {
-                        const tooltip = this.createTooltip(item);
+                        const [tooltip, sendUsageFunctions] = this.createTooltip(item);
+                        const tooltipStartTime = Date.now();
                         tooltip.id = tooltipId;
 
                         tooltip.style.left = `${button.getBoundingClientRect().right + 10}px`;
@@ -47,12 +53,24 @@ export class ToolboxController {
                             tooltip.style.opacity = "1";
                         }, 1);
 
+                        const sendDurationLogEvent = () => {
+                            Logger.Instance().queueEvent(
+                                new LogEvent(LogType.TooltipHoverDuration, {
+                                    name: item.cssId,
+                                    duration: Date.now() - tooltipStartTime,
+                                })
+                            );
+                        };
+
                         button.addEventListener("mouseleave", () => {
                             setTimeout(() => {
                                 if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
                                     tooltip.style.opacity = "0";
 
                                     setTimeout(() => {
+                                        sendDurationLogEvent();
+                                        sendUsageFunctions.forEach((f) => f());
+
                                         tooltip.remove();
                                     }, 100);
                                 }
@@ -64,6 +82,9 @@ export class ToolboxController {
                                 tooltip.style.opacity = "0";
 
                                 setTimeout(() => {
+                                    sendDurationLogEvent();
+                                    sendUsageFunctions.forEach((f) => f());
+
                                     tooltip.remove();
                                 }, 100);
                             }
@@ -74,8 +95,9 @@ export class ToolboxController {
         }
     }
 
-    private createTooltip(code: EditCodeAction): HTMLDivElement {
+    private createTooltip(code: EditCodeAction): [HTMLDivElement, Array<() => void>] {
         let codeAction = null;
+        const sendUsageFunctions: Array<() => void> = [];
 
         for (const x of this.module.actionFilter.getProcessedConstructInsertions()) {
             if (x.cssId == code.cssId) {
@@ -108,6 +130,63 @@ export class ToolboxController {
             tooltipTop.appendChild(tooltipText);
         }
 
+        if (code.documentation.tips) {
+            const useCasesContainer = document.createElement("div");
+            useCasesContainer.classList.add("use-cases-container");
+
+            for (const tip of code.documentation.tips) {
+                if (tip.type == "use-case") {
+                    const useCaseComp = new UseCaseSliderComponent(tip, code.cssId);
+
+                    useCasesContainer.appendChild(useCaseComp.element);
+                    sendUsageFunctions.push(useCaseComp.sendUsage);
+                } else if (tip.type == "quick") {
+                    const quickComp = new QuickTipComponent(tip.text);
+
+                    useCasesContainer.appendChild(quickComp.element);
+                } else if (tip.type == "executable") {
+                    const ex = createExample(tip.example);
+                    useCasesContainer.appendChild(ex[0]);
+
+                    docBoxRunButtons.set(tip.id, ex[1]);
+
+                    attachPyodideActions(
+                        (() => {
+                            const actions = [];
+
+                            for (const buttonId of ex[1]) {
+                                actions.push((pyodideController) => {
+                                    const button = document.getElementById(buttonId);
+
+                                    button.addEventListener("click", () => {
+                                        try {
+                                            nova.globals.lastPressedRunButtonId = button.id;
+
+                                            clearConsole(ex[3]);
+                                            pyodideController.runPython(codeString(ex[2].getValue()));
+                                        } catch (err) {
+                                            console.error("Unable to run python code");
+
+                                            addTextToConsole(
+                                                runBtnToOutputWindow.get(button.id),
+                                                err,
+                                                CONSOLE_ERR_TXT_CLASS
+                                            );
+                                        }
+                                    });
+                                });
+                            }
+
+                            return actions;
+                        })(),
+                        []
+                    );
+                }
+            }
+
+            tooltipContainer.appendChild(useCasesContainer);
+        }
+
         if (returnType) {
             const typeText = document.createElement("div");
             typeText.classList.add("return-type-text");
@@ -124,8 +203,6 @@ export class ToolboxController {
             const tooltip = code.getSimpleInvalidTooltip();
 
             //TODO: #526 this should be changed when that functionality is updated.
-            //What likely needs to happen here is that the first if statement is the only thing that is kept. In fact, probably only its body will be necessary
-            //or some form of it (if we decide to go with message codes that map to text instead of actual text)
             if (tooltip !== "") {
                 errorMessage.innerHTML = tooltip;
             } else {
@@ -135,8 +212,6 @@ export class ToolboxController {
                     errorMessage.innerHTML = "This can only be inserted inside a hole with a matching type";
                 } else if (code instanceof Statement) {
                     errorMessage.innerHTML = "This can only be inserted at the beginning of a line";
-                } else {
-                    errorMessage.innerHTML = "Whaaat????";
                 }
             }
 
@@ -149,18 +224,7 @@ export class ToolboxController {
             tooltipTop.appendChild(warningMessage);
         }
 
-        if (code.documentation) {
-            const learnButton = document.createElement("div");
-            learnButton.classList.add("learn-button");
-            learnButton.innerText = "learn more >";
-            tooltipHeader.appendChild(learnButton);
-
-            learnButton.onclick = () => {
-                const doc = new DocumentationBox(code.documentation, code.documentation);
-            };
-        }
-
-        return tooltipContainer;
+        return [tooltipContainer, sendUsageFunctions];
     }
 
     updateButtonsOnContextChange() {
@@ -498,5 +562,230 @@ function addClassToButton(buttonId: string, className: string) {
 
     if (button) {
         button.classList.add(className);
+    }
+}
+
+class UseCaseSliderComponent {
+    element: HTMLDivElement;
+    expanded: boolean;
+    sendUsage: () => void;
+
+    constructor(useCase: any, buttonId: string) {
+        this.element = this.createUseCaseComponent(
+            useCase.path,
+            useCase.max,
+            useCase.extension,
+            useCase.prefix,
+            useCase.explanations,
+            useCase.title,
+            useCase.id,
+            buttonId
+        );
+
+        this.expanded = false;
+    }
+
+    updateExpanded: () => void;
+
+    setExpanded(expanded: boolean) {
+        this.expanded = expanded;
+
+        this.updateExpanded();
+    }
+
+    createUseCaseComponent(
+        path: string,
+        max: number,
+        extension: string,
+        prefix: string,
+        explanations: any[],
+        title: string,
+        id: string,
+        buttonId: string
+    ): HTMLDivElement {
+        const comp = document.createElement("div");
+        let useCaseUsed = false;
+
+        const spacingDiv = document.createElement("div");
+        spacingDiv.classList.add("spacing");
+        comp.appendChild(spacingDiv);
+
+        const useCaseContainer = document.createElement("div");
+        useCaseContainer.classList.add("single-use-case-container");
+        comp.appendChild(useCaseContainer);
+
+        const useCaseTitleContainer = document.createElement("div");
+        useCaseTitleContainer.classList.add("use-case-title");
+        useCaseContainer.appendChild(useCaseTitleContainer);
+
+        const useCaseTitle = document.createElement("div");
+        useCaseTitle.classList.add("use-case-title-header");
+        useCaseTitle.innerText = title;
+        useCaseTitleContainer.appendChild(useCaseTitle);
+
+        // const useCaseLearnButton = document.createElement("div");
+        // useCaseLearnButton.classList.add("use-case-learn-button");
+        // useCaseLearnButton.innerHTML = "learn";
+        // useCaseTitleContainer.appendChild(useCaseLearnButton);
+
+        const sliderContainer = document.createElement("div");
+        sliderContainer.classList.add("slider-container");
+        sliderContainer.style.maxHeight = "0px";
+        useCaseContainer.appendChild(sliderContainer);
+
+        const slider = document.createElement("input");
+        slider.classList.add("range-slider");
+        slider.type = "range";
+        slider.min = "1";
+        slider.max = max.toString();
+        slider.value = "1";
+
+        const labelsContainer = document.createElement("div");
+        labelsContainer.classList.add("labels-container");
+
+        const buttonsContainer = document.createElement("div");
+        buttonsContainer.classList.add("buttons-container");
+
+        const explanationContainer = document.createElement("div");
+        explanationContainer.classList.add("explanation-container");
+        explanationContainer.style.opacity = "0.0";
+
+        const updateSlide = () => {
+            slideImage.src = slides[parseInt(slider.value) - 1];
+
+            if (explanations) {
+                const explanation = explanations.find((exp) => exp.slide == parseInt(slider.value));
+                explanationContainer.innerText = explanation ? explanation.text : "-";
+                explanationContainer.style.opacity = explanation ? "1.0" : "0.0";
+            }
+
+            if (currentSlide.index != parseInt(slider.value) - 1) {
+                slideUsage[currentSlide.index].time += Date.now() - currentSlide.startTime;
+                slideUsage[currentSlide.index].count++;
+
+                currentSlide.index = parseInt(slider.value) - 1;
+                currentSlide.startTime = Date.now();
+            }
+        };
+
+        const nextBtn = document.createElement("div");
+        nextBtn.classList.add("slider-btn");
+        nextBtn.innerText = ">";
+
+        nextBtn.addEventListener("click", () => {
+            if (slider.value != max.toString()) {
+                useCaseUsed = true;
+
+                slider.value = (parseInt(slider.value) + 1).toString();
+                updateSlide();
+            }
+        });
+
+        const prevBtn = document.createElement("div");
+        prevBtn.classList.add("slider-btn");
+        prevBtn.innerText = "<";
+        prevBtn.addEventListener("click", () => {
+            if (slider.value != "1") {
+                useCaseUsed = true;
+
+                slider.value = (parseInt(slider.value) - 1).toString();
+                updateSlide();
+            }
+        });
+
+        const slides = [];
+        const slideUsage = [];
+
+        for (let i = 1; i < max + 1; i++) {
+            if (prefix) slides.push(`${path}${prefix}${i}.${extension}`);
+            else slides.push(`${path}${i}.${extension}`);
+
+            slideUsage.push({ time: 0, count: 0 });
+        }
+
+        let currentSlide = { startTime: Date.now(), index: 0 };
+
+        const slideImage = document.createElement("img");
+        sliderContainer.append(slideImage);
+        slideImage.classList.add("slider-image");
+
+        slider.oninput = () => {
+            useCaseUsed = true;
+
+            updateSlide();
+        };
+
+        updateSlide();
+
+        buttonsContainer.appendChild(prevBtn);
+        buttonsContainer.append(slider);
+        buttonsContainer.appendChild(nextBtn);
+        sliderContainer.appendChild(buttonsContainer);
+
+        labelsContainer.appendChild(explanationContainer);
+        sliderContainer.appendChild(labelsContainer);
+
+        this.updateExpanded = () => {
+            sliderContainer.style.maxHeight = this.expanded ? `${sliderContainer.scrollHeight}px` : "0px";
+            useCaseTitleContainer.style.backgroundColor = this.expanded ? "#cfe3eb" : "#fff";
+
+            if (this.expanded) {
+                Logger.Instance().queueEvent(
+                    new LogEvent(LogType.OpenUseCase, { "use-case": id, "button-id": buttonId })
+                );
+            }
+
+            if (this.expanded) {
+                setTimeout(() => {
+                    comp.scrollIntoView({ behavior: "smooth" });
+                }, 150);
+            }
+        };
+
+        useCaseTitleContainer.addEventListener("click", () => {
+            this.expanded = !this.expanded;
+
+            this.updateExpanded();
+        });
+
+        this.sendUsage = () => {
+            if (useCaseUsed) {
+                Logger.Instance().queueEvent(
+                    new LogEvent(LogType.UseCaseSlideUsage, {
+                        "use-case": id,
+                        "button-id": buttonId,
+                        "slide-usage": slideUsage,
+                    })
+                );
+            }
+        };
+
+        return comp;
+    }
+}
+
+class QuickTipComponent {
+    element: HTMLDivElement;
+
+    constructor(text: any) {
+        this.element = this.createComponent(text);
+    }
+
+    createComponent(text: string): HTMLDivElement {
+        const component = document.createElement("div");
+        component.classList.add("quick-tip");
+
+        const titleEl = document.createElement("span");
+        titleEl.classList.add("quick-tip-title");
+        titleEl.innerText = "tip";
+        component.appendChild(titleEl);
+
+        const textEl = document.createElement("span");
+        textEl.classList.add("quick-tip-text");
+        textEl.innerText = text;
+
+        component.appendChild(textEl);
+
+        return component;
     }
 }

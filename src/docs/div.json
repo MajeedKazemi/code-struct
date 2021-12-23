@@ -1,16 +1,14 @@
 {
     "title": "divide",
-    "body": [
-        {
-            "paragraph": "Performs the division of the value to the left of the operator by the value to the right on the operator."
-        },
-        {
-            "paragraph": "The below prints 5.0"
-        },
-        { "example": "a = 2\nb = 10\nprint((b / a))" }
-    ],
     "tooltip": {
         "title": "Insert Division",
         "body": "Divides the values to the left of the operator by the right value."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-div-two-vars",
+            "example": "a = 2\nb = 10\nprint((b / a))"
+        }
+    ]
 }

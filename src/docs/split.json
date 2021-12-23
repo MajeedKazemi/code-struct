@@ -1,16 +1,14 @@
 {
     "title": "split(separator: text)",
-    "body": [
-        {
-            "paragraph": "Splits the text into a list based on a separator text. Returns an array containing the separated components of the text."
-        },
-        {
-            "paragraph": "The below example will print [\"Split\", \"this\", \"text\", \"on\", \"hyphen\"]"
-        },
-        { "example": "name = \"Split-this-text-on-hyphen\"\nsplitName = name.split(\"-\")\nprint(splitName)" }
-    ],
     "tooltip": {
         "title": "Call Split Method",
         "body": "Splits the text into a list of components based on the input (as a separator)."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-split",
+            "example": "name = \"Split-this-text-on-hyphen\"\nsplitName = name.split(\"-\")\nprint(splitName)"
+        }
+    ]
 }

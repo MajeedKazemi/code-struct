@@ -1,12 +1,14 @@
 {
     "title": "text",
-    "body": [
-        {
-            "paragraph": "Inserts a text value into an empty hole. Note that text is 0-indexed which means its first character is considered to be at position 0 in the text and not position 1."
-        }
-    ],
     "tooltip": {
         "title": "Insert a Text",
         "body": "Inserts an editable text that is wrapped by double quotes."
-    }
+    },
+    "tips": [
+        {
+            "type": "executable",
+            "id": "ex-assign-str",
+            "example": "fruit = \"apple\"\nprint(fruit)\nprint(\"apple\")"
+        }
+    ]
 }
