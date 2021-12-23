@@ -1,4 +1,5 @@
 import { sendEventsBatch } from "./requests";
+import { getUser } from "./user";
 
 export enum LogType {
     TooltipHoverDuration = "tooltip-hover-duration",
@@ -10,11 +11,13 @@ export enum LogType {
 
 export class LogEvent {
     type: string;
+    user: string;
     data: any;
 
     constructor(type: string, data: any) {
         this.data = data;
         this.type = type;
+        this.user = getUser();
     }
 }
 
