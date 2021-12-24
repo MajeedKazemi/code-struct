@@ -10,5 +10,6 @@
             "id": "ex-div-two-vars",
             "example": "a = 2\nb = 10\nprint((b / a))"
         }
-    ]
+    ],
+    "search-queries": ["divide", "division", "divide numbers"]
 }

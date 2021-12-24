@@ -10,5 +10,6 @@
             "id": "ex-join-1",
             "example": "names = [\"Anna\", \"John\", \"Peter\"]\njoinedNames = \"-\".join(names)\nprint(joinedNames)"
         }
-    ]
+    ],
+    "search-queries": ["join string", "join text"]
 }

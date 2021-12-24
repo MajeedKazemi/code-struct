@@ -10,5 +10,6 @@
             "id": "ex-f-str-item",
             "example": "age = 16\nname = \"Alex\"\nprint(f'My name is {name} and I am {age} years old')"
         }
-    ]
+    ],
+    "search-queries": ["formatted string item", "formatted text item"]
 }

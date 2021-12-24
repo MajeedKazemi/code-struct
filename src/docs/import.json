@@ -15,5 +15,6 @@
             "id": "ex-import-randint-use",
             "example": "from random import randint\nprint(randint(1, 6))"
         }
-    ]
+    ],
+    "search-queries": ["import module", "import random"]
 }

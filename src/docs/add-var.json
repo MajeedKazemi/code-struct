@@ -24,5 +24,6 @@
                 "A variable name cannot start with a number"
             ]
         }
-    ]
+    ],
+    "search-queries": ["create new variable", "variable", "var"]
 }

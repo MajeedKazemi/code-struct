@@ -15,5 +15,6 @@
             "id": "ex-sum-strings",
             "example": "a = \"hello\"\nb = \"world\"\nprint((a + \" \" + b))"
         }
-    ]
+    ],
+    "search-queries": ["add", "sum"]
 }

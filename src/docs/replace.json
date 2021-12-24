@@ -10,5 +10,6 @@
             "id": "ex-replace",
             "example": "name  = \"John\"\nname = name.replace(\"oh\", \"a\")\nprint(name)"
         }
-    ]
+    ],
+    "search-queries": ["replace", "replace text", "replace string"]
 }

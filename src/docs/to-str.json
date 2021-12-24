@@ -19,5 +19,6 @@
             "id": "ex-str-cast",
             "example": "a = 2\nc = \"2\"\nprint(str(a) == c)"
         }
-    ]
+    ],
+    "search-queries": ["string cast", "text convert", "convert to string", "convert to text"]
 }

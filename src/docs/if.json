@@ -24,5 +24,6 @@
             "prefix": "Slide",
             "id": "check-val-variable"
         }
-    ]
+    ],
+    "search-queries": ["if", "condition", "conditional", "choose", "path"]
 }

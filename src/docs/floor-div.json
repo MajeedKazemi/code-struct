@@ -10,5 +10,6 @@
             "id": "ex-floor-div",
             "example": "a = 2\nb = 7\nprint((b / a))"
         }
-    ]
+    ],
+    "search-queries": ["divide numbers", "divide integer", "divide floor"]
 }

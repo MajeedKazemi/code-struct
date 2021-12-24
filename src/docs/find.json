@@ -10,5 +10,6 @@
             "id": "ex-find-1",
             "example": "name = \"Zimmer\"\nindexOfE = name.find(\"e\")\nprint(indexOfE)"
         }
-    ]
+    ],
+    "search-queries": ["search text", "find text", "find string"]
 }

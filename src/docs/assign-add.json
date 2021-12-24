@@ -10,5 +10,6 @@
             "id": "ex-var-sum-by-val",
             "example": "a = 2\na += 2\nprint(a)"
         }
-    ]
+    ],
+    "search-queries": ["add to variable"]
 }

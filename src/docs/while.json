@@ -33,5 +33,15 @@
                 { "slide": 29, "text": "should execute the next line after the while loop" }
             ]
         }
+    ],
+    "search-queries": [
+        "while",
+        "repeat",
+        "repeat while",
+        "repeat until",
+        "loop",
+        "condition",
+        "conditional",
+        "repeat condition"
     ]
 }

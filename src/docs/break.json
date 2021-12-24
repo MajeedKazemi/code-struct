@@ -39,5 +39,6 @@
                 { "slide": 30, "text": "will print 'done'" }
             ]
         }
-    ]
+    ],
+    "search-queries": ["exit", "loop", "break"]
 }

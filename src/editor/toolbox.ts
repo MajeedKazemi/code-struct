@@ -1,3 +1,4 @@
+import Fuse from "fuse.js";
 import { nova, runBtnToOutputWindow } from "../index";
 import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
 import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
@@ -263,7 +264,57 @@ export class ToolboxController {
         }
     }
 
+    createSearchBox(): HTMLDivElement {
+        const container = document.createElement("div");
+        container.classList.add("search-box-container");
+
+        const searchBox = document.createElement("input");
+        searchBox.type = "search";
+        searchBox.placeholder = "type to search";
+        searchBox.classList.add("search-box");
+
+        container.appendChild(searchBox);
+
+        const options = {
+            includeMatches: true,
+            shouldSort: true,
+            threshold: 0.2,
+            keys: ["documentation.search-queries"],
+        };
+
+        const fuse = new Fuse(Actions.instance().actionsList, options);
+
+        searchBox.addEventListener("input", () => {
+            let results = fuse.search(searchBox.value);
+            let resultActionsId = results.map((result) => result.item.cssId);
+
+            const showAll = results.length === 0;
+
+            for (const category of Actions.instance().toolboxCategories) {
+                let clearedItemsInCategory = 0;
+
+                for (const item of category.items) {
+                    if (!showAll && resultActionsId.indexOf(item.cssId) === -1) {
+                        document.getElementById(item.cssId).style.display = "none";
+                        clearedItemsInCategory++;
+                    } else {
+                        document.getElementById(item.cssId).style.display = "flex";
+                    }
+                }
+
+                if (clearedItemsInCategory === category.items.length) {
+                    document.getElementById(category.id).style.display = "none";
+                } else {
+                    document.getElementById(category.id).style.display = "block";
+                }
+            }
+        });
+
+        return container;
+    }
+
     loadToolboxFromJson() {
+        const staticToolboxDiv = document.getElementById("static-toolbox");
         const toolboxDiv = document.getElementById("editor-toolbox");
         const toolboxMenu = document.getElementById("toolbox-menu");
         const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
@@ -301,6 +352,9 @@ export class ToolboxController {
                 toolboxMenu.appendChild(menuButton);
             }
         }
+
+        const searchBox = this.createSearchBox();
+        staticToolboxDiv.insertBefore(searchBox, toolboxMenu);
 
         staticDummySpace.style.minHeight = `${
             toolboxDiv.clientHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
