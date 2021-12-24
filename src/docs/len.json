@@ -15,5 +15,6 @@
             "id": "ex-len-2",
             "example": "items = [1, 2, 3]\na = len(items)\nprint(a)"
         }
-    ]
+    ],
+    "search-queries": ["length of list", "length of string", "length of text"]
 }

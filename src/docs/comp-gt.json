@@ -15,5 +15,6 @@
             "id": "ex-gt-2",
             "example": "a = 1\nb = 5\nwhile b > a:\n\ta += 1\nprint(a)\nprint(a)"
         }
-    ]
+    ],
+    "search-queries": ["compare greater than", "compare", "check greater than"]
 }

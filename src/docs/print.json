@@ -15,5 +15,6 @@
             "id": "ex-print-var",
             "example": "a = \"abc\"\nprint(a)"
         }
-    ]
+    ],
+    "search-queries": ["output", "say", "print", "print output", "console", "write", "see output"]
 }

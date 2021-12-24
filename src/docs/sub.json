@@ -10,5 +10,6 @@
             "id": "ex-sub-vars",
             "example": "a = 20\nb = 10\nprint((a - b))"
         }
-    ]
+    ],
+    "search-queries": ["subtract numbers", "subtraction", "deduct"]
 }

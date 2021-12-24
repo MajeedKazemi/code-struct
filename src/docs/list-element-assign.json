@@ -15,5 +15,11 @@
             "id": "ex-list-el-assign-2",
             "example": "a = [1, 2, 3]\na[1] = \"cat\"\nprint(a)"
         }
+    ],
+    "search-queries": [
+        "assign element at index",
+        "change value list index",
+        "update item at index",
+        "set value list index"
     ]
 }

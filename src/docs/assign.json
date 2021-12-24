@@ -10,5 +10,6 @@
             "id": "ex-assign-val-var-twice",
             "example": "a = 123\nprint(a)\na=321\nprint(a)"
         }
-    ]
+    ],
+    "search-queries": ["set", "assign", "assign variable", "set variable", "update value variable"]
 }

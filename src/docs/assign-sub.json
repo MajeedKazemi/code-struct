@@ -10,5 +10,6 @@
             "id": "ex-var-sub-by-val",
             "example": "a = 5\na -= 2\nprint(a)"
         }
-    ]
+    ],
+    "search-queries": ["subtract from variable", "deduct from variable"]
 }

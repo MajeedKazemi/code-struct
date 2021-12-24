@@ -15,5 +15,13 @@
             "id": "ex-append-2",
             "example": "print([1, 2, 3].append(4))"
         }
+    ],
+    "search-queries": [
+        "add to list",
+        "append to list",
+        "insert into list",
+        "add to end list",
+        "append to end list",
+        "insert end list"
     ]
 }
