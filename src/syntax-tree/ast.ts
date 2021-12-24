@@ -26,7 +26,7 @@ import {
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOperator,
+    UnaryOperator
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -1033,13 +1033,6 @@ export class ImportStatement extends Statement {
             CallbackType.onFocusOff,
             new Callback(() => {
                 this.onFocusOff({ module: this.getModule() });
-            })
-        );
-
-        this.subscribe(
-            CallbackType.delete,
-            new Callback(() => {
-                this.onDelete(); //TODO: I don't like this either, but we need the module there
             })
         );
     }
