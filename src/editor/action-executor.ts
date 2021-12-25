@@ -41,9 +41,11 @@ import {
     AutoCompleteType,
     BuiltInFunctions,
     getOperatorCategory,
+    IgnoreConversionRecord,
     PythonKeywords,
     StringRegex,
     TAB_SPACES,
+    TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
     TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
 } from "../syntax-tree/consts";
@@ -999,24 +1001,39 @@ export class ActionExecutor {
                         this.module.editor.insertAtCurPos([modifier]);
                         this.module.focus.updateContext(modifier.getInitialFocus());
 
-                        if (replacementResult.insertionType == InsertionType.DraftMode)
-                            this.module.openDraftMode(
-                                valOprExpr,
-                                TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
-                                    valOprExpr.getKeyword(),
-                                    holeDataTypes,
-                                    valOprExpr.returns
-                                ),
-                                [
-                                    ...replacementResult.conversionRecords.map((conversionRecord) => {
-                                        return conversionRecord.getConversionButton(
-                                            valOprExpr.getKeyword(),
+                        if (replacementResult.insertionType == InsertionType.DraftMode) {
+                            if (valOprExpr.returns === DataType.Any) {
+                                this.module.openDraftMode(
+                                    valOprExpr,
+                                    TYPE_MISMATCH_ANY(holeDataTypes, valOprExpr.returns),
+                                    [
+                                        new IgnoreConversionRecord("", null, null, "", null).getConversionButton(
+                                            "",
                                             this.module,
                                             valOprExpr
-                                        );
-                                    }),
-                                ]
-                            );
+                                        ),
+                                    ]
+                                );
+                            } else {
+                                this.module.openDraftMode(
+                                    valOprExpr,
+                                    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
+                                        valOprExpr.getKeyword(),
+                                        holeDataTypes,
+                                        valOprExpr.returns
+                                    ),
+                                    [
+                                        ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                            return conversionRecord.getConversionButton(
+                                                valOprExpr.getKeyword(),
+                                                this.module,
+                                                valOprExpr
+                                            );
+                                        }),
+                                    ]
+                                );
+                            }
+                        }
                     }
                 }
 

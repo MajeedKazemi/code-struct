@@ -15,6 +15,7 @@ import {
     DataType,
     getAllowedBinaryOperatorsForType,
     getOperatorCategory,
+    IgnoreConversionRecord,
     IndexableTypes,
     InsertionType,
     ListTypes,
@@ -24,6 +25,7 @@ import {
     TAB_SPACES,
     Tooltip,
     typeToConversionRecord,
+    TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
     UnaryOperator,
@@ -3341,6 +3343,12 @@ export class TypedEmptyExpr extends Token {
                       .get(replaceWith.returns)
                       .filter((record) => this.type.indexOf(record.convertTo) > -1)
                 : [];
+
+            if (replaceWith.returns === DataType.Any) {
+                return new InsertionResult(InsertionType.DraftMode, TYPE_MISMATCH_ANY(this.type, replaceWith.returns), [
+                    new IgnoreConversionRecord("", null, null, "", null),
+                ]);
+            }
 
             return new InsertionResult(
                 InsertionType.DraftMode,

@@ -320,6 +320,16 @@ export function TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(expectedTypes: DataType[], 
     )} instead.\n You can fix this by:`;
 }
 
+export function TYPE_MISMATCH_ANY(expectedTypes: DataType[], actualType: DataType) {
+    return `Expected a ${getTypesString(expectedTypes)}, but you entered an ${te.getStyledSpan(
+        getUserFriendlyType(actualType),
+        CSSClasses.type
+    )} instead.\n Type ${te.getStyledSpan(
+        getUserFriendlyType(actualType),
+        CSSClasses.type
+    )} can represent any type, but you need to make sure it is one of the expected types.`;
+}
+
 export function TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
     identifier: string,
     varType: DataType,
@@ -428,6 +438,41 @@ export abstract class TypeConversionRecord {
     }
 }
 
+export class IgnoreConversionRecord extends TypeConversionRecord {
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionAction: string,
+        editActionType: EditActionType
+    ) {
+        super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
+    }
+
+    protected getConversionCode(itemToConvert: string): string {
+        return "";
+    }
+
+    getConversionButton(itemToConvert: string, module: Module, codeToReplace: CodeConstruct): HTMLDivElement {
+        let conversionText = itemToConvert;
+        if (codeToReplace instanceof FunctionCallExpr) {
+            conversionText = codeToReplace.getFullConstructText();
+        }
+
+        const text = "Ignore this Warning";
+        const button = document.createElement("div");
+        button.innerHTML = text.replace(/---/g, "<hole1></hole1>");
+
+        addClassToDraftModeResolutionButton(button, codeToReplace);
+
+        button.addEventListener("click", () => {
+            module.closeConstructDraftRecord(codeToReplace);
+        });
+
+        return button;
+    }
+}
+
 export class CastConversionRecord extends TypeConversionRecord {
     constructor(
         conversionConstruct: string,
@@ -511,6 +556,8 @@ export class MemberAccessConversion extends TypeConversionRecord {
     }
 }
 
+//this map is for converting from one type to another, to see what each type can be converted to see typeConversionMap in util.ts
+//really the two can be combined, but that can be done in the future
 export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
     [
         DataType.Number,
