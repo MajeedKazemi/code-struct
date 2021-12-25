@@ -75,10 +75,10 @@ export class Util {
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
             [DataType.String, [DataType.StringList, DataType.Boolean, DataType.Number]],
             [DataType.Boolean, [DataType.BooleanList]],
-            [DataType.AnyList, [DataType.Any, DataType.Boolean]],
+            [DataType.AnyList, [DataType.Any, DataType.Number, DataType.Number]],
             [DataType.NumberList, [DataType.Number, DataType.Boolean]],
-            [DataType.BooleanList, [DataType.Boolean]],
-            [DataType.StringList, [DataType.String, DataType.Boolean]],
+            [DataType.BooleanList, [DataType.Number, DataType.Boolean]],
+            [DataType.StringList, [DataType.Number, DataType.String, DataType.Boolean]],
             [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]],
         ]);
 
