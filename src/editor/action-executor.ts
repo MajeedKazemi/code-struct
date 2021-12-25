@@ -1574,8 +1574,6 @@ export class ActionExecutor {
             let insertionResult = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
 
             if (insertionResult.insertionType != InsertionType.Invalid) {
-                code.performPreInsertionUpdates(context.token);
-
                 if (context.token.rootNode instanceof Statement) {
                     context.token.rootNode.onInsertInto(code);
                 }

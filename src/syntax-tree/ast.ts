@@ -2380,24 +2380,28 @@ export class BinaryOperatorExpr extends Expression {
 
         if (this.operatorCategory === OperatorCategory.Arithmetic && operator == BinaryOperator.Add) {
             if (returns !== DataType.String && returns !== DataType.Number) {
-                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.tokens.push(
+                    new TypedEmptyExpr([DataType.Number, DataType.String, ...ListTypes], this, this.tokens.length)
+                );
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
+                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.keywordIndex = this.tokens.length;
                 this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
-                this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
-                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
-                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.tokens.push(
+                    new TypedEmptyExpr([DataType.Number, DataType.String, ...ListTypes], this, this.tokens.length)
+                );
+                this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
+                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
 
                 this.returns = DataType.Any;
                 this.originalReturnType = DataType.Any;
             } else {
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
-                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.keywordIndex = this.tokens.length;
                 this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
@@ -2405,7 +2409,7 @@ export class BinaryOperatorExpr extends Expression {
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
                 this.typeOfHoles[this.tokens.length - 1] = [returns];
-                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
+                this.originalTypesOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
             }
         } else if (this.operatorCategory === OperatorCategory.Arithmetic) {
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
@@ -2620,13 +2624,22 @@ export class BinaryOperatorExpr extends Expression {
 
             //if existingLiteralType is null then both operands are still empty holes and since we are inserting
             //into one of them, the types need to be updated
-            if (!existingLiteralType && (this.returns === DataType.Any || this.returns === DataType.Boolean)) {
+            if (!existingLiteralType && (this.returns === DataType.Any || this.isComparison())) {
                 // this.returns = insertCode.returns;
-
-                if (this.isOperandEmpty(this.leftOperandIndex))
+                if (
+                    this.isOperandEmpty(this.leftOperandIndex) &&
+                    getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
+                ) {
                     (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
-                if (this.isOperandEmpty(this.rightOperandIndex))
+                    console.log("here5");
+                }
+                if (
+                    this.isOperandEmpty(this.rightOperandIndex) &&
+                    getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
+                ) {
                     (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+                    console.log("here10");
+                }
             }
 
             if (
@@ -2702,8 +2715,10 @@ export class BinaryOperatorExpr extends Expression {
         //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the insertion type
         if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
             if (this.rootNode.operatorCategory === OperatorCategory.Arithmetic) {
+                console.log("here2");
                 TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
             } else if (this.rootNode.operatorCategory === OperatorCategory.Comparison) {
+                console.log("here3");
                 TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
             }
         } else {
@@ -2739,7 +2754,7 @@ export class BinaryOperatorExpr extends Expression {
         }
 
         if (beingDeleted) {
-            if (this.isOperandEmpty(indexOfOtherOperand)) {
+            if (this.isOperandEmpty(indexOfOtherOperand) || this.tokens[index] instanceof AutocompleteTkn) {
                 return this.originalTypesOfHoles[indexOfOtherOperand];
             }
             return [(this.tokens[indexOfOtherOperand] as Expression).returns];
@@ -2766,12 +2781,10 @@ export class BinaryOperatorExpr extends Expression {
                 this.typeOfHoles[operandBeingKeptIndex] = this.originalTypesOfHoles[operandBeingKeptIndex];
                 (this.tokens[operandBeingKeptIndex] as TypedEmptyExpr).type =
                     this.originalTypesOfHoles[operandBeingKeptIndex];
-            } else {
-                if (this.operator === BinaryOperator.Add) {
-                    this.returns = (operandBeingKept as Expression).returns;
-                    this.typeOfHoles[operandBeingDeletedIndex] = [this.returns];
-                    this.typeOfHoles[operandBeingKeptIndex] = [this.returns];
-                }
+            } else if (this.operator === BinaryOperator.Add) {
+                this.returns = (operandBeingKept as Expression).returns;
+                this.typeOfHoles[operandBeingDeletedIndex] = [this.returns];
+                this.typeOfHoles[operandBeingKeptIndex] = [this.returns];
             }
         }
     }

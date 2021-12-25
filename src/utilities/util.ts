@@ -79,7 +79,7 @@ export class Util {
             [DataType.NumberList, [DataType.Number, DataType.Boolean]],
             [DataType.BooleanList, [DataType.Number, DataType.Boolean]],
             [DataType.StringList, [DataType.Number, DataType.String, DataType.Boolean]],
-            [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]],
+            [DataType.Any, [DataType.AnyList]],
         ]);
 
         this.constructDocs = new Map<string, ConstructDoc>();
