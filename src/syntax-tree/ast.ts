@@ -519,7 +519,7 @@ export abstract class Statement implements CodeConstruct {
         if (
             (insertInto?.type?.indexOf(insertCode.returns) > -1 ||
                 insertInto?.type?.indexOf(DataType.Any) > -1 ||
-                (hasMatch(insertInto.type, ListTypes) && insertInto.type.indexOf(DataType.AnyList) > -1)) &&
+                (hasMatch(insertInto.type, ListTypes) && insertCode.returns === DataType.AnyList)) &&
             insertCode.returns !== DataType.Void
         ) {
             return new InsertionResult(InsertionType.Valid, "", []);
