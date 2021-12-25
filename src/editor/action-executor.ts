@@ -1783,8 +1783,9 @@ export class ActionExecutor {
                     const ref = rootOfExprToLeft.getVarRef();
                     if (ref instanceof VariableReferenceExpr) {
                         const line = this.module.focus.getContext().lineStatement;
+
                         const varType = this.module.variableController.getVariableTypeNearLine(
-                            line.scope,
+                            line.rootNode instanceof Module ? this.module.scope : line.scope,
                             line.lineNumber,
                             ref.identifier,
                             false
