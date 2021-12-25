@@ -26,7 +26,7 @@ import {
     typeToConversionRecord,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOperator
+    UnaryOperator,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -2506,24 +2506,6 @@ export class BinaryOperatorExpr extends Expression {
         this.hasEmptyToken = true;
     }
 
-    private getCurrentAllowedTypesOfOperand(index: number, beingDeleted: boolean = false): DataType[] {
-        const indexOfOtherOperand = this.getIndexOfOtherOperand(index);
-
-        if (this.isBoolean()) {
-            return [DataType.Boolean];
-        }
-
-        if (beingDeleted) {
-            if (this.isOperandEmpty(indexOfOtherOperand)) {
-                return this.originalTypesOfHoles[indexOfOtherOperand];
-            }
-            return [(this.tokens[indexOfOtherOperand] as Expression).returns];
-        } else {
-            if (this.tokens[index] instanceof TypedEmptyExpr) return (this.tokens[index] as TypedEmptyExpr).type;
-            else return [];
-        }
-    }
-
     validateContext(validator: Validator, providedContext: Context): InsertionType {
         return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
             (validator.atLeftOfExpression(providedContext) &&
@@ -2571,7 +2553,7 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     /**
-     * Update
+     * Update types of empty holes when inserting into the binary operator expression.
      *
      * @param type new return/operand type
      */
@@ -2627,34 +2609,6 @@ export class BinaryOperatorExpr extends Expression {
                 this.removeTypeFromOperands(DataType.Number);
             } else this.removeTypeFromOperands(DataType.String);
         }
-    }
-
-    private getFilledHoleType(): DataType {
-        if (this.areOperandsEmpty() || this.areBothOperandsFilled()) return null;
-        let existingLiteralType = null;
-        if (this.tokens[this.leftOperandIndex] instanceof Expression) {
-            existingLiteralType = (this.tokens[this.leftOperandIndex] as Expression).returns;
-        } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
-            existingLiteralType = (this.tokens[this.rightOperandIndex] as Expression).returns;
-        }
-
-        return existingLiteralType;
-    }
-
-    private getIndexOfEmptyOperand(): number {
-        if (this.areOperandsEmpty() || this.areBothOperandsFilled()) return -1;
-        else if (this.getLeftOperand() instanceof TypedEmptyExpr && !(this.getRightOperand() instanceof TypedEmptyExpr))
-            return this.leftOperandIndex;
-        else if (this.getRightOperand() instanceof TypedEmptyExpr && !(this.getLeftOperand() instanceof TypedEmptyExpr))
-            return this.rightOperandIndex;
-    }
-
-    private getIndexOfFilledOperand(): number {
-        if (this.areOperandsEmpty() || this.areBothOperandsFilled()) return -1;
-        else if (this.getLeftOperand() instanceof TypedEmptyExpr && !(this.getRightOperand() instanceof TypedEmptyExpr))
-            return this.rightOperandIndex;
-        else if (this.getRightOperand() instanceof TypedEmptyExpr && !(this.getLeftOperand() instanceof TypedEmptyExpr))
-            return this.leftOperandIndex;
     }
 
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
@@ -2730,21 +2684,7 @@ export class BinaryOperatorExpr extends Expression {
         });
     }
 
-    private areBothOperandsFilled(): boolean {
-        return !this.isOperandEmpty(this.leftOperandIndex) && !this.isOperandEmpty(this.rightOperandIndex);
-    }
-
-    private getIndexOfOtherOperand(index: number): number {
-        if (this.leftOperandIndex === index) {
-            return this.rightOperandIndex;
-        } else if (this.rightOperandIndex === index) {
-            return this.leftOperandIndex;
-        }
-
-        return -1;
-    }
-
-    //this is for finding out if the holes of just this epxression are empty
+    //this is for finding out if the holes of just this epxression are empty (does not check nestings)
     areOperandsEmpty(): boolean {
         return (
             this.tokens[this.rightOperandIndex] instanceof TypedEmptyExpr &&
@@ -2769,6 +2709,42 @@ export class BinaryOperatorExpr extends Expression {
         }
 
         this.performTypeUpdatesOnInsertInto(insertCode);
+    }
+
+    onDeleteFrom(args: { operandBeingDeletedIndex: number }): void {
+        this.updateHoleTypesOnDeletion(args.operandBeingDeletedIndex);
+        const otherOperand = this.getIndexOfOtherOperand(args.operandBeingDeletedIndex);
+
+        if (
+            otherOperand > -1 &&
+            this.tokens[otherOperand].draftModeEnabled &&
+            getAllowedBinaryOperatorsForType((this.tokens[otherOperand] as Expression).returns).indexOf(this.operator) >
+                -1
+        ) {
+            this.getModule().closeConstructDraftRecord(this.tokens[otherOperand]);
+        }
+    }
+
+    getCurrentAllowedTypesOfHole(index: number, beingDeleted: boolean = false): DataType[] {
+        return this.getCurrentAllowedTypesOfOperand(index, beingDeleted);
+    }
+
+    private getCurrentAllowedTypesOfOperand(index: number, beingDeleted: boolean = false): DataType[] {
+        const indexOfOtherOperand = this.getIndexOfOtherOperand(index);
+
+        if (this.isBoolean()) {
+            return [DataType.Boolean];
+        }
+
+        if (beingDeleted) {
+            if (this.isOperandEmpty(indexOfOtherOperand)) {
+                return this.originalTypesOfHoles[indexOfOtherOperand];
+            }
+            return [(this.tokens[indexOfOtherOperand] as Expression).returns];
+        } else {
+            if (this.tokens[index] instanceof TypedEmptyExpr) return (this.tokens[index] as TypedEmptyExpr).type;
+            else return [];
+        }
     }
 
     private isOperandEmpty(index: number): boolean {
@@ -2798,22 +2774,46 @@ export class BinaryOperatorExpr extends Expression {
         }
     }
 
-    onDeleteFrom(args: { operandBeingDeletedIndex: number }): void {
-        this.updateHoleTypesOnDeletion(args.operandBeingDeletedIndex);
-        const otherOperand = this.getIndexOfOtherOperand(args.operandBeingDeletedIndex);
-
-        if (
-            otherOperand > -1 &&
-            this.tokens[otherOperand].draftModeEnabled &&
-            getAllowedBinaryOperatorsForType((this.tokens[otherOperand] as Expression).returns).indexOf(this.operator) >
-                -1
-        ) {
-            this.getModule().closeConstructDraftRecord(this.tokens[otherOperand]);
-        }
+    private areBothOperandsFilled(): boolean {
+        return !this.isOperandEmpty(this.leftOperandIndex) && !this.isOperandEmpty(this.rightOperandIndex);
     }
 
-    getCurrentAllowedTypesOfHole(index: number, beingDeleted: boolean = false): DataType[] {
-        return this.getCurrentAllowedTypesOfOperand(index, beingDeleted);
+    private getIndexOfOtherOperand(index: number): number {
+        if (this.leftOperandIndex === index) {
+            return this.rightOperandIndex;
+        } else if (this.rightOperandIndex === index) {
+            return this.leftOperandIndex;
+        }
+
+        return -1;
+    }
+
+    private getFilledHoleType(): DataType {
+        if (this.areOperandsEmpty() || this.areBothOperandsFilled()) return null;
+        let existingLiteralType = null;
+        if (this.tokens[this.leftOperandIndex] instanceof Expression) {
+            existingLiteralType = (this.tokens[this.leftOperandIndex] as Expression).returns;
+        } else if (this.tokens[this.rightOperandIndex] instanceof Expression) {
+            existingLiteralType = (this.tokens[this.rightOperandIndex] as Expression).returns;
+        }
+
+        return existingLiteralType;
+    }
+
+    private getIndexOfEmptyOperand(): number {
+        if (this.areOperandsEmpty() || this.areBothOperandsFilled()) return -1;
+        else if (this.getLeftOperand() instanceof TypedEmptyExpr && !(this.getRightOperand() instanceof TypedEmptyExpr))
+            return this.leftOperandIndex;
+        else if (this.getRightOperand() instanceof TypedEmptyExpr && !(this.getLeftOperand() instanceof TypedEmptyExpr))
+            return this.rightOperandIndex;
+    }
+
+    private getIndexOfFilledOperand(): number {
+        if (this.areOperandsEmpty() || this.areBothOperandsFilled()) return -1;
+        else if (this.getLeftOperand() instanceof TypedEmptyExpr && !(this.getRightOperand() instanceof TypedEmptyExpr))
+            return this.rightOperandIndex;
+        else if (this.getRightOperand() instanceof TypedEmptyExpr && !(this.getLeftOperand() instanceof TypedEmptyExpr))
+            return this.leftOperandIndex;
     }
 }
 

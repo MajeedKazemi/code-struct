@@ -11,8 +11,7 @@ export class DraftRecord {
     constructor(code: Statement, module: Module, txt?: string) {
         this.code = code;
         this.module = module;
-        this.module.messageController.addHoverMessage(code, {}, txt ?? "");
-        this.warning = code.message;
+        this.warning = this.module.messageController.addHoverMessage(code, {}, txt ?? "");
         this.code.message = this.warning;
     }
 

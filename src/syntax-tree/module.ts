@@ -503,23 +503,6 @@ export class Module {
         }
     }
 
-    //Accepts context because this will not be part of Module in the future
-    isAbleToInsertComparator(context: Context, insertEquals: boolean = false): boolean {
-        return (
-            (context.selected &&
-                context.token instanceof TypedEmptyExpr &&
-                (context.token as TypedEmptyExpr).type.indexOf(DataType.Boolean) > -1) ||
-            //TODO: This case needs to be extended further since this is not always possible
-            //      For example: randint(1, 2) cannot become randint(1 > 2, 2)
-            //      Parent needs to be involved in the check
-            //left or right is an expression
-            context.expressionToLeft.returns === DataType.Number ||
-            context.expressionToRight.returns === DataType.Number ||
-            //equals can compare types other than Number (of course >, >=, < and <= also operate on types other than Number, but ignore that for now since our tool likely does not need it)
-            (context.expressionToLeft && context.expressionToRight && insertEquals)
-        );
-    }
-
     closeConstructDraftRecord(code: CodeConstruct) {
         if (code.draftModeEnabled) {
             code.draftModeEnabled = false;
@@ -528,6 +511,7 @@ export class Module {
             if (removedRecord.warning) removedRecord.removeMessage();
 
             code.draftRecord = null;
+            code.message = null;
         } else {
             console.warn("Tried closing draft mode of construct that did not have one open.");
         }
