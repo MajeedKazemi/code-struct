@@ -32,7 +32,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt,
+    VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
@@ -47,7 +47,7 @@ import {
     TAB_SPACES,
     TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -1790,10 +1790,14 @@ export class ActionExecutor {
                         );
 
                         let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
-                        expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
+                        const currentAllowedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
                             rootOfExprToLeft.indexInRoot,
                             false
                         );
+
+                        if (currentAllowedTypes.length > 0) {
+                            expectedTypes = currentAllowedTypes;
+                        }
 
                         this.module.openDraftMode(
                             rootOfExprToLeft,
@@ -1810,10 +1814,15 @@ export class ActionExecutor {
                         );
                     } else {
                         let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
-                        expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
+
+                        const currentAllowedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
                             rootOfExprToLeft.indexInRoot,
                             false
                         );
+
+                        if (currentAllowedTypes.length > 0) {
+                            expectedTypes = currentAllowedTypes;
+                        }
 
                         this.module.openDraftMode(
                             ref,
@@ -1898,7 +1907,7 @@ export class ActionExecutor {
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.replaceItem(code, replaceType);
+        else replacement = this.module.replaceItemWTypedEmptyExpr(code, replaceType);
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });
