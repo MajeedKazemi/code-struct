@@ -1562,6 +1562,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
     onInsertInto(insertCode: Expression) {
         this.dataType = insertCode.returns; //#344
+        this.getModule().variableController.updateReturnTypeOfRefs(this.buttonId);
     }
 
     removeAssignment() {

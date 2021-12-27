@@ -32,7 +32,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
@@ -47,7 +47,7 @@ import {
     TAB_SPACES,
     TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
