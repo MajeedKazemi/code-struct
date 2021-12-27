@@ -319,7 +319,7 @@ export class Module {
         root.rebuild(root.getLeftPosition(), 0);
     }
 
-    replaceItem(item: CodeConstruct, replaceType: DataType): CodeConstruct {
+    replaceItemWTypedEmptyExpr(item: CodeConstruct, replaceType: DataType): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
@@ -327,7 +327,6 @@ export class Module {
                 replaceType = DataType.Any;
 
             let replacedItem = null;
-            root.onDeleteFrom({ operandBeingDeletedIndex: item.indexInRoot });
             const allowedTypes = root.getCurrentAllowedTypesOfHole(item.indexInRoot, true);
 
             replacedItem = new TypedEmptyExpr(
@@ -336,8 +335,8 @@ export class Module {
 
             if (allowedTypes.length > 0) replacedItem.type = allowedTypes;
 
+            root.onReplaceToken({ indexInRoot: item.indexInRoot, replaceWithEmptyExpr: true });
             root.tokens.splice(item.indexInRoot, 1, replacedItem);
-
             this.rebuildOnConstructDeletion(item, root);
 
             return replacedItem;
@@ -349,6 +348,7 @@ export class Module {
     removeItem(item: CodeConstruct): void {
         const root = item.rootNode;
         if (root instanceof Statement) {
+            root.onDeleteFrom({ indexInRoot: item.indexInRoot });
             root.tokens.splice(item.indexInRoot, 1);
             this.rebuildOnConstructDeletion(item, root);
         }
