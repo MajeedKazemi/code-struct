@@ -570,6 +570,10 @@ export abstract class Statement implements CodeConstruct {
         return;
     }
 
+    onReplaceToken(args: Object): void {
+        return;
+    }
+
     getCurrentAllowedTypesOfHole(index: number, beingDeleted: boolean = false): DataType[] {
         return [];
     }
@@ -2728,9 +2732,9 @@ export class BinaryOperatorExpr extends Expression {
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
 
-    onDeleteFrom(args: { operandBeingDeletedIndex: number }): void {
-        this.updateHoleTypesOnDeletion(args.operandBeingDeletedIndex);
-        const otherOperand = this.getIndexOfOtherOperand(args.operandBeingDeletedIndex);
+    onReplaceToken(args: { indexInRoot: number }): void {
+        this.updateHoleTypesOnDeletion(args.indexInRoot);
+        const otherOperand = this.getIndexOfOtherOperand(args.indexInRoot);
 
         if (
             otherOperand > -1 &&
@@ -2740,6 +2744,8 @@ export class BinaryOperatorExpr extends Expression {
         ) {
             this.getModule().closeConstructDraftRecord(this.tokens[otherOperand]);
         }
+
+        this.updateVariableType(this.returns);
     }
 
     getCurrentAllowedTypesOfHole(index: number, beingDeleted: boolean = false): DataType[] {
@@ -3149,6 +3155,31 @@ export class ListLiteralExpression extends Expression {
         return emptyHolePlacements.length === 0
             ? true
             : emptyHolePlacements.length === 1 && emptyHolePlacements[0][1] === this.tokens.length - 2;
+    }
+
+    onDeleteFrom(args: Object): void {
+        const holes = this.tokens.filter((tkn) => !(tkn instanceof NonEditableTkn));
+        if (
+            (holes.length === 1 && holes[0] instanceof TypedEmptyExpr) ||
+            holes.every((hole) => hole instanceof TypedEmptyExpr)
+        ) {
+            this.returns = DataType.AnyList;
+            this.updateVariableType(this.returns);
+        }
+    }
+
+    onReplaceToken(args: { indexInRoot: number; replaceWithEmptyExpr: boolean }): void {
+        const elements = this.tokens.filter(
+            (tkn) => tkn instanceof Expression && this.tokens.indexOf(tkn) !== args.indexInRoot
+        );
+
+        if (elements.length > 0 && elements.every((tkn) => (tkn as Expression).returns)) {
+            this.returns = TypeChecker.getListTypeFromElementType((elements[0] as Expression).returns);
+            this.updateVariableType(this.returns);
+        } else {
+            this.returns = DataType.AnyList;
+            this.updateVariableType(this.returns);
+        }
     }
 
     private getEmptyHolesWIndex(): [TypedEmptyExpr, number][] {
