@@ -28,7 +28,7 @@ import {
     TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOperator,
+    UnaryOperator
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -540,7 +540,7 @@ export abstract class Statement implements CodeConstruct {
      *
      * @param insertCode code being inserted
      */
-    onInsertInto(insertCode: CodeConstruct) {}
+    onInsertInto(insertCode: CodeConstruct, args?: {}) {}
 
     //TODO: #526 should be changed to return InsertionResult and populate that result with an appropriate message/code
     abstract validateContext(validator: Validator, providedContext: Context): InsertionType;
@@ -1140,9 +1140,9 @@ export class ForStatement extends Statement implements VariableContainer {
         );
     }
 
-    setIterator(iterator: Expression) {
+    setIterator(iterator: Expression, runningValidation: boolean = false) {
         this.tokens[this.iteratorIndex] = iterator;
-        this.onInsertInto(iterator);
+        this.updateLoopVarType(iterator);
     }
 
     validateContext(validator: Validator, providedContext: Context): InsertionType {
@@ -1277,12 +1277,17 @@ export class ForStatement extends Statement implements VariableContainer {
         }
     }
 
-    onInsertInto(insertCode: Expression) {
+    private updateLoopVarType(insertCode: Expression){
         if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
             this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
         } else {
             this.loopVar.dataType = insertCode.returns;
         }
+    }
+
+    onInsertInto(insertCode: Expression) {
+        this.updateLoopVarType(insertCode);
+        this.getModule().variableController.updateReturnTypeOfRefs(this.loopVar.buttonId);
     }
 
     onDelete() {
