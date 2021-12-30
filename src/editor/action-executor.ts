@@ -1682,7 +1682,7 @@ export class ActionExecutor {
 
             // this can never go into draft mode
             if (replacementResult.insertionType !== InsertionType.Invalid) {
-                this.module.closeConstructDraftRecord(root.tokens[index]);
+                if (root.tokens[index].draftModeEnabled) this.module.closeConstructDraftRecord(root.tokens[index]);
 
                 if (toLeft) newCode.replaceLeftOperand(expr);
                 else newCode.replaceRightOperand(expr);
@@ -1691,6 +1691,7 @@ export class ActionExecutor {
                 expr.rootNode = newCode;
 
                 root.tokens[index] = newCode;
+                //TODO: Call onInsertInto() on this line
                 root.rebuild(root.getLeftPosition(), 0);
 
                 this.module.editor.executeEdits(initialBoundary, newCode);
@@ -1698,9 +1699,9 @@ export class ActionExecutor {
                     tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
                 });
 
-                if (replacementResult.insertionType !== InsertionType.DraftMode) {
+                if (replacementResult.insertionType !== InsertionType.DraftMode && expr.draftModeEnabled) {
                     this.module.closeConstructDraftRecord(expr);
-                } else {
+                } else if (replacementResult.insertionType === InsertionType.DraftMode) {
                     this.module.openDraftMode(newCode, replacementResult.message, [
                         ...replacementResult.conversionRecords.map((conversionRecord) => {
                             return conversionRecord.getConversionButton(newCode.getRenderText(), this.module, newCode);
