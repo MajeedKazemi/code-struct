@@ -1619,6 +1619,8 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             const identifier = this.getIdentifier() === "  " ? this.oldIdentifier : this.getIdentifier();
             varController.removeVariableRefButton(this.buttonId);
             varController.addWarningToVarRefs(this.buttonId, identifier, this.getModule(), this);
+        } else {
+            varController.updateReturnTypeOfRefs(this.buttonId);
         }
     }
 }
