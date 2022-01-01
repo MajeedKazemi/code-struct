@@ -2833,7 +2833,7 @@ export class BinaryOperatorExpr extends Expression {
         //so at this point if something is inserted into the left or right operand then that insertion at the very least
         //was NOT invalid
         if (leftOperand instanceof Expression && rightOperand instanceof Expression) {
-            if (leftOperand.returns === rightOperand.returns) {
+            if (leftOperand.returns === rightOperand.returns && operationDefinedBetweenTypes) {
                 if (leftOperand.draftModeEnabled) module.closeConstructDraftRecord(leftOperand);
                 if (rightOperand.draftModeEnabled) module.closeConstructDraftRecord(rightOperand);
                 return false;

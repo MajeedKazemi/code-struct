@@ -137,7 +137,13 @@ export class TypeChecker {
                 return true;
         }
 
-        return type1 === type2 && definedBinOpsForType.has(type1);
+        return (
+            type1 === type2 &&
+            definedBinOpsForType.has(type1) &&
+            definedBinOpsForType.get(type1).indexOf(op) > -1 &&
+            definedBinOpsForType.has(type2) &&
+            definedBinOpsForType.get(type2).indexOf(op) > -1
+        );
     }
 
     static getAllowedBinaryOperatorsForType(type: DataType): BinaryOperator[] {
