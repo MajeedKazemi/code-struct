@@ -1369,13 +1369,11 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteUnconvertibleOperandWarning: {
-                const leftOperand = action.data.rootExpression.getLeftOperand();
-                const rightOperand = action.data.rootExpression.getRightOperand();
-
-                if (leftOperand.draftModeEnabled) this.module.closeConstructDraftRecord(leftOperand);
-                if (rightOperand.draftModeEnabled) this.module.closeConstructDraftRecord(rightOperand);
-
+                if (action.data.codeToDelete.draftModeEnabled)
+                    this.module.closeConstructDraftRecord(action.data.codeToDelete);
                 this.deleteCode(action.data.codeToDelete);
+
+                if (action.data.rootExpr instanceof Expression) action.data.rootExpr.validateTypes(this.module);
 
                 break;
             }
