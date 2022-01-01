@@ -127,7 +127,7 @@ export class TypeChecker {
     }
 
     static isBinOpAllowed(op: BinaryOperator, type1: DataType, type2: DataType): boolean {
-        const typeCombinationsForOp = definedBinOpsBetweenType.get(op);
+        const typeCombinationsForOp = definedBinOpsBetweenType.has(op) ? definedBinOpsBetweenType.get(op) : [];
 
         for (const combination of typeCombinationsForOp) {
             if (
