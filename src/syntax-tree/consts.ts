@@ -357,6 +357,17 @@ export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(type: Data
     )}. You can convert it to a type for which it is defined using one of: `;
 }
 
+export function GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES(
+    op: BinaryOperator,
+    type1: DataType,
+    type2: DataType
+) {
+    return `${te.getStyledSpan(op, CSSClasses.keyword)} is not possible between ${te.getStyledSpan(
+        getUserFriendlyType(type1),
+        CSSClasses.type
+    )} and ${te.getStyledSpan(getUserFriendlyType(type2), CSSClasses.type)} consider removing this code.`;
+}
+
 export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
     functionName: string,
     expectedTypes: DataType[],
