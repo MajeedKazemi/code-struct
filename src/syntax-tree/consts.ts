@@ -343,18 +343,18 @@ export function TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
     )}, but expected a ${getTypesString(expectedTypes)}. You can fix this by:`;
 }
 
-export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(type: DataType) {
-    return `Two items of type ${te.getStyledSpan(
+export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(type: DataType, op: BinaryOperator) {
+    return `${te.getStyledSpan(op, CSSClasses.keyword)} is not possible with ${te.getStyledSpan(
         getUserFriendlyType(type),
         CSSClasses.type
-    )} cannot be added togeter. Consider removing this code.`;
+    )}. Consider removing this code.`;
 }
 
-export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(type: DataType) {
-    return `Two items of type ${te.getStyledSpan(
+export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(type: DataType, op: BinaryOperator) {
+    return `${te.getStyledSpan(op, CSSClasses.keyword)} is not possible with ${te.getStyledSpan(
         getUserFriendlyType(type),
         CSSClasses.type
-    )} cannot be added togeter. You can convert this to a type that can be added with one of : `;
+    )}. You can convert it to a type for which it is defined using one of: `;
 }
 
 export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(

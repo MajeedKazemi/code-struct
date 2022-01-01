@@ -2842,7 +2842,8 @@ export class BinaryOperatorExpr extends Expression {
                     leftOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], leftOperand.returns),
                     conversionActionsForLeft,
-                    module
+                    module,
+                    this.operator
                 );
             } else if (!typesCanBeAdded) {
                 this.openDraftModeOnConstruct(
@@ -2850,7 +2851,8 @@ export class BinaryOperatorExpr extends Expression {
                     leftOperand,
                     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR([rightOperand.returns], leftOperand.returns),
                     conversionActionsForLeft,
-                    module
+                    module,
+                    this.operator
                 );
             } else if (leftOperand.draftModeEnabled) {
                 module.closeConstructDraftRecord(leftOperand);
@@ -2862,7 +2864,8 @@ export class BinaryOperatorExpr extends Expression {
                     rightOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], rightOperand.returns),
                     conversionActionsForLeft,
-                    module
+                    module,
+                    this.operator
                 );
             } else if (!typesCanBeAdded) {
                 this.openDraftModeOnConstruct(
@@ -2870,7 +2873,8 @@ export class BinaryOperatorExpr extends Expression {
                     rightOperand,
                     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR([leftOperand.returns], rightOperand.returns),
                     conversionActionsForRight,
-                    module
+                    module,
+                    this.operator
                 );
             } else if (rightOperand.draftModeEnabled) {
                 module.closeConstructDraftRecord(rightOperand);
@@ -2886,9 +2890,10 @@ export class BinaryOperatorExpr extends Expression {
             this.openDraftModeOnConstruct(
                 expr,
                 leftOperand,
-                GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(leftOperand.returns),
+                GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(leftOperand.returns, expr.operator),
                 conversionActionsForLeft,
-                module
+                module,
+                this.operator
             );
             leftOpened = true;
         } else if (
@@ -2899,9 +2904,10 @@ export class BinaryOperatorExpr extends Expression {
             this.openDraftModeOnConstruct(
                 expr,
                 rightOperand,
-                GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(rightOperand.returns),
+                GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(rightOperand.returns, expr.operator),
                 conversionActionsForRight,
-                module
+                module,
+                this.operator
             );
             rightOpened = true;
         }
@@ -2915,12 +2921,13 @@ export class BinaryOperatorExpr extends Expression {
         code: Expression,
         text: string,
         conversionActions: HTMLDivElement[],
-        module: Module
+        module: Module,
+        operator: BinaryOperator
     ) {
         if (conversionActions.length > 0) {
             module.openDraftMode(code, text, conversionActions);
         } else {
-            module.openDraftMode(code, GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(code.returns), [
+            module.openDraftMode(code, GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(code.returns, operator), [
                 createWarningButton(
                     Tooltip.Delete,
                     code,
