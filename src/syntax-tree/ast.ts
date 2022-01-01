@@ -17,6 +17,7 @@ import {
     getOperatorCategory,
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG,
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG,
+    GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES,
     IgnoreConversionRecord,
     IndexableTypes,
     InsertionType,
@@ -2838,45 +2839,79 @@ export class BinaryOperatorExpr extends Expression {
 
             //TODO: These if blocks are identical. Should be a function
             if (leftOperand.returns === DataType.Any) {
-                this.openDraftModeOnConstruct(
-                    expr,
+                module.openDraftMode(
                     leftOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], leftOperand.returns),
-                    conversionActionsForLeft,
-                    module,
-                    this.operator
+                    conversionActionsForLeft
                 );
             } else if (!operationDefinedBetweenTypes) {
-                this.openDraftModeOnConstruct(
-                    expr,
-                    leftOperand,
-                    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR([rightOperand.returns], leftOperand.returns),
-                    conversionActionsForLeft,
-                    module,
-                    this.operator
-                );
+                if (conversionActionsForLeft.length > 0) {
+                    module.openDraftMode(
+                        leftOperand,
+                        TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR([rightOperand.returns], leftOperand.returns),
+                        conversionActionsForLeft
+                    );
+                } else if (
+                    conversionActionsForLeft.length === 0 &&
+                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns)
+                ) {
+                    module.openDraftMode(
+                        leftOperand,
+                        GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES(
+                            expr.operator,
+                            leftOperand.returns,
+                            rightOperand.returns
+                        ),
+                        [
+                            createWarningButton(
+                                Tooltip.Delete,
+                                leftOperand,
+                                (() => {
+                                    this.deleteUnconvertibleOperandWarning(expr, leftOperand, module);
+                                }).bind(this)
+                            ),
+                        ]
+                    );
+                }
             } else if (leftOperand.draftModeEnabled) {
                 module.closeConstructDraftRecord(leftOperand);
             }
 
             if (rightOperand.returns === DataType.Any) {
-                this.openDraftModeOnConstruct(
-                    expr,
+                module.openDraftMode(
                     rightOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], rightOperand.returns),
-                    conversionActionsForLeft,
-                    module,
-                    this.operator
+                    conversionActionsForRight
                 );
             } else if (!operationDefinedBetweenTypes) {
-                this.openDraftModeOnConstruct(
-                    expr,
-                    rightOperand,
-                    TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR([leftOperand.returns], rightOperand.returns),
-                    conversionActionsForRight,
-                    module,
-                    this.operator
-                );
+                if (conversionActionsForRight.length > 0) {
+                    module.openDraftMode(
+                        rightOperand,
+                        TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR([leftOperand.returns], rightOperand.returns),
+                        conversionActionsForRight
+                    );
+                } else if (
+                    conversionActionsForRight.length === 0 &&
+                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns)
+                ) {
+                    module.openDraftMode(
+                        rightOperand,
+                        GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES(
+                            expr.operator,
+                            leftOperand.returns,
+                            rightOperand.returns
+                        ),
+                        [
+                            createWarningButton(
+                                Tooltip.Delete,
+                                rightOperand,
+                                (() => {
+                                    this.deleteUnconvertibleOperandWarning(expr, rightOperand, module);
+                                }).bind(this)
+                            ),
+                        ]
+                    );
+                }
             } else if (rightOperand.draftModeEnabled) {
                 module.closeConstructDraftRecord(rightOperand);
             }
@@ -2888,59 +2923,60 @@ export class BinaryOperatorExpr extends Expression {
             rightOperand instanceof TypedEmptyExpr &&
             TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(expr.operator) === -1
         ) {
-            this.openDraftModeOnConstruct(
-                expr,
-                leftOperand,
-                GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(leftOperand.returns, expr.operator),
-                conversionActionsForLeft,
-                module,
-                this.operator
-            );
+            if (conversionActionsForLeft.length > 0) {
+                module.openDraftMode(
+                    leftOperand,
+                    GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(leftOperand.returns, expr.operator),
+                    conversionActionsForLeft
+                );
+            } else {
+                module.openDraftMode(
+                    leftOperand,
+                    GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(leftOperand.returns, expr.operator),
+                    [
+                        createWarningButton(
+                            Tooltip.Delete,
+                            leftOperand,
+                            (() => {
+                                this.deleteUnconvertibleOperandWarning(expr, leftOperand, module);
+                            }).bind(this)
+                        ),
+                    ]
+                );
+            }
+
             leftOpened = true;
         } else if (
             leftOperand instanceof TypedEmptyExpr &&
             rightOperand instanceof Expression &&
             TypeChecker.getAllowedBinaryOperatorsForType(rightOperand.returns).indexOf(expr.operator) === -1
         ) {
-            this.openDraftModeOnConstruct(
-                expr,
-                rightOperand,
-                GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(rightOperand.returns, expr.operator),
-                conversionActionsForRight,
-                module,
-                this.operator
-            );
+            if (conversionActionsForLeft.length > 0) {
+                module.openDraftMode(
+                    rightOperand,
+                    GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(rightOperand.returns, expr.operator),
+                    conversionActionsForRight
+                );
+            } else {
+                module.openDraftMode(
+                    rightOperand,
+                    GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(rightOperand.returns, expr.operator),
+                    [
+                        createWarningButton(
+                            Tooltip.Delete,
+                            rightOperand,
+                            (() => {
+                                this.deleteUnconvertibleOperandWarning(expr, rightOperand, module);
+                            }).bind(this)
+                        ),
+                    ]
+                );
+            }
+
             rightOpened = true;
         }
 
         return leftOpened || rightOpened;
-    }
-
-    //TODO: Should not accept module as an argument
-    private openDraftModeOnConstruct(
-        rootExpr: BinaryOperatorExpr,
-        code: Expression,
-        text: string,
-        conversionActions: HTMLDivElement[],
-        module: Module,
-        operator: BinaryOperator
-    ) {
-        if (conversionActions.length > 0) {
-            module.openDraftMode(code, text, conversionActions);
-        } else if (
-            conversionActions.length === 0 &&
-            !TypeChecker.isBinOpAllowed(operator, code.returns, code.returns)
-        ) {
-            module.openDraftMode(code, GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(code.returns, operator), [
-                createWarningButton(
-                    Tooltip.Delete,
-                    code,
-                    (() => {
-                        this.deleteUnconvertibleOperandWarning(rootExpr, code, module);
-                    }).bind(this)
-                ),
-            ]);
-        }
     }
 
     private deleteUnconvertibleOperandWarning(
