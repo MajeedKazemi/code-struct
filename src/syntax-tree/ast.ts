@@ -2647,13 +2647,21 @@ export class BinaryOperatorExpr extends Expression {
                     this.isOperandEmpty(this.leftOperandIndex) &&
                     TypeChecker.getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
                 ) {
-                    (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+                    if (ListTypes.indexOf(insertCode.returns) > -1) {
+                        (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [...ListTypes];
+                    } else {
+                        (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+                    }
                 }
                 if (
                     this.isOperandEmpty(this.rightOperandIndex) &&
                     TypeChecker.getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
                 ) {
-                    (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+                    if (ListTypes.indexOf(insertCode.returns) > -1) {
+                        (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [...ListTypes];
+                    } else {
+                        (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
+                    }
                 }
             }
 
@@ -2771,7 +2779,7 @@ export class BinaryOperatorExpr extends Expression {
     private validateBinExprTypes(expr: BinaryOperatorExpr, module: Module): boolean {
         const leftOperand = expr.getLeftOperand();
         const rightOperand = expr.getRightOperand();
-        let leftOpened,
+        let leftOpened = false,
             rightOpened = false;
 
         if (leftOperand instanceof BinaryOperatorExpr) {
@@ -2817,8 +2825,6 @@ export class BinaryOperatorExpr extends Expression {
                     }
 
                     for (const rightRecord of conversionRecordsRightToLeft) {
-                        console.log(rightRecord.convertTo);
-
                         if (TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo)) {
                             conversionActionsForRight.push(
                                 rightRecord.getConversionButton(rightOperand.getKeyword(), module, rightOperand)

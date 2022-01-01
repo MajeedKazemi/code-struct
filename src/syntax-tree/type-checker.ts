@@ -5,6 +5,7 @@ import {
     definedBinOpsBetweenType,
     definedBinOpsForType,
     definedUnaryOpsForType,
+    ListTypes,
     TypeConversionRecord,
     typeToConversionRecord,
     UnaryOperator,
@@ -102,11 +103,21 @@ export class TypeChecker {
 
     //get conversion records for a construct of type convertFrom to type convertTo
     static getTypeConversionRecords(convertFrom: DataType, convertTo: DataType): TypeConversionRecord[] {
+        const records = [];
         if (typeToConversionRecord.has(convertFrom)) {
-            return typeToConversionRecord.get(convertFrom).filter((record) => record.convertTo === convertTo);
+            records.push(...typeToConversionRecord.get(convertFrom).filter((record) => record.convertTo === convertTo));
+
+            //Anything can be converted to a list of that type and lists of different types usually still have operations defined for them (ex. you can add [True] and [1])
+            if (ListTypes.indexOf(convertFrom) === -1 && ListTypes.indexOf(convertTo) > -1) {
+                records.push(
+                    ...typeToConversionRecord
+                        .get(convertFrom)
+                        .filter((record) => ListTypes.indexOf(record.convertTo) > -1)
+                );
+            }
         }
 
-        return [];
+        return records;
     }
 
     //get all conversion buttons for a particular construct given its conversion records for each type
