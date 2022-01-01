@@ -2731,21 +2731,6 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     onInsertInto(insertCode: Expression) {
-        // Inserting a bin op within a bin op needs to update types of holes in the outer levels of the expression
-        // This is so that bin ops that operate on different types such as + can have their return and hole types consolidated
-        // into one when a more type restricted bin op such as - is inserted inside of them
-
-        //This is also for inserting any other kind of expression within a bin op. It needs to make other holes within it match the insertion type
-        if (this.rootNode instanceof BinaryOperatorExpr && !this.isBoolean() && this.rootNode.areAllHolesEmpty()) {
-            if (this.rootNode.operatorCategory === OperatorCategory.Arithmetic) {
-                TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns], true);
-            } else if (this.rootNode.operatorCategory === OperatorCategory.Comparison) {
-                TypeChecker.setAllHolesToType(this.rootNode.getTopLevelBinExpression(), [insertCode.returns]);
-            }
-        } else {
-            // In the case that the root is a binOp and its holes are not empty, need to update the holes of this expr to that type as well
-        }
-
         this.performTypeUpdatesOnInsertInto(insertCode);
     }
 
@@ -2942,7 +2927,10 @@ export class BinaryOperatorExpr extends Expression {
     ) {
         if (conversionActions.length > 0) {
             module.openDraftMode(code, text, conversionActions);
-        } else {
+        } else if (
+            conversionActions.length === 0 &&
+            !TypeChecker.isBinOpAllowed(operator, code.returns, code.returns)
+        ) {
             module.openDraftMode(code, GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(code.returns, operator), [
                 createWarningButton(
                     Tooltip.Delete,
@@ -2969,21 +2957,10 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     private getCurrentAllowedTypesOfOperand(index: number, beingDeleted: boolean = false): DataType[] {
-        const indexOfOtherOperand = this.getIndexOfOtherOperand(index);
-
         if (this.isBoolean()) {
             return [DataType.Boolean];
         }
-
-        if (beingDeleted) {
-            if (this.isOperandEmpty(indexOfOtherOperand) || this.tokens[index] instanceof AutocompleteTkn) {
-                return this.typeOfHoles[indexOfOtherOperand];
-            }
-            return [(this.tokens[indexOfOtherOperand] as Expression).returns];
-        } else {
-            if (this.tokens[index] instanceof TypedEmptyExpr) return (this.tokens[index] as TypedEmptyExpr).type;
-            else return [];
-        }
+        return this.typeOfHoles[index];
     }
 
     private isOperandEmpty(index: number): boolean {
@@ -2998,7 +2975,6 @@ export class BinaryOperatorExpr extends Expression {
 
             if (this.isOperandEmpty(operandBeingKeptIndex)) {
                 if (this.operator === BinaryOperator.Add) this.returns = this.originalReturnType;
-                (this.tokens[operandBeingKeptIndex] as TypedEmptyExpr).type = this.typeOfHoles[operandBeingKeptIndex];
             } else if (this.operator === BinaryOperator.Add) {
                 this.returns = (operandBeingKept as Expression).returns;
             }

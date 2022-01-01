@@ -1373,7 +1373,8 @@ export class ActionExecutor {
                     this.module.closeConstructDraftRecord(action.data.codeToDelete);
                 this.deleteCode(action.data.codeToDelete);
 
-                if (action.data.rootExpr instanceof Expression) action.data.rootExpr.validateTypes(this.module);
+                if (action.data.rootExpression instanceof Expression)
+                    action.data.rootExpression.validateTypes(this.module);
 
                 break;
             }
