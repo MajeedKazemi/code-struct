@@ -866,29 +866,3 @@ export const definedBinOpsBetweenType = new Map<BinaryOperator, [DataType, DataT
         ],
     ],
 ]);
-
-export function isBinOpAllowed(op: BinaryOperator, type1: DataType, type2: DataType): boolean {
-    const typeCombinationsForOp = definedBinOpsBetweenType.get(op);
-
-    for (const combination of typeCombinationsForOp) {
-        if (
-            (combination[0] === type1 && combination[1] === type2) ||
-            (combination[0] === type2 && combination[1] === type1)
-        )
-            return true;
-    }
-
-    return type1 === type2 && definedBinOpsForType.has(type1);
-}
-
-export function getAllowedBinaryOperatorsForType(type: DataType): BinaryOperator[] {
-    if (definedBinOpsForType.has(type)) return definedBinOpsForType.get(type);
-
-    return [];
-}
-
-export function getAllowedUnaryOperatorsForType(type: DataType): UnaryOperator[] {
-    if (definedBinOpsForType.has(type)) return definedUnaryOpsForType.get(type);
-
-    return [];
-}

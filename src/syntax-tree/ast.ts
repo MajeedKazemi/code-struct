@@ -7,21 +7,24 @@ import { Context, UpdatableContext } from "../editor/focus";
 import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeBackground, HoverMessage, InlineMessage } from "../messages/messages";
-import { areEqualTypes, createWarningButton, hasMatch, Util } from "../utilities/util";
+import {
+    areEqualTypes,
+    createWarningButton,
+    hasMatch,
+    Util
+} from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
     AugmentedAssignmentOperator,
     AutoCompleteType,
     BinaryOperator,
     DataType,
-    getAllowedBinaryOperatorsForType,
     getOperatorCategory,
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG,
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG,
     IgnoreConversionRecord,
     IndexableTypes,
     InsertionType,
-    isBinOpAllowed,
     ListTypes,
     NumberRegex,
     OperatorCategory,
@@ -32,7 +35,7 @@ import {
     TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOperator,
+    UnaryOperator
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -2527,12 +2530,12 @@ export class BinaryOperatorExpr extends Expression {
         return validator.atEmptyExpressionHole(providedContext) || // type validation will happen later
             (validator.atLeftOfExpression(providedContext) &&
                 !(providedContext.expressionToRight.rootNode instanceof VarOperationStmt) &&
-                getAllowedBinaryOperatorsForType(providedContext?.expressionToRight?.returns).some(
+                TypeChecker.getAllowedBinaryOperatorsForType(providedContext?.expressionToRight?.returns).some(
                     (x) => x === this.operator
                 )) ||
             (validator.atRightOfExpression(providedContext) &&
                 !(providedContext.expressionToLeft.rootNode instanceof VarOperationStmt) &&
-                getAllowedBinaryOperatorsForType(providedContext?.expressionToLeft?.returns).some(
+                TypeChecker.getAllowedBinaryOperatorsForType(providedContext?.expressionToLeft?.returns).some(
                     (x) => x === this.operator
                 ))
             ? InsertionType.Valid
@@ -2639,13 +2642,13 @@ export class BinaryOperatorExpr extends Expression {
                 // this.returns = insertCode.returns;
                 if (
                     this.isOperandEmpty(this.leftOperandIndex) &&
-                    getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
+                    TypeChecker.getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
                 ) {
                     (this.tokens[this.leftOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
                 }
                 if (
                     this.isOperandEmpty(this.rightOperandIndex) &&
-                    getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
+                    TypeChecker.getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
                 ) {
                     (this.tokens[this.rightOperandIndex] as TypedEmptyExpr).type = [insertCode.returns];
                 }
@@ -2653,7 +2656,7 @@ export class BinaryOperatorExpr extends Expression {
 
             if (
                 insertCode.returns === this.getFilledHoleType() &&
-                getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1 &&
+                TypeChecker.getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1 &&
                 this.tokens[this.getIndexOfFilledOperand()].draftModeEnabled
             ) {
                 this.getModule().closeConstructDraftRecord(this.tokens[this.getIndexOfFilledOperand()]);
@@ -2742,7 +2745,7 @@ export class BinaryOperatorExpr extends Expression {
         if (
             otherOperand > -1 &&
             this.tokens[otherOperand].draftModeEnabled &&
-            getAllowedBinaryOperatorsForType((this.tokens[otherOperand] as Expression).returns).indexOf(this.operator) >
+            TypeChecker.getAllowedBinaryOperatorsForType((this.tokens[otherOperand] as Expression).returns).indexOf(this.operator) >
                 -1
         ) {
             this.getModule().closeConstructDraftRecord(this.tokens[otherOperand]);
@@ -2786,7 +2789,7 @@ export class BinaryOperatorExpr extends Expression {
         //if types can be added, there is no need to get conversion records
         let typesCanBeAdded = false;
         if (leftOperand instanceof Expression && rightOperand instanceof Expression) {
-            typesCanBeAdded = isBinOpAllowed(this.operator, leftOperand.returns, rightOperand.returns);
+            typesCanBeAdded = TypeChecker.isBinOpAllowed(this.operator, leftOperand.returns, rightOperand.returns);
         }
 
         if (!typesCanBeAdded) {
@@ -2797,7 +2800,7 @@ export class BinaryOperatorExpr extends Expression {
                     const conversionRecordsRightToLeft = TypeChecker.getTypeConversionRecords(rightType, leftType);
 
                     for (const leftRecord of conversionRecordsLeftToRight) {
-                        if (getAllowedBinaryOperatorsForType(leftRecord.convertTo)) {
+                        if (TypeChecker.getAllowedBinaryOperatorsForType(leftRecord.convertTo)) {
                             conversionActionsForLeft.push(
                                 leftRecord.getConversionButton(leftOperand.getKeyword(), module, leftOperand)
                             );
@@ -2807,7 +2810,7 @@ export class BinaryOperatorExpr extends Expression {
                     for (const rightRecord of conversionRecordsRightToLeft) {
                         console.log(rightRecord.convertTo);
 
-                        if (getAllowedBinaryOperatorsForType(rightRecord.convertTo)) {
+                        if (TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo)) {
                             conversionActionsForRight.push(
                                 rightRecord.getConversionButton(rightOperand.getKeyword(), module, rightOperand)
                             );
@@ -2868,7 +2871,7 @@ export class BinaryOperatorExpr extends Expression {
         } else if (
             leftOperand instanceof Expression &&
             rightOperand instanceof TypedEmptyExpr &&
-            getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(expr.operator) === -1
+            TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(expr.operator) === -1
         ) {
             this.openDraftModeOnConstruct(
                 expr,
@@ -2881,7 +2884,7 @@ export class BinaryOperatorExpr extends Expression {
         } else if (
             leftOperand instanceof TypedEmptyExpr &&
             rightOperand instanceof Expression &&
-            getAllowedBinaryOperatorsForType(rightOperand.returns).indexOf(expr.operator) === -1
+            TypeChecker.getAllowedBinaryOperatorsForType(rightOperand.returns).indexOf(expr.operator) === -1
         ) {
             this.openDraftModeOnConstruct(
                 expr,

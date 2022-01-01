@@ -1,5 +1,14 @@
 import { BinaryOperatorExpr, CodeConstruct, Expression, TypedEmptyExpr } from "./ast";
-import { DataType, TypeConversionRecord, typeToConversionRecord } from "./consts";
+import {
+    BinaryOperator,
+    DataType,
+    definedBinOpsBetweenType,
+    definedBinOpsForType,
+    definedUnaryOpsForType,
+    TypeConversionRecord,
+    typeToConversionRecord,
+    UnaryOperator,
+} from "./consts";
 import { Module } from "./module";
 
 export class TypeChecker {
@@ -115,5 +124,31 @@ export class TypeChecker {
         }
 
         return buttons;
+    }
+
+    static isBinOpAllowed(op: BinaryOperator, type1: DataType, type2: DataType): boolean {
+        const typeCombinationsForOp = definedBinOpsBetweenType.get(op);
+
+        for (const combination of typeCombinationsForOp) {
+            if (
+                (combination[0] === type1 && combination[1] === type2) ||
+                (combination[0] === type2 && combination[1] === type1)
+            )
+                return true;
+        }
+
+        return type1 === type2 && definedBinOpsForType.has(type1);
+    }
+
+    static getAllowedBinaryOperatorsForType(type: DataType): BinaryOperator[] {
+        if (definedBinOpsForType.has(type)) return definedBinOpsForType.get(type);
+
+        return [];
+    }
+
+    static getAllowedUnaryOperatorsForType(type: DataType): UnaryOperator[] {
+        if (definedBinOpsForType.has(type)) return definedUnaryOpsForType.get(type);
+
+        return [];
     }
 }
