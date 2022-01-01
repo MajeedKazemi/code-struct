@@ -1622,7 +1622,7 @@ export class ActionExecutor {
             }
 
             if (root instanceof BinaryOperatorExpr) {
-                root.createWarnings(this.module);
+                root.validateTypes(this.module);
             } else if (insertionResult.insertionType == InsertionType.DraftMode) {
                 this.module.openDraftMode(code, insertionResult.message, [
                     ...insertionResult.conversionRecords.map((conversionRecord) => {

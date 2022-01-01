@@ -7,12 +7,7 @@ import { Context, UpdatableContext } from "../editor/focus";
 import { ToolboxController } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
 import { CodeBackground, HoverMessage, InlineMessage } from "../messages/messages";
-import {
-    areEqualTypes,
-    createWarningButton,
-    hasMatch,
-    Util
-} from "../utilities/util";
+import { areEqualTypes, createWarningButton, hasMatch, Util } from "../utilities/util";
 import { Callback, CallbackType } from "./callback";
 import {
     AugmentedAssignmentOperator,
@@ -35,7 +30,7 @@ import {
     TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR,
     TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR,
-    UnaryOperator
+    UnaryOperator,
 } from "./consts";
 import { Module } from "./module";
 import { Scope } from "./scope";
@@ -730,6 +725,12 @@ export abstract class Expression extends Statement implements CodeConstruct {
 
     getTypes(): DataType[] {
         return [this.returns];
+    }
+
+    //TODO: Probably needs to be filled. At least in every construct, but there should be general logic that applies to all expressions as well,
+    //Currently only implemented for BinOps due to time constraints
+    validateTypes(module: Module) {
+        return;
     }
 }
 
@@ -2745,8 +2746,9 @@ export class BinaryOperatorExpr extends Expression {
         if (
             otherOperand > -1 &&
             this.tokens[otherOperand].draftModeEnabled &&
-            TypeChecker.getAllowedBinaryOperatorsForType((this.tokens[otherOperand] as Expression).returns).indexOf(this.operator) >
-                -1
+            TypeChecker.getAllowedBinaryOperatorsForType((this.tokens[otherOperand] as Expression).returns).indexOf(
+                this.operator
+            ) > -1
         ) {
             this.getModule().closeConstructDraftRecord(this.tokens[otherOperand]);
         }
@@ -2758,11 +2760,12 @@ export class BinaryOperatorExpr extends Expression {
         return this.getCurrentAllowedTypesOfOperand(index, beingDeleted);
     }
 
-    createWarnings(module: Module) {
+    validateTypes(module: Module) {
         this.validateBinExprTypes(this, module);
     }
 
     //TODO: Passing module recursively is bad for memory
+    //TODO: Function is way too large. Can definitely be split into smaller ones.
     private validateBinExprTypes(expr: BinaryOperatorExpr, module: Module): boolean {
         const leftOperand = expr.getLeftOperand();
         const rightOperand = expr.getRightOperand();
@@ -2830,6 +2833,7 @@ export class BinaryOperatorExpr extends Expression {
                 return false;
             }
 
+            //TODO: These if blocks are identical. Should be a function
             if (leftOperand.returns === DataType.Any) {
                 this.openDraftModeOnConstruct(
                     expr,
@@ -2846,6 +2850,8 @@ export class BinaryOperatorExpr extends Expression {
                     conversionActionsForLeft,
                     module
                 );
+            } else if (leftOperand.draftModeEnabled) {
+                module.closeConstructDraftRecord(leftOperand);
             }
 
             if (rightOperand.returns === DataType.Any) {
@@ -2864,6 +2870,8 @@ export class BinaryOperatorExpr extends Expression {
                     conversionActionsForRight,
                     module
                 );
+            } else if (rightOperand.draftModeEnabled) {
+                module.closeConstructDraftRecord(rightOperand);
             }
 
             rightOpened = true;
