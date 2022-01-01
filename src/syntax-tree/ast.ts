@@ -2817,7 +2817,10 @@ export class BinaryOperatorExpr extends Expression {
                     const conversionRecordsRightToLeft = TypeChecker.getTypeConversionRecords(rightType, leftType);
 
                     for (const leftRecord of conversionRecordsLeftToRight) {
-                        if (TypeChecker.getAllowedBinaryOperatorsForType(leftRecord.convertTo)) {
+                        if (
+                            TypeChecker.getAllowedBinaryOperatorsForType(leftRecord.convertTo).indexOf(this.operator) >
+                            -1
+                        ) {
                             conversionActionsForLeft.push(
                                 leftRecord.getConversionButton(leftOperand.getKeyword(), module, leftOperand)
                             );
@@ -2825,7 +2828,10 @@ export class BinaryOperatorExpr extends Expression {
                     }
 
                     for (const rightRecord of conversionRecordsRightToLeft) {
-                        if (TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo)) {
+                        if (
+                            TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo).indexOf(this.operator) >
+                            -1
+                        ) {
                             conversionActionsForRight.push(
                                 rightRecord.getConversionButton(rightOperand.getKeyword(), module, rightOperand)
                             );
