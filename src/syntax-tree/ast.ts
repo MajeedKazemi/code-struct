@@ -2792,12 +2792,16 @@ export class BinaryOperatorExpr extends Expression {
         const conversionActionsForRight = [];
 
         //if types can be added, there is no need to get conversion records
-        let typesCanBeAdded = false;
+        let operationDefinedBetweenTypes = false;
         if (leftOperand instanceof Expression && rightOperand instanceof Expression) {
-            typesCanBeAdded = TypeChecker.isBinOpAllowed(this.operator, leftOperand.returns, rightOperand.returns);
+            operationDefinedBetweenTypes = TypeChecker.isBinOpAllowed(
+                this.operator,
+                leftOperand.returns,
+                rightOperand.returns
+            );
         }
 
-        if (!typesCanBeAdded) {
+        if (!operationDefinedBetweenTypes) {
             //get all possible ways of converting all types of left to types of right and vice versa
             for (const leftType of leftExprTypes) {
                 for (const rightType of rightExprTypes) {
@@ -2845,7 +2849,7 @@ export class BinaryOperatorExpr extends Expression {
                     module,
                     this.operator
                 );
-            } else if (!typesCanBeAdded) {
+            } else if (!operationDefinedBetweenTypes) {
                 this.openDraftModeOnConstruct(
                     expr,
                     leftOperand,
@@ -2867,7 +2871,7 @@ export class BinaryOperatorExpr extends Expression {
                     module,
                     this.operator
                 );
-            } else if (!typesCanBeAdded) {
+            } else if (!operationDefinedBetweenTypes) {
                 this.openDraftModeOnConstruct(
                     expr,
                     rightOperand,
@@ -3329,6 +3333,8 @@ export class ListLiteralExpression extends Expression {
 
         this.returns = dataType;
         this.updateVariableType(dataType);
+
+        if (this.rootNode instanceof Expression) this.rootNode.validateTypes(this.getModule());
     }
 
     //return whether all elements of this list are of type TypedEmptyExpr
@@ -3360,6 +3366,8 @@ export class ListLiteralExpression extends Expression {
             this.returns = DataType.AnyList;
             this.updateVariableType(this.returns);
         }
+
+        if (this.rootNode instanceof Expression) this.rootNode.validateTypes(this.getModule());
     }
 
     onReplaceToken(args: { indexInRoot: number; replaceWithEmptyExpr: boolean }): void {
@@ -3374,6 +3382,8 @@ export class ListLiteralExpression extends Expression {
             this.returns = DataType.AnyList;
             this.updateVariableType(this.returns);
         }
+
+        if (this.rootNode instanceof Expression) this.rootNode.validateTypes(this.getModule());
     }
 
     private getEmptyHolesWIndex(): [TypedEmptyExpr, number][] {
