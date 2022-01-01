@@ -1930,6 +1930,7 @@ export class ActionExecutor {
     }
 
     private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
+        const root = code.rootNode;
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
@@ -1938,6 +1939,8 @@ export class ActionExecutor {
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });
+
+        if (root instanceof Expression) root.validateTypes(this.module);
     }
 
     private validateIdentifier(context: Context, identifierText: string) {
