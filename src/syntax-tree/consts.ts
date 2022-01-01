@@ -275,6 +275,8 @@ export enum Tooltip {
     InvalidInsertExpression = "Can only be inserted inside a hole (<hole1 class='errorTooltipHole'></hole1>) of matching type.",
     InvalidAugmentedAssignment = "Can only be inserted after a variable reference on an empty line.",
     TypeMismatch = "Inserting this will cause a type mismatch and will require you to convert the inserted expression to the correct type",
+    IgnoreWarning = "Ignore this warning",
+    Delete = "Delete",
 }
 
 //-------------------
@@ -339,6 +341,20 @@ export function TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
         getUserFriendlyType(varType),
         CSSClasses.type
     )}, but expected a ${getTypesString(expectedTypes)}. You can fix this by:`;
+}
+
+export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(type: DataType) {
+    return `Two items of type ${te.getStyledSpan(
+        getUserFriendlyType(type),
+        CSSClasses.type
+    )} cannot be added togeter. Consider removing this code.`;
+}
+
+export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(type: DataType) {
+    return `Two items of type ${te.getStyledSpan(
+        getUserFriendlyType(type),
+        CSSClasses.type
+    )} cannot be added togeter. You can convert this to a type that can be added with one of : `;
 }
 
 export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
@@ -439,14 +455,19 @@ export abstract class TypeConversionRecord {
 }
 
 export class IgnoreConversionRecord extends TypeConversionRecord {
+    warningText: string = "";
+
     constructor(
         conversionConstruct: string,
         convertTo: DataType,
         convertFrom: DataType,
         conversionAction: string,
-        editActionType: EditActionType
+        editActionType: EditActionType,
+        warningText: string
     ) {
         super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
+
+        this.warningText = warningText;
     }
 
     protected getConversionCode(itemToConvert: string): string {
@@ -454,12 +475,7 @@ export class IgnoreConversionRecord extends TypeConversionRecord {
     }
 
     getConversionButton(itemToConvert: string, module: Module, codeToReplace: CodeConstruct): HTMLDivElement {
-        let conversionText = itemToConvert;
-        if (codeToReplace instanceof FunctionCallExpr) {
-            conversionText = codeToReplace.getFullConstructText();
-        }
-
-        const text = "Ignore this Warning";
+        const text = this.warningText;
         const button = document.createElement("div");
         button.innerHTML = text.replace(/---/g, "<hole1></hole1>");
 
@@ -837,7 +853,33 @@ export const definedBinOpsForType = new Map<DataType, BinaryOperator[]>([
 
 export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataType.Boolean, [UnaryOperator.Not]]]);
 
-export const definedBinOpsBetweenType = new Map<DataType, BinaryOperator[]>([]);
+export const definedBinOpsBetweenType = new Map<BinaryOperator, [DataType, DataType][]>([
+    [
+        BinaryOperator.Add,
+        [
+            [DataType.AnyList, DataType.BooleanList],
+            [DataType.AnyList, DataType.StringList],
+            [DataType.AnyList, DataType.NumberList],
+            [DataType.NumberList, DataType.StringList],
+            [DataType.NumberList, DataType.BooleanList],
+            [DataType.StringList, DataType.BooleanList],
+        ],
+    ],
+]);
+
+export function isBinOpAllowed(op: BinaryOperator, type1: DataType, type2: DataType): boolean {
+    const typeCombinationsForOp = definedBinOpsBetweenType.get(op);
+
+    for (const combination of typeCombinationsForOp) {
+        if (
+            (combination[0] === type1 && combination[1] === type2) ||
+            (combination[0] === type2 && combination[1] === type1)
+        )
+            return true;
+    }
+
+    return type1 === type2 && definedBinOpsForType.has(type1);
+}
 
 export function getAllowedBinaryOperatorsForType(type: DataType): BinaryOperator[] {
     if (definedBinOpsForType.has(type)) return definedBinOpsForType.get(type);

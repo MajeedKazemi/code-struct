@@ -1,5 +1,5 @@
-import { BinaryOperatorExpr, Expression, TypedEmptyExpr } from "./ast";
-import { DataType } from "./consts";
+import { BinaryOperatorExpr, CodeConstruct, Expression, TypedEmptyExpr } from "./ast";
+import { DataType, TypeConversionRecord, typeToConversionRecord } from "./consts";
 import { Module } from "./module";
 
 export class TypeChecker {
@@ -89,5 +89,31 @@ export class TypeChecker {
             default:
                 return DataType.Any;
         }
+    }
+
+    //get conversion records for a construct of type convertFrom to type convertTo
+    static getTypeConversionRecords(convertFrom: DataType, convertTo: DataType): TypeConversionRecord[] {
+        if (typeToConversionRecord.has(convertFrom)) {
+            return typeToConversionRecord.get(convertFrom).filter((record) => record.convertTo === convertTo);
+        }
+
+        return [];
+    }
+
+    //get all conversion buttons for a particular construct given its conversion records for each type
+    static getConversionButtons(
+        conversionRecords: TypeConversionRecord[],
+        module: Module,
+        itemToConvertKeyword: string,
+        codeToReplaceOnConversion: CodeConstruct
+    ) {
+        if (conversionRecords.length === 0) return [];
+
+        const buttons = [];
+        for (const record of conversionRecords) {
+            buttons.push(record.getConversionButton(itemToConvertKeyword, module, codeToReplaceOnConversion));
+        }
+
+        return buttons;
     }
 }

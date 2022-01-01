@@ -45,6 +45,7 @@ import {
     PythonKeywords,
     StringRegex,
     TAB_SPACES,
+    Tooltip,
     TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
     TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
@@ -1007,11 +1008,14 @@ export class ActionExecutor {
                                     valOprExpr,
                                     TYPE_MISMATCH_ANY(holeDataTypes, valOprExpr.returns),
                                     [
-                                        new IgnoreConversionRecord("", null, null, "", null).getConversionButton(
+                                        new IgnoreConversionRecord(
                                             "",
-                                            this.module,
-                                            valOprExpr
-                                        ),
+                                            null,
+                                            null,
+                                            "",
+                                            null,
+                                            Tooltip.IgnoreWarning
+                                        ).getConversionButton("", this.module, valOprExpr),
                                     ]
                                 );
                             } else {
@@ -1363,6 +1367,18 @@ export class ActionExecutor {
 
                 break;
             }
+
+            case EditActionType.DeleteUnconvertibleOperandWarning: {
+                const leftOperand = action.data.rootExpression.getLeftOperand();
+                const rightOperand = action.data.rootExpression.getRightOperand();
+
+                if (leftOperand.draftModeEnabled) this.module.closeConstructDraftRecord(leftOperand);
+                if (rightOperand.draftModeEnabled) this.module.closeConstructDraftRecord(rightOperand);
+
+                this.deleteCode(action.data.codeToDelete);
+
+                break;
+            }
         }
 
         this.module.editor.monaco.focus();
@@ -1571,14 +1587,16 @@ export class ActionExecutor {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr) {
-            let insertionResult = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+            const root = context.token.rootNode;
+            let insertionResult = root.typeValidateInsertionIntoHole(code, context.token);
 
             if (insertionResult.insertionType != InsertionType.Invalid) {
-                if (context.token.rootNode instanceof Statement) {
-                    context.token.rootNode.onInsertInto(code);
+                if (root instanceof Statement) {
+                    root.onInsertInto(code);
                 }
 
                 if (context.token.message && context.selected) {
+                    //TODO: This should only be closed if the current insertion would fix the current draft mode. Currently we don't know if that is the case.
                     this.module.messageController.removeMessageFromConstruct(context.token);
                 }
 
@@ -1603,13 +1621,22 @@ export class ActionExecutor {
                 }
             }
 
-            if (insertionResult.insertionType == InsertionType.DraftMode)
+            if (root instanceof BinaryOperatorExpr) {
+                root.createWarnings(this.module);
+            } else if (insertionResult.insertionType == InsertionType.DraftMode) {
                 this.module.openDraftMode(code, insertionResult.message, [
                     ...insertionResult.conversionRecords.map((conversionRecord) => {
                         return conversionRecord.getConversionButton(code.getKeyword(), this.module, code);
                     }),
                 ]);
-            else if (isImportable(code)) {
+            } else if (isImportable(code)) {
+                //TODO: This needs to run regardless of what happens above. But for that we need nested draft modes. It should not be a case within the same if block
+                //The current problem is that a construct can only have a single draft mode on it. This is mostly ok since we often reinsert the construct when fixing a draft mode
+                //and the reinsertion triggers another draft mode if necessary. But this does not happen for importables because they are not reinserted on a fix so we might lose some
+                //draft modes this way.
+
+                //A quick fix for now would be to just trigger reinsertion. Otherwise we need a mechanism for having multiple draft modes. I have a commit on a separate branch for that.
+                //Converting them to a linked list seems to make the most sense.
                 this.checkImports(code, insertionResult.insertionType);
             }
         }

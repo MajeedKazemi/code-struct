@@ -1,7 +1,7 @@
 import { ConstructDoc } from "../suggestions/construct-doc";
-import { Importable } from "../syntax-tree/ast";
+import { CodeConstruct, Importable } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { DataType, ListTypes } from "./../syntax-tree/consts";
+import { addClassToDraftModeResolutionButton, DataType, ListTypes } from "./../syntax-tree/consts";
 
 /**
  * IMPORTANT!!!
@@ -163,4 +163,16 @@ export function getUserFriendlyType(type: DataType): string {
         default:
             return type;
     }
+}
+
+export function createWarningButton(buttonTxt: string, warningCode: CodeConstruct, action: Function): HTMLDivElement {
+    const button = document.createElement("div");
+    button.innerHTML = buttonTxt;
+    button.classList.add("button");
+    button.onclick = () => {
+        action();
+    };
+    addClassToDraftModeResolutionButton(button, warningCode);
+
+    return button;
 }
