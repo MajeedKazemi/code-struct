@@ -652,7 +652,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 return new InsertionResult(InsertionType.Valid, "", []);
             } else if (
                 replaceWith.returns !== this.returns &&
-                hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns])
+                hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns]) &&
+                !(this.rootNode instanceof BinaryOperatorExpr)
             ) {
                 const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
                     ? typeToConversionRecord
@@ -665,6 +666,14 @@ export abstract class Expression extends Statement implements CodeConstruct {
                     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR(this.getKeyword(), [this.returns], replaceWith.returns),
                     conversionRecords
                 );
+            } else if (this.rootNode instanceof BinaryOperatorExpr) {
+                const typeOfHoles = this.rootNode.typeOfHoles[this.indexInRoot];
+                if (
+                    hasMatch(typeOfHoles, [replaceWith.returns]) ||
+                    hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), typeOfHoles)
+                ) {
+                    return new InsertionResult(InsertionType.DraftMode, "", []);
+                }
             } else {
                 return new InsertionResult(InsertionType.Invalid, "", []);
             }
