@@ -2853,7 +2853,9 @@ export class BinaryOperatorExpr extends Expression {
                     );
                 } else if (
                     conversionActionsForLeft.length === 0 &&
-                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns)
+                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns) &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(this.operator) === -1 &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(rightOperand.returns).indexOf(this.operator) === -1
                 ) {
                     module.openDraftMode(
                         leftOperand,
@@ -2892,7 +2894,9 @@ export class BinaryOperatorExpr extends Expression {
                     );
                 } else if (
                     conversionActionsForRight.length === 0 &&
-                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns)
+                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns) &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(rightOperand.returns).indexOf(this.operator) === -1 &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(this.operator) === -1
                 ) {
                     module.openDraftMode(
                         rightOperand,
