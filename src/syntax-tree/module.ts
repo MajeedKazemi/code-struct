@@ -96,7 +96,7 @@ export class Module {
             const statementAtLine = this.focus.getStatementAtLineNumber(this.editor.monaco.getPosition().lineNumber);
             const statementScope = statementAtLine.scope ?? (statementAtLine.rootNode as Statement | Module).scope;
 
-            this.variableController.hideUnavailableVarsInToolbox(
+            this.variableController.updateToolboxVarsCallback(
                 statementScope,
                 this.editor.monaco.getPosition().lineNumber
             );

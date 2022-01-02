@@ -15,17 +15,23 @@
 }
 
 .cascadedMenuMainDiv {
-    display: none;
+    opacity: 0;
 
     min-width: 375px;
+    z-index: 10;
     position: absolute;
     background-color: white;
     box-shadow: 0px 8px 16px 0px rgb(0 0 0 / 20%);
 
-    border-radius: 3px;
-    padding-bottom: 10px;
+    border-radius: 6px;
 
     overflow-y: auto;
+
+    transition: opacity 0.1s ease-in-out;
+    -webkit-transition: opacity 0.1s ease-in-out;
+    -moz-transition: opacity 0.1s ease-in-out;
+    -o-transition: opacity 0.1s ease-in-out;
+    -ms-transition: opacity 0.1s ease-in-out;
 }
 
 .cascadedMenuItem {
@@ -37,14 +43,26 @@
 }
 
 .cascadedMenuContent {
-    padding-left: 10px;
+    padding-left: 9px;
+}
+
+.cascadedMenuContent .inline-var-id {
+    color: #aa5bc8;
+    border-radius: 4px;
+    padding: 1px 4px;
+    border: solid 1px #bbb;
 }
 
 .cascadedMenuOptionTooltip {
     display: inline;
     align-self: center;
-    font-size: 11px;
-    color: rgba(0, 0, 0, 0.7);
+    font-size: 14px;
+    color: #16b3c1;
+    margin-right: 10px;
+}
+
+.valid-option-tooltip {
+    font-weight: bold;
 }
 
 .hoverable:hover .cascadedMenuMainDiv {
@@ -54,24 +72,79 @@
 .cascaded-menu-header {
     border-bottom: solid 1px #ccc;
     margin-bottom: 5px;
-    height: 27px;
+    height: 35px;
     width: 100%;
     display: flex;
     flex-direction: row;
     align-items: center;
-    background-color: #c5d2d9;
+    background-color: #006a93;
+    color: #fff;
 }
 
 .cascaded-menu-header h3 {
-    font-weight: normal;
-    font-size: 16px;
+    font-weight: bold;
+    font-size: 18px;
     margin: 8px 10px 8px 10px;
 }
 
 .cascaded-menu-header .identifier {
     font-weight: bold;
-    background-color: #99a7ad;
+    background-color: #9850b3;
     padding: 0px 8px 0px 8px;
     border-radius: 3px;
-    color: black;
+    color: #fff;
+}
+
+.cascadedMenuContent .button {
+    font-size: 15px;
+    padding: 6px 10px;
+
+    white-space: nowrap;
+    box-shadow: 0px 1px 5px 2px #ddd;
+
+    transition: 0.15s ease-in-out;
+    -webkit-transition: 0.15s ease-in-out;
+    -moz-transition: 0.15s ease-in-out;
+    -o-transition: 0.15s ease-in-out;
+    -ms-transition: 0.15s ease-in-out;
+
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
+}
+
+.cascadedMenuContent .button:hover {
+    box-shadow: 0px 1px 5px 2px #ccc;
+}
+
+.cascadedMenuContent .var-button-container {
+    display: inline-flex;
+}
+
+.cascadedMenuContent .button-id {
+    color: #aa5bc8;
+}
+
+.var-more-actions-button {
+    border: solid 1px #007acc;
+    padding: 3px 6px;
+    border-radius: 5px;
+    color: #007acc;
+    font-size: 13px;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+
+    cursor: pointer;
+
+    margin-right: 5px;
+}
+
+.var-more-actions-button:hover {
+    background-color: #007acc;
+    color: #fff;
 }

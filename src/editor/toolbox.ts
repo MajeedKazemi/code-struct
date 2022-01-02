@@ -75,7 +75,7 @@ export class ToolboxController {
                                         tooltip.remove();
                                     }, 100);
                                 }
-                            }, 100);
+                            }, 150);
                         });
 
                         tooltip.addEventListener("mouseleave", () => {
@@ -295,10 +295,10 @@ export class ToolboxController {
 
                 for (const item of category.items) {
                     if (!showAll && resultActionsId.indexOf(item.cssId) === -1) {
-                        document.getElementById(item.cssId).style.display = "none";
+                        document.getElementById(item.cssId).parentElement.style.display = "none";
                         clearedItemsInCategory++;
                     } else {
-                        document.getElementById(item.cssId).style.display = "flex";
+                        document.getElementById(item.cssId).parentElement.style.display = "flex";
                     }
                 }
 
@@ -421,26 +421,40 @@ export class ToolboxButton {
     }
 }
 
-export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
-    const container = document.createElement("grid");
+export function addVariableReferenceButton(
+    identifier: string,
+    buttonId: string,
+    events: EventStack,
+    module: Module
+): HTMLDivElement {
+    const container = document.createElement("div");
     container.classList.add("var-button-container");
 
-    const wrapperDiv = document.createElement("div");
-    wrapperDiv.classList.add("hoverable");
-
-    container.appendChild(wrapperDiv);
-
+    const varContainer = document.createElement("div");
+    varContainer.classList.add("var-container-wrapper");
     const button = document.createElement("div");
-    button.classList.add("button");
+    button.classList.add("var-button");
     button.id = buttonId;
 
-    wrapperDiv.appendChild(button);
+    varContainer.appendChild(button);
 
     const typeText = document.createElement("div");
     typeText.classList.add("var-type-text");
-    container.appendChild(typeText);
+    varContainer.appendChild(typeText);
 
-    document.getElementById("vars-button-grid").appendChild(container);
+    container.appendChild(varContainer);
+
+    const moreActionsButton = document.createElement("div");
+    moreActionsButton.classList.add("var-more-actions-button");
+    moreActionsButton.innerText = "actions >";
+    container.appendChild(moreActionsButton);
+
+    moreActionsButton.addEventListener("mouseover", () => {
+        const [options, type] = getVarOptions(identifier, buttonId, module);
+
+        //it is important that these options are regenerated on each mouseover
+        createAndAttachCascadedMenu(moreActionsButton, buttonId, options, module, identifier, type);
+    });
 
     button.textContent = identifier;
 
@@ -449,6 +463,16 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
         events.stack.push(action);
         events.apply(action);
     });
+
+    setTimeout(() => {
+        container.classList.add("glowing");
+
+        setTimeout(() => {
+            container.classList.remove("glowing");
+        }, 5000);
+    }, 1);
+
+    document.getElementById("vars-button-grid").appendChild(container);
 
     return button;
 }
@@ -466,28 +490,22 @@ function constructCascadedMenuObj(
     validActions: Map<string, EditCodeAction>,
     buttonId: string,
     module: Module,
-    identifier: string
+    identifier: string,
+    type: DataType
 ): HTMLDivElement {
     const context = module.focus.getContext();
     const menu = document.createElement("div");
+    menu.classList.add("cascadedMenuMainDiv");
     menu.id = `${buttonId}-cascadedMenu`;
-    menu.className = "cascadedMenuMainDiv";
 
     const header = document.createElement("div");
     header.classList.add("cascaded-menu-header");
-    header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span>:</h3>`;
+    header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span> variable:</h3>`;
     menu.appendChild(header);
 
-    menu.addEventListener("mouseover", () => {
-        setTimeout(() => {
-            const element = document.getElementById(`${buttonId}-cascadedMenu`);
-            const button = document.getElementById(buttonId);
-
-            if (element && !element.matches(":hover") && !button.matches(":hover")) {
-                element.remove();
-            }
-        }, 100);
-    });
+    setTimeout(() => {
+        menu.style.opacity = "1";
+    }, 1);
 
     let id = 0;
 
@@ -497,6 +515,14 @@ function constructCascadedMenuObj(
 
         const menuText = document.createElement("span");
         menuText.classList.add("cascadedMenuOptionTooltip");
+        if (value.shortDescription) {
+            menuText.innerHTML =
+                "> " + value.shortDescription.replace("{VAR_ID}", `<span class="inline-var-id">${identifier}</span>`);
+        }
+
+        if (value.insertionResult.insertionType === InsertionType.Valid) {
+            menuText.classList.add("valid-option-tooltip");
+        }
 
         const code = value.getCode();
         let returnType = null;
@@ -510,6 +536,9 @@ function constructCascadedMenuObj(
         const menuButton = ToolboxButton.createToolboxButtonFromJsonObj(value);
 
         menuButton.getButtonElement().classList.add("cascadedMenuItem");
+        menuButton.getButtonElement().innerHTML = menuButton
+            .getButtonElement()
+            .innerHTML.replace(identifier, `<span class="button-id">${identifier}</span>`);
         value.performAction.bind(value);
 
         menuButton.getButtonElement().addEventListener("click", () => {
@@ -526,20 +555,52 @@ function constructCascadedMenuObj(
         menu.appendChild(menuItem);
     }
 
+    const extraContainer = document.createElement("div");
+    extraContainer.classList.add("cascaded-menu-extra-container");
+
+    const createExtraItem = (innerHTML: string) => {
+        const extraItem = document.createElement("div");
+        extraItem.classList.add("cascaded-menu-extra-item");
+        extraItem.innerHTML = innerHTML;
+
+        return extraItem;
+    };
+
+    if (type === DataType.String) {
+        extraContainer.appendChild(
+            createExtraItem(
+                `try converting to integer (number) using <span class='code'>int(<span class='inline-var'>${identifier}</span>)</span>`
+            )
+        );
+
+        menu.appendChild(extraContainer);
+    } else if (type === DataType.Number) {
+        extraContainer.appendChild(
+            createExtraItem(
+                `convert to string (text) using <span class='code'>str(<span class='inline-var'>${identifier}</span>)</span>`
+            )
+        );
+
+        menu.appendChild(extraContainer);
+    }
+
     return menu;
 }
 
 //creates a cascaded menu dom object with the given options and attaches it to button with id = buttonId.
 //also updates its position according to the button it is being attached to.
 function createAndAttachCascadedMenu(
+    moreActionsButton: HTMLDivElement,
     buttonId: string,
     validActions: Map<string, EditCodeAction>,
     module: Module,
-    identifier: string
+    identifier: string,
+    type: DataType
 ) {
     const button = document.getElementById(buttonId);
+
     if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
-        const menuElement = constructCascadedMenuObj(validActions, buttonId, module, identifier);
+        const menuElement = constructCascadedMenuObj(validActions, buttonId, module, identifier, type);
 
         if (menuElement.children.length > 0) {
             const content = document.createElement("div");
@@ -547,20 +608,40 @@ function createAndAttachCascadedMenu(
             button.parentElement.appendChild(menuElement);
 
             const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
-            const buttonRect = button.getBoundingClientRect();
+            const buttonRect = moreActionsButton.getBoundingClientRect();
             const bodyRect = document.body.getBoundingClientRect();
 
             const leftPos = buttonRect.left - bodyRect.left + buttonRect.width;
-            const topPos = buttonRect.top - bodyRect.top + buttonRect.height;
 
-            domMenuElement.style.left = `${leftPos}px`;
+            domMenuElement.style.left = `${leftPos + 10}px`;
             domMenuElement.style.bottom = `${bodyRect.bottom - buttonRect.bottom}px`;
+
+            moreActionsButton.addEventListener("mouseleave", () => {
+                setTimeout(() => {
+                    if (menuElement && !menuElement.matches(":hover") && !moreActionsButton.matches(":hover")) {
+                        menuElement.style.opacity = "0";
+                        setTimeout(() => {
+                            menuElement.remove();
+                        }, 100);
+                    }
+                }, 150);
+            });
+
+            menuElement.addEventListener("mouseleave", () => {
+                if (menuElement && !menuElement.matches(":hover") && !button.matches(":hover")) {
+                    menuElement.style.opacity = "0";
+
+                    setTimeout(() => {
+                        menuElement.remove();
+                    }, 100);
+                }
+            });
         }
     }
 }
 
 // helper for creating options for a variable's cascaded menu
-function getVarOptions(identifier: string, buttonId: string, module: Module): Map<string, EditCodeAction> {
+function getVarOptions(identifier: string, buttonId: string, module: Module): [Map<string, EditCodeAction>, DataType] {
     const dataType = module.variableController.getVariableTypeNearLine(
         module.focus.getFocusedStatement().scope ??
             (
@@ -573,24 +654,7 @@ function getVarOptions(identifier: string, buttonId: string, module: Module): Ma
         false
     );
     const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
-    return module.actionFilter.validateVariableOperations(varRef);
-}
-
-export function createCascadedMenuForVarRef(buttonId: string, identifier: string, module: Module) {
-    const button = document.getElementById(buttonId);
-
-    button.addEventListener("mouseover", () => {
-        //it is important that these options are regenerated on each mouseover
-        createAndAttachCascadedMenu(buttonId, getVarOptions(identifier, buttonId, module), module, identifier);
-    });
-
-    button.addEventListener("mouseleave", () => {
-        const element = document.getElementById(`${buttonId}-cascadedMenu`);
-
-        if (element && !element.matches(":hover") && !button.matches(":hover")) {
-            element.remove();
-        }
-    });
+    return [module.actionFilter.validateVariableOperations(varRef), dataType];
 }
 
 window.onresize = () => {

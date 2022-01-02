@@ -106,12 +106,12 @@ export class ActionFilter {
     validateVariableOperations(ref: VariableReferenceExpr): Map<string, EditCodeAction> {
         const context = this.module.focus.getContext();
         const dataType = ref.returns;
-        const availableModifiers = Actions.instance().varModifiersMap.get(dataType);
+        const availableModifiers = Actions.instance().varActionsMap.get(dataType);
         const validOptionMap: Map<string, EditCodeAction> = new Map<string, EditCodeAction>();
 
         if (availableModifiers) {
             for (const varOperation of availableModifiers) {
-                const code = varOperation() as Expression;
+                const code = varOperation.action() as Expression;
 
                 if (code instanceof VarAssignmentStmt) code.setIdentifier(ref.identifier);
                 else if (code instanceof ValueOperationExpr) {
@@ -134,7 +134,7 @@ export class ActionFilter {
                     optionName,
                     "",
                     () => {
-                        const code = varOperation() as Expression;
+                        const code = varOperation.action() as Expression;
 
                         if (code instanceof VarAssignmentStmt) code.setIdentifier(ref.identifier);
                         else if (code instanceof ValueOperationExpr) {
@@ -159,7 +159,7 @@ export class ActionFilter {
                     null
                 );
                 codeAction.insertionResult = codeAction.validateAction(this.module.validator, context);
-
+                codeAction.shortDescription = varOperation.description;
                 validOptionMap.set(codeAction.optionName, codeAction);
             }
         }
@@ -288,6 +288,7 @@ export class EditCodeAction extends UserAction {
     insertableTerminatingCharRegex: RegExp[];
     trimSpacesBeforeTermChar: boolean;
     documentation: any;
+    shortDescription?: string;
 
     constructor(
         optionName: string,

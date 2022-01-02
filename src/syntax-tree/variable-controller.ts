@@ -1,9 +1,5 @@
 var controller;
-import {
-    addVariableReferenceButton,
-    createCascadedMenuForVarRef,
-    removeVariableReferenceButton,
-} from "../editor/toolbox";
+import { addVariableReferenceButton, removeVariableReferenceButton } from "../editor/toolbox";
 import { getUserFriendlyType, hasMatch, Util } from "../utilities/util";
 import {
     CodeConstruct,
@@ -36,11 +32,10 @@ export class VariableController {
         const button = addVariableReferenceButton(
             assignmentStmt.getIdentifier(),
             assignmentStmt.buttonId,
-            this.module.eventStack
+            this.module.eventStack,
+            this.module
         );
         this.variableButtons.push(button);
-
-        createCascadedMenuForVarRef(assignmentStmt.buttonId, assignmentStmt.getIdentifier(), this.module);
     }
 
     isVariableReferenceButton(buttonId: string) {
@@ -224,32 +219,68 @@ export class VariableController {
         return buttons[0];
     }
 
-    hideUnavailableVarsInToolbox(scope: Scope, lineNumber: number) {
+    updateToolboxVarsCallback(scope: Scope, lineNumber: number) {
         const availableRefs = scope
             ?.getValidReferences(lineNumber)
             ?.map((ref) => (ref.statement as VarAssignmentStmt).buttonId);
 
         if (availableRefs) {
             for (const button of this.variableButtons) {
+                // hide or show buttons based on availability in scope
                 if (availableRefs.indexOf(button.id) === -1) {
                     button.parentElement.parentElement.style.display = "none";
                 } else {
-                    button.parentElement.parentElement.style.display = "grid";
+                    button.parentElement.parentElement.style.display = "flex";
 
-                    button.parentElement.parentElement.children[1].innerHTML = getUserFriendlyType(
-                        this.getVariableTypeNearLine(scope, lineNumber, button.textContent)
-                    );
+                    // update each variable's return type
+                    const varType = this.getVariableTypeNearLine(scope, lineNumber, button.textContent);
+                    this.setButtonTypeVisuals(button, varType);
                 }
             }
         }
     }
 
+    setButtonTypeVisuals(button: HTMLDivElement, type: DataType) {
+        const buttonContainer = button.parentElement.parentElement;
+        const readableType = getUserFriendlyType(type);
+
+        buttonContainer.getElementsByClassName(
+            "var-type-text"
+        )[0].innerHTML = `<span class="def-vars-type-title-span">type: <span class="def-vars-type-span">${readableType}</span></span>`;
+
+        // let immediateTooltips = ``;
+
+        // switch (type) {
+        //     case DataType.Number:
+        //         immediateTooltips = `<span class="immediate-tooltip">convert text</span>`;
+        //         break;
+
+        //     case DataType.String:
+        //         immediateTooltips = `<span class="immediate-tooltip">convert number</span>`;
+        //         break;
+
+        //     case DataType.AnyList:
+        //     case DataType.NumberList:
+        //     case DataType.StringList:
+        //     case DataType.BooleanList:
+        //         immediateTooltips = `<span class="immediate-tooltip">add to list</span>
+        // 			<span class="immediate-tooltip">access item from list</span>
+        // 			<span class="immediate-tooltip">loop over items in list</span>`;
+        //         break;
+
+        //     default:
+        //         immediateTooltips = ``;
+        // }
+
+        // buttonContainer.getElementsByClassName("immediate-tooltips-container")[0].innerHTML = immediateTooltips;
+    }
+
     updateVarButtonWithType(buttonId: string, scope: Scope, lineNumber: number, identifier: string) {
-        this.variableButtons.filter(
-            (button) => button.id === buttonId
-        )[0].parentElement.parentElement.children[1].innerHTML = getUserFriendlyType(
-            this.getVariableTypeNearLine(scope, lineNumber, identifier, false)
-        );
+        const varType = this.getVariableTypeNearLine(scope, lineNumber, identifier, false);
+
+        const varButton = this.variableButtons.filter((button) => button.id === buttonId)[0];
+
+        this.setButtonTypeVisuals(varButton, varType);
     }
 
     getVariableTypeNearLine(

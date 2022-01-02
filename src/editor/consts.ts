@@ -287,7 +287,7 @@ export class Actions {
     private static inst: Actions;
     actionsList: Array<EditCodeAction>;
     actionsMap: Map<string, EditCodeAction>;
-    varModifiersMap: Map<DataType, Array<() => Statement>>;
+    varActionsMap: Map<DataType, Array<VarAction>>;
     toolboxCategories: Array<ToolboxCategory> = [];
 
     private constructor() {
@@ -1352,159 +1352,248 @@ export class Actions {
 
         this.actionsMap = new Map<string, EditCodeAction>(this.actionsList.map((action) => [action.cssId, action]));
 
-        this.varModifiersMap = new Map<DataType, Array<() => Statement>>([
-            [DataType.Boolean, [() => new VarAssignmentStmt()]],
+        this.varActionsMap = new Map<DataType, Array<VarAction>>([
+            [
+                DataType.Boolean,
+                [new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Set Value")],
+            ],
             [
                 DataType.Number,
                 [
-                    () => new VarAssignmentStmt(),
-                    () =>
-                        new VarOperationStmt(null, [new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add)]),
-                    () =>
-                        new VarOperationStmt(null, [
-                            new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
-                        ]),
-                    () =>
-                        new VarOperationStmt(null, [
-                            new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
-                        ]),
-                    () =>
-                        new VarOperationStmt(null, [
-                            new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
-                        ]),
-                    () =>
-                        new VarOperationStmt(null, [new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Mod)]),
+                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Set Value"),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                            ]),
+                        "add value to {VAR_ID}",
+                        "Update Value"
+                    ),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+                            ]),
+                        "subtract value from {VAR_ID}",
+                        "Update Value"
+                    ),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+                            ]),
+                        "multiply {VAR_ID} by value",
+                        "Update Value"
+                    ),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+                            ]),
+                        "divide {VAR_ID} by value",
+                        "Update Value"
+                    ),
                 ],
             ],
             [
                 DataType.String,
                 [
-                    () => new VarAssignmentStmt(),
-                    () =>
-                        new VarOperationStmt(null, [new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add)]),
-                    () => new ForStatement(),
-                    () =>
-                        new ValueOperationExpr(null, [
-                            new MethodCallModifier(
-                                "split",
-                                [new Argument([DataType.String], "sep", false)],
-                                DataType.StringList,
-                                DataType.String
-                            ),
-                        ]),
-                    () =>
-                        new ValueOperationExpr(null, [
-                            new MethodCallModifier(
-                                "join",
-                                [
-                                    new Argument(
-                                        [
-                                            DataType.AnyList,
-                                            DataType.StringList,
-                                            DataType.NumberList,
-                                            DataType.BooleanList,
-                                        ],
-                                        "items",
-                                        false
-                                    ),
-                                ],
-                                DataType.String,
-                                DataType.String
-                            ),
-                        ]),
-                    () =>
-                        new ValueOperationExpr(null, [
-                            new MethodCallModifier(
-                                "replace",
-                                [
-                                    new Argument([DataType.String], "old", false),
-                                    new Argument([DataType.String], "new", false),
-                                ],
-                                DataType.String,
-                                DataType.String
-                            ),
-                        ]),
-                    () =>
-                        new ValueOperationExpr(null, [
-                            new MethodCallModifier(
-                                "find",
-                                [new Argument([DataType.String], "item", false)],
-                                DataType.Number,
-                                DataType.String
-                            ),
-                        ]),
+                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Set Value"),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                            ]),
+                        "add text to {VAR_ID}",
+                        "Update Value"
+                    ),
+                    new VarAction(() => new ForStatement(), "loop through characters of {VAR_ID}", "Loops"),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(null, [
+                                new MethodCallModifier(
+                                    "split",
+                                    [new Argument([DataType.String], "sep", false)],
+                                    DataType.StringList,
+                                    DataType.String
+                                ),
+                            ]),
+                        "split {VAR_ID} using text",
+                        "Methods"
+                    ),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(null, [
+                                new MethodCallModifier(
+                                    "join",
+                                    [
+                                        new Argument(
+                                            [
+                                                DataType.AnyList,
+                                                DataType.StringList,
+                                                DataType.NumberList,
+                                                DataType.BooleanList,
+                                            ],
+                                            "items",
+                                            false
+                                        ),
+                                    ],
+                                    DataType.String,
+                                    DataType.String
+                                ),
+                            ]),
+                        "join {VAR_ID} using text",
+                        "Methods"
+                    ),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(null, [
+                                new MethodCallModifier(
+                                    "replace",
+                                    [
+                                        new Argument([DataType.String], "old", false),
+                                        new Argument([DataType.String], "new", false),
+                                    ],
+                                    DataType.String,
+                                    DataType.String
+                                ),
+                            ]),
+                        "replace first text in {VAR_ID} with second text",
+                        "Methods"
+                    ),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(null, [
+                                new MethodCallModifier(
+                                    "find",
+                                    [new Argument([DataType.String], "item", false)],
+                                    DataType.Number,
+                                    DataType.String
+                                ),
+                            ]),
+                        "find position of given text in {VAR_ID}",
+                        "Methods"
+                    ),
                 ],
             ],
             [
                 DataType.AnyList,
                 [
-                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
-                    () =>
-                        new VarOperationStmt(null, [
-                            new MethodCallModifier(
-                                "append",
-                                [new Argument([DataType.Any], "object", false)],
-                                DataType.Void,
-                                DataType.AnyList
-                            ),
-                        ]),
-                    () => new VarAssignmentStmt(),
-                    () => new ForStatement(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    new VarAction(
+                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        "set an index in {VAR_ID} to value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new MethodCallModifier(
+                                    "append",
+                                    [new Argument([DataType.Any], "object", false)],
+                                    DataType.Void,
+                                    DataType.AnyList
+                                ),
+                            ]),
+                        "append value to list {VAR_ID}",
+                        "Update List"
+                    ),
+                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
+                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
+                    new VarAction(
+                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        "get item from {VAR_ID} at index",
+                        "Get Value"
+                    ),
                 ],
             ],
             [
-                DataType.BooleanList,
+                DataType.Boolean,
                 [
-                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
-                    () =>
-                        new VarOperationStmt(null, [
-                            new MethodCallModifier(
-                                "append",
-                                [new Argument([DataType.Any], "object", false)],
-                                DataType.Void,
-                                DataType.AnyList
-                            ),
-                        ]),
-                    () => new VarAssignmentStmt(),
-                    () => new ForStatement(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    new VarAction(
+                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        "set an index in {VAR_ID} to value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new MethodCallModifier(
+                                    "append",
+                                    [new Argument([DataType.Any], "object", false)],
+                                    DataType.Void,
+                                    DataType.AnyList
+                                ),
+                            ]),
+                        "append value to list {VAR_ID}",
+                        "Update List"
+                    ),
+                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
+                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
+                    new VarAction(
+                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        "get item from {VAR_ID} at index",
+                        "Get Value"
+                    ),
                 ],
             ],
             [
                 DataType.NumberList,
                 [
-                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
-                    () =>
-                        new VarOperationStmt(null, [
-                            new MethodCallModifier(
-                                "append",
-                                [new Argument([DataType.Any], "object", false)],
-                                DataType.Void,
-                                DataType.AnyList
-                            ),
-                        ]),
-                    () => new VarAssignmentStmt(),
-                    () => new ForStatement(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    new VarAction(
+                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        "set an index in {VAR_ID} to value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new MethodCallModifier(
+                                    "append",
+                                    [new Argument([DataType.Any], "object", false)],
+                                    DataType.Void,
+                                    DataType.AnyList
+                                ),
+                            ]),
+                        "add value to list {VAR_ID}",
+                        "Update List"
+                    ),
+                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
+                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
+                    new VarAction(
+                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        "get item from {VAR_ID} at index",
+                        "Get Value"
+                    ),
                 ],
             ],
             [
                 DataType.StringList,
                 [
-                    () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
-                    () =>
-                        new VarOperationStmt(null, [
-                            new MethodCallModifier(
-                                "append",
-                                [new Argument([DataType.Any], "object", false)],
-                                DataType.Void,
-                                DataType.AnyList
-                            ),
-                        ]),
-                    () => new VarAssignmentStmt(),
-                    () => new ForStatement(),
-                    () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                    new VarAction(
+                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        "set an index in {VAR_ID} to value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () =>
+                            new VarOperationStmt(null, [
+                                new MethodCallModifier(
+                                    "append",
+                                    [new Argument([DataType.Any], "object", false)],
+                                    DataType.Void,
+                                    DataType.AnyList
+                                ),
+                            ]),
+                        "append value to list {VAR_ID}",
+                        "Update List"
+                    ),
+                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
+                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
+                    new VarAction(
+                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        "get item from {VAR_ID} at index",
+                        "Get Value"
+                    ),
                 ],
             ],
         ]);
@@ -1613,5 +1702,17 @@ export class ToolboxCategory {
         this.displayName = displayName;
         this.id = id;
         this.items = items;
+    }
+}
+
+export class VarAction {
+    description: string;
+    group: string;
+    action: () => Statement;
+
+    constructor(action: () => Statement, description: string, group: string) {
+        this.action = action;
+        this.description = description;
+        this.group = group;
     }
 }
