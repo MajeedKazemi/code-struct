@@ -1727,6 +1727,8 @@ export class ActionExecutor {
 
                 if (replacementResult.insertionType !== InsertionType.DraftMode && expr.draftModeEnabled) {
                     this.module.closeConstructDraftRecord(expr);
+                } else if (root instanceof BinaryOperatorExpr) {
+                    root.validateTypes(this.module);
                 } else if (replacementResult.insertionType === InsertionType.DraftMode) {
                     this.module.openDraftMode(newCode, replacementResult.message, [
                         ...replacementResult.conversionRecords.map((conversionRecord) => {
