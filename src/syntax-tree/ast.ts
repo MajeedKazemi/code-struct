@@ -711,9 +711,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
                     return new InsertionResult(InsertionType.Valid, "", []);
                 }
             }
-
-            return new InsertionResult(InsertionType.Invalid, "", []);
         }
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     updateVariableType(dataType: DataType) {
@@ -2854,6 +2853,7 @@ export class BinaryOperatorExpr extends Expression {
                     conversionActionsForLeft
                 );
             } else if (!operationDefinedBetweenTypes) {
+                console.log(conversionActionsForLeft.length, leftExprTypes, rightExprTypes);
                 if (conversionActionsForLeft.length > 0) {
                     module.openDraftMode(
                         leftOperand,
