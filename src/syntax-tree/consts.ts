@@ -275,6 +275,8 @@ export enum Tooltip {
     InvalidInsertExpression = "Can only be inserted inside a hole (<hole1 class='errorTooltipHole'></hole1>) of matching type.",
     InvalidAugmentedAssignment = "Can only be inserted after a variable reference on an empty line.",
     TypeMismatch = "Inserting this will cause a type mismatch and will require you to convert the inserted expression to the correct type",
+    IgnoreWarning = "Ignore this warning",
+    Delete = "Delete",
 }
 
 //-------------------
@@ -320,6 +322,16 @@ export function TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(expectedTypes: DataType[], 
     )} instead.\n You can fix this by:`;
 }
 
+export function TYPE_MISMATCH_ANY(expectedTypes: DataType[], actualType: DataType) {
+    return `Expected a ${getTypesString(expectedTypes)}, but you entered an ${te.getStyledSpan(
+        getUserFriendlyType(actualType),
+        CSSClasses.type
+    )} instead.\n Type ${te.getStyledSpan(
+        getUserFriendlyType(actualType),
+        CSSClasses.type
+    )} can represent any type, but you need to make sure it is one of the expected types.`;
+}
+
 export function TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
     identifier: string,
     varType: DataType,
@@ -329,6 +341,31 @@ export function TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR(
         getUserFriendlyType(varType),
         CSSClasses.type
     )}, but expected a ${getTypesString(expectedTypes)}. You can fix this by:`;
+}
+
+export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG(type: DataType, op: BinaryOperator) {
+    return `${te.getStyledSpan(op, CSSClasses.keyword)} is not possible with ${te.getStyledSpan(
+        getUserFriendlyType(type),
+        CSSClasses.type
+    )}. Consider removing this code.`;
+}
+
+export function GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG(type: DataType, op: BinaryOperator) {
+    return `${te.getStyledSpan(op, CSSClasses.keyword)} is not possible with ${te.getStyledSpan(
+        getUserFriendlyType(type),
+        CSSClasses.type
+    )}. You can convert it to a type for which it is defined using one of: `;
+}
+
+export function GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES(
+    op: BinaryOperator,
+    type1: DataType,
+    type2: DataType
+) {
+    return `${te.getStyledSpan(op, CSSClasses.keyword)} is not possible between ${te.getStyledSpan(
+        getUserFriendlyType(type1),
+        CSSClasses.type
+    )} and ${te.getStyledSpan(getUserFriendlyType(type2), CSSClasses.type)} consider removing this code.`;
 }
 
 export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
@@ -428,6 +465,41 @@ export abstract class TypeConversionRecord {
     }
 }
 
+export class IgnoreConversionRecord extends TypeConversionRecord {
+    warningText: string = "";
+
+    constructor(
+        conversionConstruct: string,
+        convertTo: DataType,
+        convertFrom: DataType,
+        conversionAction: string,
+        editActionType: EditActionType,
+        warningText: string
+    ) {
+        super(conversionConstruct, convertTo, convertFrom, conversionAction, editActionType);
+
+        this.warningText = warningText;
+    }
+
+    protected getConversionCode(itemToConvert: string): string {
+        return "";
+    }
+
+    getConversionButton(itemToConvert: string, module: Module, codeToReplace: CodeConstruct): HTMLDivElement {
+        const text = this.warningText;
+        const button = document.createElement("div");
+        button.innerHTML = text.replace(/---/g, "<hole1></hole1>");
+
+        addClassToDraftModeResolutionButton(button, codeToReplace);
+
+        button.addEventListener("click", () => {
+            module.closeConstructDraftRecord(codeToReplace);
+        });
+
+        return button;
+    }
+}
+
 export class CastConversionRecord extends TypeConversionRecord {
     constructor(
         conversionConstruct: string,
@@ -511,6 +583,8 @@ export class MemberAccessConversion extends TypeConversionRecord {
     }
 }
 
+//this map is for converting from one type to another, to see what each type can be converted to see typeConversionMap in util.ts
+//really the two can be combined, but that can be done in the future
 export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
     [
         DataType.Number,
@@ -746,6 +820,60 @@ export const typeToConversionRecord = new Map<String, TypeConversionRecord[]>([
                 "add-list-literal-btn",
                 EditActionType.InsertTypeCast
             ),
+        ],
+    ],
+]);
+
+export const definedBinOpsForType = new Map<DataType, BinaryOperator[]>([
+    [
+        DataType.String,
+        [
+            BinaryOperator.Add,
+            BinaryOperator.GreaterThan,
+            BinaryOperator.LessThan,
+            BinaryOperator.GreaterThanEqual,
+            BinaryOperator.LessThanEqual,
+            BinaryOperator.Equal,
+            BinaryOperator.NotEqual,
+        ],
+    ],
+
+    [
+        DataType.Number,
+        [
+            BinaryOperator.Add,
+            BinaryOperator.Multiply,
+            BinaryOperator.Subtract,
+            BinaryOperator.Divide,
+            BinaryOperator.GreaterThan,
+            BinaryOperator.LessThan,
+            BinaryOperator.GreaterThanEqual,
+            BinaryOperator.LessThanEqual,
+            BinaryOperator.Equal,
+            BinaryOperator.NotEqual,
+            BinaryOperator.Mod,
+        ],
+    ],
+
+    [DataType.Boolean, [BinaryOperator.And, BinaryOperator.Or]],
+    [DataType.AnyList, [BinaryOperator.Add]],
+    [DataType.StringList, [BinaryOperator.Add]],
+    [DataType.NumberList, [BinaryOperator.Add]],
+    [DataType.BooleanList, [BinaryOperator.Add]],
+]);
+
+export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataType.Boolean, [UnaryOperator.Not]]]);
+
+export const definedBinOpsBetweenType = new Map<BinaryOperator, [DataType, DataType][]>([
+    [
+        BinaryOperator.Add,
+        [
+            [DataType.AnyList, DataType.BooleanList],
+            [DataType.AnyList, DataType.StringList],
+            [DataType.AnyList, DataType.NumberList],
+            [DataType.NumberList, DataType.StringList],
+            [DataType.NumberList, DataType.BooleanList],
+            [DataType.StringList, DataType.BooleanList],
         ],
     ],
 ]);

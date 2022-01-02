@@ -41,9 +41,12 @@ import {
     AutoCompleteType,
     BuiltInFunctions,
     getOperatorCategory,
+    IgnoreConversionRecord,
     PythonKeywords,
     StringRegex,
     TAB_SPACES,
+    Tooltip,
+    TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
     TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
 } from "../syntax-tree/consts";
@@ -619,9 +622,9 @@ export class ActionExecutor {
                     tokenBefore.left
                 );
 
-                this.module.removeItem(fStringToRemove, { replace: false });
-                this.module.removeItem(tokenAfter, { replace: false });
-                this.module.removeItem(tokenBefore, { replace: false });
+                this.module.removeItem(fStringToRemove);
+                this.module.removeItem(tokenAfter);
+                this.module.removeItem(tokenBefore);
 
                 root.tokens.splice(indexToReplace, 0, newToken);
 
@@ -999,24 +1002,42 @@ export class ActionExecutor {
                         this.module.editor.insertAtCurPos([modifier]);
                         this.module.focus.updateContext(modifier.getInitialFocus());
 
-                        if (replacementResult.insertionType == InsertionType.DraftMode)
-                            this.module.openDraftMode(
-                                valOprExpr,
-                                TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
-                                    valOprExpr.getKeyword(),
-                                    holeDataTypes,
-                                    valOprExpr.returns
-                                ),
-                                [
-                                    ...replacementResult.conversionRecords.map((conversionRecord) => {
-                                        return conversionRecord.getConversionButton(
-                                            valOprExpr.getKeyword(),
-                                            this.module,
-                                            valOprExpr
-                                        );
-                                    }),
-                                ]
-                            );
+                        if (replacementResult.insertionType == InsertionType.DraftMode) {
+                            if (valOprExpr.returns === DataType.Any) {
+                                this.module.openDraftMode(
+                                    valOprExpr,
+                                    TYPE_MISMATCH_ANY(holeDataTypes, valOprExpr.returns),
+                                    [
+                                        new IgnoreConversionRecord(
+                                            "",
+                                            null,
+                                            null,
+                                            "",
+                                            null,
+                                            Tooltip.IgnoreWarning
+                                        ).getConversionButton("", this.module, valOprExpr),
+                                    ]
+                                );
+                            } else {
+                                this.module.openDraftMode(
+                                    valOprExpr,
+                                    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
+                                        valOprExpr.getKeyword(),
+                                        holeDataTypes,
+                                        valOprExpr.returns
+                                    ),
+                                    [
+                                        ...replacementResult.conversionRecords.map((conversionRecord) => {
+                                            return conversionRecord.getConversionButton(
+                                                valOprExpr.getKeyword(),
+                                                this.module,
+                                                valOprExpr
+                                            );
+                                        }),
+                                    ]
+                                );
+                            }
+                        }
                     }
                 }
 
@@ -1346,6 +1367,17 @@ export class ActionExecutor {
 
                 break;
             }
+
+            case EditActionType.DeleteUnconvertibleOperandWarning: {
+                if (action.data.codeToDelete.draftModeEnabled)
+                    this.module.closeConstructDraftRecord(action.data.codeToDelete);
+                this.deleteCode(action.data.codeToDelete);
+
+                if (action.data.rootExpression instanceof Expression)
+                    action.data.rootExpression.validateTypes(this.module);
+
+                break;
+            }
         }
 
         this.module.editor.monaco.focus();
@@ -1459,7 +1491,7 @@ export class ActionExecutor {
                     break;
 
                 case AutoCompleteType.AtExpressionHole:
-                    this.deleteCode(token, {}, false);
+                    this.deleteCode(token, {});
 
                     break;
             }
@@ -1554,16 +1586,16 @@ export class ActionExecutor {
         // type checks -- different handling based on type of code construct
         // focusedNode.returns != code.returns would work, but we need more context to get the right error message
         if (context.token instanceof TypedEmptyExpr) {
-            let insertionResult = context.token.rootNode.typeValidateInsertionIntoHole(code, context.token);
+            const root = context.token.rootNode;
+            let insertionResult = root.typeValidateInsertionIntoHole(code, context.token);
 
             if (insertionResult.insertionType != InsertionType.Invalid) {
-                code.performPreInsertionUpdates(context.token);
-
-                if (context.token.rootNode instanceof Statement) {
-                    context.token.rootNode.onInsertInto(code);
+                if (root instanceof Statement) {
+                    root.onInsertInto(code);
                 }
 
                 if (context.token.message && context.selected) {
+                    //TODO: This should only be closed if the current insertion would fix the current draft mode. Currently we don't know if that is the case.
                     this.module.messageController.removeMessageFromConstruct(context.token);
                 }
 
@@ -1588,13 +1620,22 @@ export class ActionExecutor {
                 }
             }
 
-            if (insertionResult.insertionType == InsertionType.DraftMode)
+            if (root instanceof BinaryOperatorExpr) {
+                root.validateTypes(this.module);
+            } else if (insertionResult.insertionType == InsertionType.DraftMode) {
                 this.module.openDraftMode(code, insertionResult.message, [
                     ...insertionResult.conversionRecords.map((conversionRecord) => {
                         return conversionRecord.getConversionButton(code.getKeyword(), this.module, code);
                     }),
                 ]);
-            else if (isImportable(code)) {
+            } else if (isImportable(code)) {
+                //TODO: This needs to run regardless of what happens above. But for that we need nested draft modes. It should not be a case within the same if block
+                //The current problem is that a construct can only have a single draft mode on it. This is mostly ok since we often reinsert the construct when fixing a draft mode
+                //and the reinsertion triggers another draft mode if necessary. But this does not happen for importables because they are not reinserted on a fix so we might lose some
+                //draft modes this way.
+
+                //A quick fix for now would be to just trigger reinsertion. Otherwise we need a mechanism for having multiple draft modes. I have a commit on a separate branch for that.
+                //Converting them to a linked list seems to make the most sense.
                 this.checkImports(code, insertionResult.insertionType);
             }
         }
@@ -1667,7 +1708,7 @@ export class ActionExecutor {
 
             // this can never go into draft mode
             if (replacementResult.insertionType !== InsertionType.Invalid) {
-                this.module.closeConstructDraftRecord(root.tokens[index]);
+                if (root.tokens[index].draftModeEnabled) this.module.closeConstructDraftRecord(root.tokens[index]);
 
                 if (toLeft) newCode.replaceLeftOperand(expr);
                 else newCode.replaceRightOperand(expr);
@@ -1676,6 +1717,7 @@ export class ActionExecutor {
                 expr.rootNode = newCode;
 
                 root.tokens[index] = newCode;
+                //TODO: Call onInsertInto() on this line
                 root.rebuild(root.getLeftPosition(), 0);
 
                 this.module.editor.executeEdits(initialBoundary, newCode);
@@ -1683,9 +1725,9 @@ export class ActionExecutor {
                     tokenToSelect: newCode.tokens[otherOperand.indexInRoot],
                 });
 
-                if (replacementResult.insertionType !== InsertionType.DraftMode) {
+                if (replacementResult.insertionType !== InsertionType.DraftMode && expr.draftModeEnabled) {
                     this.module.closeConstructDraftRecord(expr);
-                } else {
+                } else if (replacementResult.insertionType === InsertionType.DraftMode) {
                     this.module.openDraftMode(newCode, replacementResult.message, [
                         ...replacementResult.conversionRecords.map((conversionRecord) => {
                             return conversionRecord.getConversionButton(newCode.getRenderText(), this.module, newCode);
@@ -1766,19 +1808,22 @@ export class ActionExecutor {
                     const ref = rootOfExprToLeft.getVarRef();
                     if (ref instanceof VariableReferenceExpr) {
                         const line = this.module.focus.getContext().lineStatement;
+
                         const varType = this.module.variableController.getVariableTypeNearLine(
-                            line.scope,
+                            line.rootNode instanceof Module ? this.module.scope : line.scope,
                             line.lineNumber,
                             ref.identifier,
                             false
                         );
 
                         let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
-                        if (rootOfExprToLeft.rootNode instanceof BinaryOperatorExpr) {
-                            expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfOperand(
-                                rootOfExprToLeft.indexInRoot,
-                                false
-                            );
+                        const currentAllowedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
+                            rootOfExprToLeft.indexInRoot,
+                            false
+                        );
+
+                        if (currentAllowedTypes.length > 0) {
+                            expectedTypes = currentAllowedTypes;
                         }
 
                         this.module.openDraftMode(
@@ -1796,11 +1841,14 @@ export class ActionExecutor {
                         );
                     } else {
                         let expectedTypes = rootOfExprToLeft.rootNode.typeOfHoles[rootOfExprToLeft.indexInRoot];
-                        if (rootOfExprToLeft.rootNode instanceof BinaryOperatorExpr) {
-                            expectedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfOperand(
-                                rootOfExprToLeft.indexInRoot,
-                                false
-                            );
+
+                        const currentAllowedTypes = rootOfExprToLeft.rootNode.getCurrentAllowedTypesOfHole(
+                            rootOfExprToLeft.indexInRoot,
+                            false
+                        );
+
+                        if (currentAllowedTypes.length > 0) {
+                            expectedTypes = currentAllowedTypes;
                         }
 
                         this.module.openDraftMode(
@@ -1881,15 +1929,18 @@ export class ActionExecutor {
         }
     }
 
-    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}, completeDeletion = true) {
+    private deleteCode(code: CodeConstruct, { statement = false, replaceType = null } = {}) {
+        const root = code.rootNode;
         const replacementRange = this.getBoundaries(code);
         let replacement: CodeConstruct;
 
         if (statement) replacement = this.module.removeStatement(code as Statement);
-        else replacement = this.module.removeItem(code, { replaceType }, completeDeletion);
+        else replacement = this.module.replaceItemWTypedEmptyExpr(code, replaceType);
 
         this.module.editor.executeEdits(replacementRange, replacement);
         this.module.focus.updateContext({ tokenToSelect: replacement });
+
+        if (root instanceof Expression) root.validateTypes(this.module);
     }
 
     private validateIdentifier(context: Context, identifierText: string) {

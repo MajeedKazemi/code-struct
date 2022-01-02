@@ -236,6 +236,8 @@ export enum EditActionType {
     DeleteFStringCurlyBrackets,
 
     InsertOperatorTkn,
+
+    DeleteUnconvertibleOperandWarning,
 }
 
 export enum ConstructName {
