@@ -856,10 +856,10 @@ export const definedBinOpsForType = new Map<DataType, BinaryOperator[]>([
     ],
 
     [DataType.Boolean, [BinaryOperator.And, BinaryOperator.Or]],
-    [DataType.AnyList, [BinaryOperator.Add]],
-    [DataType.StringList, [BinaryOperator.Add]],
-    [DataType.NumberList, [BinaryOperator.Add]],
-    [DataType.BooleanList, [BinaryOperator.Add]],
+    [DataType.AnyList, [BinaryOperator.Add, BinaryOperator.Equal]],
+    [DataType.StringList, [BinaryOperator.Add, BinaryOperator.Equal]],
+    [DataType.NumberList, [BinaryOperator.Add, BinaryOperator.Equal]],
+    [DataType.BooleanList, [BinaryOperator.Add, BinaryOperator.Equal]],
 ]);
 
 export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataType.Boolean, [UnaryOperator.Not]]]);
@@ -867,6 +867,17 @@ export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataT
 export const definedBinOpsBetweenType = new Map<BinaryOperator, [DataType, DataType][]>([
     [
         BinaryOperator.Add,
+        [
+            [DataType.AnyList, DataType.BooleanList],
+            [DataType.AnyList, DataType.StringList],
+            [DataType.AnyList, DataType.NumberList],
+            [DataType.NumberList, DataType.StringList],
+            [DataType.NumberList, DataType.BooleanList],
+            [DataType.StringList, DataType.BooleanList],
+        ],
+    ],
+    [
+        BinaryOperator.Equal,
         [
             [DataType.AnyList, DataType.BooleanList],
             [DataType.AnyList, DataType.StringList],
