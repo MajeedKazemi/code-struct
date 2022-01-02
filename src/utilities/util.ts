@@ -1,7 +1,7 @@
 import { ConstructDoc } from "../suggestions/construct-doc";
-import { Importable } from "../syntax-tree/ast";
+import { CodeConstruct, Importable } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { DataType, ListTypes } from "./../syntax-tree/consts";
+import { addClassToDraftModeResolutionButton, DataType, ListTypes } from "./../syntax-tree/consts";
 
 /**
  * IMPORTANT!!!
@@ -75,11 +75,11 @@ export class Util {
             [DataType.Number, [DataType.String, DataType.NumberList, DataType.Boolean]],
             [DataType.String, [DataType.StringList, DataType.Boolean, DataType.Number]],
             [DataType.Boolean, [DataType.BooleanList]],
-            [DataType.AnyList, [DataType.Any, DataType.Boolean]],
+            [DataType.AnyList, [DataType.Any, DataType.Number, DataType.Number]],
             [DataType.NumberList, [DataType.Number, DataType.Boolean]],
-            [DataType.BooleanList, [DataType.Boolean]],
-            [DataType.StringList, [DataType.String, DataType.Boolean]],
-            [DataType.Any, [DataType.Boolean, DataType.Number, DataType.String, DataType.AnyList]],
+            [DataType.BooleanList, [DataType.Number, DataType.Boolean]],
+            [DataType.StringList, [DataType.Number, DataType.String, DataType.Boolean]],
+            [DataType.Any, [DataType.AnyList]],
         ]);
 
         this.constructDocs = new Map<string, ConstructDoc>();
@@ -172,4 +172,16 @@ export function getUserFriendlyType(type: DataType): string {
         default:
             return type;
     }
+}
+
+export function createWarningButton(buttonTxt: string, warningCode: CodeConstruct, action: Function): HTMLDivElement {
+    const button = document.createElement("div");
+    button.innerHTML = buttonTxt;
+    button.classList.add("button");
+    button.onclick = () => {
+        action();
+    };
+    addClassToDraftModeResolutionButton(button, warningCode);
+
+    return button;
 }

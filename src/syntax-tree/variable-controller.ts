@@ -73,6 +73,10 @@ export class VariableController {
                     this.module.closeConstructDraftRecord(ref);
                 }
             }
+
+            if (ref.rootNode instanceof Expression) {
+                ref.rootNode.validateTypes(this.module);
+            }
         }
     }
 

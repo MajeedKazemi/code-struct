@@ -18,7 +18,6 @@ import { MenuController } from "../suggestions/suggestions-controller";
 import { Util } from "../utilities/util";
 import {
     AutocompleteTkn,
-    BinaryOperatorExpr,
     CodeConstruct,
     EmptyLineStmt,
     Expression,
@@ -35,7 +34,7 @@ import {
 } from "./ast";
 import { rebuildBody } from "./body";
 import { CallbackType } from "./callback";
-import { BinaryOperator, DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
+import { DataType, MISSING_IMPORT_DRAFT_MODE_STR, TAB_SPACES } from "./consts";
 import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
@@ -309,7 +308,18 @@ export class Module {
         }
     }
 
-    removeItem(item: CodeConstruct, { replaceType = null, replace = true }, completeDeletion = true): CodeConstruct {
+    private rebuildOnConstructDeletion(item: CodeConstruct, root: Statement) {
+        this.recursiveNotify(item, CallbackType.delete);
+
+        for (let i = 0; i < root.tokens.length; i++) {
+            root.tokens[i].indexInRoot = i;
+            root.tokens[i].rootNode = root;
+        }
+
+        root.rebuild(root.getLeftPosition(), 0);
+    }
+
+    replaceItemWTypedEmptyExpr(item: CodeConstruct, replaceType: DataType): CodeConstruct {
         const root = item.rootNode;
 
         if (root instanceof Statement) {
@@ -317,40 +327,31 @@ export class Module {
                 replaceType = DataType.Any;
 
             let replacedItem = null;
+            const allowedTypes = root.getCurrentAllowedTypesOfHole(item.indexInRoot, true);
 
-            if (replace) {
-                replacedItem = new TypedEmptyExpr(replaceType ? [replaceType] : root.typeOfHoles[item.indexInRoot]);
+            replacedItem = new TypedEmptyExpr(
+                replaceType !== null ? [replaceType] : root.typeOfHoles[item.indexInRoot]
+            );
 
-                if (
-                    item.rootNode instanceof BinaryOperatorExpr &&
-                    item.rootNode.operator != BinaryOperator.In &&
-                    item.rootNode.operator != BinaryOperator.NotIn
-                ) {
-                    let allowedTypes = item.rootNode.getCurrentAllowedTypesOfOperand(item.indexInRoot, true);
+            if (allowedTypes.length > 0) replacedItem.type = allowedTypes;
 
-                    if (item.indexInRoot === item.rootNode.getLeftOperand().indexInRoot) {
-                        allowedTypes = item.rootNode.getValidLeftOperandTypes();
-                    } else allowedTypes = item.rootNode.getValidRightOperandTypes();
-
-                    if (allowedTypes.length > 0) replacedItem.type = allowedTypes;
-                }
-
-                root.tokens.splice(item.indexInRoot, 1, replacedItem);
-            } else root.tokens.splice(item.indexInRoot, 1);
-
-            this.recursiveNotify(item, CallbackType.delete);
-
-            for (let i = 0; i < root.tokens.length; i++) {
-                root.tokens[i].indexInRoot = i;
-                root.tokens[i].rootNode = root;
-            }
-
-            root.rebuild(root.getLeftPosition(), 0);
+            root.onReplaceToken({ indexInRoot: item.indexInRoot, replaceWithEmptyExpr: true });
+            root.tokens.splice(item.indexInRoot, 1, replacedItem);
+            this.rebuildOnConstructDeletion(item, root);
 
             return replacedItem;
         }
 
         return null;
+    }
+
+    removeItem(item: CodeConstruct): void {
+        const root = item.rootNode;
+        if (root instanceof Statement) {
+            root.onDeleteFrom({ indexInRoot: item.indexInRoot });
+            root.tokens.splice(item.indexInRoot, 1);
+            this.rebuildOnConstructDeletion(item, root);
+        }
     }
 
     reset() {
@@ -502,23 +503,6 @@ export class Module {
         }
     }
 
-    //Accepts context because this will not be part of Module in the future
-    isAbleToInsertComparator(context: Context, insertEquals: boolean = false): boolean {
-        return (
-            (context.selected &&
-                context.token instanceof TypedEmptyExpr &&
-                (context.token as TypedEmptyExpr).type.indexOf(DataType.Boolean) > -1) ||
-            //TODO: This case needs to be extended further since this is not always possible
-            //      For example: randint(1, 2) cannot become randint(1 > 2, 2)
-            //      Parent needs to be involved in the check
-            //left or right is an expression
-            context.expressionToLeft.returns === DataType.Number ||
-            context.expressionToRight.returns === DataType.Number ||
-            //equals can compare types other than Number (of course >, >=, < and <= also operate on types other than Number, but ignore that for now since our tool likely does not need it)
-            (context.expressionToLeft && context.expressionToRight && insertEquals)
-        );
-    }
-
     closeConstructDraftRecord(code: CodeConstruct) {
         if (code.draftModeEnabled) {
             code.draftModeEnabled = false;
@@ -527,6 +511,7 @@ export class Module {
             if (removedRecord.warning) removedRecord.removeMessage();
 
             code.draftRecord = null;
+            code.message = null;
         } else {
             console.warn("Tried closing draft mode of construct that did not have one open.");
         }
