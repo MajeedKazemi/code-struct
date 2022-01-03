@@ -2765,7 +2765,11 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     validateTypes(module: Module) {
-        this.validateBinExprTypes(this, module);
+        let curr = this.rootNode;
+        while (curr && curr.rootNode instanceof BinaryOperatorExpr) {
+            curr = curr.rootNode;
+        }
+        this.validateBinExprTypes(curr instanceof BinaryOperatorExpr ? curr : this, module);
     }
 
     //TODO: Passing module recursively is bad for memory
@@ -2812,7 +2816,7 @@ export class BinaryOperatorExpr extends Expression {
 
                     for (const leftRecord of conversionRecordsLeftToRight) {
                         if (
-                            TypeChecker.getAllowedBinaryOperatorsForType(leftRecord.convertTo).indexOf(this.operator) >
+                            TypeChecker.getAllowedBinaryOperatorsForType(leftRecord.convertTo).indexOf(expr.operator) >
                             -1
                         ) {
                             conversionActionsForLeft.push(
@@ -2823,7 +2827,7 @@ export class BinaryOperatorExpr extends Expression {
 
                     for (const rightRecord of conversionRecordsRightToLeft) {
                         if (
-                            TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo).indexOf(this.operator) >
+                            TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo).indexOf(expr.operator) >
                             -1
                         ) {
                             conversionActionsForRight.push(
