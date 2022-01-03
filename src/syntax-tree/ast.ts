@@ -2857,7 +2857,6 @@ export class BinaryOperatorExpr extends Expression {
                     conversionActionsForLeft
                 );
             } else if (!operationDefinedBetweenTypes) {
-                console.log(conversionActionsForLeft.length, leftExprTypes, rightExprTypes);
                 if (conversionActionsForLeft.length > 0) {
                     module.openDraftMode(
                         leftOperand,
