@@ -1201,8 +1201,27 @@ export class ForStatement extends Statement implements VariableContainer {
 
         if (currentIdentifier !== oldIdentifier) {
             if (currentIdentifier === "  " && oldIdentifier !== "") {
-                varController.removeVariableRefButton(this.buttonId);
-                varController.addWarningToVarRefs(this.buttonId, this.getIdentifier(), this.getModule(), this.loopVar);
+                if (
+                    Scope.getAllScopesOfStmt(this).filter(
+                        (scope) =>
+                            scope.references.filter(
+                                (ref) =>
+                                    ref.statement instanceof VarAssignmentStmt &&
+                                    ref.statement.buttonId === this.buttonId
+                            ).length > 0
+                    ).length === 0
+                ) {
+                    //only delete anything related to the for loop var if no assignment to the same variable exists in a  parent scope.
+                    varController.removeVariableRefButton(this.buttonId);
+                    varController.addWarningToVarRefs(
+                        this.buttonId,
+                        this.getIdentifier(),
+                        this.getModule(),
+                        this.loopVar
+                    );
+                }
+
+                this.scope.references = this.scope.references.filter((ref) => ref.statement !== this.loopVar);
 
                 this.loopVar.updateIdentifier("  ", "  ", false);
                 this.buttonId = "";
