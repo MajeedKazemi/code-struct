@@ -34,7 +34,7 @@ import {
     UnaryOperator,
 } from "./consts";
 import { Module } from "./module";
-import { Scope } from "./scope";
+import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
 
@@ -1285,6 +1285,9 @@ export class ForStatement extends Statement implements VariableContainer {
         this.loopVar.buttonId = statement.buttonId;
 
         this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier());
+
+        if (this.scope.references.filter((ref) => ref.statement === this.loopVar).length === 0)
+            this.scope.references.push(new Reference(this.loopVar, this.scope));
     }
 
     reassignVar(
