@@ -3654,17 +3654,15 @@ export class TypedEmptyExpr extends Token {
                       .filter((record) => this.type.indexOf(record.convertTo) > -1)
                 : [];
 
-            if (replaceWith.returns === DataType.Any) {
-                return new InsertionResult(InsertionType.DraftMode, TYPE_MISMATCH_ANY(this.type, replaceWith.returns), [
-                    new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning),
-                ]);
-            }
-
             return new InsertionResult(
                 InsertionType.DraftMode,
                 TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(this.type, replaceWith.returns),
                 conversionRecords
             );
+        } else if (replaceWith.returns === DataType.Any) {
+            return new InsertionResult(InsertionType.DraftMode, TYPE_MISMATCH_ANY(this.type, replaceWith.returns), [
+                new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning),
+            ]);
         }
 
         return new InsertionResult(InsertionType.Invalid, "", []);
