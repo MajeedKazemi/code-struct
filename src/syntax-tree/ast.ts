@@ -18,6 +18,8 @@ import {
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG,
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG,
     GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES,
+    GET_LIST_INDEX_TYPE_MISMATCH_CONVERSION_MSG,
+    GET_TYPE_CANNOT_BE_CONVERTED_MSG,
     IgnoreConversionRecord,
     IndexableTypes,
     InsertionType,
@@ -1330,11 +1332,15 @@ export class ForStatement extends Statement implements VariableContainer {
         }
     }
 
-    private updateLoopVarType(insertCode: Expression) {
-        if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
-            this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+    private updateLoopVarType(insertCode?: Expression, type?: DataType) {
+        if (type) {
+            this.loopVar.dataType = type;
         } else {
-            this.loopVar.dataType = insertCode.returns;
+            if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
+                this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+            } else {
+                this.loopVar.dataType = insertCode.returns;
+            }
         }
     }
 
@@ -1353,6 +1359,14 @@ export class ForStatement extends Statement implements VariableContainer {
         if (assignments.length === 0) {
             varController.removeVariableRefButton(this.buttonId);
             varController.addWarningToVarRefs(this.buttonId, this.getIdentifier(), this.getModule(), this.loopVar);
+        }
+    }
+
+    onReplaceToken(args: { indexInRoot: number; replaceWithEmptyExpr: boolean }): void {
+        if (args.replaceWithEmptyExpr) this.updateLoopVarType(null, DataType.Any);
+
+        if (args.indexInRoot === this.iteratorIndex) {
+            this.getModule().variableController.updateReturnTypeOfRefs(this.loopVar.buttonId);
         }
     }
 }
@@ -1816,6 +1830,7 @@ export class VarOperationStmt extends Statement {
 
 export class ListAccessModifier extends Modifier {
     leftExprTypes = [DataType.AnyList];
+    private indexOfIndexTkn: number;
 
     constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
@@ -1826,6 +1841,7 @@ export class ListAccessModifier extends Modifier {
         this.tokens.push(new NonEditableTkn(`[`, this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
+        this.indexOfIndexTkn = this.tokens.length - 1;
         this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
 
         this.simpleInvalidTooltip = Tooltip.InvalidInsertListElementAccess;
@@ -1840,6 +1856,61 @@ export class ListAccessModifier extends Modifier {
 
     getModifierText(): string {
         return "[---]";
+    }
+
+    validateTypes(module: Module): void {
+        const indxTkn = this.tokens[this.indexOfIndexTkn];
+        if (indxTkn instanceof Expression && indxTkn.returns !== DataType.Number) {
+            if (indxTkn.returns === DataType.Any) {
+                module.openDraftMode(
+                    indxTkn,
+                    TYPE_MISMATCH_ANY(this.typeOfHoles[this.indexOfIndexTkn], indxTkn.returns),
+                    [
+                        new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning).getConversionButton(
+                            indxTkn.getKeyword(),
+                            module,
+                            indxTkn
+                        ),
+                    ]
+                );
+            } else {
+                const conversionRecords = TypeChecker.getTypeConversionRecords(indxTkn.returns, DataType.Number);
+                const actions = [
+                    ...conversionRecords.map((rec) => rec.getConversionButton(indxTkn.getKeyword(), module, indxTkn)),
+                ];
+
+                if (conversionRecords.length === 0) {
+                    module.openDraftMode(indxTkn, GET_TYPE_CANNOT_BE_CONVERTED_MSG(indxTkn.returns), [
+                        createWarningButton(
+                            Tooltip.Delete,
+                            indxTkn,
+                            (() => {
+                                this.deleteUnconvertibleTypeWarning(this, indxTkn, module);
+                            }).bind(this)
+                        ),
+                    ]);
+                } else {
+                    module.openDraftMode(
+                        indxTkn,
+                        GET_LIST_INDEX_TYPE_MISMATCH_CONVERSION_MSG(indxTkn.returns),
+                        actions
+                    );
+                }
+            }
+        }
+    }
+
+    private deleteUnconvertibleTypeWarning(
+        rootExpression: Modifier,
+        codeToDelete: CodeConstruct,
+        module: Module
+    ): void {
+        const action = new EditAction(EditActionType.DeleteUnconvertibleOperandWarning, {
+            rootExpression: rootExpression,
+            codeToDelete: codeToDelete,
+        });
+
+        module.executer.execute(action);
     }
 }
 
@@ -3017,6 +3088,7 @@ export class BinaryOperatorExpr extends Expression {
         return leftOpened || rightOpened;
     }
 
+    //TODO: Duplicated in ListElementAccessModifier
     private deleteUnconvertibleOperandWarning(
         rootExpression: BinaryOperatorExpr,
         codeToDelete: CodeConstruct,

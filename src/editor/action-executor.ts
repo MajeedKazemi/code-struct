@@ -1379,7 +1379,11 @@ export class ActionExecutor {
                     this.module.closeConstructDraftRecord(action.data.codeToDelete);
                 this.deleteCode(action.data.codeToDelete);
 
-                if (action.data.rootExpression instanceof Expression)
+                //TODO: Eventually this if statement should go as all constructs will have this method
+                if (
+                    action.data.rootExpression instanceof Expression ||
+                    action.data.rootExpression instanceof ListAccessModifier
+                )
                     action.data.rootExpression.validateTypes(this.module);
 
                 break;

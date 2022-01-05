@@ -368,6 +368,26 @@ export function GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES(
     )} and ${te.getStyledSpan(getUserFriendlyType(type2), CSSClasses.type)} consider removing this code.`;
 }
 
+export function GET_LIST_INDEX_TYPE_MISMATCH_CONVERSION_MSG(type: DataType) {
+    return `List indices must by of type ${te.getStyledSpan(
+        getUserFriendlyType(DataType.Number),
+        CSSClasses.type
+    )} but you entered a ${te.getStyledSpan(
+        getUserFriendlyType(type),
+        CSSClasses.type
+    )} instead. It can be converted to a ${te.getStyledSpan(
+        getUserFriendlyType(DataType.Number),
+        CSSClasses.type
+    )} with:`;
+}
+
+export function GET_TYPE_CANNOT_BE_CONVERTED_MSG(type: DataType) {
+    return `${te.getStyledSpan(getUserFriendlyType(type), CSSClasses.type)} cannot be converted to ${te.getStyledSpan(
+        getUserFriendlyType(DataType.Number),
+        CSSClasses.type
+    )}. Consider deleting this code.`;
+}
+
 export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
     functionName: string,
     expectedTypes: DataType[],
