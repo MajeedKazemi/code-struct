@@ -1517,7 +1517,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                     this.rootNode as Statement | Module
                 ).scope.getAllVarAssignmentsToNewVar(this.oldIdentifier, this.getModule(), this.lineNumber, this);
 
-                if (this.buttonId === "") {
+                if (this.buttonId === "" && currentIdentifierAssignments.length === 0) {
                     //when we are changing a new var assignment statement
                     this.assignVariable(varController, currentIdentifierAssignments);
                 } else {
@@ -1588,6 +1588,9 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                 : (currentIdentifierAssignments[0] as ForStatement).loopVar;
 
         this.buttonId = statement.buttonId;
+
+        //Any for loops that are using this variable need to be connected to it so that
+        //we don't get duplicate variables. This includes for loops nested inside of other blocks as well
 
         //if we reassign above current line number, then we might have changed scopes
         if (this.lineNumber < statement.lineNumber && statement.rootNode !== this.rootNode) {
@@ -2997,9 +3000,7 @@ export class BinaryOperatorExpr extends Expression {
                     );
                 } else if (
                     conversionActionsForRight.length === 0 &&
-                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns) &&
-                    TypeChecker.getAllowedBinaryOperatorsForType(rightOperand.returns).indexOf(this.operator) === -1 &&
-                    TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(this.operator) === -1
+                    !TypeChecker.isBinOpAllowed(expr.operator, leftOperand.returns, rightOperand.returns)
                 ) {
                     module.openDraftMode(
                         rightOperand,
