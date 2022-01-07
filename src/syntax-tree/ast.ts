@@ -1591,6 +1591,23 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
         //Any for loops that are using this variable need to be connected to it so that
         //we don't get duplicate variables. This includes for loops nested inside of other blocks as well
+        const module = this.getModule();
+        const forLoopsWithThisVar = [];
+        module.performActionOnBFS((code) => {
+            if (
+                code instanceof ForStatement &&
+                code.loopVar.buttonId !== this.buttonId &&
+                code.loopVar.getIdentifier() === this.getIdentifier() &&
+                code.lineNumber > this.lineNumber
+            ) {
+                forLoopsWithThisVar.push(code);
+            }
+        });
+
+        for (const loop of forLoopsWithThisVar) {
+            module.variableController.removeVariableRefButton(loop.loopVar.buttonId);
+            loop.loopVar.buttonId = this.buttonId;
+        }
 
         //if we reassign above current line number, then we might have changed scopes
         if (this.lineNumber < statement.lineNumber && statement.rootNode !== this.rootNode) {
@@ -1602,12 +1619,12 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             );
         }
 
-        this.getModule().processNewVariable(
+        module.processNewVariable(
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
         );
 
-        this.getModule().variableController.updateExistingRefsOnReinitialization(this);
+        module.variableController.updateExistingRefsOnReinitialization(this);
     }
 
     reassignVar(
