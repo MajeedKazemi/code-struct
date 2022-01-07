@@ -368,6 +368,26 @@ export function GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES(
     )} and ${te.getStyledSpan(getUserFriendlyType(type2), CSSClasses.type)} consider removing this code.`;
 }
 
+export function GET_LIST_INDEX_TYPE_MISMATCH_CONVERSION_MSG(type: DataType) {
+    return `List indices must by of type ${te.getStyledSpan(
+        getUserFriendlyType(DataType.Number),
+        CSSClasses.type
+    )} but you entered a ${te.getStyledSpan(
+        getUserFriendlyType(type),
+        CSSClasses.type
+    )} instead. It can be converted to a ${te.getStyledSpan(
+        getUserFriendlyType(DataType.Number),
+        CSSClasses.type
+    )} with:`;
+}
+
+export function GET_TYPE_CANNOT_BE_CONVERTED_MSG(type: DataType) {
+    return `${te.getStyledSpan(getUserFriendlyType(type), CSSClasses.type)} cannot be converted to ${te.getStyledSpan(
+        getUserFriendlyType(DataType.Number),
+        CSSClasses.type
+    )}. Consider deleting this code.`;
+}
+
 export function TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR(
     functionName: string,
     expectedTypes: DataType[],
@@ -856,10 +876,10 @@ export const definedBinOpsForType = new Map<DataType, BinaryOperator[]>([
     ],
 
     [DataType.Boolean, [BinaryOperator.And, BinaryOperator.Or]],
-    [DataType.AnyList, [BinaryOperator.Add]],
-    [DataType.StringList, [BinaryOperator.Add]],
-    [DataType.NumberList, [BinaryOperator.Add]],
-    [DataType.BooleanList, [BinaryOperator.Add]],
+    [DataType.AnyList, [BinaryOperator.Add, BinaryOperator.Equal]],
+    [DataType.StringList, [BinaryOperator.Add, BinaryOperator.Equal]],
+    [DataType.NumberList, [BinaryOperator.Add, BinaryOperator.Equal]],
+    [DataType.BooleanList, [BinaryOperator.Add, BinaryOperator.Equal]],
 ]);
 
 export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataType.Boolean, [UnaryOperator.Not]]]);
@@ -867,6 +887,17 @@ export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataT
 export const definedBinOpsBetweenType = new Map<BinaryOperator, [DataType, DataType][]>([
     [
         BinaryOperator.Add,
+        [
+            [DataType.AnyList, DataType.BooleanList],
+            [DataType.AnyList, DataType.StringList],
+            [DataType.AnyList, DataType.NumberList],
+            [DataType.NumberList, DataType.StringList],
+            [DataType.NumberList, DataType.BooleanList],
+            [DataType.StringList, DataType.BooleanList],
+        ],
+    ],
+    [
+        BinaryOperator.Equal,
         [
             [DataType.AnyList, DataType.BooleanList],
             [DataType.AnyList, DataType.StringList],

@@ -18,6 +18,8 @@ import {
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_CONVERT_MSG,
     GET_BINARY_OPERATION_NOT_DEFINED_FOR_TYPE_DELETE_MSG,
     GET_BINARY_OPERATION_OPERATOR_NOT_DEFINED_BETWEEN_TYPES,
+    GET_LIST_INDEX_TYPE_MISMATCH_CONVERSION_MSG,
+    GET_TYPE_CANNOT_BE_CONVERTED_MSG,
     IgnoreConversionRecord,
     IndexableTypes,
     InsertionType,
@@ -34,7 +36,7 @@ import {
     UnaryOperator,
 } from "./consts";
 import { Module } from "./module";
-import { Scope } from "./scope";
+import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
 
@@ -652,7 +654,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
                 return new InsertionResult(InsertionType.Valid, "", []);
             } else if (
                 replaceWith.returns !== this.returns &&
-                hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns])
+                hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), [this.returns]) &&
+                !(this.rootNode instanceof BinaryOperatorExpr)
             ) {
                 const conversionRecords = typeToConversionRecord.has(replaceWith.returns)
                     ? typeToConversionRecord
@@ -665,6 +668,14 @@ export abstract class Expression extends Statement implements CodeConstruct {
                     TYPE_MISMATCH_EXPR_DRAFT_MODE_STR(this.getKeyword(), [this.returns], replaceWith.returns),
                     conversionRecords
                 );
+            } else if (this.rootNode instanceof BinaryOperatorExpr) {
+                const typeOfHoles = this.rootNode.typeOfHoles[this.indexInRoot];
+                if (
+                    hasMatch(typeOfHoles, [replaceWith.returns]) ||
+                    hasMatch(Util.getInstance().typeConversionMap.get(replaceWith.returns), typeOfHoles)
+                ) {
+                    return new InsertionResult(InsertionType.DraftMode, "", []);
+                }
             } else {
                 return new InsertionResult(InsertionType.Invalid, "", []);
             }
@@ -702,9 +713,8 @@ export abstract class Expression extends Statement implements CodeConstruct {
                     return new InsertionResult(InsertionType.Valid, "", []);
                 }
             }
-
-            return new InsertionResult(InsertionType.Invalid, "", []);
         }
+        return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
     updateVariableType(dataType: DataType) {
@@ -1193,8 +1203,27 @@ export class ForStatement extends Statement implements VariableContainer {
 
         if (currentIdentifier !== oldIdentifier) {
             if (currentIdentifier === "  " && oldIdentifier !== "") {
-                varController.removeVariableRefButton(this.buttonId);
-                varController.addWarningToVarRefs(this.buttonId, this.getIdentifier(), this.getModule(), this.loopVar);
+                if (
+                    Scope.getAllScopesOfStmt(this).filter(
+                        (scope) =>
+                            scope.references.filter(
+                                (ref) =>
+                                    ref.statement instanceof VarAssignmentStmt &&
+                                    ref.statement.buttonId === this.buttonId
+                            ).length > 0
+                    ).length === 0
+                ) {
+                    //only delete anything related to the for loop var if no assignment to the same variable exists in a  parent scope.
+                    varController.removeVariableRefButton(this.buttonId);
+                    varController.addWarningToVarRefs(
+                        this.buttonId,
+                        this.getIdentifier(),
+                        this.getModule(),
+                        this.loopVar
+                    );
+                }
+
+                this.scope.references = this.scope.references.filter((ref) => ref.statement !== this.loopVar);
 
                 this.loopVar.updateIdentifier("  ", "  ", false);
                 this.buttonId = "";
@@ -1277,6 +1306,9 @@ export class ForStatement extends Statement implements VariableContainer {
         this.loopVar.buttonId = statement.buttonId;
 
         this.loopVar.updateIdentifier(this.getIdentifier(), this.getIdentifier());
+
+        if (this.scope.references.filter((ref) => ref.statement === this.loopVar).length === 0)
+            this.scope.references.push(new Reference(this.loopVar, this.scope));
     }
 
     reassignVar(
@@ -1300,11 +1332,15 @@ export class ForStatement extends Statement implements VariableContainer {
         }
     }
 
-    private updateLoopVarType(insertCode: Expression) {
-        if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
-            this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+    private updateLoopVarType(insertCode?: Expression, type?: DataType) {
+        if (type) {
+            this.loopVar.dataType = type;
         } else {
-            this.loopVar.dataType = insertCode.returns;
+            if (insertCode instanceof ListLiteralExpression || ListTypes.indexOf(insertCode.returns) > -1) {
+                this.loopVar.dataType = TypeChecker.getElementTypeFromListType(insertCode.returns);
+            } else {
+                this.loopVar.dataType = insertCode.returns;
+            }
         }
     }
 
@@ -1323,6 +1359,14 @@ export class ForStatement extends Statement implements VariableContainer {
         if (assignments.length === 0) {
             varController.removeVariableRefButton(this.buttonId);
             varController.addWarningToVarRefs(this.buttonId, this.getIdentifier(), this.getModule(), this.loopVar);
+        }
+    }
+
+    onReplaceToken(args: { indexInRoot: number; replaceWithEmptyExpr: boolean }): void {
+        if (args.replaceWithEmptyExpr) this.updateLoopVarType(null, DataType.Any);
+
+        if (args.indexInRoot === this.iteratorIndex) {
+            this.getModule().variableController.updateReturnTypeOfRefs(this.loopVar.buttonId);
         }
     }
 }
@@ -1473,7 +1517,7 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
                     this.rootNode as Statement | Module
                 ).scope.getAllVarAssignmentsToNewVar(this.oldIdentifier, this.getModule(), this.lineNumber, this);
 
-                if (this.buttonId === "") {
+                if (this.buttonId === "" && currentIdentifierAssignments.length === 0) {
                     //when we are changing a new var assignment statement
                     this.assignVariable(varController, currentIdentifierAssignments);
                 } else {
@@ -1545,6 +1589,26 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
 
         this.buttonId = statement.buttonId;
 
+        //Any for loops that are using this variable need to be connected to it so that
+        //we don't get duplicate variables. This includes for loops nested inside of other blocks as well
+        const module = this.getModule();
+        const forLoopsWithThisVar = [];
+        module.performActionOnBFS((code) => {
+            if (
+                code instanceof ForStatement &&
+                code.loopVar.buttonId !== this.buttonId &&
+                code.loopVar.getIdentifier() === this.getIdentifier() &&
+                code.lineNumber > this.lineNumber
+            ) {
+                forLoopsWithThisVar.push(code);
+            }
+        });
+
+        for (const loop of forLoopsWithThisVar) {
+            module.variableController.removeVariableRefButton(loop.loopVar.buttonId);
+            loop.loopVar.buttonId = this.buttonId;
+        }
+
         //if we reassign above current line number, then we might have changed scopes
         if (this.lineNumber < statement.lineNumber && statement.rootNode !== this.rootNode) {
             (statement.rootNode as Module | Statement).scope.references.splice(
@@ -1555,12 +1619,12 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
             );
         }
 
-        this.getModule().processNewVariable(
+        module.processNewVariable(
             this,
             this.rootNode instanceof Module || this.rootNode instanceof Statement ? this.rootNode.scope : null
         );
 
-        this.getModule().variableController.updateExistingRefsOnReinitialization(this);
+        module.variableController.updateExistingRefsOnReinitialization(this);
     }
 
     reassignVar(
@@ -1786,6 +1850,7 @@ export class VarOperationStmt extends Statement {
 
 export class ListAccessModifier extends Modifier {
     leftExprTypes = [DataType.AnyList];
+    private indexOfIndexTkn: number;
 
     constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
@@ -1796,6 +1861,7 @@ export class ListAccessModifier extends Modifier {
         this.tokens.push(new NonEditableTkn(`[`, this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
         this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
+        this.indexOfIndexTkn = this.tokens.length - 1;
         this.tokens.push(new NonEditableTkn(`]`, this, this.tokens.length));
 
         this.simpleInvalidTooltip = Tooltip.InvalidInsertListElementAccess;
@@ -1810,6 +1876,61 @@ export class ListAccessModifier extends Modifier {
 
     getModifierText(): string {
         return "[---]";
+    }
+
+    validateTypes(module: Module): void {
+        const indxTkn = this.tokens[this.indexOfIndexTkn];
+        if (indxTkn instanceof Expression && indxTkn.returns !== DataType.Number) {
+            if (indxTkn.returns === DataType.Any) {
+                module.openDraftMode(
+                    indxTkn,
+                    TYPE_MISMATCH_ANY(this.typeOfHoles[this.indexOfIndexTkn], indxTkn.returns),
+                    [
+                        new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning).getConversionButton(
+                            indxTkn.getKeyword(),
+                            module,
+                            indxTkn
+                        ),
+                    ]
+                );
+            } else {
+                const conversionRecords = TypeChecker.getTypeConversionRecords(indxTkn.returns, DataType.Number);
+                const actions = [
+                    ...conversionRecords.map((rec) => rec.getConversionButton(indxTkn.getKeyword(), module, indxTkn)),
+                ];
+
+                if (conversionRecords.length === 0) {
+                    module.openDraftMode(indxTkn, GET_TYPE_CANNOT_BE_CONVERTED_MSG(indxTkn.returns), [
+                        createWarningButton(
+                            Tooltip.Delete,
+                            indxTkn,
+                            (() => {
+                                this.deleteUnconvertibleTypeWarning(this, indxTkn, module);
+                            }).bind(this)
+                        ),
+                    ]);
+                } else {
+                    module.openDraftMode(
+                        indxTkn,
+                        GET_LIST_INDEX_TYPE_MISMATCH_CONVERSION_MSG(indxTkn.returns),
+                        actions
+                    );
+                }
+            }
+        }
+    }
+
+    private deleteUnconvertibleTypeWarning(
+        rootExpression: Modifier,
+        codeToDelete: CodeConstruct,
+        module: Module
+    ): void {
+        const action = new EditAction(EditActionType.DeleteUnconvertibleOperandWarning, {
+            rootExpression: rootExpression,
+            codeToDelete: codeToDelete,
+        });
+
+        module.executer.execute(action);
     }
 }
 
@@ -2757,7 +2878,11 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     validateTypes(module: Module) {
-        this.validateBinExprTypes(this, module);
+        let curr = this.rootNode;
+        while (curr && curr.rootNode instanceof BinaryOperatorExpr) {
+            curr = curr.rootNode;
+        }
+        this.validateBinExprTypes(curr instanceof BinaryOperatorExpr ? curr : this, module);
     }
 
     //TODO: Passing module recursively is bad for memory
@@ -2804,7 +2929,7 @@ export class BinaryOperatorExpr extends Expression {
 
                     for (const leftRecord of conversionRecordsLeftToRight) {
                         if (
-                            TypeChecker.getAllowedBinaryOperatorsForType(leftRecord.convertTo).indexOf(this.operator) >
+                            TypeChecker.getAllowedBinaryOperatorsForType(leftRecord.convertTo).indexOf(expr.operator) >
                             -1
                         ) {
                             conversionActionsForLeft.push(
@@ -2815,7 +2940,7 @@ export class BinaryOperatorExpr extends Expression {
 
                     for (const rightRecord of conversionRecordsRightToLeft) {
                         if (
-                            TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo).indexOf(this.operator) >
+                            TypeChecker.getAllowedBinaryOperatorsForType(rightRecord.convertTo).indexOf(expr.operator) >
                             -1
                         ) {
                             conversionActionsForRight.push(
@@ -2979,6 +3104,7 @@ export class BinaryOperatorExpr extends Expression {
         return leftOpened || rightOpened;
     }
 
+    //TODO: Duplicated in ListElementAccessModifier
     private deleteUnconvertibleOperandWarning(
         rootExpression: BinaryOperatorExpr,
         codeToDelete: CodeConstruct,
@@ -3616,17 +3742,15 @@ export class TypedEmptyExpr extends Token {
                       .filter((record) => this.type.indexOf(record.convertTo) > -1)
                 : [];
 
-            if (replaceWith.returns === DataType.Any) {
-                return new InsertionResult(InsertionType.DraftMode, TYPE_MISMATCH_ANY(this.type, replaceWith.returns), [
-                    new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning),
-                ]);
-            }
-
             return new InsertionResult(
                 InsertionType.DraftMode,
                 TYPE_MISMATCH_IN_HOLE_DRAFT_MODE_STR(this.type, replaceWith.returns),
                 conversionRecords
             );
+        } else if (replaceWith.returns === DataType.Any) {
+            return new InsertionResult(InsertionType.DraftMode, TYPE_MISMATCH_ANY(this.type, replaceWith.returns), [
+                new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning),
+            ]);
         }
 
         return new InsertionResult(InsertionType.Invalid, "", []);

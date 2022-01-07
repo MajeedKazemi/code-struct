@@ -404,8 +404,11 @@ export class EventRouter {
         if (this.buttonClicksCount.get(id) == 2) {
             this.buttonClicksCount.set(id, 0);
 
-            const action = Actions.instance().actionsMap.get(id);
-			this.module.notificationManager.showTypingMessage(action);
+            //TODO: variables should be checked separately
+            if (Actions.instance().actionsMap.has(id)) {
+                const action = Actions.instance().actionsMap.get(id);
+                this.module.notificationManager.showTypingMessage(action);
+            }
         }
     }
 

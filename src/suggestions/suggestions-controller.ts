@@ -1,6 +1,6 @@
 import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
-import { InsertActionType } from "../editor/consts";
+import { Actions, InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
@@ -456,8 +456,25 @@ export class MenuController {
      */
     buildSingleLevelMenu(suggestions: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
         if (this.menus.length > 0) this.removeMenus();
-        else if (suggestions.length > 0) {
+        else if (suggestions.length >= 0) {
+            //TODO: Very hacky way of fixing #569
+            //The issue is that the "no options" option is only added to the menu during the call to updateOptions
+            //if there is an attempt to create a menu that would have no options, the menu was simply not allowed to be created which is why the "no options" option was not visible any longer
+            if (suggestions.length === 0) {
+                suggestions.push(Actions.instance().actionsList[0]); //this does not have to be this specific aciton, just need one to create the option so that the menu is created and then we immediately delete the option
+            }
+
             const menu = this.module.menuController.buildMenu(suggestions, pos);
+
+            //TODO: Continuation of very hacky way of fixing #569
+            if (suggestions.length === 0) {
+                menu.options[0].removeFromDOM();
+                menu.options = [];
+                const option = new MenuOption("No suitable options found.", false, null, menu, null, () => {});
+                this.insertOptionIntoMenu(option, menu);
+                this.focusedOptionIndex = 0;
+            }
+
             menu.updateDimensions();
             menu.open();
             this.indexOfRootMenu = 0;

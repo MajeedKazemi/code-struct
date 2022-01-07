@@ -1207,6 +1207,7 @@ export class ActionExecutor {
             }
             case EditActionType.InsertMemberCallConversion:
             case EditActionType.InsertMemberAccessConversion: {
+                const root = action.data.codeToReplace;
                 this.module.focus.updateContext(
                     new UpdatableContext(null, action.data.codeToReplace.getRightPosition())
                 );
@@ -1221,11 +1222,14 @@ export class ActionExecutor {
 
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 
+                if (root instanceof Expression) root.validateTypes(this.module);
+
                 break;
             }
             case EditActionType.InsertFunctionConversion:
             case EditActionType.InsertTypeCast:
             case EditActionType.InsertComparisonConversion: {
+                const root = action.data.codeToReplace;
                 this.deleteCode(action.data.codeToReplace, {
                     statement: null,
                     replaceType: action.data.typeToConvertTo,
@@ -1239,6 +1243,8 @@ export class ActionExecutor {
                 action.data.codeToReplace.draftModeEnabled = false;
                 this.insertExpression(this.module.focus.getContext(), action.data.codeToReplace as Expression);
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
+
+                if (root instanceof Expression) root.validateTypes(this.module);
 
                 break;
             }
@@ -1373,7 +1379,11 @@ export class ActionExecutor {
                     this.module.closeConstructDraftRecord(action.data.codeToDelete);
                 this.deleteCode(action.data.codeToDelete);
 
-                if (action.data.rootExpression instanceof Expression)
+                //TODO: Eventually this if statement should go as all constructs will have this method
+                if (
+                    action.data.rootExpression instanceof Expression ||
+                    action.data.rootExpression instanceof ListAccessModifier
+                )
                     action.data.rootExpression.validateTypes(this.module);
 
                 break;
@@ -1727,6 +1737,8 @@ export class ActionExecutor {
 
                 if (replacementResult.insertionType !== InsertionType.DraftMode && expr.draftModeEnabled) {
                     this.module.closeConstructDraftRecord(expr);
+                } else if (root instanceof BinaryOperatorExpr) {
+                    root.validateTypes(this.module);
                 } else if (replacementResult.insertionType === InsertionType.DraftMode) {
                     this.module.openDraftMode(newCode, replacementResult.message, [
                         ...replacementResult.conversionRecords.map((conversionRecord) => {
