@@ -2970,6 +2970,10 @@ export class BinaryOperatorExpr extends Expression {
         this.validateBinExprTypes(curr instanceof BinaryOperatorExpr ? curr : this, module);
     }
 
+    getKeyword(): string {
+        return `${this.getLeftOperand().getKeyword()} ${this.operator} ${this.getRightOperand().getKeyword()}`;
+    }
+
     //TODO: Passing module recursively is bad for memory
     //TODO: Function is way too large. Can definitely be split into smaller ones.
     private validateBinExprTypes(expr: BinaryOperatorExpr, module: Module): boolean {
@@ -3847,6 +3851,10 @@ export class TypedEmptyExpr extends Token {
 
     getTypes(): DataType[] {
         return this.type;
+    }
+
+    getKeyword(): string {
+        return "---";
     }
 }
 
