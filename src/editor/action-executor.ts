@@ -1108,6 +1108,10 @@ export class ActionExecutor {
                     positionToMove: new Position(newCode.lineNumber, newCode.right),
                 });
 
+                if (newCode.rootNode instanceof BinaryOperatorExpr) {
+                    newCode.rootNode.onInsertInto(newCode);
+                    newCode.rootNode.validateTypes(this.module);
+                }
                 if (newCode.rootNode instanceof Statement) {
                     newCode.rootNode.onInsertInto(newCode);
                 }
