@@ -1,4 +1,5 @@
 import Fuse from "fuse.js";
+import { Position } from "monaco-editor";
 import { nova, runBtnToOutputWindow } from "../index";
 import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
 import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
@@ -7,6 +8,7 @@ import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
+import { Accordion, TooltipType } from "./accordion";
 import { EditCodeAction } from "./action-filter";
 import { Actions } from "./consts";
 import { createExample } from "./doc-box";
@@ -135,19 +137,29 @@ export class ToolboxController {
             const useCasesContainer = document.createElement("div");
             useCasesContainer.classList.add("use-cases-container");
 
+            const accordion = new Accordion(code.documentation.title.replace(" ", "-"));
+            tooltipContainer.appendChild(accordion.container);
+
             for (const tip of code.documentation.tips) {
+                // create a new div with icon + type + title (step-by-step, run example, usage tip)
+                // body
+                // on click to expand and close others in the same group
+
                 if (tip.type == "use-case") {
                     const useCaseComp = new UseCaseSliderComponent(tip, code.cssId);
-
-                    useCasesContainer.appendChild(useCaseComp.element);
-                    sendUsageFunctions.push(useCaseComp.sendUsage);
+                    accordion.addRow(TooltipType.StepByStepExample, tip.title, useCaseComp.element);
                 } else if (tip.type == "quick") {
-                    const quickComp = new QuickTipComponent(tip.text);
+                    const hintEl = document.createElement("div");
+                    hintEl.classList.add("quick-tip");
+                    hintEl.innerText = tip.text;
 
-                    useCasesContainer.appendChild(quickComp.element);
+                    accordion.addRow(TooltipType.UsageHint, tip.title, hintEl);
                 } else if (tip.type == "executable") {
                     const ex = createExample(tip.example);
-                    useCasesContainer.appendChild(ex[0]);
+                    accordion.addRow(TooltipType.RunnableExample, tip.title, ex[0], () => {
+                        ex[2].setPosition(new Position(99999, 99999));
+                        ex[2].focus();
+                    });
 
                     docBoxRunButtons.set(tip.id, ex[1]);
 
@@ -184,8 +196,6 @@ export class ToolboxController {
                     );
                 }
             }
-
-            tooltipContainer.appendChild(useCasesContainer);
         }
 
         if (returnType) {
@@ -685,7 +695,6 @@ function addClassToButton(buttonId: string, className: string) {
 
 class UseCaseSliderComponent {
     element: HTMLDivElement;
-    expanded: boolean;
     sendUsage: () => void;
 
     constructor(useCase: any, buttonId: string) {
@@ -699,16 +708,6 @@ class UseCaseSliderComponent {
             useCase.id,
             buttonId
         );
-
-        this.expanded = false;
-    }
-
-    updateExpanded: () => void;
-
-    setExpanded(expanded: boolean) {
-        this.expanded = expanded;
-
-        this.updateExpanded();
     }
 
     createUseCaseComponent(
@@ -721,34 +720,13 @@ class UseCaseSliderComponent {
         id: string,
         buttonId: string
     ): HTMLDivElement {
-        const comp = document.createElement("div");
         let useCaseUsed = false;
-
-        const spacingDiv = document.createElement("div");
-        spacingDiv.classList.add("spacing");
-        comp.appendChild(spacingDiv);
 
         const useCaseContainer = document.createElement("div");
         useCaseContainer.classList.add("single-use-case-container");
-        comp.appendChild(useCaseContainer);
-
-        const useCaseTitleContainer = document.createElement("div");
-        useCaseTitleContainer.classList.add("use-case-title");
-        useCaseContainer.appendChild(useCaseTitleContainer);
-
-        const useCaseTitle = document.createElement("div");
-        useCaseTitle.classList.add("use-case-title-header");
-        useCaseTitle.innerText = title;
-        useCaseTitleContainer.appendChild(useCaseTitle);
-
-        // const useCaseLearnButton = document.createElement("div");
-        // useCaseLearnButton.classList.add("use-case-learn-button");
-        // useCaseLearnButton.innerHTML = "learn";
-        // useCaseTitleContainer.appendChild(useCaseLearnButton);
 
         const sliderContainer = document.createElement("div");
         sliderContainer.classList.add("slider-container");
-        sliderContainer.style.maxHeight = "0px";
         useCaseContainer.appendChild(sliderContainer);
 
         const slider = document.createElement("input");
@@ -766,15 +744,15 @@ class UseCaseSliderComponent {
 
         const explanationContainer = document.createElement("div");
         explanationContainer.classList.add("explanation-container");
-        explanationContainer.style.opacity = "0.0";
+        explanationContainer.style.visibility = "hidden";
 
         const updateSlide = () => {
             slideImage.src = slides[parseInt(slider.value) - 1];
 
             if (explanations) {
                 const explanation = explanations.find((exp) => exp.slide == parseInt(slider.value));
-                explanationContainer.innerText = explanation ? explanation.text : "-";
-                explanationContainer.style.opacity = explanation ? "1.0" : "0.0";
+                explanationContainer.innerText = explanation ? explanation.text : "&nbsp;";
+                explanationContainer.style.visibility = explanation ? "visible" : "hidden";
             }
 
             if (currentSlide.index != parseInt(slider.value) - 1) {
@@ -835,36 +813,13 @@ class UseCaseSliderComponent {
 
         updateSlide();
 
+        labelsContainer.appendChild(explanationContainer);
+        sliderContainer.appendChild(labelsContainer);
+
         buttonsContainer.appendChild(prevBtn);
         buttonsContainer.append(slider);
         buttonsContainer.appendChild(nextBtn);
         sliderContainer.appendChild(buttonsContainer);
-
-        labelsContainer.appendChild(explanationContainer);
-        sliderContainer.appendChild(labelsContainer);
-
-        this.updateExpanded = () => {
-            sliderContainer.style.maxHeight = this.expanded ? `${sliderContainer.scrollHeight}px` : "0px";
-            useCaseTitleContainer.style.backgroundColor = this.expanded ? "#cfe3eb" : "#fff";
-
-            if (this.expanded) {
-                Logger.Instance().queueEvent(
-                    new LogEvent(LogType.OpenUseCase, { "use-case": id, "button-id": buttonId })
-                );
-            }
-
-            if (this.expanded) {
-                setTimeout(() => {
-                    comp.scrollIntoView({ behavior: "smooth" });
-                }, 150);
-            }
-        };
-
-        useCaseTitleContainer.addEventListener("click", () => {
-            this.expanded = !this.expanded;
-
-            this.updateExpanded();
-        });
 
         this.sendUsage = () => {
             if (useCaseUsed) {
@@ -878,32 +833,9 @@ class UseCaseSliderComponent {
             }
         };
 
-        return comp;
-    }
-}
+        explanationContainer.innerText = "step-by-step explanation";
+        explanationContainer.style.visibility = "visible";
 
-class QuickTipComponent {
-    element: HTMLDivElement;
-
-    constructor(text: any) {
-        this.element = this.createComponent(text);
-    }
-
-    createComponent(text: string): HTMLDivElement {
-        const component = document.createElement("div");
-        component.classList.add("quick-tip");
-
-        const titleEl = document.createElement("span");
-        titleEl.classList.add("quick-tip-title");
-        titleEl.innerText = "tip";
-        component.appendChild(titleEl);
-
-        const textEl = document.createElement("span");
-        textEl.classList.add("quick-tip-text");
-        textEl.innerText = text;
-
-        component.appendChild(textEl);
-
-        return component;
+        return useCaseContainer;
     }
 }

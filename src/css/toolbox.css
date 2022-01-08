@@ -239,7 +239,7 @@ hole2 {
 }
 
 .tooltip-container {
-    font-family: "Courier New", Courier, monospace;
+    font-family: Consolas, "Courier New", monospace;
     position: fixed;
     display: none;
     color: #fff;
@@ -343,12 +343,10 @@ hole2 {
 }
 
 .tooltip-container .quick-tip {
-    margin: 10px;
-    border-radius: 5px;
-    overflow: hidden;
-    background-color: #fff;
-    border: solid 1px #ccc;
+    border-top: solid 1px #ccc;
     padding: 5px;
+    color: #000;
+    font-size: 14px;
 }
 
 .tooltip-container .quick-tip .quick-tip-text {
@@ -367,13 +365,9 @@ hole2 {
 }
 
 .tooltip-container .single-use-case-container {
-    margin: 0 10px;
-    border-radius: 5px;
-    overflow: hidden;
-    background-color: #fff;
     color: #000;
     font-weight: bold;
-    border: solid 1px #ccc;
+    border-top: solid 1px #ccc;
 }
 
 .tooltip-container .single-use-case-container .use-case-title {
@@ -447,12 +441,13 @@ hole2 {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
-    background-color: #029ad7;
+    background-color: #7017ff;
     margin: 0 10px 0;
     padding: 5px 10px;
     border-radius: 5px;
     font-weight: bold;
     box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+    color: #fff;
 }
 
 .tooltip-container .slider-container .slider-image {
@@ -463,6 +458,7 @@ hole2 {
 .tooltip-container .slider-container .labels-container {
     display: flex;
     font-size: 14px;
+    justify-content: center;
 }
 
 .tooltip-container .slider-container .slider-label {
@@ -475,23 +471,28 @@ hole2 {
 }
 
 .tooltip-container .slider-container .explanation-container {
-    border: solid 2px #7b0078;
-    margin: 10px 10px 9px;
+    margin: 5px;
     padding: 3px 7px;
     border-radius: 5px;
-    background-color: #b000ac;
+    background-color: #7017ff;
     color: #ffffff;
+    position: relative;
+}
 
-    transition: opacity 0.4s ease-in-out;
-    -webkit-transition: opacity 0.4s ease-in-out;
-    -moz-transition: opacity 0.4s ease-in-out;
-    -o-transition: opacity 0.4s ease-in-out;
-    -ms-transition: opacity 0.4s ease-in-out;
+.tooltip-container .slider-container .explanation-container::after {
+    content: "";
+    position: absolute;
+    bottom: 98%;
+    left: 49%;
+    margin-left: -5px;
+    border-width: 7px;
+    border-style: solid;
+    border-color: transparent transparent #7017ff transparent;
 }
 
 .tooltip-container .slider-container .buttons-container {
     display: flex;
-    margin-top: 3px;
+    margin-bottom: 5px;
 }
 
 .statement-button {

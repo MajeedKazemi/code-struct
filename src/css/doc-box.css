@@ -10,7 +10,7 @@
     overflow: hidden;
     resize: both;
 
-    font-family: "Courier New", Courier, monospace;
+    font-family: Consolas, "Courier New", monospace;
 }
 
 .focused-header {
@@ -115,10 +115,7 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 }
 
 .doc-editor-container {
-    border-radius: 5px;
-    overflow: hidden;
-    box-shadow: 0 0 5px 1px #888;
-    margin: 10px;
+    border-top: solid 1px #ccc;
 }
 
 .console-output::-webkit-scrollbar {
@@ -149,11 +146,11 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
 }
 
 .doc-editor-header {
-    background-color: #d9e7ee;
+    background-color: #17a564;
+    color: #fff;
     font-weight: bold;
-    padding: 5px 15px;
+    padding: 4px 8px;
     font-size: 14px;
-    color: #000;
 }
 
 .doc-example-btn {

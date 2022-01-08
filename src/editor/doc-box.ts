@@ -238,11 +238,6 @@ export function createExample(example: string): [HTMLDivElement, string[], edito
     const editorContainer = document.createElement("div");
     editorContainer.classList.add("doc-editor-container");
 
-    const editorHeader = document.createElement("div");
-    editorHeader.innerText = "Example Code";
-    editorHeader.classList.add("doc-editor-header");
-    editorContainer.appendChild(editorHeader);
-
     const exampleEditor = document.createElement("div");
     exampleEditor.classList.add("doc-editor");
     exampleEditor.style.height = codeLines * 20 + "px";
@@ -324,12 +319,12 @@ export function createExample(example: string): [HTMLDivElement, string[], edito
     });
 
     runButton.addEventListener("click", () => {
-            consoleOutput.classList.add("console-output-open");
+        consoleOutput.classList.add("console-output-open");
     });
 
-	clearConsoleButton.addEventListener("click", () => {
-		consoleOutput.classList.remove("console-output-open");
-	})
+    clearConsoleButton.addEventListener("click", () => {
+        consoleOutput.classList.remove("console-output-open");
+    });
 
     return [editorContainer, runButtons, codeEditor, consoleOutput.id];
 }

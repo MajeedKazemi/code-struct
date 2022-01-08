@@ -7,14 +7,17 @@
     "tips": [
         {
             "type": "quick",
+            "title": "for loop inputs",
             "text": "for loops have two inputs: a variable name, and a sequence of items. the created variable is used to hold the current item, and the sequence is the list of items to go through."
         },
         {
             "type": "quick",
+            "title": "for loop as a counter",
             "text": "for loops can be used with the `range` function to work like a counter"
         },
         {
             "type": "executable",
+            "title": "using a for loop to go through a list",
             "id": "ex-for-list-items",
             "example": "lst = [\"cat\", \"dog\", \"mouse\", \"parrot\"]\nfor animal in lst:\n\tprint(animal)"
         },
@@ -55,5 +58,5 @@
             "id": "loop-chars-of-str"
         }
     ],
-    "search-queries": ["for", "loop", "repeat", "go through", "iterate"]
+    "search-queries": ["for", "loop", "repeat", "go through", "iterate", "list"]
 }
