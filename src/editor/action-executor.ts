@@ -1111,8 +1111,7 @@ export class ActionExecutor {
                 if (newCode.rootNode instanceof BinaryOperatorExpr) {
                     newCode.rootNode.onInsertInto(newCode);
                     newCode.rootNode.validateTypes(this.module);
-                }
-                if (newCode.rootNode instanceof Statement) {
+                } else if (newCode.rootNode instanceof Statement) {
                     newCode.rootNode.onInsertInto(newCode);
                 }
 

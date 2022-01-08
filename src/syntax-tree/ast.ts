@@ -2797,43 +2797,75 @@ export class BinaryOperatorExpr extends Expression {
             rootExpr.performReturnTypeUpdatesForAdditionOnInsertInto(rightOperand);
         }
 
-        if (leftOperand && rightOperand && leftOperand instanceof Expression && rightOperand instanceof Expression) {
+        if (
+            leftOperand &&
+            rightOperand &&
+            leftOperand instanceof TypedEmptyExpr &&
+            rightOperand instanceof TypedEmptyExpr
+        ) {
+            return;
+        } else if (rootExpr.operator === BinaryOperator.Add) {
             if (
-                leftOperand.returns === rightOperand.returns &&
-                TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(rootExpr.operator) > -1
+                leftOperand &&
+                rightOperand &&
+                leftOperand instanceof Expression &&
+                rightOperand instanceof Expression
+            ) {
+                if (
+                    leftOperand.returns === rightOperand.returns &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(rootExpr.operator) > -1
+                ) {
+                    rootExpr.returns = leftOperand.returns;
+                } else {
+                    rootExpr.returns = DataType.Any;
+                }
+            } else if (
+                leftOperand &&
+                leftOperand instanceof Expression &&
+                (rootExpr.originalReturnType === leftOperand.returns || rootExpr.originalReturnType === DataType.Any)
             ) {
                 rootExpr.returns = leftOperand.returns;
+            } else if (
+                rightOperand &&
+                rightOperand instanceof Expression &&
+                (rootExpr.originalReturnType === rightOperand.returns || rootExpr.originalReturnType === DataType.Any)
+            ) {
+                rootExpr.returns = rightOperand.returns;
+            } else if (
+                leftOperand &&
+                leftOperand instanceof TypedEmptyExpr &&
+                rightOperand &&
+                rightOperand instanceof Expression &&
+                (rootExpr.originalReturnType === rightOperand.returns || rootExpr.originalReturnType === DataType.Any)
+            ) {
+                rootExpr.returns = rightOperand.returns;
+            } else if (
+                rightOperand &&
+                rightOperand instanceof TypedEmptyExpr &&
+                leftOperand &&
+                leftOperand instanceof Expression &&
+                (rootExpr.originalReturnType === leftOperand.returns || rootExpr.originalReturnType === DataType.Any)
+            ) {
+                rootExpr.returns = leftOperand.returns;
+            }
+        } else if (rootExpr.isArithmetic()) {
+            if (
+                leftOperand &&
+                rightOperand &&
+                leftOperand instanceof Expression &&
+                rightOperand instanceof Expression
+            ) {
+                if (
+                    leftOperand.returns === rightOperand.returns &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(rootExpr.operator) > -1
+                ) {
+                    rootExpr.returns = leftOperand.returns;
+                } else {
+                    rootExpr.returns = DataType.Any;
+                }
             } else {
                 rootExpr.returns = DataType.Any;
             }
-        } else if (
-            leftOperand &&
-            leftOperand instanceof Expression &&
-            (rootExpr.originalReturnType === leftOperand.returns || rootExpr.originalReturnType === DataType.Any)
-        ) {
-            rootExpr.returns = leftOperand.returns;
-        } else if (
-            rightOperand &&
-            rightOperand instanceof Expression &&
-            (rootExpr.originalReturnType === rightOperand.returns || rootExpr.originalReturnType === DataType.Any)
-        ) {
-            rootExpr.returns = rightOperand.returns;
-        } else if (
-            leftOperand &&
-            leftOperand instanceof TypedEmptyExpr &&
-            rightOperand &&
-            rightOperand instanceof Expression &&
-            (rootExpr.originalReturnType === rightOperand.returns || rootExpr.originalReturnType === DataType.Any)
-        ) {
-            rootExpr.returns = rightOperand.returns;
-        } else if (
-            rightOperand &&
-            rightOperand instanceof TypedEmptyExpr &&
-            leftOperand &&
-            leftOperand instanceof Expression &&
-            (rootExpr.originalReturnType === leftOperand.returns || rootExpr.originalReturnType === DataType.Any)
-        ) {
-            rootExpr.returns = leftOperand.returns;
         }
     }
 
@@ -2907,8 +2939,7 @@ export class BinaryOperatorExpr extends Expression {
         }
 
         //update return types in root
-        if (curr && this.isArithmetic() && this.operator === BinaryOperator.Add)
-            this.performReturnTypeUpdatesForAdditionOnInsertInto(curr);
+        if (curr && this.isArithmetic()) this.performReturnTypeUpdatesForAdditionOnInsertInto(curr);
     }
 
     //should only be used on nested binary ops
@@ -3113,7 +3144,13 @@ export class BinaryOperatorExpr extends Expression {
                 module.openDraftMode(
                     leftOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], leftOperand.returns),
-                    conversionActionsForLeft
+                    [
+                        new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning).getConversionButton(
+                            "",
+                            module,
+                            leftOperand
+                        ),
+                    ]
                 );
             } else if (!operationDefinedBetweenTypes) {
                 if (conversionActionsForLeft.length > 0) {
@@ -3152,7 +3189,13 @@ export class BinaryOperatorExpr extends Expression {
                 module.openDraftMode(
                     rightOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], rightOperand.returns),
-                    conversionActionsForRight
+                    [
+                        new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning).getConversionButton(
+                            "",
+                            module,
+                            rightOperand
+                        ),
+                    ]
                 );
             } else if (!operationDefinedBetweenTypes) {
                 if (conversionActionsForRight.length > 0) {
