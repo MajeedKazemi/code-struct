@@ -1369,8 +1369,17 @@ export class ActionExecutor {
                 this.replaceCode(context.tokenToLeft, action.data.operator);
 
                 if (context.tokenToLeft.rootNode instanceof BinaryOperatorExpr) {
-                    context.tokenToLeft.rootNode.operator = action.data.operator;
-                    context.tokenToLeft.rootNode.operatorCategory = getOperatorCategory(action.data.operator);
+                    const root = context.tokenToLeft.rootNode;
+                    root.operator = action.data.operator.operator;
+                    root.operatorCategory = getOperatorCategory(root.operator);
+
+                    if (root.getLeftOperand() instanceof TypedEmptyExpr) {
+                        root.updateTypeOfEmptyOperandOnOperatorChange("left");
+                    }
+
+                    if (root.getRightOperand() instanceof TypedEmptyExpr) {
+                        root.updateTypeOfEmptyOperandOnOperatorChange("right");
+                    }
                 }
 
                 if (flashGreen) this.flashGreen(action.data.operator);

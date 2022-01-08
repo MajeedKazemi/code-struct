@@ -2518,6 +2518,35 @@ export class BinaryOperatorExpr extends Expression {
     private rightOperandIndex: number;
     private originalReturnType: DataType;
 
+    static originalTypeOfHolesAdd = new Map<string, Array<DataType>>([
+        ["left", [DataType.Number, DataType.String, ...ListTypes]],
+        ["right", [DataType.Number, DataType.String, ...ListTypes]],
+    ]);
+    static originalTypeOfHolesArithmetic = new Map<string, Array<DataType>>([
+        ["left", [DataType.Number]],
+        ["right", [DataType.Number]],
+    ]);
+    static originalTypeOfHolesBool = new Map<string, Array<DataType>>([
+        ["left", [DataType.Boolean]],
+        ["right", [DataType.Boolean]],
+    ]);
+    static originalTypeOfHolesEquality = new Map<string, Array<DataType>>([
+        ["left", [DataType.Any]],
+        ["right", [DataType.Any]],
+    ]);
+    static originalTypeOfHolesIn = new Map<string, Array<DataType>>([
+        ["left", [DataType.String, DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList]],
+        ["right", [DataType.String, DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList]],
+    ]);
+    static originalTypeOfHolesInequality = new Map<string, Array<DataType>>([
+        ["left", [DataType.Number, DataType.String]],
+        ["right", [DataType.Number, DataType.String]],
+    ]);
+    static originalReturnTypeBool = DataType.Boolean;
+    static originReturnTypeComp = DataType.Boolean;
+    static originalReturnTypeAdd = DataType.Any;
+    static originalReturnTypeArithmetic = DataType.Number;
+
     constructor(operator: BinaryOperator, returns: DataType, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
@@ -2972,6 +3001,34 @@ export class BinaryOperatorExpr extends Expression {
 
     getKeyword(): string {
         return `${this.getLeftOperand().getKeyword()} ${this.operator} ${this.getRightOperand().getKeyword()}`;
+    }
+
+    /**
+     * Only call this when you are sure that the operand is a TypedEmptyExpr
+     * @param operand
+     */
+    updateTypeOfEmptyOperandOnOperatorChange(operand: string) {
+        const operandToUpdate = (operand === "left" ? this.getLeftOperand() : this.getRightOperand()) as TypedEmptyExpr;
+
+        switch (this.operatorCategory) {
+            case OperatorCategory.Boolean:
+                operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesBool.get(operand);
+                break;
+            case OperatorCategory.Comparison:
+                if (this.operator === BinaryOperator.Equal || this.operator === BinaryOperator.NotEqual) {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesEquality.get(operand);
+                } else {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesInequality.get(operand);
+                }
+                break;
+            case OperatorCategory.Arithmetic:
+                if (this.operator === BinaryOperator.Add) {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesAdd.get(operand);
+                } else {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesArithmetic.get(operand);
+                }
+                break;
+        }
     }
 
     //TODO: Passing module recursively is bad for memory
