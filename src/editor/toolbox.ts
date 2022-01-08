@@ -1,4 +1,5 @@
 import Fuse from "fuse.js";
+import { Position } from "monaco-editor";
 import { nova, runBtnToOutputWindow } from "../index";
 import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
 import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
@@ -7,6 +8,7 @@ import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
+import { Accordion, TooltipType } from "./accordion";
 import { EditCodeAction } from "./action-filter";
 import { Actions } from "./consts";
 import { createExample } from "./doc-box";
@@ -75,7 +77,7 @@ export class ToolboxController {
                                         tooltip.remove();
                                     }, 100);
                                 }
-                            }, 100);
+                            }, 150);
                         });
 
                         tooltip.addEventListener("mouseleave", () => {
@@ -135,19 +137,29 @@ export class ToolboxController {
             const useCasesContainer = document.createElement("div");
             useCasesContainer.classList.add("use-cases-container");
 
+            const accordion = new Accordion(code.documentation.title.replace(" ", "-"));
+            tooltipContainer.appendChild(accordion.container);
+
             for (const tip of code.documentation.tips) {
+                // create a new div with icon + type + title (step-by-step, run example, usage tip)
+                // body
+                // on click to expand and close others in the same group
+
                 if (tip.type == "use-case") {
                     const useCaseComp = new UseCaseSliderComponent(tip, code.cssId);
-
-                    useCasesContainer.appendChild(useCaseComp.element);
-                    sendUsageFunctions.push(useCaseComp.sendUsage);
+                    accordion.addRow(TooltipType.StepByStepExample, tip.title, useCaseComp.element);
                 } else if (tip.type == "quick") {
-                    const quickComp = new QuickTipComponent(tip.text);
+                    const hintEl = document.createElement("div");
+                    hintEl.classList.add("quick-tip");
+                    hintEl.innerText = tip.text;
 
-                    useCasesContainer.appendChild(quickComp.element);
+                    accordion.addRow(TooltipType.UsageHint, tip.title, hintEl);
                 } else if (tip.type == "executable") {
                     const ex = createExample(tip.example);
-                    useCasesContainer.appendChild(ex[0]);
+                    accordion.addRow(TooltipType.RunnableExample, tip.title, ex[0], () => {
+                        ex[2].setPosition(new Position(99999, 99999));
+                        ex[2].focus();
+                    });
 
                     docBoxRunButtons.set(tip.id, ex[1]);
 
@@ -184,8 +196,6 @@ export class ToolboxController {
                     );
                 }
             }
-
-            tooltipContainer.appendChild(useCasesContainer);
         }
 
         if (returnType) {
@@ -295,10 +305,10 @@ export class ToolboxController {
 
                 for (const item of category.items) {
                     if (!showAll && resultActionsId.indexOf(item.cssId) === -1) {
-                        document.getElementById(item.cssId).style.display = "none";
+                        document.getElementById(item.cssId).parentElement.style.display = "none";
                         clearedItemsInCategory++;
                     } else {
-                        document.getElementById(item.cssId).style.display = "flex";
+                        document.getElementById(item.cssId).parentElement.style.display = "flex";
                     }
                 }
 
@@ -421,26 +431,40 @@ export class ToolboxButton {
     }
 }
 
-export function addVariableReferenceButton(identifier: string, buttonId: string, events: EventStack): HTMLDivElement {
-    const container = document.createElement("grid");
+export function addVariableReferenceButton(
+    identifier: string,
+    buttonId: string,
+    events: EventStack,
+    module: Module
+): HTMLDivElement {
+    const container = document.createElement("div");
     container.classList.add("var-button-container");
 
-    const wrapperDiv = document.createElement("div");
-    wrapperDiv.classList.add("hoverable");
-
-    container.appendChild(wrapperDiv);
-
+    const varContainer = document.createElement("div");
+    varContainer.classList.add("var-container-wrapper");
     const button = document.createElement("div");
-    button.classList.add("button");
+    button.classList.add("var-button");
     button.id = buttonId;
 
-    wrapperDiv.appendChild(button);
+    varContainer.appendChild(button);
 
     const typeText = document.createElement("div");
     typeText.classList.add("var-type-text");
-    container.appendChild(typeText);
+    varContainer.appendChild(typeText);
 
-    document.getElementById("vars-button-grid").appendChild(container);
+    container.appendChild(varContainer);
+
+    const moreActionsButton = document.createElement("div");
+    moreActionsButton.classList.add("var-more-actions-button");
+    moreActionsButton.innerText = "actions >";
+    container.appendChild(moreActionsButton);
+
+    moreActionsButton.addEventListener("mouseover", () => {
+        const [options, type] = getVarOptions(identifier, buttonId, module);
+
+        //it is important that these options are regenerated on each mouseover
+        createAndAttachCascadedMenu(moreActionsButton, buttonId, options, module, identifier, type);
+    });
 
     button.textContent = identifier;
 
@@ -449,6 +473,16 @@ export function addVariableReferenceButton(identifier: string, buttonId: string,
         events.stack.push(action);
         events.apply(action);
     });
+
+    setTimeout(() => {
+        container.classList.add("glowing");
+
+        setTimeout(() => {
+            container.classList.remove("glowing");
+        }, 5000);
+    }, 1);
+
+    document.getElementById("vars-button-grid").appendChild(container);
 
     return button;
 }
@@ -466,28 +500,22 @@ function constructCascadedMenuObj(
     validActions: Map<string, EditCodeAction>,
     buttonId: string,
     module: Module,
-    identifier: string
+    identifier: string,
+    type: DataType
 ): HTMLDivElement {
     const context = module.focus.getContext();
     const menu = document.createElement("div");
+    menu.classList.add("cascadedMenuMainDiv");
     menu.id = `${buttonId}-cascadedMenu`;
-    menu.className = "cascadedMenuMainDiv";
 
     const header = document.createElement("div");
     header.classList.add("cascaded-menu-header");
-    header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span>:</h3>`;
+    header.innerHTML = `<h3>actions with <span class="identifier">${identifier}</span> variable:</h3>`;
     menu.appendChild(header);
 
-    menu.addEventListener("mouseover", () => {
-        setTimeout(() => {
-            const element = document.getElementById(`${buttonId}-cascadedMenu`);
-            const button = document.getElementById(buttonId);
-
-            if (element && !element.matches(":hover") && !button.matches(":hover")) {
-                element.remove();
-            }
-        }, 100);
-    });
+    setTimeout(() => {
+        menu.style.opacity = "1";
+    }, 1);
 
     let id = 0;
 
@@ -497,6 +525,14 @@ function constructCascadedMenuObj(
 
         const menuText = document.createElement("span");
         menuText.classList.add("cascadedMenuOptionTooltip");
+        if (value.shortDescription) {
+            menuText.innerHTML =
+                "> " + value.shortDescription.replace("{VAR_ID}", `<span class="inline-var-id">${identifier}</span>`);
+        }
+
+        if (value.insertionResult.insertionType === InsertionType.Valid) {
+            menuText.classList.add("valid-option-tooltip");
+        }
 
         const code = value.getCode();
         let returnType = null;
@@ -510,6 +546,9 @@ function constructCascadedMenuObj(
         const menuButton = ToolboxButton.createToolboxButtonFromJsonObj(value);
 
         menuButton.getButtonElement().classList.add("cascadedMenuItem");
+        menuButton.getButtonElement().innerHTML = menuButton
+            .getButtonElement()
+            .innerHTML.replace(identifier, `<span class="button-id">${identifier}</span>`);
         value.performAction.bind(value);
 
         menuButton.getButtonElement().addEventListener("click", () => {
@@ -526,20 +565,52 @@ function constructCascadedMenuObj(
         menu.appendChild(menuItem);
     }
 
+    const extraContainer = document.createElement("div");
+    extraContainer.classList.add("cascaded-menu-extra-container");
+
+    const createExtraItem = (innerHTML: string) => {
+        const extraItem = document.createElement("div");
+        extraItem.classList.add("cascaded-menu-extra-item");
+        extraItem.innerHTML = innerHTML;
+
+        return extraItem;
+    };
+
+    if (type === DataType.String) {
+        extraContainer.appendChild(
+            createExtraItem(
+                `try converting to integer (number) using <span class='code'>int(<span class='inline-var'>${identifier}</span>)</span>`
+            )
+        );
+
+        menu.appendChild(extraContainer);
+    } else if (type === DataType.Number) {
+        extraContainer.appendChild(
+            createExtraItem(
+                `convert to string (text) using <span class='code'>str(<span class='inline-var'>${identifier}</span>)</span>`
+            )
+        );
+
+        menu.appendChild(extraContainer);
+    }
+
     return menu;
 }
 
 //creates a cascaded menu dom object with the given options and attaches it to button with id = buttonId.
 //also updates its position according to the button it is being attached to.
 function createAndAttachCascadedMenu(
+    moreActionsButton: HTMLDivElement,
     buttonId: string,
     validActions: Map<string, EditCodeAction>,
     module: Module,
-    identifier: string
+    identifier: string,
+    type: DataType
 ) {
     const button = document.getElementById(buttonId);
+
     if (!document.getElementById(`${buttonId}-cascadedMenu`)) {
-        const menuElement = constructCascadedMenuObj(validActions, buttonId, module, identifier);
+        const menuElement = constructCascadedMenuObj(validActions, buttonId, module, identifier, type);
 
         if (menuElement.children.length > 0) {
             const content = document.createElement("div");
@@ -547,20 +618,40 @@ function createAndAttachCascadedMenu(
             button.parentElement.appendChild(menuElement);
 
             const domMenuElement = document.getElementById(`${buttonId}-cascadedMenu`);
-            const buttonRect = button.getBoundingClientRect();
+            const buttonRect = moreActionsButton.getBoundingClientRect();
             const bodyRect = document.body.getBoundingClientRect();
 
             const leftPos = buttonRect.left - bodyRect.left + buttonRect.width;
-            const topPos = buttonRect.top - bodyRect.top + buttonRect.height;
 
-            domMenuElement.style.left = `${leftPos}px`;
+            domMenuElement.style.left = `${leftPos + 10}px`;
             domMenuElement.style.bottom = `${bodyRect.bottom - buttonRect.bottom}px`;
+
+            moreActionsButton.addEventListener("mouseleave", () => {
+                setTimeout(() => {
+                    if (menuElement && !menuElement.matches(":hover") && !moreActionsButton.matches(":hover")) {
+                        menuElement.style.opacity = "0";
+                        setTimeout(() => {
+                            menuElement.remove();
+                        }, 100);
+                    }
+                }, 150);
+            });
+
+            menuElement.addEventListener("mouseleave", () => {
+                if (menuElement && !menuElement.matches(":hover") && !button.matches(":hover")) {
+                    menuElement.style.opacity = "0";
+
+                    setTimeout(() => {
+                        menuElement.remove();
+                    }, 100);
+                }
+            });
         }
     }
 }
 
 // helper for creating options for a variable's cascaded menu
-function getVarOptions(identifier: string, buttonId: string, module: Module): Map<string, EditCodeAction> {
+function getVarOptions(identifier: string, buttonId: string, module: Module): [Map<string, EditCodeAction>, DataType] {
     const dataType = module.variableController.getVariableTypeNearLine(
         module.focus.getFocusedStatement().scope ??
             (
@@ -573,24 +664,7 @@ function getVarOptions(identifier: string, buttonId: string, module: Module): Ma
         false
     );
     const varRef = new VariableReferenceExpr(identifier, dataType, buttonId);
-    return module.actionFilter.validateVariableOperations(varRef);
-}
-
-export function createCascadedMenuForVarRef(buttonId: string, identifier: string, module: Module) {
-    const button = document.getElementById(buttonId);
-
-    button.addEventListener("mouseover", () => {
-        //it is important that these options are regenerated on each mouseover
-        createAndAttachCascadedMenu(buttonId, getVarOptions(identifier, buttonId, module), module, identifier);
-    });
-
-    button.addEventListener("mouseleave", () => {
-        const element = document.getElementById(`${buttonId}-cascadedMenu`);
-
-        if (element && !element.matches(":hover") && !button.matches(":hover")) {
-            element.remove();
-        }
-    });
+    return [module.actionFilter.validateVariableOperations(varRef), dataType];
 }
 
 window.onresize = () => {
@@ -621,7 +695,6 @@ function addClassToButton(buttonId: string, className: string) {
 
 class UseCaseSliderComponent {
     element: HTMLDivElement;
-    expanded: boolean;
     sendUsage: () => void;
 
     constructor(useCase: any, buttonId: string) {
@@ -635,16 +708,6 @@ class UseCaseSliderComponent {
             useCase.id,
             buttonId
         );
-
-        this.expanded = false;
-    }
-
-    updateExpanded: () => void;
-
-    setExpanded(expanded: boolean) {
-        this.expanded = expanded;
-
-        this.updateExpanded();
     }
 
     createUseCaseComponent(
@@ -657,34 +720,13 @@ class UseCaseSliderComponent {
         id: string,
         buttonId: string
     ): HTMLDivElement {
-        const comp = document.createElement("div");
         let useCaseUsed = false;
-
-        const spacingDiv = document.createElement("div");
-        spacingDiv.classList.add("spacing");
-        comp.appendChild(spacingDiv);
 
         const useCaseContainer = document.createElement("div");
         useCaseContainer.classList.add("single-use-case-container");
-        comp.appendChild(useCaseContainer);
-
-        const useCaseTitleContainer = document.createElement("div");
-        useCaseTitleContainer.classList.add("use-case-title");
-        useCaseContainer.appendChild(useCaseTitleContainer);
-
-        const useCaseTitle = document.createElement("div");
-        useCaseTitle.classList.add("use-case-title-header");
-        useCaseTitle.innerText = title;
-        useCaseTitleContainer.appendChild(useCaseTitle);
-
-        // const useCaseLearnButton = document.createElement("div");
-        // useCaseLearnButton.classList.add("use-case-learn-button");
-        // useCaseLearnButton.innerHTML = "learn";
-        // useCaseTitleContainer.appendChild(useCaseLearnButton);
 
         const sliderContainer = document.createElement("div");
         sliderContainer.classList.add("slider-container");
-        sliderContainer.style.maxHeight = "0px";
         useCaseContainer.appendChild(sliderContainer);
 
         const slider = document.createElement("input");
@@ -702,15 +744,15 @@ class UseCaseSliderComponent {
 
         const explanationContainer = document.createElement("div");
         explanationContainer.classList.add("explanation-container");
-        explanationContainer.style.opacity = "0.0";
+        explanationContainer.style.visibility = "hidden";
 
         const updateSlide = () => {
             slideImage.src = slides[parseInt(slider.value) - 1];
 
             if (explanations) {
                 const explanation = explanations.find((exp) => exp.slide == parseInt(slider.value));
-                explanationContainer.innerText = explanation ? explanation.text : "-";
-                explanationContainer.style.opacity = explanation ? "1.0" : "0.0";
+                explanationContainer.innerText = explanation ? explanation.text : "&nbsp;";
+                explanationContainer.style.visibility = explanation ? "visible" : "hidden";
             }
 
             if (currentSlide.index != parseInt(slider.value) - 1) {
@@ -771,36 +813,13 @@ class UseCaseSliderComponent {
 
         updateSlide();
 
+        labelsContainer.appendChild(explanationContainer);
+        sliderContainer.appendChild(labelsContainer);
+
         buttonsContainer.appendChild(prevBtn);
         buttonsContainer.append(slider);
         buttonsContainer.appendChild(nextBtn);
         sliderContainer.appendChild(buttonsContainer);
-
-        labelsContainer.appendChild(explanationContainer);
-        sliderContainer.appendChild(labelsContainer);
-
-        this.updateExpanded = () => {
-            sliderContainer.style.maxHeight = this.expanded ? `${sliderContainer.scrollHeight}px` : "0px";
-            useCaseTitleContainer.style.backgroundColor = this.expanded ? "#cfe3eb" : "#fff";
-
-            if (this.expanded) {
-                Logger.Instance().queueEvent(
-                    new LogEvent(LogType.OpenUseCase, { "use-case": id, "button-id": buttonId })
-                );
-            }
-
-            if (this.expanded) {
-                setTimeout(() => {
-                    comp.scrollIntoView({ behavior: "smooth" });
-                }, 150);
-            }
-        };
-
-        useCaseTitleContainer.addEventListener("click", () => {
-            this.expanded = !this.expanded;
-
-            this.updateExpanded();
-        });
 
         this.sendUsage = () => {
             if (useCaseUsed) {
@@ -814,32 +833,9 @@ class UseCaseSliderComponent {
             }
         };
 
-        return comp;
-    }
-}
+        explanationContainer.innerText = "step-by-step explanation";
+        explanationContainer.style.visibility = "visible";
 
-class QuickTipComponent {
-    element: HTMLDivElement;
-
-    constructor(text: any) {
-        this.element = this.createComponent(text);
-    }
-
-    createComponent(text: string): HTMLDivElement {
-        const component = document.createElement("div");
-        component.classList.add("quick-tip");
-
-        const titleEl = document.createElement("span");
-        titleEl.classList.add("quick-tip-title");
-        titleEl.innerText = "tip";
-        component.appendChild(titleEl);
-
-        const textEl = document.createElement("span");
-        textEl.classList.add("quick-tip-text");
-        textEl.innerText = text;
-
-        component.appendChild(textEl);
-
-        return component;
+        return useCaseContainer;
     }
 }

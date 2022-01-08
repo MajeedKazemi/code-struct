@@ -1,0 +1,111 @@
+.accordion-group-container {
+}
+
+.accordion-row {
+    border-radius: 4px;
+    margin: 8px;
+    background-color: #fff;
+    overflow: hidden;
+    box-shadow: 0px 1px 3px 1px #167faa;
+}
+
+.accordion-row .header-container {
+    display: flex;
+    justify-content: space-between;
+    font-size: 14px;
+    cursor: pointer;
+
+    transition: 0.15s ease-in-out;
+    -webkit-transition: 0.15s ease-in-out;
+    -moz-transition: 0.15s ease-in-out;
+    -o-transition: 0.15s ease-in-out;
+    -ms-transition: 0.15s ease-in-out;
+}
+
+.accordion-row .header-container:hover {
+    background-color: #ccc;
+}
+
+.accordion-row .header-container:hover .expand-collapse-button svg {
+    background-color: #aebbcf;
+    color: #00f;
+}
+
+.accordion-row .row-icon {
+    display: flex;
+    margin-left: 5px;
+    align-items: center;
+}
+.accordion-row .row-type {
+    margin-left: 5px;
+    margin-top: 4px;
+}
+.accordion-row .row-title {
+    margin-left: 5px;
+    color: #000;
+    font-weight: bold;
+}
+.accordion-row .row-chevron-right-icon {
+    display: flex;
+    margin-left: 5px;
+}
+.accordion-row .expand-collapse-button {
+    display: flex;
+}
+
+.accordion-row .expand-collapse-button svg {
+    cursor: pointer;
+    margin: 2px;
+    cursor: pointer;
+    border-radius: 99px;
+    color: #000;
+
+    transition: 0.15s ease-in-out;
+    -webkit-transition: 0.15s ease-in-out;
+    -moz-transition: 0.15s ease-in-out;
+    -o-transition: 0.15s ease-in-out;
+    -ms-transition: 0.15s ease-in-out;
+}
+
+.accordion-row .content-container {
+    overflow: hidden;
+}
+
+.accordion-row .header-container .type-container {
+    background-color: #670093;
+    padding-right: 8px;
+    display: flex;
+    flex-direction: row;
+    align-content: center;
+    height: 100%;
+}
+.accordion-row .header-container .text-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.accordion-row .header-container .bg-learn {
+    background-color: #9c27b0;
+}
+.accordion-row .header-container .bg-try {
+    background-color: #45a249;
+}
+.accordion-row .header-container .bg-hint {
+    background-color: #cc451b;
+}
+
+.accordion-row .chevron {
+    color: #000;
+    padding: 10px;
+
+    transition: background-color 0.15s ease-in-out;
+    -webkit-transition: background-color 0.15s ease-in-out;
+    -moz-transition: background-color 0.15s ease-in-out;
+    -o-transition: background-color 0.15s ease-in-out;
+    -ms-transition: background-color 0.15s ease-in-out;
+}
+
+.accordion-row .chevron:hover {
+    color: #00f;
+}
