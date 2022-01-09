@@ -2518,6 +2518,35 @@ export class BinaryOperatorExpr extends Expression {
     private rightOperandIndex: number;
     private originalReturnType: DataType;
 
+    static originalTypeOfHolesAdd = new Map<string, Array<DataType>>([
+        ["left", [DataType.Number, DataType.String, ...ListTypes]],
+        ["right", [DataType.Number, DataType.String, ...ListTypes]],
+    ]);
+    static originalTypeOfHolesArithmetic = new Map<string, Array<DataType>>([
+        ["left", [DataType.Number]],
+        ["right", [DataType.Number]],
+    ]);
+    static originalTypeOfHolesBool = new Map<string, Array<DataType>>([
+        ["left", [DataType.Boolean]],
+        ["right", [DataType.Boolean]],
+    ]);
+    static originalTypeOfHolesEquality = new Map<string, Array<DataType>>([
+        ["left", [DataType.Any]],
+        ["right", [DataType.Any]],
+    ]);
+    static originalTypeOfHolesIn = new Map<string, Array<DataType>>([
+        ["left", [DataType.String, DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList]],
+        ["right", [DataType.String, DataType.AnyList, DataType.NumberList, DataType.StringList, DataType.BooleanList]],
+    ]);
+    static originalTypeOfHolesInequality = new Map<string, Array<DataType>>([
+        ["left", [DataType.Number, DataType.String]],
+        ["right", [DataType.Number, DataType.String]],
+    ]);
+    static originalReturnTypeBool = DataType.Boolean;
+    static originReturnTypeComp = DataType.Boolean;
+    static originalReturnTypeAdd = DataType.Any;
+    static originalReturnTypeArithmetic = DataType.Number;
+
     constructor(operator: BinaryOperator, returns: DataType, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
 
@@ -2756,7 +2785,115 @@ export class BinaryOperatorExpr extends Expression {
         }
     }
 
+    private performReturnTypeUpdatesForAdditionOnInsertInto(rootExpr: BinaryOperatorExpr) {
+        const leftOperand = rootExpr.getLeftOperand();
+        const rightOperand = rootExpr.getRightOperand();
+
+        if (leftOperand instanceof BinaryOperatorExpr) {
+            rootExpr.performReturnTypeUpdatesForAdditionOnInsertInto(leftOperand);
+        }
+
+        if (rightOperand instanceof BinaryOperatorExpr) {
+            rootExpr.performReturnTypeUpdatesForAdditionOnInsertInto(rightOperand);
+        }
+
+        if (
+            leftOperand &&
+            rightOperand &&
+            leftOperand instanceof TypedEmptyExpr &&
+            rightOperand instanceof TypedEmptyExpr
+        ) {
+            return;
+        } else if (rootExpr.operator === BinaryOperator.Add) {
+            if (
+                leftOperand &&
+                rightOperand &&
+                leftOperand instanceof Expression &&
+                rightOperand instanceof Expression
+            ) {
+                if (
+                    leftOperand.returns === rightOperand.returns &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(rootExpr.operator) > -1
+                ) {
+                    rootExpr.returns = leftOperand.returns;
+                } else {
+                    rootExpr.returns = DataType.Any;
+                }
+            } else if (
+                leftOperand &&
+                leftOperand instanceof Expression &&
+                (rootExpr.originalReturnType === leftOperand.returns || rootExpr.originalReturnType === DataType.Any)
+            ) {
+                rootExpr.returns = leftOperand.returns;
+            } else if (
+                rightOperand &&
+                rightOperand instanceof Expression &&
+                (rootExpr.originalReturnType === rightOperand.returns || rootExpr.originalReturnType === DataType.Any)
+            ) {
+                rootExpr.returns = rightOperand.returns;
+            } else if (
+                leftOperand &&
+                leftOperand instanceof TypedEmptyExpr &&
+                rightOperand &&
+                rightOperand instanceof Expression &&
+                (rootExpr.originalReturnType === rightOperand.returns || rootExpr.originalReturnType === DataType.Any)
+            ) {
+                rootExpr.returns = rightOperand.returns;
+            } else if (
+                rightOperand &&
+                rightOperand instanceof TypedEmptyExpr &&
+                leftOperand &&
+                leftOperand instanceof Expression &&
+                (rootExpr.originalReturnType === leftOperand.returns || rootExpr.originalReturnType === DataType.Any)
+            ) {
+                rootExpr.returns = leftOperand.returns;
+            }
+        } else if (rootExpr.isArithmetic()) {
+            if (
+                leftOperand &&
+                rightOperand &&
+                leftOperand instanceof Expression &&
+                rightOperand instanceof Expression
+            ) {
+                if (
+                    leftOperand.returns === rightOperand.returns &&
+                    TypeChecker.getAllowedBinaryOperatorsForType(leftOperand.returns).indexOf(rootExpr.operator) > -1
+                ) {
+                    rootExpr.returns = leftOperand.returns;
+                } else {
+                    rootExpr.returns = DataType.Any;
+                }
+            } else {
+                rootExpr.returns = DataType.Any;
+            }
+        }
+    }
+
     performTypeUpdatesOnInsertInto(insertCode: Expression) {
+        //return type update
+        if (this.isArithmetic() && this.operator === BinaryOperator.Add) {
+            const nonEmptyOperand = !this.isOperandEmpty(this.leftOperandIndex)
+                ? this.getLeftOperand()
+                : !this.isOperandEmpty(this.rightOperandIndex)
+                ? this.getRightOperand()
+                : null;
+
+            if (nonEmptyOperand) {
+                if (nonEmptyOperand instanceof Expression && nonEmptyOperand.returns === insertCode.returns) {
+                    if (TypeChecker.isBinOpAllowed(this.operator, nonEmptyOperand.returns, nonEmptyOperand.returns)) {
+                        this.returns = nonEmptyOperand.returns;
+                    } else {
+                        this.returns = DataType.Any;
+                    }
+                } else if (nonEmptyOperand instanceof Expression && nonEmptyOperand.returns !== insertCode.returns) {
+                    this.returns = DataType.Any;
+                }
+            } else {
+                this.returns = insertCode.returns;
+            }
+        }
+
+        //operand type updates
         if (!this.isBoolean()) {
             //Check if one of the holes is not empty and get its type
             let existingLiteralType = this.getFilledHoleType();
@@ -2764,7 +2901,6 @@ export class BinaryOperatorExpr extends Expression {
             //if existingLiteralType is null then both operands are still empty holes and since we are inserting
             //into one of them, the types need to be updated
             if (!existingLiteralType && (this.returns === DataType.Any || this.isComparison())) {
-                // this.returns = insertCode.returns;
                 if (
                     this.isOperandEmpty(this.leftOperandIndex) &&
                     TypeChecker.getAllowedBinaryOperatorsForType(insertCode.returns)?.indexOf(this.operator) > -1
@@ -2795,6 +2931,15 @@ export class BinaryOperatorExpr extends Expression {
                 this.getModule().closeConstructDraftRecord(this.tokens[this.getIndexOfFilledOperand()]);
             }
         }
+
+        //find root
+        let curr = this as BinaryOperatorExpr;
+        while (curr.rootNode !== null && curr.rootNode instanceof BinaryOperatorExpr) {
+            curr = curr.rootNode;
+        }
+
+        //update return types in root
+        if (curr && this.isArithmetic()) this.performReturnTypeUpdatesForAdditionOnInsertInto(curr);
     }
 
     //should only be used on nested binary ops
@@ -2857,7 +3002,7 @@ export class BinaryOperatorExpr extends Expression {
     }
 
     onReplaceToken(args: { indexInRoot: number }): void {
-        this.updateHoleTypesOnDeletion(args.indexInRoot);
+        this.updateReturnTypeOnDeletion(args.indexInRoot);
         const otherOperand = this.getIndexOfOtherOperand(args.indexInRoot);
 
         if (
@@ -2883,6 +3028,38 @@ export class BinaryOperatorExpr extends Expression {
             curr = curr.rootNode;
         }
         this.validateBinExprTypes(curr instanceof BinaryOperatorExpr ? curr : this, module);
+    }
+
+    getKeyword(): string {
+        return `${this.getLeftOperand().getKeyword()} ${this.operator} ${this.getRightOperand().getKeyword()}`;
+    }
+
+    /**
+     * Only call this when you are sure that the operand is a TypedEmptyExpr
+     * @param operand
+     */
+    updateTypeOfEmptyOperandOnOperatorChange(operand: string) {
+        const operandToUpdate = (operand === "left" ? this.getLeftOperand() : this.getRightOperand()) as TypedEmptyExpr;
+
+        switch (this.operatorCategory) {
+            case OperatorCategory.Boolean:
+                operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesBool.get(operand);
+                break;
+            case OperatorCategory.Comparison:
+                if (this.operator === BinaryOperator.Equal || this.operator === BinaryOperator.NotEqual) {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesEquality.get(operand);
+                } else {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesInequality.get(operand);
+                }
+                break;
+            case OperatorCategory.Arithmetic:
+                if (this.operator === BinaryOperator.Add) {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesAdd.get(operand);
+                } else {
+                    operandToUpdate.type = BinaryOperatorExpr.originalTypeOfHolesArithmetic.get(operand);
+                }
+                break;
+        }
     }
 
     //TODO: Passing module recursively is bad for memory
@@ -2967,7 +3144,13 @@ export class BinaryOperatorExpr extends Expression {
                 module.openDraftMode(
                     leftOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], leftOperand.returns),
-                    conversionActionsForLeft
+                    [
+                        new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning).getConversionButton(
+                            "",
+                            module,
+                            leftOperand
+                        ),
+                    ]
                 );
             } else if (!operationDefinedBetweenTypes) {
                 if (conversionActionsForLeft.length > 0) {
@@ -3006,7 +3189,13 @@ export class BinaryOperatorExpr extends Expression {
                 module.openDraftMode(
                     rightOperand,
                     TYPE_MISMATCH_ANY(this.typeOfHoles[this.leftOperandIndex], rightOperand.returns),
-                    conversionActionsForRight
+                    [
+                        new IgnoreConversionRecord("", null, null, "", null, Tooltip.IgnoreWarning).getConversionButton(
+                            "",
+                            module,
+                            rightOperand
+                        ),
+                    ]
                 );
             } else if (!operationDefinedBetweenTypes) {
                 if (conversionActionsForRight.length > 0) {
@@ -3129,17 +3318,17 @@ export class BinaryOperatorExpr extends Expression {
         return this.tokens[index] instanceof TypedEmptyExpr;
     }
 
-    private updateHoleTypesOnDeletion(operandBeingDeletedIndex: number): void {
-        const operandBeingKeptIndex = this.getIndexOfOtherOperand(operandBeingDeletedIndex);
+    private updateReturnTypeOnDeletion(operandBeingDeletedIndex: number): void {
+        const operandBeingKept = this.tokens[this.getIndexOfOtherOperand(operandBeingDeletedIndex)];
 
-        if (operandBeingKeptIndex > -1) {
-            const operandBeingKept = this.tokens[operandBeingKeptIndex];
-
-            if (this.isOperandEmpty(operandBeingKeptIndex)) {
-                if (this.operator === BinaryOperator.Add) this.returns = this.originalReturnType;
-            } else if (this.operator === BinaryOperator.Add) {
-                this.returns = (operandBeingKept as Expression).returns;
+        if (this.isArithmetic() && this.operator === BinaryOperator.Add) {
+            if (operandBeingKept instanceof TypedEmptyExpr) {
+                this.returns = DataType.Any;
+            } else if (operandBeingKept instanceof Expression) {
+                this.returns = operandBeingKept.returns;
             }
+        } else {
+            this.returns = this.originalReturnType;
         }
     }
 
@@ -3762,6 +3951,10 @@ export class TypedEmptyExpr extends Token {
 
     getTypes(): DataType[] {
         return this.type;
+    }
+
+    getKeyword(): string {
+        return "---";
     }
 }
 

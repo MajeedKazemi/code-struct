@@ -880,6 +880,7 @@ export const definedBinOpsForType = new Map<DataType, BinaryOperator[]>([
     [DataType.StringList, [BinaryOperator.Add, BinaryOperator.Equal]],
     [DataType.NumberList, [BinaryOperator.Add, BinaryOperator.Equal]],
     [DataType.BooleanList, [BinaryOperator.Add, BinaryOperator.Equal]],
+    [DataType.Any, [BinaryOperator.Add]],
 ]);
 
 export const definedUnaryOpsForType = new Map<DataType, UnaryOperator[]>([[DataType.Boolean, [UnaryOperator.Not]]]);
