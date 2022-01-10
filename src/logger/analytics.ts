@@ -3,11 +3,11 @@ import { getUser } from "./user";
 
 export enum LogType {
     DraftHelpUsed = "draft-help-used", // data: { type: "add-double-quotes"}
-    InsertCodeTyping = "insert-code-typing",
-    InsertCodeToolbox = "insert-code-toolbox",
+    InsertCode = "insert-code", // data: source: "keyboard" | "autocomplete" | "autocomplete-menu" | "draft-mode" | "defined-vars"
     UseCaseSlideUsage = "use-case-slide-usage",
     OpenUseCase = "open-use-case",
     TooltipHoverDuration = "tooltip-hover-duration",
+    RunMainCode = "run-main-code",
 }
 
 export class LogEvent {
