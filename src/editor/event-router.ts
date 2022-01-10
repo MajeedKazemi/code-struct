@@ -351,6 +351,9 @@ export class EventRouter {
     onKeyDown(e: IKeyboardEvent) {
         const context = this.module.focus.getContext();
         const action = this.getKeyAction(e.browserEvent, context);
+
+        if (action?.data) action.data.source = { type: "keyboard" };
+
         const preventDefaultEvent = this.module.executer.execute(action, context, e.browserEvent);
 
         if (preventDefaultEvent) {

@@ -2,58 +2,58 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../messages/error-msg-generator";
 import { ConstructHighlight, ScopeHighlight } from "../messages/messages";
 import {
-    AssignmentModifier,
-    AutocompleteTkn,
-    BinaryOperatorExpr,
-    CodeConstruct,
-    EditableTextTkn,
-    ElseStatement,
-    EmptyLineStmt,
-    EmptyOperatorTkn,
-    Expression,
-    FormattedStringCurlyBracketsExpr,
-    FormattedStringExpr,
-    IdentifierTkn,
-    IfStatement,
-    Importable,
-    ImportStatement,
-    ListAccessModifier,
-    ListLiteralExpression,
-    LiteralValExpr,
-    MethodCallModifier,
-    Modifier,
-    NonEditableTkn,
-    OperatorTkn,
-    Statement,
-    TemporaryStmt,
-    Token,
-    TypedEmptyExpr,
-    UnaryOperatorExpr,
-    ValueOperationExpr,
-    VarAssignmentStmt,
-    VariableReferenceExpr,
-    VarOperationStmt,
+	AssignmentModifier,
+	AutocompleteTkn,
+	BinaryOperatorExpr,
+	CodeConstruct,
+	EditableTextTkn,
+	ElseStatement,
+	EmptyLineStmt,
+	EmptyOperatorTkn,
+	Expression,
+	FormattedStringCurlyBracketsExpr,
+	FormattedStringExpr,
+	IdentifierTkn,
+	IfStatement,
+	Importable,
+	ImportStatement,
+	ListAccessModifier,
+	ListLiteralExpression,
+	LiteralValExpr,
+	MethodCallModifier,
+	Modifier,
+	NonEditableTkn,
+	OperatorTkn,
+	Statement,
+	TemporaryStmt,
+	Token,
+	TypedEmptyExpr,
+	UnaryOperatorExpr,
+	ValueOperationExpr,
+	VarAssignmentStmt,
+	VariableReferenceExpr,
+	VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
-    addClassToDraftModeResolutionButton,
-    AutoCompleteType,
-    BuiltInFunctions,
-    getOperatorCategory,
-    IgnoreConversionRecord,
-    PythonKeywords,
-    StringRegex,
-    TAB_SPACES,
-    Tooltip,
-    TYPE_MISMATCH_ANY,
-    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
+	addClassToDraftModeResolutionButton,
+	AutoCompleteType,
+	BuiltInFunctions,
+	getOperatorCategory,
+	IgnoreConversionRecord,
+	PythonKeywords,
+	StringRegex,
+	TAB_SPACES,
+	Tooltip,
+	TYPE_MISMATCH_ANY,
+	TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+	TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
-import { isImportable } from "../utilities/util";
+import { getUserFriendlyType, isImportable } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
@@ -77,7 +77,7 @@ export class ActionExecutor {
 
         if (action?.data?.autocompleteData) flashGreen = true;
 
-        console.log(action?.data?.source);
+        let { eventType, eventData } = this.getLogEventSource(action?.data?.source);
 
         switch (action.type) {
             case EditActionType.OpenAutocomplete: {
@@ -113,12 +113,9 @@ export class ActionExecutor {
                                     this.module.executer.execute(
                                         new EditAction(EditActionType.ConvertAutocompleteToString, {
                                             token: autocompleteTkn,
+                                            source: { type: "draft-mode" },
                                         }),
                                         this.module.focus.getContext()
-                                    );
-
-                                    Logger.Instance().queueEvent(
-                                        new LogEvent(LogType.DraftHelpUsed, { type: "add-double-quotes" })
                                     );
                                 });
                             }
@@ -247,6 +244,7 @@ export class ActionExecutor {
                 if (flashGreen) this.flashGreen(newStatement);
 
                 let scopeHighlight = new ScopeHighlight(this.module.editor, newStatement);
+                eventData.code = "else-statement";
 
                 break;
             }
@@ -255,6 +253,8 @@ export class ActionExecutor {
                 this.insertExpression(context, action.data?.expression);
 
                 if (flashGreen) this.flashGreen(action.data?.expression);
+
+                eventData.code = action.data?.expression?.getRenderText();
 
                 break;
             }
@@ -270,6 +270,8 @@ export class ActionExecutor {
                     let scopeHighlight = new ScopeHighlight(this.module.editor, statement);
                 }
 
+                eventData.code = action.data?.statement?.getRenderText();
+
                 break;
             }
 
@@ -284,6 +286,9 @@ export class ActionExecutor {
                 this.replaceEmptyStatement(context.lineStatement, action.data?.statement as Statement);
 
                 if (flashGreen) this.flashGreen(action.data?.statement);
+
+                eventData.code = "var-assignment";
+                eventData.id = id;
 
                 break;
             }
@@ -317,6 +322,8 @@ export class ActionExecutor {
                         positionToMove: newCode.tokens[1].getLeftPosition(),
                     });
                 }
+
+                eventData.code = action.data.operator;
 
                 break;
             }
@@ -600,6 +607,7 @@ export class ActionExecutor {
 
                 this.module.editor.executeEdits(editRange, fStringToken);
                 this.module.focus.updateContext({ tokenToSelect: fStringToken.tokens[1] });
+                eventData.code = "f-string-item";
 
                 break;
             }
@@ -653,7 +661,9 @@ export class ActionExecutor {
                 let newText = "";
 
                 if ((pressedKey == "{" || pressedKey == "}") && token.rootNode instanceof FormattedStringExpr) {
-                    this.execute(new EditAction(EditActionType.InsertFormattedStringItem));
+                    this.execute(
+                        new EditAction(EditActionType.InsertFormattedStringItem, { source: { type: "autocomplete" } })
+                    );
 
                     break;
                 }
@@ -903,6 +913,8 @@ export class ActionExecutor {
                     }
                 }
 
+                eventData.code = action.data.modifier.getRenderText();
+
                 break;
             }
 
@@ -1050,6 +1062,7 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(action.data.modifier);
+                eventData.code = action.data.modifier.getRenderText();
 
                 break;
             }
@@ -1071,6 +1084,7 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(binExpr);
+                eventData.code = action.data.operator;
 
                 break;
             }
@@ -1129,6 +1143,8 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(newCode);
+                eventData.code = action.data.expression.getRenderText();
+                eventData.wrap = true;
 
                 break;
             }
@@ -1146,6 +1162,9 @@ export class ActionExecutor {
                 this.deleteCode(autocompleteToken);
                 this.insertExpression(this.module.focus.getContext(), literalValExpr);
 
+                eventData.code = "double-quote";
+                eventData.wrap = true;
+
                 break;
             }
 
@@ -1154,6 +1173,7 @@ export class ActionExecutor {
                 this.insertExpression(context, newLiteral);
 
                 if (flashGreen) this.flashGreen(newLiteral);
+                eventData.code = "empty-list";
 
                 break;
             }
@@ -1174,6 +1194,7 @@ export class ActionExecutor {
 
                     if (flashGreen) this.flashGreen(code[0]);
                 }
+                eventData.code = "list-item-comma";
 
                 break;
             }
@@ -1213,6 +1234,7 @@ export class ActionExecutor {
                 );
 
                 insertAction.performAction(this, this.module.eventRouter, currContext, { type: "draft-mode" });
+                eventData.code = stmt.getRenderText();
 
                 break;
             }
@@ -1224,6 +1246,7 @@ export class ActionExecutor {
                 );
                 this.execute(
                     new EditAction(EditActionType.InsertModifier, {
+                        source: action?.data?.source,
                         modifier: Actions.instance()
                             .actionsList.find((element) => element.cssId == action.data.conversionConstructId)
                             .getCodeFunction() as Modifier,
@@ -1234,6 +1257,8 @@ export class ActionExecutor {
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 
                 if (root instanceof Expression) root.validateTypes(this.module);
+
+                eventData.code = action.data.codeToReplace.getRenderText();
 
                 break;
             }
@@ -1256,6 +1281,7 @@ export class ActionExecutor {
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 
                 if (root instanceof Expression) root.validateTypes(this.module);
+                eventData.code = action.data.codeToReplace.getRenderText();
 
                 break;
             }
@@ -1306,7 +1332,13 @@ export class ActionExecutor {
                 const newLiteral = new LiteralValExpr(action.data?.literalType, action.data?.initialValue);
                 this.insertExpression(context, newLiteral);
 
-                if (flashGreen) this.flashGreen(newLiteral);
+			  if (flashGreen) this.flashGreen(newLiteral);
+
+                if (action.data?.source?.type === "keyboard") {
+                    eventType = LogType.InsertCode;
+                    eventData.source = "keyboard";
+                    eventData.code = `literal-${getUserFriendlyType(newLiteral.returns)}`;
+                }
 
                 break;
             }
@@ -1390,6 +1422,7 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(action.data.operator);
+                eventData.code = action.data.operator.getRenderText();
 
                 break;
             }
@@ -1409,6 +1442,8 @@ export class ActionExecutor {
                 break;
             }
         }
+
+        if (eventData && eventType) Logger.Instance().queueEvent(new LogEvent(eventType, eventData));
 
         this.module.editor.monaco.focus();
 
@@ -1433,7 +1468,7 @@ export class ActionExecutor {
     insertVariableReference(buttonId: string, source: {}, providedContext?: Context, autocompleteData?: {}) {
         let context = providedContext ? providedContext : this.module.focus.getContext();
 
-        console.log(source);
+        let { eventType, eventData } = this.getLogEventSource(source);
 
         if (this.module.validator.onBeginningOfLine(context)) {
             const varRef = this.createVarReference(buttonId);
@@ -1470,6 +1505,7 @@ export class ActionExecutor {
                                     codeToReplace: stmt,
                                     replacementConstructCssId: action.cssId,
                                     modifier: modifier,
+                                    source: { type: "draft-mode" },
                                 }),
                                 this.module.focus.getContext()
                             );
@@ -1486,6 +1522,8 @@ export class ActionExecutor {
             if (autocompleteData) {
                 this.flashGreen(stmt);
             }
+
+            eventData.code = varRef.getRenderText();
         } else if (this.module.validator.atEmptyExpressionHole(context)) {
             const expr = this.createVarReference(buttonId);
             this.insertExpression(context, expr);
@@ -1493,7 +1531,58 @@ export class ActionExecutor {
             if (autocompleteData) {
                 this.flashGreen(expr);
             }
+
+            eventData.code = expr.getRenderText();
         }
+
+        if (eventData && eventType) Logger.Instance().queueEvent(new LogEvent(eventType, eventData));
+    }
+
+    getLogEventSource(source: any): { eventType: LogType; eventData: any } {
+        let eventType: LogType;
+        let eventData: any = null;
+
+        if (source) {
+            eventData = {};
+
+            switch (source.type) {
+                case "toolbox":
+                    eventType = LogType.InsertCode;
+                    eventData.source = "toolbox";
+
+                    break;
+
+                case "autocomplete":
+                    eventType = LogType.InsertCode;
+                    eventData.source = "autocomplete";
+
+                    break;
+
+                case "autocomplete-menu":
+                    eventType = LogType.InsertCode;
+                    eventData = {
+                        source: "autocomplete-menu",
+                        precision: source.precision,
+                        length: source.length,
+                    };
+
+                    break;
+
+                case "defined-variables":
+                    eventType = LogType.InsertCode;
+                    eventData.source = "defined-vars-toolbox";
+
+                    break;
+
+                case "draft-mode":
+                    eventType = LogType.InsertCode;
+                    eventData.source = "draft-mode";
+
+                    break;
+            }
+        }
+
+        return { eventType, eventData };
     }
 
     deleteAutocompleteOnMatch(context: Context): Context {
@@ -1584,7 +1673,7 @@ export class ActionExecutor {
             this,
             this.module.eventRouter,
             this.module.focus.getContext(),
-            { name: "autocomplete", precision: "1", length },
+            { type: "autocomplete", precision: "1", length },
             {
                 identifier: token.text,
             }

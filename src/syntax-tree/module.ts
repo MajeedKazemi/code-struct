@@ -630,6 +630,7 @@ export class Module {
                     new EditAction(EditActionType.InsertImportFromDraftMode, {
                         moduleName: code.requiredModule,
                         itemName: code.getKeyword(),
+                        source: { type: "draft-mode" },
                     }),
                     this.focus.getContext()
                 );

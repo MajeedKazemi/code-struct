@@ -495,7 +495,7 @@ export class MenuController {
 
             // because the terminating char will never be hit here in the suggestion menu click
             // (otherwise it would've been matched by the autocomplete)
-            return (matchCount / (matchString.length + 1)).toFixed(1);
+            return (matchCount / (matchString.length + 1)).toFixed(2);
         } else return "1";
     }
 
