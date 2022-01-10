@@ -40,8 +40,8 @@ export class ToolboxController {
                     const tooltipId = `tooltip-${item.cssId}`;
 
                     if (!document.getElementById(tooltipId)) {
-                        const [tooltip, sendUsageFunctions] = this.createTooltip(item);
-                        const tooltipStartTime = Date.now();
+                        const tooltipComponent = new TooltipComponent(this.module, item);
+                        const tooltip = tooltipComponent.element;
                         tooltip.id = tooltipId;
 
                         tooltip.style.left = `${button.getBoundingClientRect().right + 10}px`;
@@ -56,24 +56,13 @@ export class ToolboxController {
                             tooltip.style.opacity = "1";
                         }, 1);
 
-                        const sendDurationLogEvent = () => {
-                            Logger.Instance().queueEvent(
-                                new LogEvent(LogType.TooltipHoverDuration, {
-                                    name: item.cssId,
-                                    duration: Date.now() - tooltipStartTime,
-                                })
-                            );
-                        };
-
                         button.addEventListener("mouseleave", () => {
                             setTimeout(() => {
                                 if (tooltip && !tooltip.matches(":hover") && !button.matches(":hover")) {
                                     tooltip.style.opacity = "0";
 
                                     setTimeout(() => {
-                                        sendDurationLogEvent();
-                                        sendUsageFunctions.forEach((f) => f());
-
+                                        tooltipComponent.onRemove();
                                         tooltip.remove();
                                     }, 100);
                                 }
@@ -85,9 +74,7 @@ export class ToolboxController {
                                 tooltip.style.opacity = "0";
 
                                 setTimeout(() => {
-                                    sendDurationLogEvent();
-                                    sendUsageFunctions.forEach((f) => f());
-
+                                    tooltipComponent.onRemove();
                                     tooltip.remove();
                                 }, 100);
                             }
@@ -96,146 +83,6 @@ export class ToolboxController {
                 });
             }
         }
-    }
-
-    private createTooltip(code: EditCodeAction): [HTMLDivElement, Array<() => void>] {
-        let codeAction = null;
-        const sendUsageFunctions: Array<() => void> = [];
-
-        for (const x of this.module.actionFilter.getProcessedConstructInsertions()) {
-            if (x.cssId == code.cssId) {
-                codeAction = x;
-
-                break;
-            }
-        }
-
-        const returnType = code.getUserFriendlyReturnType();
-
-        const tooltipContainer = document.createElement("div");
-        tooltipContainer.classList.add("tooltip-container");
-        document.body.appendChild(tooltipContainer);
-
-        const tooltipTop = document.createElement("div");
-        tooltipTop.classList.add("tooltip-top");
-        tooltipContainer.appendChild(tooltipTop);
-
-        const tooltipHeader = document.createElement("div");
-        tooltipHeader.classList.add("tooltip-header");
-        const tooltipText = document.createElement("p");
-        tooltipText.classList.add("tooltip-text");
-
-        if (code.documentation.tooltip) {
-            tooltipHeader.innerHTML = `<h4>${code.documentation.tooltip.title}</h4>`;
-            tooltipTop.appendChild(tooltipHeader);
-
-            tooltipText.innerText = code.documentation.tooltip.body;
-            tooltipTop.appendChild(tooltipText);
-        }
-
-        if (code.documentation.tips) {
-            const useCasesContainer = document.createElement("div");
-            useCasesContainer.classList.add("use-cases-container");
-
-            const accordion = new Accordion(code.documentation.title.replace(" ", "-"));
-            tooltipContainer.appendChild(accordion.container);
-
-            for (const tip of code.documentation.tips) {
-                // create a new div with icon + type + title (step-by-step, run example, usage tip)
-                // body
-                // on click to expand and close others in the same group
-
-                if (tip.type == "use-case") {
-                    const useCaseComp = new UseCaseSliderComponent(tip, code.cssId);
-                    accordion.addRow(TooltipType.StepByStepExample, tip.title, useCaseComp.element);
-                } else if (tip.type == "quick") {
-                    const hintEl = document.createElement("div");
-                    hintEl.classList.add("quick-tip");
-                    hintEl.innerText = tip.text;
-
-                    accordion.addRow(TooltipType.UsageHint, tip.title, hintEl);
-                } else if (tip.type == "executable") {
-                    const ex = createExample(tip.example);
-                    accordion.addRow(TooltipType.RunnableExample, tip.title, ex[0], () => {
-                        ex[2].setPosition(new Position(99999, 99999));
-                        ex[2].focus();
-                    });
-
-                    docBoxRunButtons.set(tip.id, ex[1]);
-
-                    attachPyodideActions(
-                        (() => {
-                            const actions = [];
-
-                            for (const buttonId of ex[1]) {
-                                actions.push((pyodideController) => {
-                                    const button = document.getElementById(buttonId);
-
-                                    button.addEventListener("click", () => {
-                                        try {
-                                            nova.globals.lastPressedRunButtonId = button.id;
-
-                                            clearConsole(ex[3]);
-                                            pyodideController.runPython(codeString(ex[2].getValue()));
-                                        } catch (err) {
-                                            console.error("Unable to run python code");
-
-                                            addTextToConsole(
-                                                runBtnToOutputWindow.get(button.id),
-                                                err,
-                                                CONSOLE_ERR_TXT_CLASS
-                                            );
-                                        }
-                                    });
-                                });
-                            }
-
-                            return actions;
-                        })(),
-                        []
-                    );
-                }
-            }
-        }
-
-        if (returnType) {
-            const typeText = document.createElement("div");
-            typeText.classList.add("return-type-text");
-            typeText.innerHTML = `returns <span class="return-type">${returnType}</span>`;
-
-            tooltipTop.appendChild(typeText);
-        }
-
-        if (codeAction?.insertionResult?.insertionType === InsertionType.Invalid) {
-            const code = codeAction.getCode() as CodeConstruct;
-            const errorMessage = document.createElement("div");
-            errorMessage.classList.add("error-text");
-
-            const tooltip = code.getSimpleInvalidTooltip();
-
-            //TODO: #526 this should be changed when that functionality is updated.
-            if (tooltip !== "") {
-                errorMessage.innerHTML = tooltip;
-            } else {
-                if (code instanceof Modifier) {
-                    errorMessage.innerHTML = "This can only be inserted after a --- ";
-                } else if (code instanceof Expression) {
-                    errorMessage.innerHTML = "This can only be inserted inside a hole with a matching type";
-                } else if (code instanceof Statement) {
-                    errorMessage.innerHTML = "This can only be inserted at the beginning of a line";
-                }
-            }
-
-            tooltipTop.appendChild(errorMessage);
-        } else if (codeAction?.insertionResult?.insertionType === InsertionType.DraftMode) {
-            const warningMessage = document.createElement("div");
-            warningMessage.classList.add("warning-text");
-            warningMessage.innerHTML = Tooltip.TypeMismatch;
-
-            tooltipTop.appendChild(warningMessage);
-        }
-
-        return [tooltipContainer, sendUsageFunctions];
     }
 
     updateButtonsOnContextChange() {
@@ -552,7 +399,7 @@ function constructCascadedMenuObj(
         value.performAction.bind(value);
 
         menuButton.getButtonElement().addEventListener("click", () => {
-            value.performAction(module.executer, module.eventRouter, context);
+            value.performAction(module.executer, module.eventRouter, context, "defined-variables");
 
             menu.remove();
         });
@@ -837,5 +684,190 @@ class UseCaseSliderComponent {
         explanationContainer.style.visibility = "visible";
 
         return useCaseContainer;
+    }
+
+    sentUsage = false;
+
+    onRemove() {
+        if (!this.sentUsage) {
+            this.sendUsage();
+
+            this.sentUsage = true;
+        }
+    }
+}
+
+export class TooltipComponent {
+    onRemoveCallbacks: Array<() => void> = [];
+    element: HTMLDivElement;
+    startTime: number;
+    sentUsage = false;
+    name: string;
+
+    constructor(module: Module, code: EditCodeAction) {
+        let codeAction = null;
+
+        for (const x of module.actionFilter.getProcessedConstructInsertions()) {
+            if (x.cssId == code.cssId) {
+                codeAction = x;
+
+                break;
+            }
+        }
+
+        const returnType = code.getUserFriendlyReturnType();
+
+        const tooltipContainer = document.createElement("div");
+        tooltipContainer.classList.add("tooltip-container");
+        document.body.appendChild(tooltipContainer);
+
+        const tooltipTop = document.createElement("div");
+        tooltipTop.classList.add("tooltip-top");
+        tooltipContainer.appendChild(tooltipTop);
+
+        const tooltipHeader = document.createElement("div");
+        tooltipHeader.classList.add("tooltip-header");
+        const tooltipText = document.createElement("p");
+        tooltipText.classList.add("tooltip-text");
+
+        if (code.documentation.tooltip) {
+            tooltipHeader.innerHTML = `<h4>${code.documentation.tooltip.title}</h4>`;
+            tooltipTop.appendChild(tooltipHeader);
+            this.name = code.documentation.tooltip.title.replace(/ /g, "-").toLowerCase();
+
+            tooltipText.innerText = code.documentation.tooltip.body;
+            tooltipTop.appendChild(tooltipText);
+        }
+
+        if (code.documentation.tips) {
+            const useCasesContainer = document.createElement("div");
+            useCasesContainer.classList.add("use-cases-container");
+
+            const accordion = new Accordion(code.documentation.title.replace(" ", "-"));
+            this.onRemoveCallbacks.push(accordion.onRemove);
+            tooltipContainer.appendChild(accordion.container);
+
+            for (const tip of code.documentation.tips) {
+                // create a new div with icon + type + title (step-by-step, run example, usage tip)
+                // body
+                // on click to expand and close others in the same group
+
+                if (tip.type == "use-case") {
+                    const useCaseComp = new UseCaseSliderComponent(tip, code.cssId);
+                    accordion.addRow(TooltipType.StepByStepExample, tip.title, useCaseComp.element);
+                    this.onRemoveCallbacks.push(useCaseComp.sendUsage);
+                } else if (tip.type == "quick") {
+                    const hintEl = document.createElement("div");
+                    hintEl.classList.add("quick-tip");
+                    hintEl.innerText = tip.text;
+
+                    accordion.addRow(TooltipType.UsageHint, tip.title ? tip.title : "quick tip", hintEl);
+                } else if (tip.type == "executable") {
+                    const ex = createExample(tip.example);
+                    accordion.addRow(
+                        TooltipType.RunnableExample,
+                        tip.title ? tip.title : "run this example",
+                        ex[0],
+                        () => {
+                            ex[2].setPosition(new Position(99999, 99999));
+                            ex[2].focus();
+                        }
+                    );
+
+                    docBoxRunButtons.set(tip.id, ex[1]);
+
+                    attachPyodideActions(
+                        (() => {
+                            const actions = [];
+
+                            for (const buttonId of ex[1]) {
+                                actions.push((pyodideController) => {
+                                    const button = document.getElementById(buttonId);
+
+                                    button.addEventListener("click", () => {
+                                        try {
+                                            nova.globals.lastPressedRunButtonId = button.id;
+
+                                            clearConsole(ex[3]);
+                                            pyodideController.runPython(codeString(ex[2].getValue()));
+                                        } catch (err) {
+                                            console.error("Unable to run python code");
+
+                                            addTextToConsole(
+                                                runBtnToOutputWindow.get(button.id),
+                                                err,
+                                                CONSOLE_ERR_TXT_CLASS
+                                            );
+                                        }
+                                    });
+                                });
+                            }
+
+                            return actions;
+                        })(),
+                        []
+                    );
+                }
+            }
+        }
+
+        if (returnType) {
+            const typeText = document.createElement("div");
+            typeText.classList.add("return-type-text");
+            typeText.innerHTML = `returns <span class="return-type">${returnType}</span>`;
+
+            tooltipTop.appendChild(typeText);
+        }
+
+        if (codeAction?.insertionResult?.insertionType === InsertionType.Invalid) {
+            const code = codeAction.getCode() as CodeConstruct;
+            const errorMessage = document.createElement("div");
+            errorMessage.classList.add("error-text");
+
+            const tooltip = code.getSimpleInvalidTooltip();
+
+            //TODO: #526 this should be changed when that functionality is updated.
+            if (tooltip !== "") {
+                errorMessage.innerHTML = tooltip;
+            } else {
+                if (code instanceof Modifier) {
+                    errorMessage.innerHTML = "This can only be inserted after a --- ";
+                } else if (code instanceof Expression) {
+                    errorMessage.innerHTML = "This can only be inserted inside a hole with a matching type";
+                } else if (code instanceof Statement) {
+                    errorMessage.innerHTML = "This can only be inserted at the beginning of a line";
+                }
+            }
+
+            tooltipTop.appendChild(errorMessage);
+        } else if (codeAction?.insertionResult?.insertionType === InsertionType.DraftMode) {
+            const warningMessage = document.createElement("div");
+            warningMessage.classList.add("warning-text");
+            warningMessage.innerHTML = Tooltip.TypeMismatch;
+
+            tooltipTop.appendChild(warningMessage);
+        }
+
+        this.element = tooltipContainer;
+        this.startTime = Date.now();
+    }
+
+    onRemove() {
+        if (!this.sentUsage) {
+            const duration = Date.now() - this.startTime;
+
+            if (duration > 3000) {
+                Logger.Instance().queueEvent(
+                    new LogEvent(LogType.TooltipHoverDuration, {
+                        duration: Date.now() - this.startTime,
+                        name: this.name,
+                    })
+                );
+            }
+
+            this.onRemoveCallbacks.forEach((f) => f());
+
+            this.sentUsage = true;
+        }
     }
 }

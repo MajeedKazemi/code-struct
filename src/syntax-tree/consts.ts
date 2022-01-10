@@ -462,6 +462,7 @@ export abstract class TypeConversionRecord {
                     codeToReplace: codeToReplace,
                     conversionConstructId: conversionConstructId,
                     typeToConvertTo: this.convertTo,
+                    source: { type: "draft-mode" },
                 }),
                 module.focus.getContext()
             );

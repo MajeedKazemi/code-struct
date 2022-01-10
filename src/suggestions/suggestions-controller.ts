@@ -485,6 +485,20 @@ export class MenuController {
         }
     }
 
+    private calculateAutocompleteMatchPrecision(text: string, matchString: string): string {
+        if (matchString && text) {
+            let matchCount = 0;
+
+            for (let i = 0; i < text.length; i++) {
+                if (text[i] === matchString[i]) matchCount++;
+            }
+
+            // because the terminating char will never be hit here in the suggestion menu click
+            // (otherwise it would've been matched by the autocomplete)
+            return (matchCount / (matchString.length + 1)).toFixed(2);
+        } else return "1";
+    }
+
     /**
      * Helper for building a menu and assigning its options. Does not specify the tree structure. Simply constructs a Menu object.
      *
@@ -503,6 +517,7 @@ export class MenuController {
                         this.module.executer,
                         this.module.eventRouter,
                         this.module.focus.getContext(),
+                        { type: "autocomplete-menu", precision: "0", length: action.matchString.length + 1 },
                         {}
                     );
                 });
@@ -716,6 +731,7 @@ export class MenuController {
                             this.module.executer,
                             this.module.eventRouter,
                             this.module.focus.getContext(),
+                            "autocomplete-menu",
                             {}
                         );
                     },
@@ -885,6 +901,17 @@ export class MenuController {
                                 this.module.executer,
                                 this.module.eventRouter,
                                 this.module.focus.getContext(),
+                                {
+                                    type: "autocomplete-menu",
+                                    precision: this.calculateAutocompleteMatchPrecision(
+                                        optionText,
+                                        editAction.matchString
+                                    ),
+                                    length:
+                                        editAction.insertActionType === InsertActionType.InsertNewVariableStmt
+                                            ? optionText.length + 1
+                                            : editAction.matchString.length + 1,
+                                },
                                 {}
                             );
                         },

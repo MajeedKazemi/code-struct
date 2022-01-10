@@ -2,11 +2,12 @@ import { sendEventsBatch } from "./requests";
 import { getUser } from "./user";
 
 export enum LogType {
-    TooltipHoverDuration = "tooltip-hover-duration",
-    OpenUseCase = "open-use-case",
+    DraftHelpUsed = "draft-help-used", // data: { type: "add-double-quotes"}
+    InsertCode = "insert-code", // data: source: "keyboard" | "autocomplete" | "autocomplete-menu" | "draft-mode" | "defined-vars"
     UseCaseSlideUsage = "use-case-slide-usage",
-    InsertCodeTyping = "insert-code-typing",
-    InsertCodeToolbox = "insert-code-toolbox",
+    TooltipItemUsage = "tooltip-item-usage", // {type: "use-case" | "hint" | "executable", duration}
+    TooltipHoverDuration = "tooltip-hover-duration",
+    RunMainCode = "run-main-code",
 }
 
 export class LogEvent {

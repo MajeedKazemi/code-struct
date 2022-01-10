@@ -1,6 +1,8 @@
 import { CodeStatus } from "../editor/consts";
 import { nova, runBtnToOutputWindow } from "../index";
+import { LogEvent, Logger, LogType } from "../logger/analytics";
 import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS, CONSOLE_WARN_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
+
 
 const jsModule = {
 	inputPrompt: function (text) {
@@ -50,9 +52,13 @@ const attachMainConsoleRun = (pyodideController) => {
 		const codeStatus = nova.getCodeStatus(true);
 		clearConsole("outputDiv");
 
+		const eventType = LogType.RunMainCode;
+		const eventData = {};
+
 		switch (codeStatus) {
 			case CodeStatus.Runnable:
 				const code = nova.editor.monaco.getValue();
+				eventData.code = code;
 
 				try {
 					nova.globals.lastPressedRunButtonId = "runCodeBtn";
@@ -64,6 +70,8 @@ const attachMainConsoleRun = (pyodideController) => {
 					addTextToConsole(consoleId, err, CONSOLE_ERR_TXT_CLASS);
 				}
 
+				eventData.status = "no-error";
+
 				break;
 
 			case CodeStatus.ContainsAutocompleteTokens:
@@ -71,6 +79,9 @@ const attachMainConsoleRun = (pyodideController) => {
 					consoleId, "Your code contains unfinished autocomplete elements. Remove or complete them to be able to run your code.",
 					CONSOLE_WARN_TXT_CLASS
 				);
+
+				eventData.status = "contains-unfinished-autocomplete";
+
 				break;
 
 			case CodeStatus.ContainsDraftMode:
@@ -78,6 +89,9 @@ const attachMainConsoleRun = (pyodideController) => {
 					"Your code contains unfinished constructs. Complete the constructs to be able to run your code.",
 					CONSOLE_WARN_TXT_CLASS
 				);
+
+				eventData.status = "contains-draft-modes";
+
 				break;
 
 			case CodeStatus.ContainsEmptyHoles:
@@ -85,6 +99,9 @@ const attachMainConsoleRun = (pyodideController) => {
 					"Your code contains empty parts that expect to be filled with values. Fill these in order to be able to run your code.",
 					CONSOLE_WARN_TXT_CLASS
 				);
+
+				eventData.status = "contains-empty-holes";
+
 				break;
 
 			case CodeStatus.Empty:
@@ -92,8 +109,13 @@ const attachMainConsoleRun = (pyodideController) => {
 					"Your code is empty! Try inserting something from the toolbox.",
 					CONSOLE_WARN_TXT_CLASS
 				);
+
+				eventData.status = "no-code";
+
 				break;
 		}
+
+		Logger.Instance().queueEvent(new LogEvent(eventType, eventData));
 	});
 }
 

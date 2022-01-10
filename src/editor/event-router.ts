@@ -351,6 +351,9 @@ export class EventRouter {
     onKeyDown(e: IKeyboardEvent) {
         const context = this.module.focus.getContext();
         const action = this.getKeyAction(e.browserEvent, context);
+
+        if (action?.data) action.data.source = { type: "keyboard" };
+
         const preventDefaultEvent = this.module.executer.execute(action, context, e.browserEvent);
 
         if (preventDefaultEvent) {
@@ -384,13 +387,13 @@ export class EventRouter {
         if ((document.getElementById(id) as HTMLButtonElement).disabled) return;
 
         if (this.module.variableController.isVariableReferenceButton(id)) {
-            this.module.executer.insertVariableReference(id, context);
+            this.module.executer.insertVariableReference(id, { type: "defined-variables" }, context);
             this.incrementButtonClicks("insert-var");
         } else {
             const action = Actions.instance().actionsMap.get(id);
 
             if (action) {
-                this.module.executer.execute(this.routeToolboxEvents(action, context), context);
+                this.module.executer.execute(this.routeToolboxEvents(action, context, { type: "toolbox" }), context);
 
                 this.incrementButtonClicks(id);
             }
@@ -412,11 +415,12 @@ export class EventRouter {
         }
     }
 
-    routeToolboxEvents(e: EditCodeAction, context: Context): EditAction {
+    routeToolboxEvents(e: EditCodeAction, context: Context, source: {}): EditAction {
         switch (e.insertActionType) {
             case InsertActionType.InsertNewVariableStmt: {
                 return new EditAction(EditActionType.InsertVarAssignStatement, {
                     statement: e.getCode(),
+                    source,
                 });
             }
 
@@ -429,6 +433,7 @@ export class EventRouter {
                     return new EditAction(EditActionType.InsertElseStatement, {
                         hasCondition: true,
                         outside: canInsertAtCurIndent,
+                        source,
                     });
                 }
 
@@ -444,6 +449,7 @@ export class EventRouter {
                     return new EditAction(EditActionType.InsertElseStatement, {
                         hasCondition: false,
                         outside: canInsertAtCurIndent,
+                        source,
                     });
                 }
 
@@ -451,7 +457,7 @@ export class EventRouter {
             }
 
             case InsertActionType.InsertFormattedStringItem: {
-                return new EditAction(EditActionType.InsertFormattedStringItem);
+                return new EditAction(EditActionType.InsertFormattedStringItem, { source });
             }
 
             case InsertActionType.InsertStatement:
@@ -460,6 +466,7 @@ export class EventRouter {
                 if (!this.module.validator.isAboveElseStatement()) {
                     return new EditAction(EditActionType.InsertStatement, {
                         statement: e.getCode(),
+                        source,
                     });
                 }
 
@@ -469,6 +476,7 @@ export class EventRouter {
             case InsertActionType.InsertExpression: {
                 return new EditAction(EditActionType.InsertExpression, {
                     expression: e.getCode(),
+                    source,
                 });
 
                 break;
@@ -478,6 +486,7 @@ export class EventRouter {
             case InsertActionType.InsertAugmentedAssignmentModifier: {
                 return new EditAction(EditActionType.InsertAssignmentModifier, {
                     modifier: e.getCode(),
+                    source,
                 });
             }
 
@@ -487,7 +496,7 @@ export class EventRouter {
             case InsertActionType.InsertStringJoinMethod:
             case InsertActionType.InsertStringReplaceMethod:
             case InsertActionType.InsertStringFindMethod: {
-                return new EditAction(EditActionType.InsertModifier, { modifier: e.getCode() });
+                return new EditAction(EditActionType.InsertModifier, { modifier: e.getCode(), source });
             }
 
             case InsertActionType.InsertInputExpr:
@@ -495,10 +504,12 @@ export class EventRouter {
                 if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertExpression, {
                         expression: e.getCode(),
+                        source,
                     });
                 } else if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.WrapExpressionWithItem, {
                         expression: e.getCode(),
+                        source,
                     });
                 }
 
@@ -510,11 +521,15 @@ export class EventRouter {
                     e.insertData?.literalType === DataType.String &&
                     context.tokenToRight instanceof ast.AutocompleteTkn
                 ) {
-                    return new EditAction(EditActionType.ConvertAutocompleteToString, { token: context.tokenToRight });
+                    return new EditAction(EditActionType.ConvertAutocompleteToString, {
+                        token: context.tokenToRight,
+                        source,
+                    });
                 } else {
                     return new EditAction(EditActionType.InsertLiteral, {
                         literalType: e.insertData?.literalType,
                         initialValue: e.insertData?.initialValue,
+                        source,
                     });
                 }
             }
@@ -524,16 +539,19 @@ export class EventRouter {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
                         toRight: true,
                         operator: e.insertData?.operator,
+                        source,
                     });
                 } else if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
                         toLeft: true,
                         operator: e.insertData?.operator,
+                        source,
                     });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertBinaryOperator, {
                         replace: true,
                         operator: e.insertData?.operator,
+                        source,
                     });
                 }
 
@@ -545,11 +563,13 @@ export class EventRouter {
                     return new EditAction(EditActionType.InsertUnaryOperator, {
                         wrap: true,
                         operator: e.insertData?.operator,
+                        source,
                     });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertUnaryOperator, {
                         replace: true,
                         operator: e.insertData?.operator,
+                        source,
                     });
                 }
 
@@ -560,9 +580,10 @@ export class EventRouter {
                 if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.WrapExpressionWithItem, {
                         expression: new ast.ListLiteralExpression(),
+                        source,
                     });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
-                    return new EditAction(EditActionType.InsertEmptyList);
+                    return new EditAction(EditActionType.InsertEmptyList, { source });
                 }
 
                 break;
@@ -570,10 +591,11 @@ export class EventRouter {
 
             case InsertActionType.InsertCastStrExpr: {
                 if (this.module.validator.atLeftOfExpression(context)) {
-                    return new EditAction(EditActionType.WrapExpressionWithItem, { expression: e.getCode() });
+                    return new EditAction(EditActionType.WrapExpressionWithItem, { expression: e.getCode(), source });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {
                     return new EditAction(EditActionType.InsertExpression, {
                         expression: e.getCode(),
+                        source,
                     });
                 }
 
@@ -584,10 +606,12 @@ export class EventRouter {
                 if (this.module.validator.canAddListItemToRight(context)) {
                     return new EditAction(EditActionType.InsertEmptyListItem, {
                         toRight: true,
+                        source,
                     });
                 } else if (this.module.validator.canAddListItemToLeft(context)) {
                     return new EditAction(EditActionType.InsertEmptyListItem, {
                         toLeft: true,
+                        source,
                     });
                 }
 
@@ -599,18 +623,21 @@ export class EventRouter {
             case InsertActionType.InsertVarOperationStmt: {
                 return new EditAction(EditActionType.InsertStatement, {
                     statement: e.getCode(),
+                    source,
                 });
             }
 
             case InsertActionType.InsertValOperationExpr: {
                 return new EditAction(EditActionType.InsertExpression, {
                     expression: e.getCode(),
+                    source,
                 });
             }
 
             case InsertActionType.InsertOperatorTkn: {
                 return new EditAction(EditActionType.InsertOperatorTkn, {
                     operator: e.getCode(),
+                    source,
                 });
             }
         }
@@ -625,9 +652,15 @@ export class EventRouter {
             const match = token.isMatch();
 
             if (match) {
-                match.performAction(this.module.executer, this.module.eventRouter, context, {
-                    identifier: token.text,
-                });
+                match.performAction(
+                    this.module.executer,
+                    this.module.eventRouter,
+                    context,
+                    { type: "autocomplete", precision: "1", length: match.matchString.length + 1 },
+                    {
+                        identifier: token.text,
+                    }
+                );
             }
         }
     }

@@ -90,12 +90,13 @@ export class ActionFilter {
                 executor: ActionExecutor,
                 eventRouter: EventRouter,
                 providedContext: Context,
+                source: {},
                 autocompleteData?: {}
             ) => {
                 let context = providedContext;
                 if (autocompleteData) context = executor.deleteAutocompleteOnMatch(providedContext);
 
-                executor.insertVariableReference(varStmt.buttonId, context, autocompleteData);
+                executor.insertVariableReference(varStmt.buttonId, source, context, autocompleteData);
             }).bind(this);
             validOptionMap.set(varStmt.getIdentifier(), editAction);
         }
@@ -274,7 +275,7 @@ export class UserAction {
         return new InsertionResult(InsertionType.Invalid, "", []);
     }
 
-    performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context) {}
+    performAction(executor: ActionExecutor, eventRouter: EventRouter, context: Context, source: {}) {}
 }
 
 export class EditCodeAction extends UserAction {
@@ -378,12 +379,18 @@ export class EditCodeAction extends UserAction {
         }
     }
 
-    performAction(executor: ActionExecutor, eventRouter: EventRouter, providedContext: Context, autocompleteData?: {}) {
+    performAction(
+        executor: ActionExecutor,
+        eventRouter: EventRouter,
+        providedContext: Context,
+        source: {},
+        autocompleteData?: {}
+    ) {
         let context = providedContext;
 
         if (autocompleteData) context = executor.deleteAutocompleteOnMatch(providedContext);
 
-        const editAction = eventRouter.routeToolboxEvents(this, context);
+        const editAction = eventRouter.routeToolboxEvents(this, context, source);
 
         if (editAction.data) editAction.data.autocompleteData = autocompleteData;
         else editAction.data = { autocompleteData };

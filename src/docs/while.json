@@ -7,16 +7,19 @@
     "tips": [
         {
             "type": "executable",
+            "title": "infinite loop",
             "id": "ex-while-1",
             "example": "while True :\n\tprint(\"an infinite loop\")"
         },
         {
             "type": "executable",
+            "title": "count from 0 to 10",
             "id": "ex-while-2",
             "example": "i = 0\nwhile i < 10:\n\tprint(i)\n\ti = i + 1"
         },
         {
             "type": "quick",
+            "title": "compare to scratch's repeat until block",
             "text": "the `while` loop in Python compared to the `repeat until` block in Scratch: the `while` loop in Python repeats code as long as the condition is `True`, and stops when the condition becomes `False`. However, the `repeat until` block in Scratch repeats code as long as the condition is `False`, and stops when the condition becomes `True`."
         },
         {
