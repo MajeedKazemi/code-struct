@@ -5,7 +5,7 @@ export enum LogType {
     DraftHelpUsed = "draft-help-used", // data: { type: "add-double-quotes"}
     InsertCode = "insert-code", // data: source: "keyboard" | "autocomplete" | "autocomplete-menu" | "draft-mode" | "defined-vars"
     UseCaseSlideUsage = "use-case-slide-usage",
-    OpenUseCase = "open-use-case",
+    TooltipItemUsage = "tooltip-item-usage", // {type: "use-case" | "hint" | "executable", duration}
     TooltipHoverDuration = "tooltip-hover-duration",
     RunMainCode = "run-main-code",
 }

@@ -1,3 +1,4 @@
+import { LogEvent, Logger, LogType } from "./../logger/analytics";
 export enum TooltipType {
     StepByStepExample = "step-by-step-example",
     UsageHint = "usage-hint",
@@ -11,6 +12,8 @@ export class AccordionRow {
     private contentContainer: HTMLDivElement;
     element: HTMLDivElement;
     id: string;
+    usageTime: number = 0;
+    type: TooltipType;
 
     constructor(
         accordion: Accordion,
@@ -20,6 +23,7 @@ export class AccordionRow {
         content: HTMLDivElement,
         onClick: () => void = () => {}
     ) {
+        this.type = type;
         this.id = id;
         this.accordion = accordion;
 
@@ -97,15 +101,29 @@ export class AccordionRow {
         headerContainer.addEventListener("click", () => {
             if (this.isOpen) {
                 this.close();
+
+                this.sendUsageDuration();
             } else {
                 this.open();
                 onClick();
+
+                this.usageTime = Date.now();
             }
         });
 
         headerContainer.appendChild(textContainer);
         headerContainer.appendChild(this.chevronElement);
     }
+
+    sendUsageDuration = () => {
+        const duration = Date.now() - this.usageTime;
+
+        if (duration > 1500) {
+            Logger.Instance().queueEvent(new LogEvent(LogType.TooltipItemUsage, { type: this.type, duration }));
+
+            this.usageTime = 0;
+        }
+    };
 
     open() {
         this.contentContainer.style.maxHeight = this.contentContainer.scrollHeight + "px";
@@ -131,6 +149,10 @@ export class AccordionRow {
 
         this.isOpen = false;
     }
+
+    onRemove() {
+        this.sendUsageDuration();
+    }
 }
 
 export class Accordion {
@@ -150,6 +172,14 @@ export class Accordion {
         const row = new AccordionRow(this, id, type, title, content, onClick);
         this.rows.push(row);
         this.container.appendChild(row.element);
+    }
+
+    onRemove() {
+        if (this?.rows) {
+            this.rows.forEach((row) => {
+                row.onRemove();
+            });
+        }
     }
 }
 
