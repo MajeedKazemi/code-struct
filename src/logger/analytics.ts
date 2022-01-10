@@ -28,7 +28,7 @@ export class Logger {
     private queue: Array<LogEvent> = [];
     private static instance: Logger;
 
-    constructor(interval: number = 3000, maxSize: number = 3) {
+    constructor(interval: number = 10000, maxSize: number = 20) {
         this.maxSize = maxSize;
         this.interval = interval;
         this.dispatchEvents = this.dispatchEvents.bind(this);
