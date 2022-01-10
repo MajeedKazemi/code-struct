@@ -2,11 +2,12 @@ import { sendEventsBatch } from "./requests";
 import { getUser } from "./user";
 
 export enum LogType {
-    TooltipHoverDuration = "tooltip-hover-duration",
-    OpenUseCase = "open-use-case",
-    UseCaseSlideUsage = "use-case-slide-usage",
+    DraftHelpUsed = "draft-help-used", // data: { type: "add-double-quotes"}
     InsertCodeTyping = "insert-code-typing",
     InsertCodeToolbox = "insert-code-toolbox",
+    UseCaseSlideUsage = "use-case-slide-usage",
+    OpenUseCase = "open-use-case",
+    TooltipHoverDuration = "tooltip-hover-duration",
 }
 
 export class LogEvent {

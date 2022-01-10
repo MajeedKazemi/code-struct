@@ -41,6 +41,7 @@ export class ToolboxController {
 
                     if (!document.getElementById(tooltipId)) {
                         const [tooltip, sendUsageFunctions] = this.createTooltip(item);
+                        console.log(`${tooltipId} created`);
                         const tooltipStartTime = Date.now();
                         tooltip.id = tooltipId;
 
@@ -56,14 +57,19 @@ export class ToolboxController {
                             tooltip.style.opacity = "1";
                         }, 1);
 
-                        const sendDurationLogEvent = () => {
-                            Logger.Instance().queueEvent(
-                                new LogEvent(LogType.TooltipHoverDuration, {
-                                    name: item.cssId,
-                                    duration: Date.now() - tooltipStartTime,
-                                })
-                            );
-                        };
+                        // const sendDurationLogEvent = (from: string) => {
+                        //     const duration = Date.now() - tooltipStartTime;
+                        //     console.log(`${from} - duration: ${duration}`);
+
+                        //     if (duration > 3000) {
+                        //         Logger.Instance().queueEvent(
+                        //             new LogEvent(LogType.TooltipHoverDuration, {
+                        //                 name: item.cssId,
+                        //                 duration,
+                        //             })
+                        //         );
+                        //     }
+                        // };
 
                         button.addEventListener("mouseleave", () => {
                             setTimeout(() => {
@@ -71,7 +77,7 @@ export class ToolboxController {
                                     tooltip.style.opacity = "0";
 
                                     setTimeout(() => {
-                                        sendDurationLogEvent();
+                                        // sendDurationLogEvent("button");
                                         sendUsageFunctions.forEach((f) => f());
 
                                         tooltip.remove();
@@ -85,7 +91,7 @@ export class ToolboxController {
                                 tooltip.style.opacity = "0";
 
                                 setTimeout(() => {
-                                    sendDurationLogEvent();
+                                    // sendDurationLogEvent("tooltip");
                                     sendUsageFunctions.forEach((f) => f());
 
                                     tooltip.remove();
@@ -552,7 +558,7 @@ function constructCascadedMenuObj(
         value.performAction.bind(value);
 
         menuButton.getButtonElement().addEventListener("click", () => {
-            value.performAction(module.executer, module.eventRouter, context);
+            value.performAction(module.executer, module.eventRouter, context, "defined-variables");
 
             menu.remove();
         });

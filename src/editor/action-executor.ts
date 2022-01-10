@@ -54,6 +54,7 @@ import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
 import { isImportable } from "../utilities/util";
+import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Actions, EditActionType, InsertActionType } from "./consts";
@@ -75,6 +76,8 @@ export class ActionExecutor {
         let flashGreen = false;
 
         if (action?.data?.autocompleteData) flashGreen = true;
+
+        console.log(action?.data?.source);
 
         switch (action.type) {
             case EditActionType.OpenAutocomplete: {
@@ -113,6 +116,10 @@ export class ActionExecutor {
                                         }),
                                         this.module.focus.getContext()
                                     );
+
+                                    Logger.Instance().queueEvent(
+                                        new LogEvent(LogType.DraftHelpUsed, { type: "add-double-quotes" })
+                                    );
                                 });
                             }
                         }).bind(this)
@@ -146,8 +153,9 @@ export class ActionExecutor {
                 this.module.editor.cursor.setSelection(null);
                 const match = autocompleteTkn.isTerminatingMatch();
 
-                if (match) this.performMatchAction(match, autocompleteTkn);
-                else {
+                if (match) {
+                    this.performMatchAction(match, autocompleteTkn);
+                } else {
                     let highlight = new ConstructHighlight(this.module.editor, autocompleteTkn, [230, 235, 255, 0.7]);
 
                     autocompleteTkn.subscribe(
@@ -1204,7 +1212,7 @@ export class ActionExecutor {
                     null
                 );
 
-                insertAction.performAction(this, this.module.eventRouter, currContext);
+                insertAction.performAction(this, this.module.eventRouter, currContext, { type: "draft-mode" });
 
                 break;
             }
@@ -1422,8 +1430,10 @@ export class ActionExecutor {
         return new VariableReferenceExpr(identifier, dataType, buttonId);
     }
 
-    insertVariableReference(buttonId: string, providedContext?: Context, autocompleteData?: {}) {
+    insertVariableReference(buttonId: string, source: {}, providedContext?: Context, autocompleteData?: {}) {
         let context = providedContext ? providedContext : this.module.focus.getContext();
+
+        console.log(source);
 
         if (this.module.validator.onBeginningOfLine(context)) {
             const varRef = this.createVarReference(buttonId);
@@ -1566,9 +1576,19 @@ export class ActionExecutor {
             return;
         }
 
-        match.performAction(this, this.module.eventRouter, this.module.focus.getContext(), {
-            identifier: token.text,
-        });
+        let length = 0;
+        if (match.insertActionType == InsertActionType.InsertNewVariableStmt) length = token.text.length + 1;
+        else length = match.matchString.length + 1;
+
+        match.performAction(
+            this,
+            this.module.eventRouter,
+            this.module.focus.getContext(),
+            { name: "autocomplete", precision: "1", length },
+            {
+                identifier: token.text,
+            }
+        );
     }
 
     private insertToken(context: Context, code: Token, { toLeft = false, toRight = false } = {}) {
