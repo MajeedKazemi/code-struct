@@ -12,13 +12,11 @@ export enum LogType {
 
 export class LogEvent {
     type: string;
-    user: string;
     data: any;
 
     constructor(type: string, data: any) {
         this.data = data;
         this.type = type;
-        this.user = getUser();
     }
 }
 
@@ -28,7 +26,7 @@ export class Logger {
     private queue: Array<LogEvent> = [];
     private static instance: Logger;
 
-    constructor(interval: number = 10000, maxSize: number = 20) {
+    constructor(interval: number = 10000, maxSize: number = 25) {
         this.maxSize = maxSize;
         this.interval = interval;
         this.dispatchEvents = this.dispatchEvents.bind(this);
@@ -52,7 +50,7 @@ export class Logger {
     dispatchEvents() {
         if (this.queue.length === 0) return;
 
-        sendEventsBatch(this.queue)
+        sendEventsBatch(this.queue, getUser(), "nova-editor")
             .then(() => {
                 console.log(`batch of ${this.queue.length} events sent successfully`);
 
