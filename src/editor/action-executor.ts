@@ -2,53 +2,53 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../messages/error-msg-generator";
 import { ConstructHighlight, ScopeHighlight } from "../messages/messages";
 import {
-	AssignmentModifier,
-	AutocompleteTkn,
-	BinaryOperatorExpr,
-	CodeConstruct,
-	EditableTextTkn,
-	ElseStatement,
-	EmptyLineStmt,
-	EmptyOperatorTkn,
-	Expression,
-	FormattedStringCurlyBracketsExpr,
-	FormattedStringExpr,
-	IdentifierTkn,
-	IfStatement,
-	Importable,
-	ImportStatement,
-	ListAccessModifier,
-	ListLiteralExpression,
-	LiteralValExpr,
-	MethodCallModifier,
-	Modifier,
-	NonEditableTkn,
-	OperatorTkn,
-	Statement,
-	TemporaryStmt,
-	Token,
-	TypedEmptyExpr,
-	UnaryOperatorExpr,
-	ValueOperationExpr,
-	VarAssignmentStmt,
-	VariableReferenceExpr,
-	VarOperationStmt
+    AssignmentModifier,
+    AutocompleteTkn,
+    BinaryOperatorExpr,
+    CodeConstruct,
+    EditableTextTkn,
+    ElseStatement,
+    EmptyLineStmt,
+    EmptyOperatorTkn,
+    Expression,
+    FormattedStringCurlyBracketsExpr,
+    FormattedStringExpr,
+    IdentifierTkn,
+    IfStatement,
+    Importable,
+    ImportStatement,
+    ListAccessModifier,
+    ListLiteralExpression,
+    LiteralValExpr,
+    MethodCallModifier,
+    Modifier,
+    NonEditableTkn,
+    OperatorTkn,
+    Statement,
+    TemporaryStmt,
+    Token,
+    TypedEmptyExpr,
+    UnaryOperatorExpr,
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+    VarOperationStmt
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
-	addClassToDraftModeResolutionButton,
-	AutoCompleteType,
-	BuiltInFunctions,
-	getOperatorCategory,
-	IgnoreConversionRecord,
-	PythonKeywords,
-	StringRegex,
-	TAB_SPACES,
-	Tooltip,
-	TYPE_MISMATCH_ANY,
-	TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-	TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
+    addClassToDraftModeResolutionButton,
+    AutoCompleteType,
+    BuiltInFunctions,
+    getOperatorCategory,
+    IgnoreConversionRecord,
+    PythonKeywords,
+    StringRegex,
+    TAB_SPACES,
+    Tooltip,
+    TYPE_MISMATCH_ANY,
+    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -1208,6 +1208,26 @@ export class ActionExecutor {
                     this.module.editor.executeEdits(this.getCascadedBoundary(items), null, "");
                 }
 
+                break;
+            }
+
+            case EditActionType.DeleteBinaryOperator: {
+                this.deleteCode(context.token.rootNode);
+                break;
+            }
+
+            case EditActionType.DeleteBinaryOperatorItem: {
+                if(!(context.token.rootNode instanceof BinaryOperatorExpr)) break;
+                
+                let leftOperand = context.token.rootNode.getLeftOperand()
+                let rightOperand = context.token.rootNode.getRightOperand()
+                
+                if(leftOperand === context.token){
+                     this.replaceCode(context.token.rootNode, rightOperand)
+                }
+                else{
+                    this.replaceCode(context.token.rootNode, leftOperand)
+                }
                 break;
             }
 

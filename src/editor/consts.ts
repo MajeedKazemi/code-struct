@@ -75,7 +75,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VarOperationStmt,
-    WhileStatement,
+    WhileStatement
 } from "../syntax-tree/ast";
 import {
     AugmentedAssignmentOperator,
@@ -83,7 +83,7 @@ import {
     DataType,
     IdentifierRegex,
     NumberRegex,
-    UnaryOperator,
+    UnaryOperator
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { EditCodeAction } from "./action-filter";
@@ -150,6 +150,8 @@ export enum EditActionType {
     DeleteNextChar,
     DeletePrevChar,
     DeleteListItem,
+    DeleteBinaryOperatorItem,
+    DeleteBinaryOperator,
     DeleteStringLiteral,
 
     DeleteToEnd,
