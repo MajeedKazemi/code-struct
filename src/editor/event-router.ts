@@ -190,8 +190,16 @@ export class EventRouter {
                     if(this.module.validator.isAllBinaryOperatorExprTknsEmpty(context)){
                         return new EditAction(EditActionType.DeleteBinaryOperator)
                     }
+                    
                     return new EditAction(EditActionType.DeleteBinaryOperatorItem)
-                }else if (this.module.validator.shouldDeleteVarAssignmentOnHole(context)) {
+                }
+                else if(this.module.validator.isFunctionCallExprTknEmpty(context)){
+                    if(this.module.validator.isAllFunctionCallExprTknsEmpty(context)){
+                        return new EditAction(EditActionType.DeleteFunctionCallExpr)
+                    }
+                    return new EditAction(EditActionType.DeleteFunctionCallExprItem)
+                }
+                else if (this.module.validator.shouldDeleteVarAssignmentOnHole(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.shouldDeleteHole(context)) {
                     return new EditAction(EditActionType.DeleteSelectedModifier);

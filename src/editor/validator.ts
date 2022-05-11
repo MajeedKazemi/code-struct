@@ -12,6 +12,7 @@ import {
     Expression,
     FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
+    FunctionCallExpr,
     IdentifierTkn,
     IfStatement,
     ImportStatement,
@@ -388,7 +389,7 @@ export class Validator {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         if(context.token === null) return false;
-        if(!(context.token.rootNode instanceof BinaryOperatorExpr)) return false;
+        if(!(context.token.rootNode instanceof BinaryOperatorExpr))  return false;
         if(!(this.atEmptyExpressionHole)) return false;
 
         return true
@@ -407,10 +408,39 @@ export class Validator {
                 return true;
             }
         }
-        
         return false;
     }
 
+    /** 
+     * logic: checks if token is not null AND instanceof BinaryOperatorExpr AND atEmptyExpressionHole
+     */
+    isFunctionCallExprTknEmpty(providedContext?: Context):boolean{
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if(context.token === null) return false;
+        if(!(context.token.rootNode instanceof FunctionCallExpr)) return false;
+        if(!(this.atEmptyExpressionHole)) return false;
+
+        return true
+    }
+    
+
+    /**
+     * logic: checks if all the expressions in the FunctionCallExpr is empty
+     */
+
+    isAllFunctionCallExprTknsEmpty(providedContext? :Context):boolean{
+        const context = providedContext? providedContext : this.module.focus.getContext();
+        let rootNode = context.token.rootNode;
+        if(rootNode instanceof FunctionCallExpr){
+            for(let i=0; i< rootNode.tokens.length; i++){
+                if(!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn)) return false;
+            }
+        }
+        return true;
+        
+    }
+    
     /**
      * 
      * logic: checks if at the end of a statement, and not text editable.

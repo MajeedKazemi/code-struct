@@ -152,6 +152,8 @@ export enum EditActionType {
     DeleteListItem,
     DeleteBinaryOperatorItem,
     DeleteBinaryOperator,
+    DeleteFunctionCallExprItem,
+    DeleteFunctionCallExpr,
     DeleteStringLiteral,
 
     DeleteToEnd,

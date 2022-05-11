@@ -13,6 +13,7 @@ import {
     Expression,
     FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
+    FunctionCallExpr,
     IdentifierTkn,
     IfStatement,
     Importable,
@@ -1228,6 +1229,24 @@ export class ActionExecutor {
                 else{
                     this.replaceCode(context.token.rootNode, leftOperand)
                 }
+                break;
+            }
+
+            case EditActionType.DeleteFunctionCallExpr:{
+                this.deleteCode(context.token.rootNode);
+                break;
+            }
+
+            case EditActionType.DeleteFunctionCallExprItem:{
+                let rootNode = context.token.rootNode;
+                let replacementTkn;
+                if(!(rootNode instanceof FunctionCallExpr)) break;
+                for(let i=0; i<rootNode.tokens.length; i++){
+                    if(!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn)){
+                        replacementTkn = rootNode.tokens[i];
+                    }
+                }
+                this.replaceCode(rootNode, replacementTkn);
                 break;
             }
 
