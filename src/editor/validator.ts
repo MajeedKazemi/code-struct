@@ -12,7 +12,6 @@ import {
     Expression,
     FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
-    FunctionCallExpr,
     IdentifierTkn,
     IfStatement,
     ImportStatement,
@@ -24,7 +23,7 @@ import {
     TypedEmptyExpr,
     ValueOperationExpr,
     VarAssignmentStmt,
-    VariableReferenceExpr
+    VariableReferenceExpr,
 } from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -39,7 +38,7 @@ import {
     InsertionType,
     NumberRegex,
     OperatorCategory,
-    UnaryOperator
+    UnaryOperator,
 } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Context } from "./focus";
@@ -382,80 +381,67 @@ export class Validator {
             context.lineStatement.rootNode instanceof Statement
         );
     }
-    /** 
-     * logic: checks if token is not null AND instanceof BinaryOperatorExpr AND atEmptyExpressionHole
+
+    /**
+     * logic: checks if token is not null AND atEmptyExpressionHole
      */
-    isBinaryOperatorExprTknEmpty(providedContext?: Context):boolean{
+    isExprTknEmpty(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
-        if(context.token === null) return false;
-        if(!(context.token.rootNode instanceof BinaryOperatorExpr))  return false;
-        if(!(this.atEmptyExpressionHole)) return false;
+        if (context.token === null) return false;
+        if (!this.atEmptyExpressionHole) return false;
 
-        return true
+        return true;
     }
 
     /**
      * logic: checks if both tokens of BinaryOperatorExpr are empty
      */
+    isAllBinaryOperatorExprTknsEmpty(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
 
-    isAllBinaryOperatorExprTknsEmpty(providedContext? :Context):boolean{
-        const context = providedContext? providedContext : this.module.focus.getContext();
-        if(context.token.rootNode instanceof BinaryOperatorExpr){
-            let leftOperand = context.token.rootNode.getLeftOperand();
-            let rightOperand = context.token.rootNode.getRightOperand();
-            if(leftOperand instanceof TypedEmptyExpr && rightOperand instanceof TypedEmptyExpr){
-                return true;
-            }
+        if (!(context.token.rootNode instanceof BinaryOperatorExpr)) return false;
+        let leftOperand = context.token.rootNode.getLeftOperand();
+        let rightOperand = context.token.rootNode.getRightOperand();
+        if (leftOperand instanceof TypedEmptyExpr && rightOperand instanceof TypedEmptyExpr) {
+            return true;
         }
+
         return false;
     }
 
-    /** 
-     * logic: checks if token is not null AND instanceof BinaryOperatorExpr AND atEmptyExpressionHole
+    /**
+     * logic: checks if all the tokens in a CodeConstruct is empty
      */
-    isFunctionCallExprTknEmpty(providedContext?: Context):boolean{
+    isAllTknsEmpty(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode;
 
-        if(context.token === null) return false;
-        if(!(context.token.rootNode instanceof FunctionCallExpr)) return false;
-        if(!(this.atEmptyExpressionHole)) return false;
-
-        return true
-    }
-    
-
-    /**
-     * logic: checks if all the expressions in the FunctionCallExpr is empty
-     */
-
-    isAllFunctionCallExprTknsEmpty(providedContext? :Context):boolean{
-        const context = providedContext? providedContext : this.module.focus.getContext();
-        let rootNode = context.token.rootNode;
-        if(rootNode instanceof FunctionCallExpr){
-            for(let i=0; i< rootNode.tokens.length; i++){
-                if(!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn)) return false;
-            }
+        for (let i = 0; i < rootNode.tokens.length; i++) {
+            if (!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn))
+                return false;
         }
+
         return true;
-        
     }
-    
+
     /**
-     * 
+     *
      * logic: checks if at the end of a statement, and not text editable.
      * AND does not have a body.
      * AND prev item is not an expression that could be deleted by it self.
      */
     canDeletePrevStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
+
         if (
             !(context.lineStatement instanceof EmptyLineStmt) &&
             !context.lineStatement?.hasBody() &&
-            this.module.focus.onEndOfLine() &&  
+            this.module.focus.onEndOfLine() &&
             !this.module.focus.isTextEditable(providedContext)
         ) {
             if (context.expressionToLeft != null) return false;
+
             return true;
         }
 

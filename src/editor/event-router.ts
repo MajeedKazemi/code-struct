@@ -134,6 +134,19 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteListItem, {
                         toRight: true,
                     });
+                } else if (this.module.validator.isExprTknEmpty(context)) {
+                    if (this.module.validator.isAllTknsEmpty(context)) {
+                        if (context.token.rootNode instanceof ast.FunctionCallStmt) {
+                            return new EditAction(EditActionType.DeleteStatement);
+                        } else {
+                            return new EditAction(EditActionType.DeleteRootNode);
+                        }
+                    }
+                    if (context.token.rootNode instanceof ast.BinaryOperatorExpr) {
+                        return new EditAction(EditActionType.ReplaceBinaryOperatorWithItem);
+                    } else if (context.token.rootNode instanceof ast.FunctionCallExpr) {
+                        return new EditAction(EditActionType.ReplaceFunctionCallExprWithItem);
+                    }
                 }
 
                 break;
@@ -143,7 +156,7 @@ export class EventRouter {
                 if (
                     inTextEditMode &&
                     !(context.tokenToLeft instanceof ast.NonEditableTkn) &&
-                    !this.module.validator.onBeginningOfLine(context)  
+                    !this.module.validator.onBeginningOfLine(context)
                 ) {
                     if (e.ctrlKey) return new EditAction(EditActionType.DeleteToStart);
                     else return new EditAction(EditActionType.DeletePrevChar);
@@ -159,8 +172,7 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteStringLiteral);
                 } else if (this.module.validator.canMoveLeftOnEmptyMultilineStatement(context)) {
                     return new EditAction(EditActionType.SelectPrevToken);
-                } 
-                else if (this.module.validator.canDeletePrevStatement(context)) {
+                } else if (this.module.validator.canDeletePrevStatement(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.canDeletePrevMultiLineStatement(context)) {
                     return new EditAction(EditActionType.DeleteMultiLineStatement);
@@ -186,20 +198,20 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteListItem, {
                         toRight: true,
                     });
-                } else if(this.module.validator.isBinaryOperatorExprTknEmpty(context)){
-                    if(this.module.validator.isAllBinaryOperatorExprTknsEmpty(context)){
-                        return new EditAction(EditActionType.DeleteBinaryOperator)
+                } else if (this.module.validator.isExprTknEmpty(context)) {
+                    if (this.module.validator.isAllTknsEmpty(context)) {
+                        if (context.token.rootNode instanceof ast.FunctionCallStmt) {
+                            return new EditAction(EditActionType.DeleteStatement);
+                        } else {
+                            return new EditAction(EditActionType.DeleteRootNode);
+                        }
                     }
-                    
-                    return new EditAction(EditActionType.DeleteBinaryOperatorItem)
-                }
-                else if(this.module.validator.isFunctionCallExprTknEmpty(context)){
-                    if(this.module.validator.isAllFunctionCallExprTknsEmpty(context)){
-                        return new EditAction(EditActionType.DeleteFunctionCallExpr)
+                    if (context.token.rootNode instanceof ast.BinaryOperatorExpr) {
+                        return new EditAction(EditActionType.ReplaceBinaryOperatorWithItem);
+                    } else if (context.token.rootNode instanceof ast.FunctionCallExpr) {
+                        return new EditAction(EditActionType.ReplaceFunctionCallExprWithItem);
                     }
-                    return new EditAction(EditActionType.DeleteFunctionCallExprItem)
-                }
-                else if (this.module.validator.shouldDeleteVarAssignmentOnHole(context)) {
+                } else if (this.module.validator.shouldDeleteVarAssignmentOnHole(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.shouldDeleteHole(context)) {
                     return new EditAction(EditActionType.DeleteSelectedModifier);
