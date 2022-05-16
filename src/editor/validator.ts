@@ -385,7 +385,7 @@ export class Validator {
     /**
      * logic: checks if token is not null AND atEmptyExpressionHole
      */
-    isExprTknEmpty(providedContext?: Context): boolean {
+    isTknEmpty(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
 
         if (context.token === null) return false;
@@ -395,27 +395,32 @@ export class Validator {
     }
 
     /**
-     * logic: checks if both tokens of BinaryOperatorExpr are empty
+     * logic: checks if Statement body is empty and if all tokens of Statement are empty
      */
-    isAllBinaryOperatorExprTknsEmpty(providedContext?: Context): boolean {
+    canDeleteStatement(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode as Statement;
 
-        if (!(context.token.rootNode instanceof BinaryOperatorExpr)) return false;
-        let leftOperand = context.token.rootNode.getLeftOperand();
-        let rightOperand = context.token.rootNode.getRightOperand();
-        if (leftOperand instanceof TypedEmptyExpr && rightOperand instanceof TypedEmptyExpr) {
-            return true;
+        for (let i = 0; i < rootNode.tokens.length; i++) {
+            if (!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn))
+                return false;
         }
 
-        return false;
+        if (rootNode.hasBody()) {
+            for (let i = 0; i < rootNode.body.length; i++) {
+                if (!(rootNode.body[i] instanceof EmptyLineStmt)) return false;
+            }
+        }
+
+        return true;
     }
 
     /**
-     * logic: checks if all the tokens in a CodeConstruct is empty
+     * logic: checks if all tokens of Expression are empty
      */
-    isAllTknsEmpty(providedContext?: Context): boolean {
+    canDeleteExpression(providedContext?: Context): boolean {
         const context = providedContext ? providedContext : this.module.focus.getContext();
-        const rootNode = context.token.rootNode;
+        const rootNode = context.token.rootNode as Expression;
 
         for (let i = 0; i < rootNode.tokens.length; i++) {
             if (!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn))

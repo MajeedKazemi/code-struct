@@ -13,7 +13,6 @@ import {
     Expression,
     FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
-    FunctionCallExpr,
     IdentifierTkn,
     IfStatement,
     Importable,
@@ -1217,28 +1216,14 @@ export class ActionExecutor {
                 break;
             }
 
-            case EditActionType.ReplaceBinaryOperatorWithItem: {
-                if (!(context.token.rootNode instanceof BinaryOperatorExpr)) break;
-
-                let leftOperand = context.token.rootNode.getLeftOperand();
-                let rightOperand = context.token.rootNode.getRightOperand();
-
-                if (leftOperand === context.token) {
-                    this.replaceCode(context.token.rootNode, rightOperand);
-                } else {
-                    this.replaceCode(context.token.rootNode, leftOperand);
-                }
-                break;
-            }
-
-            case EditActionType.ReplaceFunctionCallExprWithItem: {
-                let rootNode = context.token.rootNode;
+            case EditActionType.ReplaceExpressionWithItem: {
+                const rootNode = context.token.rootNode as Expression;
                 let replacementTkn;
-                if (!(rootNode instanceof FunctionCallExpr)) break;
                 for (let i = 0; i < rootNode.tokens.length; i++) {
                     if (
                         !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
-                        !(rootNode.tokens[i] instanceof NonEditableTkn)
+                        !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                        !(rootNode.tokens[i] instanceof OperatorTkn)
                     ) {
                         replacementTkn = rootNode.tokens[i];
                     }
