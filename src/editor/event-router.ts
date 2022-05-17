@@ -135,14 +135,18 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
-                    if (context.token.rootNode instanceof ast.Statement) {
-                        if (this.module.validator.canDeleteStatement) {
-                            return new EditAction(EditActionType.DeleteStatement);
-                        }
+                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                        return new EditAction(EditActionType.DeleteStatement);
                     }
                     if (context.token.rootNode instanceof ast.Expression) {
-                        if (this.module.validator.canDeleteExpression) {
-                            return new EditAction(EditActionType.ReplaceExpressionWithItem);
+                        if (this.module.validator.canDeleteExpression(context)) {
+                            return new EditAction(EditActionType.DeleteRootNode);
+                        }
+                        return new EditAction(EditActionType.ReplaceExpressionWithItem);
+                    }
+                    if (context.token.rootNode instanceof ast.Statement) {
+                        if (this.module.validator.canDeleteStatement(context)) {
+                            return new EditAction(EditActionType.DeleteStatement);
                         }
                     }
                 }
@@ -197,6 +201,9 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
+                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                        return new EditAction(EditActionType.DeleteStatement);
+                    }
                     if (context.token.rootNode instanceof ast.Expression) {
                         if (this.module.validator.canDeleteExpression(context)) {
                             return new EditAction(EditActionType.DeleteRootNode);

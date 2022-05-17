@@ -19,6 +19,7 @@ import {
     LiteralValExpr,
     Modifier,
     NonEditableTkn,
+    OperatorTkn,
     Statement,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -395,6 +396,20 @@ export class Validator {
     }
 
     /**
+     * logic: checks if rootNode is instanceof AugmentedAssignmentModifier
+     */
+    isAugmentedAssignmentModifierStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode;
+
+        if (rootNode instanceof AugmentedAssignmentModifier) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * logic: checks if Statement body is empty and if all tokens of Statement are empty
      */
     canDeleteStatement(providedContext?: Context): boolean {
@@ -402,7 +417,11 @@ export class Validator {
         const rootNode = context.token.rootNode as Statement;
 
         for (let i = 0; i < rootNode.tokens.length; i++) {
-            if (!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn))
+            if (
+                !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
+                !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                !(rootNode.tokens[i] instanceof IdentifierTkn)
+            )
                 return false;
         }
 
@@ -423,7 +442,11 @@ export class Validator {
         const rootNode = context.token.rootNode as Expression;
 
         for (let i = 0; i < rootNode.tokens.length; i++) {
-            if (!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn))
+            if (
+                !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
+                !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                !(rootNode.tokens[i] instanceof OperatorTkn)
+            )
                 return false;
         }
 
