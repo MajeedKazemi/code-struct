@@ -33,7 +33,7 @@ import {
     ValueOperationExpr,
     VarAssignmentStmt,
     VariableReferenceExpr,
-    VarOperationStmt
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
@@ -49,7 +49,7 @@ import {
     Tooltip,
     TYPE_MISMATCH_ANY,
     TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -1218,31 +1218,33 @@ export class ActionExecutor {
             }
 
             case EditActionType.DeleteBinaryOperatorItem: {
-                if(!(context.token.rootNode instanceof BinaryOperatorExpr)) break;
-                
-                let leftOperand = context.token.rootNode.getLeftOperand()
-                let rightOperand = context.token.rootNode.getRightOperand()
-                
-                if(leftOperand === context.token){
-                     this.replaceCode(context.token.rootNode, rightOperand)
-                }
-                else{
-                    this.replaceCode(context.token.rootNode, leftOperand)
+                if (!(context.token.rootNode instanceof BinaryOperatorExpr)) break;
+
+                let leftOperand = context.token.rootNode.getLeftOperand();
+                let rightOperand = context.token.rootNode.getRightOperand();
+
+                if (leftOperand === context.token) {
+                    this.replaceCode(context.token.rootNode, rightOperand);
+                } else {
+                    this.replaceCode(context.token.rootNode, leftOperand);
                 }
                 break;
             }
 
-            case EditActionType.DeleteFunctionCallExpr:{
+            case EditActionType.DeleteFunctionCallExpr: {
                 this.deleteCode(context.token.rootNode);
                 break;
             }
 
-            case EditActionType.DeleteFunctionCallExprItem:{
+            case EditActionType.DeleteFunctionCallExprItem: {
                 let rootNode = context.token.rootNode;
                 let replacementTkn;
-                if(!(rootNode instanceof FunctionCallExpr)) break;
-                for(let i=0; i<rootNode.tokens.length; i++){
-                    if(!(rootNode.tokens[i] instanceof TypedEmptyExpr) && !(rootNode.tokens[i] instanceof NonEditableTkn)){
+                if (!(rootNode instanceof FunctionCallExpr)) break;
+                for (let i = 0; i < rootNode.tokens.length; i++) {
+                    if (
+                        !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
+                        !(rootNode.tokens[i] instanceof NonEditableTkn)
+                    ) {
                         replacementTkn = rootNode.tokens[i];
                     }
                 }
@@ -1371,7 +1373,7 @@ export class ActionExecutor {
                 const newLiteral = new LiteralValExpr(action.data?.literalType, action.data?.initialValue);
                 this.insertExpression(context, newLiteral);
 
-			  if (flashGreen) this.flashGreen(newLiteral);
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 if (action.data?.source?.type === "keyboard") {
                     eventType = LogType.InsertCode;
