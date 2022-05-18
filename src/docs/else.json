@@ -11,5 +11,8 @@
             "example": "a = 2\nif a > 3:\n\tprint(3)\nelif a > 4:\n\tprint(4)\nelif a == 5:\n\tprint(5)\nelif a > 6:\n\tprint(6)\nelse:\n\tprint(\"None of the above are true.\")"
         }
     ],
-    "search-queries": ["else", "otherwise", "if"]
+    "search-queries": ["else", "otherwise", "if"],
+    "styles":{
+        "backgroundColor": "#FFAB19"
+    }
 }

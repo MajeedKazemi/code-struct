@@ -10,5 +10,8 @@
             "id": "ex-num",
             "example": "age = 21\nprint(age)\nprint(21)"
         }
-    ]
+    ],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

@@ -16,5 +16,8 @@
             "example": "a = [\"cat\", \"dog\", \"parrot\"]\nb = [1, \"cat\", true]\nc = [1, [1, \"dog\"], \"cat\", [true]]"
         }
     ],
-    "search-queries": ["empty list", "create empty list", "create list", "array", "create empty array"]
+    "search-queries": ["empty list", "create empty list", "create list", "array", "create empty array"],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

@@ -16,5 +16,8 @@
             "example": "a = \"abc\"\nprint(a)"
         }
     ],
-    "search-queries": ["output", "say", "print", "print output", "console", "write", "see output"]
+    "search-queries": ["output", "say", "print", "print output", "console", "write", "see output"],
+    "styles":{
+        "backgroundColor": "#9966FF"
+    }
 }

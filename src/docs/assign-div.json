@@ -11,5 +11,8 @@
             "example": "a = 10\na /= 2\nprint(a)"
         }
     ],
-    "search-queries": ["divide variable"]
+    "search-queries": ["divide variable"],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

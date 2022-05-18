@@ -25,5 +25,8 @@
             "id": "check-val-variable"
         }
     ],
-    "search-queries": ["if", "condition", "conditional", "choose", "path"]
+    "search-queries": ["if", "condition", "conditional", "choose", "path"],
+    "styles":{
+        "backgroundColor": "#FFAB19"
+    }
 }

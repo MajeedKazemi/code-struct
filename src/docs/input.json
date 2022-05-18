@@ -11,5 +11,8 @@
             "example": "name = input(\"Hi! What’s your name?\")\nprint(name)"
         }
     ],
-    "search-queries": ["input", "prompt", "text", "user", "ask input", "ask user"]
+    "search-queries": ["input", "prompt", "text", "user", "ask input", "ask user"],
+    "styles":{
+        "backgroundColor": "#5CB1D6"
+    }
 }

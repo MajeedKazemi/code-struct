@@ -11,5 +11,8 @@
             "example": "name = \"Zimmer\"\nindexOfE = name.find(\"e\")\nprint(indexOfE)"
         }
     ],
-    "search-queries": ["search text", "find text", "find string"]
+    "search-queries": ["search text", "find text", "find string"],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

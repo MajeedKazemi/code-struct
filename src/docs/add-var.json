@@ -25,5 +25,8 @@
             ]
         }
     ],
-    "search-queries": ["create new variable", "variable", "var"]
+    "search-queries": ["create new variable", "variable", "var"],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

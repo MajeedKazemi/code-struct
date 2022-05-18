@@ -23,5 +23,8 @@
         "add to end list",
         "append to end list",
         "insert end list"
-    ]
+    ],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

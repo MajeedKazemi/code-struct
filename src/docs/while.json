@@ -46,5 +46,8 @@
         "condition",
         "conditional",
         "repeat condition"
-    ]
+    ],
+    "styles":{
+        "backgroundColor": "#FFAB19"
+    }
 }

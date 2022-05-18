@@ -16,5 +16,8 @@
             "example": "a = 1\nb = 5\nwhile a <= b:\n\ta += 1\nprint(a)\nprint(a)"
         }
     ],
-    "search-queries": ["less than or equal", "compare", "compare less than or equal", "check"]
+    "search-queries": ["less than or equal", "compare", "compare less than or equal", "check"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

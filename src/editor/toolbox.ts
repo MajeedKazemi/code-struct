@@ -222,11 +222,12 @@ export class ToolboxController {
 export class ToolboxButton {
     container: HTMLDivElement;
 
-    constructor(text: string, domId?: string, code?: CodeConstruct) {
+    constructor(text: string, domId?: string, btnColor?: string, code?: CodeConstruct) {
         this.container = document.createElement("div");
         this.container.classList.add("var-button-container");
 
         const button = document.createElement("div");
+        button.style.backgroundColor = btnColor;
         button.classList.add("button");
 
         if (!(code instanceof Expression) && !(code instanceof Modifier)) {
@@ -256,7 +257,12 @@ export class ToolboxButton {
     }
 
     static createToolboxButtonFromJsonObj(action: EditCodeAction) {
-        return new ToolboxButton(action.optionName, action.cssId, action.getCode());
+        return new ToolboxButton(
+            action.optionName,
+            action.cssId,
+            action.documentation.styles.backgroundColor,
+            action.getCode()
+        );
     }
 
     divButtonVisualMode(insertionType: InsertionType) {

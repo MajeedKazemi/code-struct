@@ -21,5 +21,8 @@
         "change value list index",
         "update item at index",
         "set value list index"
-    ]
+    ],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

@@ -11,5 +11,8 @@
             "example": "name = \"Split-this-text-on-hyphen\"\nsplitName = name.split(\"-\")\nprint(splitName)"
         }
     ],
-    "search-queries": ["split", "split text", "split string"]
+    "search-queries": ["split", "split text", "split string"],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

@@ -11,5 +11,8 @@
             "example": "for i in range(10):\n\tprint(i)"
         }
     ],
-    "search-queries": ["range", "sequence", "iterate", "for loop"]
+    "search-queries": ["range", "sequence", "iterate", "for loop"],
+    "styles":{
+        "backgroundColor": "#2f116b"
+    }
 }

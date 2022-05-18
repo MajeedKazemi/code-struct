@@ -11,5 +11,8 @@
             "example": "a = 2\na += 2\nprint(a)"
         }
     ],
-    "search-queries": ["add to variable"]
+    "search-queries": ["add to variable"],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }

@@ -11,5 +11,8 @@
             "example": "a = []\nb = [1, 2]\nc = [1, 2, 3]"
         }
     ],
-    "search-queries": ["comma", "list item"]
+    "search-queries": ["comma", "list item"],
+    "styles":{
+        "backgroundColor": "#FF8C1A"
+    }
 }
