@@ -10,7 +10,7 @@ import {
     EmptyLineStmt,
     EmptyOperatorTkn,
     Expression,
-    FormattedStringCurlyBracketsExpr as FormattedStringCurlyBracketsExpr,
+    FormattedStringCurlyBracketsExpr,
     FormattedStringExpr,
     IdentifierTkn,
     IfStatement,
@@ -19,6 +19,7 @@ import {
     LiteralValExpr,
     Modifier,
     NonEditableTkn,
+    OperatorTkn,
     Statement,
     TypedEmptyExpr,
     ValueOperationExpr,
@@ -383,6 +384,77 @@ export class Validator {
     }
 
     /**
+     * logic: checks if token is not null AND atEmptyExpressionHole
+     */
+    isTknEmpty(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+
+        if (context.token === null) return false;
+        if (!this.atEmptyExpressionHole) return false;
+
+        return true;
+    }
+
+    /**
+     * logic: checks if rootNode is instanceof AugmentedAssignmentModifier
+     */
+    isAugmentedAssignmentModifierStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode;
+
+        if (rootNode instanceof AugmentedAssignmentModifier) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * logic: checks if Statement body is empty and if all tokens of Statement are empty
+     */
+    canDeleteStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode as Statement;
+
+        for (let i = 0; i < rootNode.tokens.length; i++) {
+            if (
+                !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
+                !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                !(rootNode.tokens[i] instanceof IdentifierTkn)
+            )
+                return false;
+        }
+
+        if (rootNode.hasBody()) {
+            for (let i = 0; i < rootNode.body.length; i++) {
+                if (!(rootNode.body[i] instanceof EmptyLineStmt)) return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * logic: checks if all tokens of Expression are empty
+     */
+    canDeleteExpression(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode as Expression;
+
+        for (let i = 0; i < rootNode.tokens.length; i++) {
+            if (
+                !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
+                !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                !(rootNode.tokens[i] instanceof OperatorTkn)
+            )
+                return false;
+        }
+
+        return true;
+    }
+
+    /**
+     *
      * logic: checks if at the end of a statement, and not text editable.
      * AND does not have a body.
      * AND prev item is not an expression that could be deleted by it self.

@@ -2,53 +2,53 @@ import { Position, Range } from "monaco-editor";
 import { ErrorMessage } from "../messages/error-msg-generator";
 import { ConstructHighlight, ScopeHighlight } from "../messages/messages";
 import {
-	AssignmentModifier,
-	AutocompleteTkn,
-	BinaryOperatorExpr,
-	CodeConstruct,
-	EditableTextTkn,
-	ElseStatement,
-	EmptyLineStmt,
-	EmptyOperatorTkn,
-	Expression,
-	FormattedStringCurlyBracketsExpr,
-	FormattedStringExpr,
-	IdentifierTkn,
-	IfStatement,
-	Importable,
-	ImportStatement,
-	ListAccessModifier,
-	ListLiteralExpression,
-	LiteralValExpr,
-	MethodCallModifier,
-	Modifier,
-	NonEditableTkn,
-	OperatorTkn,
-	Statement,
-	TemporaryStmt,
-	Token,
-	TypedEmptyExpr,
-	UnaryOperatorExpr,
-	ValueOperationExpr,
-	VarAssignmentStmt,
-	VariableReferenceExpr,
-	VarOperationStmt
+    AssignmentModifier,
+    AutocompleteTkn,
+    BinaryOperatorExpr,
+    CodeConstruct,
+    EditableTextTkn,
+    ElseStatement,
+    EmptyLineStmt,
+    EmptyOperatorTkn,
+    Expression,
+    FormattedStringCurlyBracketsExpr,
+    FormattedStringExpr,
+    IdentifierTkn,
+    IfStatement,
+    Importable,
+    ImportStatement,
+    ListAccessModifier,
+    ListLiteralExpression,
+    LiteralValExpr,
+    MethodCallModifier,
+    Modifier,
+    NonEditableTkn,
+    OperatorTkn,
+    Statement,
+    TemporaryStmt,
+    Token,
+    TypedEmptyExpr,
+    UnaryOperatorExpr,
+    ValueOperationExpr,
+    VarAssignmentStmt,
+    VariableReferenceExpr,
+    VarOperationStmt,
 } from "../syntax-tree/ast";
 import { rebuildBody, replaceInBody } from "../syntax-tree/body";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 import {
-	addClassToDraftModeResolutionButton,
-	AutoCompleteType,
-	BuiltInFunctions,
-	getOperatorCategory,
-	IgnoreConversionRecord,
-	PythonKeywords,
-	StringRegex,
-	TAB_SPACES,
-	Tooltip,
-	TYPE_MISMATCH_ANY,
-	TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
-	TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR
+    addClassToDraftModeResolutionButton,
+    AutoCompleteType,
+    BuiltInFunctions,
+    getOperatorCategory,
+    IgnoreConversionRecord,
+    PythonKeywords,
+    StringRegex,
+    TAB_SPACES,
+    Tooltip,
+    TYPE_MISMATCH_ANY,
+    TYPE_MISMATCH_ON_FUNC_ARG_DRAFT_MODE_STR,
+    TYPE_MISMATCH_ON_MODIFIER_DELETION_DRAFT_MODE_STR,
 } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
@@ -1211,6 +1211,27 @@ export class ActionExecutor {
                 break;
             }
 
+            case EditActionType.DeleteRootNode: {
+                this.deleteCode(context.token.rootNode);
+                break;
+            }
+
+            case EditActionType.ReplaceExpressionWithItem: {
+                const rootNode = context.token.rootNode as Expression;
+                let replacementTkn;
+                for (let i = 0; i < rootNode.tokens.length; i++) {
+                    if (
+                        !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
+                        !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                        !(rootNode.tokens[i] instanceof OperatorTkn)
+                    ) {
+                        replacementTkn = rootNode.tokens[i];
+                    }
+                }
+                this.replaceCode(rootNode, replacementTkn);
+                break;
+            }
+
             case EditActionType.InsertImportFromDraftMode: {
                 let currContext = context;
                 this.module.editor.monaco.setPosition(new Position(1, 1));
@@ -1332,7 +1353,7 @@ export class ActionExecutor {
                 const newLiteral = new LiteralValExpr(action.data?.literalType, action.data?.initialValue);
                 this.insertExpression(context, newLiteral);
 
-			  if (flashGreen) this.flashGreen(newLiteral);
+                if (flashGreen) this.flashGreen(newLiteral);
 
                 if (action.data?.source?.type === "keyboard") {
                     eventType = LogType.InsertCode;
