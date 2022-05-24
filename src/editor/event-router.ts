@@ -134,6 +134,21 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteListItem, {
                         toRight: true,
                     });
+                } else if (this.module.validator.isTknEmpty(context)) {
+                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                        return new EditAction(EditActionType.DeleteStatement);
+                    }
+                    if (context.token.rootNode instanceof ast.Expression) {
+                        if (this.module.validator.canDeleteExpression(context)) {
+                            return new EditAction(EditActionType.DeleteRootNode);
+                        }
+                        return new EditAction(EditActionType.ReplaceExpressionWithItem);
+                    }
+                    if (context.token.rootNode instanceof ast.Statement) {
+                        if (this.module.validator.canDeleteStatement(context)) {
+                            return new EditAction(EditActionType.DeleteStatement);
+                        }
+                    }
                 }
 
                 break;
@@ -185,17 +200,21 @@ export class EventRouter {
                     return new EditAction(EditActionType.DeleteListItem, {
                         toRight: true,
                     });
-                } else if (this.module.validator.isBinaryOperatorExprTknEmpty(context)) {
-                    if (this.module.validator.isAllBinaryOperatorExprTknsEmpty(context)) {
-                        return new EditAction(EditActionType.DeleteBinaryOperator);
+                } else if (this.module.validator.isTknEmpty(context)) {
+                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                        return new EditAction(EditActionType.DeleteStatement);
                     }
-
-                    return new EditAction(EditActionType.DeleteBinaryOperatorItem);
-                } else if (this.module.validator.isFunctionCallExprTknEmpty(context)) {
-                    if (this.module.validator.isAllFunctionCallExprTknsEmpty(context)) {
-                        return new EditAction(EditActionType.DeleteFunctionCallExpr);
+                    if (context.token.rootNode instanceof ast.Expression) {
+                        if (this.module.validator.canDeleteExpression(context)) {
+                            return new EditAction(EditActionType.DeleteRootNode);
+                        }
+                        return new EditAction(EditActionType.ReplaceExpressionWithItem);
                     }
-                    return new EditAction(EditActionType.DeleteFunctionCallExprItem);
+                    if (context.token.rootNode instanceof ast.Statement) {
+                        if (this.module.validator.canDeleteStatement(context)) {
+                            return new EditAction(EditActionType.DeleteStatement);
+                        }
+                    }
                 } else if (this.module.validator.shouldDeleteVarAssignmentOnHole(context)) {
                     return new EditAction(EditActionType.DeleteStatement);
                 } else if (this.module.validator.shouldDeleteHole(context)) {

@@ -150,10 +150,8 @@ export enum EditActionType {
     DeleteNextChar,
     DeletePrevChar,
     DeleteListItem,
-    DeleteBinaryOperatorItem,
-    DeleteBinaryOperator,
-    DeleteFunctionCallExprItem,
-    DeleteFunctionCallExpr,
+    DeleteRootNode,
+    ReplaceExpressionWithItem,
     DeleteStringLiteral,
 
     DeleteToEnd,
