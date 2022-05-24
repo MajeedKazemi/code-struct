@@ -81,8 +81,8 @@ export class ActionFilter {
                 },
                 null,
                 {},
-                new InsertionResult(varRecord[1], "MESSAGE BASED ON INSERTION TYPE", []), //TODO: Need to actually check what the insertion type is and populate the insertion result accordingly
                 null,
+                new InsertionResult(varRecord[1], "MESSAGE BASED ON INSERTION TYPE", []), //TODO: Need to actually check what the insertion type is and populate the insertion result accordingly
                 [""],
                 varStmt.getIdentifier(),
                 null,
