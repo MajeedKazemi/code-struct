@@ -177,7 +177,8 @@ export class ToolboxController {
         const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
 
         const toolboxCategories = Actions.instance().toolboxCategories;
-
+        const hello = Actions.instance().actionsMap;
+        console.log(hello);
         for (const constructGroup of toolboxCategories) {
             if (constructGroup) {
                 let categoryDiv;

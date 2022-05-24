@@ -127,6 +127,7 @@ export class ConstructHighlight extends CodeHighlight {
     constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]) {
         super(editor, codeToHighlight);
         this.changeHighlightColour(rgbColour);
+        this.domElement.style.outline = "1px solid black";
     }
 
     protected createDomElement() {
@@ -636,14 +637,14 @@ export class ScopeHighlight {
      */
     private callbacks: Map<string, CallbackType>;
 
-    constructor(editor: Editor, statement: Statement) {
+    constructor(editor: Editor, statement: Statement, color: string) {
         this.statement = statement;
         this.selection = this.statement.getSelection();
         this.editor = editor;
 
         this.callbacks = new Map<string, CallbackType>();
 
-        this.createDomElement();
+        this.createDomElement(color);
         ScopeHighlight.idCounter++;
         this.headerElement.id = `scope-header-${ScopeHighlight.idPrefix}-${ScopeHighlight.idCounter}`;
         this.bodyElement.id = `scope-body-${ScopeHighlight.idPrefix}-${ScopeHighlight.idCounter}`;
@@ -690,14 +691,18 @@ export class ScopeHighlight {
     /**
      * Construct the DOM element for this visual.
      */
-    protected createDomElement(): void {
+    protected createDomElement(color: string): void {
         this.headerElement = document.createElement("div");
         this.headerElement.classList.add("scope-header-highlight");
-        this.headerElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
+        // this.headerElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
+        this.headerElement.style.backgroundColor = color;
+        this.headerElement.style.outline = "1px solid black";
 
         this.bodyElement = document.createElement("div");
         this.bodyElement.classList.add("scope-body-highlight");
-        this.bodyElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
+        // this.bodyElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
+        this.bodyElement.style.backgroundColor = color;
+        this.bodyElement.style.outline = "1px solid black";
 
         this.updateDimensions();
 

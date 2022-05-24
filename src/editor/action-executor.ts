@@ -58,7 +58,7 @@ import { getUserFriendlyType, isImportable } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
-import { Actions, EditActionType, InsertActionType } from "./consts";
+import { Actions, Docs, EditActionType, InsertActionType } from "./consts";
 import { EditAction } from "./data-types";
 import { Context, UpdatableContext } from "./focus";
 
@@ -171,7 +171,7 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertElseStatement: {
-                const newStatement = new ElseStatement(action.data.hasCondition);
+                const newStatement = new ElseStatement(Docs.ElseDocs.styles.backgroundColor, action.data.hasCondition);
 
                 if (action.data.outside) {
                     // when the else is being inserted outside
@@ -244,16 +244,20 @@ export class ActionExecutor {
 
                 if (flashGreen) this.flashGreen(newStatement);
 
-                let scopeHighlight = new ScopeHighlight(this.module.editor, newStatement);
+                let scopeHighlight = new ScopeHighlight(this.module.editor, newStatement, newStatement.color);
                 eventData.code = "else-statement";
 
                 break;
             }
 
             case EditActionType.InsertExpression: {
+                const expression = action.data?.expression as Expression;
+
                 this.insertExpression(context, action.data?.expression);
 
                 if (flashGreen) this.flashGreen(action.data?.expression);
+
+                this.setTokenColor(action.data?.expression, expression.color);
 
                 eventData.code = action.data?.expression?.getRenderText();
 
@@ -268,7 +272,9 @@ export class ActionExecutor {
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
                 if (statement.hasBody()) {
-                    let scopeHighlight = new ScopeHighlight(this.module.editor, statement);
+                    let scopeHighlight = new ScopeHighlight(this.module.editor, statement, statement.color);
+                } else {
+                    this.setTokenColor(action.data?.statement, statement.color);
                 }
 
                 eventData.code = action.data?.statement?.getRenderText();
@@ -298,7 +304,11 @@ export class ActionExecutor {
                 if (action.data?.replace) {
                     this.insertExpression(
                         context,
-                        new UnaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0])
+                        new UnaryOperatorExpr(
+                            Docs.NotDocs.styles.backgroundColor,
+                            action.data.operator,
+                            (context.token as TypedEmptyExpr).type[0]
+                        )
                     );
                 } else if (action.data?.wrap) {
                     const expr = context.expressionToRight as Expression;
@@ -307,6 +317,7 @@ export class ActionExecutor {
                     const root = expr.rootNode as Statement;
 
                     const newCode = new UnaryOperatorExpr(
+                        Docs.NotDocs.styles.backgroundColor,
                         action.data.operator,
                         expr.returns,
                         expr.returns,
@@ -582,7 +593,11 @@ export class ActionExecutor {
 
                 this.module.editor.executeEdits(rightTokenRange, rightToken);
 
-                const fStringToken = new FormattedStringCurlyBracketsExpr(formattedStringExpr, token.indexInRoot + 1);
+                const fStringToken = new FormattedStringCurlyBracketsExpr(
+                    Docs.NotDocs.styles.backgroundColor,
+                    formattedStringExpr,
+                    token.indexInRoot + 1
+                );
 
                 formattedStringExpr.tokens.splice(token.indexInRoot + 1, 0, ...[fStringToken]);
 
@@ -884,6 +899,7 @@ export class ActionExecutor {
                         const initialBoundary = this.getBoundaries(context.expressionToLeft);
 
                         const varAssignStmt = new VarAssignmentStmt(
+                            Docs.AddVarDocs.styles.backgroundColor,
                             "",
                             context.expressionToLeft.identifier,
                             varOpStmt.rootNode,
@@ -1080,7 +1096,11 @@ export class ActionExecutor {
                         toRight: true,
                     });
                 } else if (action.data.replace) {
-                    binExpr = new BinaryOperatorExpr(action.data.operator, (context.token as TypedEmptyExpr).type[0]);
+                    binExpr = new BinaryOperatorExpr(
+                        Docs.AddDocs.styles.backgroundColor,
+                        action.data.operator,
+                        (context.token as TypedEmptyExpr).type[0]
+                    );
                     this.insertExpression(context, binExpr);
                 }
 
@@ -1153,6 +1173,7 @@ export class ActionExecutor {
             case EditActionType.ConvertAutocompleteToString: {
                 const autocompleteToken = action.data.token as AutocompleteTkn;
                 const literalValExpr = new LiteralValExpr(
+                    Docs.StrDocs.styles.backgroundColor,
                     DataType.String,
                     autocompleteToken.text,
                     autocompleteToken.rootNode as Expression | Statement,
@@ -1170,7 +1191,7 @@ export class ActionExecutor {
             }
 
             case EditActionType.InsertEmptyList: {
-                const newLiteral = new ListLiteralExpression();
+                const newLiteral = new ListLiteralExpression(Docs.ListLiteralDocs.styles.backgroundColor);
                 this.insertExpression(context, newLiteral);
 
                 if (flashGreen) this.flashGreen(newLiteral);
@@ -1261,7 +1282,11 @@ export class ActionExecutor {
                 this.module.editor.cursor.setSelection(null);
                 currContext = this.module.focus.getContext();
 
-                const stmt = new ImportStatement(action.data?.moduleName, action.data?.itemName);
+                const stmt = new ImportStatement(
+                    Docs.ImportDocs.styles.backgroundColor,
+                    action.data?.moduleName,
+                    action.data?.itemName
+                );
                 const insertAction = new EditCodeAction(
                     "from --- import --- :",
                     "add-import-btn",
@@ -1370,7 +1395,19 @@ export class ActionExecutor {
                 break;
 
             case EditActionType.InsertLiteral: {
-                const newLiteral = new LiteralValExpr(action.data?.literalType, action.data?.initialValue);
+                let color: string;
+                if (action.data?.literalType == DataType.String) {
+                    color = Docs.StrDocs.styles.backgroundColor;
+                } else if (action.data?.literalType == DataType.Number) {
+                    color = Docs.NumDocs.styles.backgroundColor;
+                } else if (action.data?.literalType == DataType.Number) {
+                    color = Docs.NumDocs.styles.backgroundColor;
+                } else if (action.data?.literalType == DataType.Boolean && action.data?.initialValue == "True") {
+                    color = Docs.TrueDocs.styles.backgroundColor;
+                } else if (action.data?.literalType == DataType.Boolean && action.data?.initialValue == "False") {
+                    color = Docs.FalseDocs.styles.backgroundColor;
+                }
+                const newLiteral = new LiteralValExpr(color, action.data?.literalType, action.data?.initialValue);
                 this.insertExpression(context, newLiteral);
 
                 if (flashGreen) this.flashGreen(newLiteral);
@@ -1679,6 +1716,15 @@ export class ActionExecutor {
         }
     }
 
+    private setTokenColor(code: CodeConstruct, color: string) {
+        const aRgbHex = color.substring(1).match(/.{1,2}/g);
+        const aRgb = [parseInt(aRgbHex[0], 16), parseInt(aRgbHex[1], 16), parseInt(aRgbHex[2], 16)];
+
+        if (code) {
+            let highlight = new ConstructHighlight(this.module.editor, code, [aRgb[0], aRgb[1], aRgb[2], 1]);
+        }
+    }
+
     private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
             const root = focusedCode.rootNode;
@@ -1860,6 +1906,7 @@ export class ActionExecutor {
         const index = expr.indexInRoot;
 
         const newCode = new BinaryOperatorExpr(
+            Docs.AddDocs.styles.backgroundColor,
             op,
             expr.returns, // is not that important, will be replaced in the constructor based on the operator.
             root,
