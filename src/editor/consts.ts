@@ -1491,7 +1491,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new AugmentedAssignmentModifier(
                                     AssignAddDocs.styles.backgroundColor,
                                     AugmentedAssignmentOperator.Add
@@ -1502,7 +1502,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new AugmentedAssignmentModifier(
                                     AssignSubDocs.styles.backgroundColor,
                                     AugmentedAssignmentOperator.Subtract
@@ -1513,7 +1513,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new AugmentedAssignmentModifier(
                                     AssignMultDocs.styles.backgroundColor,
                                     AugmentedAssignmentOperator.Multiply
@@ -1524,7 +1524,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new AugmentedAssignmentModifier(
                                     AssignDivDocs.styles.backgroundColor,
                                     AugmentedAssignmentOperator.Divide
@@ -1545,7 +1545,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new AugmentedAssignmentModifier(
                                     AssignAddDocs.styles.backgroundColor,
                                     AugmentedAssignmentOperator.Add
@@ -1561,7 +1561,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(SplitDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     SplitDocs.styles.backgroundColor,
                                     "split",
@@ -1575,7 +1575,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(JoinDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     JoinDocs.styles.backgroundColor,
                                     "join",
@@ -1600,7 +1600,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(ReplaceDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     ReplaceDocs.styles.backgroundColor,
                                     "replace",
@@ -1617,7 +1617,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(FindDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     FindDocs.styles.backgroundColor,
                                     "find",
@@ -1636,7 +1636,7 @@ export class Actions {
                 [
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                                 new AssignmentModifier(AssignDocs.styles.backgroundColor),
                             ]),
@@ -1645,7 +1645,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     ListAppendDocs.styles.backgroundColor,
                                     "append",
@@ -1669,7 +1669,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                             ]),
                         "get item from {VAR_ID} at index",
@@ -1682,7 +1682,7 @@ export class Actions {
                 [
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                                 new AssignmentModifier(AssignDocs.styles.backgroundColor),
                             ]),
@@ -1691,7 +1691,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     ListAppendDocs.styles.backgroundColor,
                                     "append",
@@ -1715,7 +1715,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                             ]),
                         "get item from {VAR_ID} at index",
@@ -1728,7 +1728,7 @@ export class Actions {
                 [
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                                 new AssignmentModifier(AssignDocs.styles.backgroundColor),
                             ]),
@@ -1737,7 +1737,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     ListAppendDocs.styles.backgroundColor,
                                     "append",
@@ -1761,7 +1761,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                             ]),
                         "get item from {VAR_ID} at index",
@@ -1774,7 +1774,7 @@ export class Actions {
                 [
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                                 new AssignmentModifier(AssignDocs.styles.backgroundColor),
                             ]),
@@ -1783,7 +1783,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
                                     ListAppendDocs.styles.backgroundColor,
                                     "append",
@@ -1807,7 +1807,7 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
                                 new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
                             ]),
                         "get item from {VAR_ID} at index",

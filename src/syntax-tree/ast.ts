@@ -1735,8 +1735,10 @@ export class VariableReferenceExpr extends Expression {
 export class ValueOperationExpr extends Expression {
     isVarSet = false;
 
-    constructor(value: Expression, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
+    constructor(color: string, value: Expression, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
         super(value != null ? value.returns : DataType.Void);
+
+        this.color = color;
 
         if (value != null) {
             value.indexInRoot = this.tokens.length;
@@ -1793,8 +1795,16 @@ export class ValueOperationExpr extends Expression {
 export class VarOperationStmt extends Statement {
     isVarSet = false;
 
-    constructor(ref: VariableReferenceExpr, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
+    constructor(
+        color: string,
+        ref: VariableReferenceExpr,
+        modifiers?: Array<Modifier>,
+        root?: Statement,
+        indexInRoot?: number
+    ) {
         super();
+
+        this.color = color;
 
         if (ref != null) {
             ref.indexInRoot = this.tokens.length;

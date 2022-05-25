@@ -293,6 +293,8 @@ export class ActionExecutor {
 
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
+                this.setTokenColor(action.data?.statement, statement.color);
+
                 eventData.code = "var-assignment";
                 eventData.id = id;
 
@@ -911,6 +913,8 @@ export class ActionExecutor {
                         this.module.focus.updateContext(varAssignStmt.getInitialFocus());
 
                         if (flashGreen) this.flashGreen(varAssignStmt);
+
+                        this.setTokenColor(varAssignStmt, varAssignStmt.color);
                     } else {
                         if (
                             context.expressionToLeft instanceof VariableReferenceExpr &&
@@ -926,6 +930,8 @@ export class ActionExecutor {
                         this.module.focus.updateContext(action.data.modifier.getInitialFocus());
 
                         if (flashGreen) this.flashGreen(action.data.modifier);
+
+                        this.setTokenColor(action.data.modifier, action.data.modifier.color);
                     }
                 }
 
@@ -1018,6 +1024,7 @@ export class ActionExecutor {
                     const holeDataTypes = exprToLeftRoot.typeOfHoles[context.expressionToLeft.indexInRoot];
 
                     const valOprExpr = new ValueOperationExpr(
+                        Docs.AddVarDocs.styles.backgroundColor,
                         context.expressionToLeft,
                         [modifier],
                         context.expressionToLeft.rootNode,
@@ -1078,6 +1085,9 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(action.data.modifier);
+
+                this.setTokenColor(action.data.modifier, action.data.modifier.color);
+
                 eventData.code = action.data.modifier.getRenderText();
 
                 break;
@@ -1104,6 +1114,9 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(binExpr);
+
+                this.setTokenColor(binExpr, binExpr.color);
+
                 eventData.code = action.data.operator;
 
                 break;
@@ -1163,6 +1176,9 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(newCode);
+
+                this.setTokenColor(newCode, newCode.color);
+
                 eventData.code = action.data.expression.getRenderText();
                 eventData.wrap = true;
 
@@ -1194,6 +1210,9 @@ export class ActionExecutor {
                 this.insertExpression(context, newLiteral);
 
                 if (flashGreen) this.flashGreen(newLiteral);
+
+                this.setTokenColor(newLiteral, newLiteral.color);
+
                 eventData.code = "empty-list";
 
                 break;
@@ -1249,9 +1268,9 @@ export class ActionExecutor {
                     ) {
                         replacementTkn = rootNode.tokens[i];
                     }
-                    this.replaceCode(rootNode, replacementTkn);
-                    break;
                 }
+                this.replaceCode(rootNode, replacementTkn);
+                break;
             }
 
             case EditActionType.InsertImportFromDraftMode: {
@@ -1303,6 +1322,8 @@ export class ActionExecutor {
 
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
 
+                this.setTokenColor(action.data.codeToReplace.rootNode, action.data.codeToReplace.rootNode.color);
+
                 if (root instanceof Expression) root.validateTypes(this.module);
 
                 eventData.code = action.data.codeToReplace.getRenderText();
@@ -1326,6 +1347,8 @@ export class ActionExecutor {
                 action.data.codeToReplace.draftModeEnabled = false;
                 this.insertExpression(this.module.focus.getContext(), action.data.codeToReplace as Expression);
                 this.flashGreen(action.data.codeToReplace.rootNode as CodeConstruct);
+
+                this.setTokenColor(action.data.codeToReplace.rootNode, action.data.codeToReplace.rootNode.color);
 
                 if (root instanceof Expression) root.validateTypes(this.module);
                 eventData.code = action.data.codeToReplace.getRenderText();
@@ -1392,6 +1415,8 @@ export class ActionExecutor {
                 this.insertExpression(context, newLiteral);
 
                 if (flashGreen) this.flashGreen(newLiteral);
+
+                this.setTokenColor(newLiteral, newLiteral.color);
 
                 if (action.data?.source?.type === "keyboard") {
                     eventType = LogType.InsertCode;
@@ -1481,6 +1506,9 @@ export class ActionExecutor {
                 }
 
                 if (flashGreen) this.flashGreen(action.data.operator);
+
+                this.setTokenColor(action.data.operator, action.data.operator.color);
+
                 eventData.code = action.data.operator.getRenderText();
 
                 break;
@@ -1531,7 +1559,7 @@ export class ActionExecutor {
 
         if (this.module.validator.onBeginningOfLine(context)) {
             const varRef = this.createVarReference(buttonId);
-            const stmt = new VarOperationStmt(varRef);
+            const stmt = new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, varRef);
             this.replaceEmptyStatement(context.lineStatement, stmt);
 
             const availableActions = this.module.actionFilter
@@ -1580,6 +1608,8 @@ export class ActionExecutor {
 
             if (autocompleteData) {
                 this.flashGreen(stmt);
+
+                this.setTokenColor(stmt, stmt.color);
             }
 
             eventData.code = varRef.getRenderText();
@@ -1589,6 +1619,8 @@ export class ActionExecutor {
 
             if (autocompleteData) {
                 this.flashGreen(expr);
+
+                this.setTokenColor(expr, expr.color);
             }
 
             eventData.code = expr.getRenderText();
@@ -1705,6 +1737,8 @@ export class ActionExecutor {
             let highlight = new ConstructHighlight(this.module.editor, code, [aRgb[0], aRgb[1], aRgb[2], 1]);
         }
     }
+
+    private setAugmentedAssignmentModifierColor(code: CodeConstruct) {}
 
     private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
@@ -2122,6 +2156,10 @@ export class ActionExecutor {
             }
 
             root.rebuild(root.getLeftPosition(), 0);
+
+            if (replace instanceof Statement) {
+                this.setTokenColor(replace, replace.color);
+            }
 
             this.module.editor.executeEdits(replacementRange, replace);
 

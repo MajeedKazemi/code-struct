@@ -178,7 +178,7 @@ export class ToolboxController {
 
         const toolboxCategories = Actions.instance().toolboxCategories;
         const hello = Actions.instance().actionsMap;
-        console.log(hello);
+
         for (const constructGroup of toolboxCategories) {
             if (constructGroup) {
                 let categoryDiv;
