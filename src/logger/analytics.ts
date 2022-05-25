@@ -1,6 +1,8 @@
 import { sendEventsBatch } from "./requests";
 import { getUser } from "./user";
 
+export const ANALYTICS_ENABLED = false;
+
 export enum LogType {
     DraftHelpUsed = "draft-help-used", // data: { type: "add-double-quotes"}
     InsertCode = "insert-code", // data: source: "keyboard" | "autocomplete" | "autocomplete-menu" | "draft-mode" | "defined-vars"
@@ -31,7 +33,7 @@ export class Logger {
         this.interval = interval;
         this.dispatchEvents = this.dispatchEvents.bind(this);
 
-        setInterval(this.dispatchEvents, interval);
+        if (ANALYTICS_ENABLED) setInterval(this.dispatchEvents, interval);
     }
 
     static Instance() {
@@ -41,14 +43,16 @@ export class Logger {
     }
 
     queueEvent(event: LogEvent) {
-        console.log(event);
-        this.queue.push(event);
+        if (ANALYTICS_ENABLED) {
+            console.log(event);
+            this.queue.push(event);
 
-        if (this.queue.length >= this.maxSize) this.dispatchEvents();
+            if (this.queue.length >= this.maxSize) this.dispatchEvents();
+        }
     }
 
     dispatchEvents() {
-        if (this.queue.length === 0) return;
+        if (this.queue.length === 0 || !ANALYTICS_ENABLED) return;
 
         sendEventsBatch(this.queue, getUser(), "nova-editor")
             .then(() => {
