@@ -8,6 +8,8 @@
     transition-duration: 0.2s;
 
     border-radius: 5px;
+    background-color: white;
+    z-index: -998;
 }
 
 .editableHole {
@@ -29,7 +31,7 @@
 
 .text-editable-expr-hole {
     border-radius: 15px !important;
-    border-style: dashed !important;
+    border-style: dashed !important;  
 }
 
 .empty-operator-hole {

@@ -1416,7 +1416,7 @@ export class ActionExecutor {
 
                 if (flashGreen) this.flashGreen(newLiteral);
 
-                this.setTokenColor(newLiteral, newLiteral.color);
+                // this.setTokenColor(newLiteral, newLiteral.color);
 
                 if (action.data?.source?.type === "keyboard") {
                     eventType = LogType.InsertCode;
@@ -1609,7 +1609,7 @@ export class ActionExecutor {
             if (autocompleteData) {
                 this.flashGreen(stmt);
 
-                this.setTokenColor(stmt, stmt.color);
+                // this.setTokenColor(stmt, stmt.color);
             }
 
             eventData.code = varRef.getRenderText();
@@ -1620,7 +1620,7 @@ export class ActionExecutor {
             if (autocompleteData) {
                 this.flashGreen(expr);
 
-                this.setTokenColor(expr, expr.color);
+                // this.setTokenColor(expr, expr.color);
             }
 
             eventData.code = expr.getRenderText();

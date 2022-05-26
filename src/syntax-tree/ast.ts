@@ -222,6 +222,8 @@ export abstract class Statement implements CodeConstruct {
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
 
+        this.color = "transparent";
+
         this.subscribe(
             CallbackType.delete,
             new Callback(() => {
