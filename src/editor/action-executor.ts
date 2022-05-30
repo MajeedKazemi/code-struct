@@ -2157,7 +2157,7 @@ export class ActionExecutor {
 
             root.rebuild(root.getLeftPosition(), 0);
 
-            if (replace instanceof Statement) {
+            if (replace instanceof Statement && !(replace instanceof LiteralValExpr)) {
                 this.setTokenColor(replace, replace.color);
             }
 
