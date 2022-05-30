@@ -125,10 +125,10 @@ export class Hole {
         code.subscribe(
             CallbackType.fail,
             new Callback(() => {
-                hole.element.style.background = `rgba(255, 0, 0, 0.06)`;
+                hole.element.style.background = `rgba(255, 0, 0, 0.25)`;
 
                 setTimeout(() => {
-                    hole.element.style.background = `rgba(255, 0, 0, 0)`;
+                    hole.element.style.background = `rgba(255, 255, 255, 1)`;
                 }, 1000);
             })
         );
