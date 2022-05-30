@@ -203,10 +203,11 @@ export class ConstructHighlight extends CodeHighlight {
 
             if (this.code instanceof Expression) {
                 top = (selection.startLineNumber - 1) * this.editor.computeCharHeight() + 5;
-                left = transform.x;
+                left = transform.x - 5;
                 height = Math.floor(this.editor.computeCharHeight() * 0.95) - 10;
                 width =
-                    (selection.endColumn - selection.startColumn) * this.editor.computeCharWidthInvisible(lineNumber);
+                    (selection.endColumn - selection.startColumn) * this.editor.computeCharWidthInvisible(lineNumber) +
+                    10;
             } else {
                 top = (selection.startLineNumber - 1) * this.editor.computeCharHeight();
                 left = transform.x;
