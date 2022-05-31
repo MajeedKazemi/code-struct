@@ -1269,7 +1269,9 @@ export class ActionExecutor {
                         replacementTkn = rootNode.tokens[i];
                     }
                 }
+
                 this.replaceCode(rootNode, replacementTkn);
+
                 break;
             }
 

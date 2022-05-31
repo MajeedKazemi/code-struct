@@ -42,8 +42,6 @@ export class Hole {
         this.element = element;
         const hole = this;
 
-        Hole.holes.push(hole);
-
         if (code instanceof EmptyOperatorTkn) this.element.classList.add("empty-operator-hole");
         else if (code instanceof IdentifierTkn) this.element.classList.add("identifier-hole");
         else if (code instanceof EditableTextTkn) {
