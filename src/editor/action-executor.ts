@@ -931,7 +931,7 @@ export class ActionExecutor {
 
                         if (flashGreen) this.flashGreen(action.data.modifier);
 
-                        this.setTokenColor(action.data.modifier, action.data.modifier.color);
+                        // this.setTokenColor(action.data.modifier, action.data.modifier.color);
                     }
                 }
 
@@ -1598,7 +1598,11 @@ export class ActionExecutor {
                                 }),
                                 this.module.focus.getContext()
                             );
-                            this.flashGreen(modifier.rootNode as Statement);
+
+                            const varOpStmt = modifier.rootNode as Statement;
+
+                            this.flashGreen(varOpStmt);
+                            this.setTokenColor(varOpStmt, varOpStmt.color);
                         });
 
                         buttons.push(button);
@@ -1611,7 +1615,7 @@ export class ActionExecutor {
             if (autocompleteData) {
                 this.flashGreen(stmt);
 
-                // this.setTokenColor(stmt, stmt.color);
+                this.setTokenColor(stmt, stmt.color);
             }
 
             eventData.code = varRef.getRenderText();
@@ -1622,7 +1626,7 @@ export class ActionExecutor {
             if (autocompleteData) {
                 this.flashGreen(expr);
 
-                // this.setTokenColor(expr, expr.color);
+                this.setTokenColor(expr, expr.color);
             }
 
             eventData.code = expr.getRenderText();
