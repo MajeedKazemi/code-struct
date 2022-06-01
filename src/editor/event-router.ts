@@ -135,7 +135,10 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
-                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                    if (
+                        this.module.validator.isAugmentedAssignmentModifierStatement(context) ||
+                        this.module.validator.isMethodCallModifierStatement(context)
+                    ) {
                         return new EditAction(EditActionType.DeleteStatement);
                     }
                     if (context.token.rootNode instanceof ast.Expression) {
@@ -201,7 +204,10 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
-                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                    if (
+                        this.module.validator.isAugmentedAssignmentModifierStatement(context) ||
+                        this.module.validator.isMethodCallModifierStatement(context)
+                    ) {
                         return new EditAction(EditActionType.DeleteStatement);
                     }
                     if (context.token.rootNode instanceof ast.Expression) {
