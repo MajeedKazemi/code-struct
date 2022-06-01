@@ -708,13 +708,11 @@ export class ScopeHighlight {
     protected createDomElement(color: string): void {
         this.headerElement = document.createElement("div");
         this.headerElement.classList.add("scope-header-highlight");
-        // this.headerElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
         this.headerElement.style.backgroundColor = color;
         this.headerElement.style.opacity = "0.25";
 
-        https: this.bodyElement = document.createElement("div");
+        this.bodyElement = document.createElement("div");
         this.bodyElement.classList.add("scope-body-highlight");
-        // this.bodyElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
         this.bodyElement.style.backgroundColor = color;
         this.bodyElement.style.opacity = "0.25";
 
@@ -750,7 +748,7 @@ export class ScopeHighlight {
         this.headerElement.style.top = `${headerDim.top}px`;
         this.headerElement.style.left = `${headerDim.left}px`;
 
-        this.headerElement.style.width = `${maxRight - headerDim.left}px`;
+        this.headerElement.style.width = `${maxRight - headerDim.left + 10}px`;
         this.headerElement.style.height = `${headerDim.height}px`;
 
         let firstLineInBody = this.statement.body[0];
@@ -765,7 +763,7 @@ export class ScopeHighlight {
         this.bodyElement.style.top = `${firstLineInBodyDim.top}px`;
         this.bodyElement.style.left = `${firstLineInBodyDim.left - 10}px`;
 
-        this.bodyElement.style.width = `${maxRight - firstLineInBodyDim.left + 10}px`;
+        this.bodyElement.style.width = `${maxRight - firstLineInBodyDim.left + 20}px`;
         this.bodyElement.style.height = `${headerDim.height * (maxLineNumber - this.statement.lineNumber)}px`;
     }
 
