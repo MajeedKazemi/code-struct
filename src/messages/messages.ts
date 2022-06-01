@@ -190,11 +190,11 @@ export class ConstructHighlight extends CodeHighlight {
             const text = this.code.getRenderText();
 
             top = transform.y + 5;
-            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible(lineNumber);
+            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible(lineNumber) - 4;
 
             width =
                 text.length * this.editor.computeCharWidthInvisible(lineNumber) > 0
-                    ? text.length * this.editor.computeCharWidthInvisible(lineNumber)
+                    ? text.length * this.editor.computeCharWidthInvisible(lineNumber) + 10
                     : HIGHLIGHT_DEFAULT_WIDTH;
             height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
         } else {
