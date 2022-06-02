@@ -1744,8 +1744,6 @@ export class ActionExecutor {
         }
     }
 
-    private setAugmentedAssignmentModifierColor(code: CodeConstruct) {}
-
     private insertEmptyListItem(focusedCode: CodeConstruct, index: number, items: Array<CodeConstruct>) {
         if (focusedCode instanceof Token || focusedCode instanceof Expression) {
             const root = focusedCode.rootNode;
