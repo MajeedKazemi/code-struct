@@ -32,6 +32,7 @@ class Menu {
     static menuCount = 0;
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
+    searchBar: HTMLInputElement;
 
     private optionsInViewPort;
 
@@ -42,6 +43,9 @@ class Menu {
         document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
 
         Menu.menuCount++;
+
+        this.searchBar = document.createElement("input");
+        this.htmlElement.appendChild(this.searchBar);
 
         for (const [key, value] of options) {
             const option = new MenuOption(key, false, null, this, null, value);
