@@ -1,4 +1,4 @@
-# Nova Editor
+# CodeStruct
 A new text-based environment that helps beginners transition into conventional text-based programming environments.
 
 Features:
@@ -7,7 +7,7 @@ Features:
 - provides learning moments on invalid attempts
 - provides hints and visual descriptions
 
-Authoring code with Nova:
+Authoring code with CodeStruct:
 - Cursor-aware Toolbox
 - Suggestion Menus and Autocomplete
 - Draft Mode Editing
