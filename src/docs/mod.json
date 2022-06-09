@@ -11,5 +11,8 @@
             "example": "print((29 % 5)) # prints 4\nprint((28 % 5)) # prints 3\nprint((27 % 5)) # prints 2\nprint((26 % 5)) # prints 1\nprint((25 % 5)) # prints 0"
         }
     ],
-    "search-queries": ["modulo", "remainder"]
+    "search-queries": ["modulo", "remainder"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

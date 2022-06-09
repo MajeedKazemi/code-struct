@@ -18,7 +18,6 @@ export class Editor {
     module: Module;
     cursor: Cursor;
     monaco: editor.IStandaloneCodeEditor;
-    holes: Hole[];
     mousePosWindow: number[] = [0, 0];
     scrollOffsetTop: number = 0;
     oldCursorLineNumber: number = 1;
@@ -310,7 +309,7 @@ export class Editor {
         });
 
         this.cursor = new Cursor(this);
-        this.holes = [];
+        Hole.holes = [];
         this.module = module;
     }
 
@@ -322,7 +321,7 @@ export class Editor {
     }
 
     addHoles(code: CodeConstruct) {
-        for (const hole of this.holes) if (hole.code == code) return;
+        for (const hole of Hole.holes) if (hole.code == code) return;
 
         if (
             code instanceof EditableTextTkn ||
@@ -330,9 +329,9 @@ export class Editor {
             code instanceof IdentifierTkn ||
             code instanceof EmptyOperatorTkn
         ) {
-            this.holes.push(new Hole(this, code));
+            Hole.holes.push(new Hole(this, code));
         } else if (code instanceof Statement) {
-            const statement = <Statement>code;
+            const statement = code as Statement;
             statement.tokens.forEach((token) => this.addHoles(token));
         }
     }
@@ -463,7 +462,7 @@ export class Editor {
 
     reset() {
         this.monaco.getModel().setValue("");
-        this.holes.forEach((hole) => hole.remove());
-        this.holes = [];
+        Hole.holes.forEach((hole) => hole.remove());
+        Hole.holes = [];
     }
 }

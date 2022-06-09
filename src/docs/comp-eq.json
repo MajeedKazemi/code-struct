@@ -16,5 +16,8 @@
             "example": "a = 5\nb = 5\nwhile a == b:\n\ta += 1\nprint(a)\nprint(a)"
         }
     ],
-    "search-queries": ["compare equal", "check equal", "are equal"]
+    "search-queries": ["compare equal", "check equal", "are equal"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

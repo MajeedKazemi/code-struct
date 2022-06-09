@@ -2,7 +2,7 @@ import { Selection } from "monaco-editor";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { nova } from "../index";
-import { CodeConstruct, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
+import { CodeConstruct, Expression, Statement, TypedEmptyExpr } from "../syntax-tree/ast";
 import { Callback, CallbackType } from "../syntax-tree/callback";
 
 /**
@@ -127,6 +127,10 @@ export class ConstructHighlight extends CodeHighlight {
     constructor(editor: Editor, codeToHighlight: CodeConstruct, rgbColour: [number, number, number, number]) {
         super(editor, codeToHighlight);
         this.changeHighlightColour(rgbColour);
+
+        if (codeToHighlight instanceof Expression) {
+            this.domElement.style.borderRadius = "20px";
+        }
     }
 
     protected createDomElement() {
@@ -186,21 +190,32 @@ export class ConstructHighlight extends CodeHighlight {
             const text = this.code.getRenderText();
 
             top = transform.y + 5;
-            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible(lineNumber);
+            left = (this.code.getSelection().startColumn - 1) * this.editor.computeCharWidthInvisible(lineNumber) - 4;
 
             width =
                 text.length * this.editor.computeCharWidthInvisible(lineNumber) > 0
-                    ? text.length * this.editor.computeCharWidthInvisible(lineNumber)
+                    ? text.length * this.editor.computeCharWidthInvisible(lineNumber) + 10
                     : HIGHLIGHT_DEFAULT_WIDTH;
             height = transform.height > 0 ? transform.height - 5 * 2 : HIGHLIGHT_DEFAULT_HEIGHT;
         } else {
             const selection = this.code.getSelection();
             const transform = this.editor.computeBoundingBox(selection);
 
-            top = (selection.startLineNumber - 1) * this.editor.computeCharHeight();
-            left = transform.x;
-            height = Math.floor(this.editor.computeCharHeight() * 0.95);
-            width = (selection.endColumn - selection.startColumn) * this.editor.computeCharWidthInvisible(lineNumber);
+            if (this.code instanceof Expression) {
+                top = (selection.startLineNumber - 1) * this.editor.computeCharHeight() + 5;
+                left = transform.x - 5;
+                height = Math.floor(this.editor.computeCharHeight() * 0.95) - 10;
+                width =
+                    (selection.endColumn - selection.startColumn) * this.editor.computeCharWidthInvisible(lineNumber) +
+                    10;
+            } else {
+                top = (selection.startLineNumber - 1) * this.editor.computeCharHeight();
+                left = transform.x;
+                height = Math.floor(this.editor.computeCharHeight() * 0.95);
+                width =
+                    (selection.endColumn - selection.startColumn) * this.editor.computeCharWidthInvisible(lineNumber) +
+                    10;
+            }
         }
 
         if (firstInsertion) {
@@ -636,14 +651,14 @@ export class ScopeHighlight {
      */
     private callbacks: Map<string, CallbackType>;
 
-    constructor(editor: Editor, statement: Statement) {
+    constructor(editor: Editor, statement: Statement, color: string) {
         this.statement = statement;
         this.selection = this.statement.getSelection();
         this.editor = editor;
 
         this.callbacks = new Map<string, CallbackType>();
 
-        this.createDomElement();
+        this.createDomElement(color);
         ScopeHighlight.idCounter++;
         this.headerElement.id = `scope-header-${ScopeHighlight.idPrefix}-${ScopeHighlight.idCounter}`;
         this.bodyElement.id = `scope-body-${ScopeHighlight.idPrefix}-${ScopeHighlight.idCounter}`;
@@ -690,14 +705,16 @@ export class ScopeHighlight {
     /**
      * Construct the DOM element for this visual.
      */
-    protected createDomElement(): void {
+    protected createDomElement(color: string): void {
         this.headerElement = document.createElement("div");
         this.headerElement.classList.add("scope-header-highlight");
-        this.headerElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
+        this.headerElement.style.backgroundColor = color;
+        this.headerElement.style.opacity = "0.25";
 
         this.bodyElement = document.createElement("div");
         this.bodyElement.classList.add("scope-body-highlight");
-        this.bodyElement.style.backgroundColor = "rgba(75, 200, 255, 0.125)";
+        this.bodyElement.style.backgroundColor = color;
+        this.bodyElement.style.opacity = "0.25";
 
         this.updateDimensions();
 
@@ -731,7 +748,7 @@ export class ScopeHighlight {
         this.headerElement.style.top = `${headerDim.top}px`;
         this.headerElement.style.left = `${headerDim.left}px`;
 
-        this.headerElement.style.width = `${maxRight - headerDim.left}px`;
+        this.headerElement.style.width = `${maxRight - headerDim.left + 10}px`;
         this.headerElement.style.height = `${headerDim.height}px`;
 
         let firstLineInBody = this.statement.body[0];
@@ -744,9 +761,9 @@ export class ScopeHighlight {
         }
 
         this.bodyElement.style.top = `${firstLineInBodyDim.top}px`;
-        this.bodyElement.style.left = `${firstLineInBodyDim.left}px`;
+        this.bodyElement.style.left = `${firstLineInBodyDim.left - 10}px`;
 
-        this.bodyElement.style.width = `${maxRight - firstLineInBodyDim.left}px`;
+        this.bodyElement.style.width = `${maxRight - firstLineInBodyDim.left + 20}px`;
         this.bodyElement.style.height = `${headerDim.height * (maxLineNumber - this.statement.lineNumber)}px`;
     }
 

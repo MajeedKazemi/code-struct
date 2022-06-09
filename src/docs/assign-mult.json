@@ -11,5 +11,8 @@
             "example": "a = 5\na *= 2\nprint(a)"
         }
     ],
-    "search-queries": ["multiply variable"]
+    "search-queries": ["multiply variable"],
+    "styles":{
+        "backgroundColor": "#ebba8a"
+    }
 }

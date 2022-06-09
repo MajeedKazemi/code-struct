@@ -17,6 +17,7 @@ import {
     ImportStatement,
     ListLiteralExpression,
     LiteralValExpr,
+    MethodCallModifier,
     Modifier,
     NonEditableTkn,
     OperatorTkn,
@@ -403,6 +404,20 @@ export class Validator {
         const rootNode = context.token.rootNode;
 
         if (rootNode instanceof AugmentedAssignmentModifier) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * logic: checks if rootNode is instanceof MethodCallModifier
+     */
+    isMethodCallModifierStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode;
+
+        if (rootNode instanceof MethodCallModifier) {
             return true;
         }
 

@@ -16,5 +16,8 @@
             "example": "a = [1, 2, 3]\nif a[1] == 2:\n\tprint(\"The second element of the list is equal to 2.\")"
         }
     ],
-    "search-queries": ["access list item", "access list element", "access list element at index"]
+    "search-queries": ["access list item", "access list element", "access list element at index"],
+    "styles":{
+        "backgroundColor": "#7c8ee6"
+    }
 }

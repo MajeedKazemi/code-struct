@@ -16,5 +16,8 @@
             "example": "a = \"hello\"\nb = \"world\"\nprint((a + \" \" + b))"
         }
     ],
-    "search-queries": ["add", "sum"]
+    "search-queries": ["add", "sum"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

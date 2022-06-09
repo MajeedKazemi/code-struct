@@ -42,8 +42,6 @@ export class Hole {
         this.element = element;
         const hole = this;
 
-        Hole.holes.push(hole);
-
         if (code instanceof EmptyOperatorTkn) this.element.classList.add("empty-operator-hole");
         else if (code instanceof IdentifierTkn) this.element.classList.add("identifier-hole");
         else if (code instanceof EditableTextTkn) {
@@ -125,10 +123,10 @@ export class Hole {
         code.subscribe(
             CallbackType.fail,
             new Callback(() => {
-                hole.element.style.background = `rgba(255, 0, 0, 0.06)`;
+                hole.element.style.background = `rgba(255, 0, 0, 0.25)`;
 
                 setTimeout(() => {
-                    hole.element.style.background = `rgba(255, 0, 0, 0)`;
+                    hole.element.style.background = `rgba(255, 255, 255, 1)`;
                 }, 1000);
             })
         );
@@ -155,11 +153,11 @@ export class Hole {
             }
         }
 
-        this.element.style.top = `${transform.y + 5}px`;
+        this.element.style.top = `${transform.y + 5 + 4}px`;
         this.element.style.left = `${transform.x - leftPadding}px`;
 
         this.element.style.width = `${transform.width + rightPadding}px`;
-        this.element.style.height = `${transform.height - 5 * 2}px`;
+        this.element.style.height = `${transform.height - 5 * 2 - 10}px`;
     }
 
     remove() {

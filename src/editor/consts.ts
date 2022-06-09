@@ -287,6 +287,61 @@ export enum InsertActionType {
     InsertOperatorTkn,
 }
 
+export const Docs: any = {
+    AddVarDocs,
+    AddDocs,
+    AndDocs,
+    AssignAddDocs,
+    AssignDivDocs,
+    AssignMultDocs,
+    AssignSubDocs,
+    AssignDocs,
+    BreakDocs,
+    RandChoiceDocs,
+    CompEqDocs,
+    CompGtDocs,
+    CompGteDocs,
+    CompLtDocs,
+    CompLteDocs,
+    CompNeDocs,
+    DivDocs,
+    ElifDocs,
+    ElseDocs,
+    FStringItemDocs,
+    FStringDocs,
+    FalseDocs,
+    FindDocs,
+    FloorDivDocs,
+    ForDocs,
+    IfDocs,
+    ImportDocs,
+    InDocs,
+    InputDocs,
+    JoinDocs,
+    LenDocs,
+    ListAppendDocs,
+    ListIndexDocs,
+    ListItemDocs,
+    ListLiteralDocs,
+    ModDocs,
+    MultDocs,
+    NotInDocs,
+    NotDocs,
+    NumDocs,
+    OrDocs,
+    PrintDocs,
+    RandintDocs,
+    RangeDocs,
+    ReplaceDocs,
+    SplitDocs,
+    StrDocs,
+    SubDocs,
+    CastToIntDocs,
+    CastToStrDocs,
+    TrueDocs,
+    WhileDocs,
+};
+
 export class Actions {
     private static inst: Actions;
     actionsList: Array<EditCodeAction>;
@@ -298,7 +353,10 @@ export class Actions {
         const PrintStmt = new EditCodeAction(
             "print(---)",
             "add-print-btn",
-            () => new FunctionCallStmt("print", [new Argument([DataType.Any], "item", false)]),
+            () =>
+                new FunctionCallStmt(PrintDocs.styles.backgroundColor, "print", [
+                    new Argument([DataType.Any], "item", false),
+                ]),
             InsertActionType.InsertPrintFunctionStmt,
             {},
             PrintDocs,
@@ -312,6 +370,7 @@ export class Actions {
             "add-randint-btn",
             () =>
                 new FunctionCallExpr(
+                    RandintDocs.styles.backgroundColor,
                     "randint",
                     [new Argument([DataType.Number], "start", false), new Argument([DataType.Number], "end", false)],
                     DataType.Number,
@@ -332,6 +391,7 @@ export class Actions {
             "add-choice-btn",
             () =>
                 new FunctionCallExpr(
+                    RandChoiceDocs.styles.backgroundColor,
                     "choice",
                     [new Argument([DataType.AnyList], "choices", false)],
                     DataType.Any,
@@ -350,7 +410,13 @@ export class Actions {
         const RangeExpr = new EditCodeAction(
             "range(---)",
             "add-range-btn",
-            () => new FunctionCallExpr("range", [new Argument([DataType.Number], "end", false)], DataType.NumberList),
+            () =>
+                new FunctionCallExpr(
+                    RangeDocs.styles.backgroundColor,
+                    "range",
+                    [new Argument([DataType.Number], "end", false)],
+                    DataType.NumberList
+                ),
             InsertActionType.InsertExpression,
             {},
             RangeDocs,
@@ -364,6 +430,7 @@ export class Actions {
             "add-len-btn",
             () =>
                 new FunctionCallExpr(
+                    LenDocs.styles.backgroundColor,
                     "len",
                     [
                         new Argument(
@@ -391,7 +458,13 @@ export class Actions {
         const InputExpr = new EditCodeAction(
             "input(---)",
             "add-input-btn",
-            () => new FunctionCallExpr("input", [new Argument([DataType.String], "prompt", true)], DataType.String),
+            () =>
+                new FunctionCallExpr(
+                    InputDocs.styles.backgroundColor,
+                    "input",
+                    [new Argument([DataType.String], "prompt", true)],
+                    DataType.String
+                ),
             InsertActionType.InsertInputExpr,
             {},
             InputDocs,
@@ -403,7 +476,7 @@ export class Actions {
         const StringLiteralExpr = new EditCodeAction(
             '""',
             "add-str-btn",
-            () => new LiteralValExpr(DataType.String, ""),
+            () => new LiteralValExpr(StrDocs.styles.backgroundColor, DataType.String, ""),
             InsertActionType.InsertLiteral,
             {
                 literalType: DataType.String,
@@ -418,7 +491,7 @@ export class Actions {
         const FormattedStringLiteralExpr = new EditCodeAction(
             "f''",
             "add-f-str-literal-btn",
-            () => new FormattedStringExpr(""),
+            () => new FormattedStringExpr(FStringDocs.styles.backgroundColor, ""),
             InsertActionType.InsertExpression,
             {},
             FStringDocs,
@@ -430,7 +503,7 @@ export class Actions {
         const FormattedStringItem = new EditCodeAction(
             "{}",
             "add-f-str-item-btn",
-            () => new FormattedStringCurlyBracketsExpr(),
+            () => new FormattedStringCurlyBracketsExpr(FStringDocs.styles.backgroundColor),
             InsertActionType.InsertFormattedStringItem,
             {},
             FStringItemDocs,
@@ -442,7 +515,7 @@ export class Actions {
         const NumberLiteralExpr = new EditCodeAction(
             "0",
             "add-num-btn",
-            () => new LiteralValExpr(DataType.Number, "0"),
+            () => new LiteralValExpr(NumDocs.styles.backgroundColor, DataType.Number, "0"),
             InsertActionType.InsertExpression,
             {
                 literalType: DataType.Number,
@@ -457,7 +530,7 @@ export class Actions {
         const BooleanTrueLiteralExpr = new EditCodeAction(
             "True",
             "add-true-btn",
-            () => new LiteralValExpr(DataType.Boolean, "True"),
+            () => new LiteralValExpr(TrueDocs.styles.backgroundColor, DataType.Boolean, "True"),
             InsertActionType.InsertExpression,
             {
                 literalType: DataType.Boolean,
@@ -473,7 +546,7 @@ export class Actions {
         const BooleanFalseLiteralExpr = new EditCodeAction(
             "False",
             "add-false-btn",
-            () => new LiteralValExpr(DataType.Boolean, "False"),
+            () => new LiteralValExpr(FalseDocs.styles.backgroundColor, DataType.Boolean, "False"),
             InsertActionType.InsertLiteral,
             {
                 literalType: DataType.Boolean,
@@ -489,7 +562,7 @@ export class Actions {
         const BinAddExpr = new EditCodeAction(
             "--- + ---",
             "add-bin-add-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Add, DataType.Number), //NOTE: For + this will be reassigned in the constructor
+            () => new BinaryOperatorExpr(AddDocs.styles.backgroundColor, BinaryOperator.Add, DataType.Number), //NOTE: For + this will be reassigned in the constructor
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.Add,
@@ -503,7 +576,7 @@ export class Actions {
         const BinSubExpr = new EditCodeAction(
             "--- - ---",
             "add-bin-sub-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Subtract, DataType.Number),
+            () => new BinaryOperatorExpr(SubDocs.styles.backgroundColor, BinaryOperator.Subtract, DataType.Number),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.Subtract,
@@ -517,7 +590,7 @@ export class Actions {
         const BinMultExpr = new EditCodeAction(
             "--- * ---",
             "add-bin-mul-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Multiply, DataType.Number),
+            () => new BinaryOperatorExpr(MultDocs.styles.backgroundColor, BinaryOperator.Multiply, DataType.Number),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.Multiply,
@@ -531,7 +604,7 @@ export class Actions {
         const BinDivExpr = new EditCodeAction(
             "--- / ---",
             "add-bin-div-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Divide, DataType.Number),
+            () => new BinaryOperatorExpr(DivDocs.styles.backgroundColor, BinaryOperator.Divide, DataType.Number),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.Divide,
@@ -545,7 +618,7 @@ export class Actions {
         const BinFloorDivExpr = new EditCodeAction(
             "--- // ---",
             "add-bin-floor-div-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.FloorDiv, DataType.Number),
+            () => new BinaryOperatorExpr(FloorDivDocs.styles.backgroundColor, BinaryOperator.FloorDiv, DataType.Number),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.FloorDiv,
@@ -559,7 +632,7 @@ export class Actions {
         const BinModExpr = new EditCodeAction(
             "--- % ---",
             "add-bin-mod-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Mod, DataType.Number),
+            () => new BinaryOperatorExpr(ModDocs.styles.backgroundColor, BinaryOperator.Mod, DataType.Number),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.Mod,
@@ -573,7 +646,7 @@ export class Actions {
         const InOperatorTkn = new EditCodeAction(
             "in",
             "add-in-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.In),
+            () => new OperatorTkn(InDocs.styles.backgroundColor, BinaryOperator.In),
             InsertActionType.InsertOperatorTkn,
             {},
             InDocs,
@@ -585,7 +658,7 @@ export class Actions {
         const NotInOperatorTkn = new EditCodeAction(
             "not in",
             "add-not-in-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.NotIn),
+            () => new OperatorTkn(NotInDocs.styles.backgroundColor, BinaryOperator.NotIn),
             InsertActionType.InsertOperatorTkn,
             {},
             NotInDocs,
@@ -597,7 +670,7 @@ export class Actions {
         const AddOperatorTkn = new EditCodeAction(
             "+",
             "add-add-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.Add),
+            () => new OperatorTkn(AddDocs.styles.backgroundColor, BinaryOperator.Add),
             InsertActionType.InsertOperatorTkn,
             {},
             AddDocs,
@@ -609,7 +682,7 @@ export class Actions {
         const SubOperatorTkn = new EditCodeAction(
             "-",
             "add-sub-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.Subtract),
+            () => new OperatorTkn(SubDocs.styles.backgroundColor, BinaryOperator.Subtract),
             InsertActionType.InsertOperatorTkn,
             {},
             SubDocs,
@@ -621,7 +694,7 @@ export class Actions {
         const MultOperatorTkn = new EditCodeAction(
             "*",
             "add-mult-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.Multiply),
+            () => new OperatorTkn(MultDocs.styles.backgroundColor, BinaryOperator.Multiply),
             InsertActionType.InsertOperatorTkn,
             {},
             MultDocs,
@@ -633,7 +706,7 @@ export class Actions {
         const DivOperatorTkn = new EditCodeAction(
             "/",
             "add-div-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.Divide),
+            () => new OperatorTkn(DivDocs.styles.backgroundColor, BinaryOperator.Divide),
             InsertActionType.InsertOperatorTkn,
             {},
             DivDocs,
@@ -645,10 +718,10 @@ export class Actions {
         const FloorDivOperatorTkn = new EditCodeAction(
             "//",
             "add-floor-div-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.FloorDiv),
+            () => new OperatorTkn(FloorDivDocs.styles.backgroundColor, BinaryOperator.FloorDiv),
             InsertActionType.InsertOperatorTkn,
             {},
-            DivDocs,
+            FloorDivDocs,
             ["/"],
             "/",
             null
@@ -657,10 +730,10 @@ export class Actions {
         const ModOperatorTkn = new EditCodeAction(
             "%",
             "add-mod-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.Mod),
+            () => new OperatorTkn(ModDocs.styles.backgroundColor, BinaryOperator.Mod),
             InsertActionType.InsertOperatorTkn,
             {},
-            DivDocs,
+            ModDocs,
             ["%"],
             "",
             null
@@ -669,7 +742,7 @@ export class Actions {
         const BinAndExpr = new EditCodeAction(
             "--- and ---",
             "add-bin-and-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.And, DataType.Boolean),
+            () => new BinaryOperatorExpr(AndDocs.styles.backgroundColor, BinaryOperator.And, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.And,
@@ -683,7 +756,7 @@ export class Actions {
         const BinOrExpr = new EditCodeAction(
             "--- or ---",
             "add-bin-or-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Or, DataType.Boolean),
+            () => new BinaryOperatorExpr(OrDocs.styles.backgroundColor, BinaryOperator.Or, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.Or,
@@ -697,7 +770,7 @@ export class Actions {
         const AndOperatorTkn = new EditCodeAction(
             "and",
             "add-and-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.And),
+            () => new OperatorTkn(AndDocs.styles.backgroundColor, BinaryOperator.And),
             InsertActionType.InsertOperatorTkn,
             {},
             AndDocs,
@@ -709,7 +782,7 @@ export class Actions {
         const OrOperatorTkn = new EditCodeAction(
             "or",
             "add-or-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.Or),
+            () => new OperatorTkn(OrDocs.styles.backgroundColor, BinaryOperator.Or),
             InsertActionType.InsertOperatorTkn,
             {},
             OrDocs,
@@ -721,7 +794,7 @@ export class Actions {
         const BinCompEqExpr = new EditCodeAction(
             "--- == ---",
             "add-comp-eq-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.Equal, DataType.Boolean),
+            () => new BinaryOperatorExpr(CompEqDocs.styles.backgroundColor, BinaryOperator.Equal, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.Equal,
@@ -735,7 +808,7 @@ export class Actions {
         const BinCompNeqExpr = new EditCodeAction(
             "--- != ---",
             "add-comp-neq-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.NotEqual, DataType.Boolean),
+            () => new BinaryOperatorExpr(CompNeDocs.styles.backgroundColor, BinaryOperator.NotEqual, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.NotEqual,
@@ -749,7 +822,7 @@ export class Actions {
         const BinCompLtExpr = new EditCodeAction(
             "--- < ---",
             "add-comp-lt-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.LessThan, DataType.Boolean),
+            () => new BinaryOperatorExpr(CompLtDocs.styles.backgroundColor, BinaryOperator.LessThan, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.LessThan,
@@ -764,7 +837,12 @@ export class Actions {
         const BinCompLteExpr = new EditCodeAction(
             "--- <= ---",
             "add-comp-lte-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.LessThanEqual, DataType.Boolean),
+            () =>
+                new BinaryOperatorExpr(
+                    CompLteDocs.styles.backgroundColor,
+                    BinaryOperator.LessThanEqual,
+                    DataType.Boolean
+                ),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.LessThanEqual,
@@ -778,7 +856,8 @@ export class Actions {
         const BinCompGtExpr = new EditCodeAction(
             "--- > ---",
             "add-comp-gt-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.GreaterThan, DataType.Boolean),
+            () =>
+                new BinaryOperatorExpr(CompGtDocs.styles.backgroundColor, BinaryOperator.GreaterThan, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.GreaterThan,
@@ -793,7 +872,12 @@ export class Actions {
         const BinCompGteExpr = new EditCodeAction(
             "--- >= ---",
             "add-comp-gte-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.GreaterThanEqual, DataType.Boolean),
+            () =>
+                new BinaryOperatorExpr(
+                    CompGteDocs.styles.backgroundColor,
+                    BinaryOperator.GreaterThanEqual,
+                    DataType.Boolean
+                ),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.GreaterThanEqual,
@@ -807,7 +891,7 @@ export class Actions {
         const EqOperatorTkn = new EditCodeAction(
             "==",
             "add-comp-eq-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.Equal),
+            () => new OperatorTkn(CompEqDocs.styles.backgroundColor, BinaryOperator.Equal),
             InsertActionType.InsertOperatorTkn,
             {},
             CompEqDocs,
@@ -819,7 +903,7 @@ export class Actions {
         const NeqOperatorTkn = new EditCodeAction(
             "!=",
             "add-comp-neq-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.NotEqual),
+            () => new OperatorTkn(CompNeDocs.styles.backgroundColor, BinaryOperator.NotEqual),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -831,7 +915,7 @@ export class Actions {
         const GtOperatorTkn = new EditCodeAction(
             ">",
             "add-comp-gt-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.GreaterThan),
+            () => new OperatorTkn(CompNeDocs.styles.backgroundColor, BinaryOperator.GreaterThan),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -843,7 +927,7 @@ export class Actions {
         const LtOperatorTkn = new EditCodeAction(
             "<",
             "add-comp-lt-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.LessThan),
+            () => new OperatorTkn(CompNeDocs.styles.backgroundColor, BinaryOperator.LessThan),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -855,7 +939,7 @@ export class Actions {
         const GteOperatorTkn = new EditCodeAction(
             ">=",
             "add-comp-gte-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.GreaterThanEqual),
+            () => new OperatorTkn(CompNeDocs.styles.backgroundColor, BinaryOperator.GreaterThanEqual),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -867,7 +951,7 @@ export class Actions {
         const LteOperatorTkn = new EditCodeAction(
             "<=",
             "add-comp-lte-op-tkn-btn",
-            () => new OperatorTkn(BinaryOperator.LessThanEqual),
+            () => new OperatorTkn(CompNeDocs.styles.backgroundColor, BinaryOperator.LessThanEqual),
             InsertActionType.InsertOperatorTkn,
             {},
             CompNeDocs,
@@ -879,7 +963,7 @@ export class Actions {
         const BinInExpr = new EditCodeAction(
             "--- in ---",
             "add-bin-in-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.In, DataType.Boolean),
+            () => new BinaryOperatorExpr(InDocs.styles.backgroundColor, BinaryOperator.In, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.In,
@@ -893,7 +977,7 @@ export class Actions {
         const BinNotInExpr = new EditCodeAction(
             "--- not in ---",
             "add-bin-not-in-expr-btn",
-            () => new BinaryOperatorExpr(BinaryOperator.NotIn, DataType.Boolean),
+            () => new BinaryOperatorExpr(NotInDocs.styles.backgroundColor, BinaryOperator.NotIn, DataType.Boolean),
             InsertActionType.InsertBinaryExpr,
             {
                 operator: BinaryOperator.NotIn,
@@ -907,7 +991,7 @@ export class Actions {
         const UnaryNotExpr = new EditCodeAction(
             "not ---",
             "add-unary-not-expr-btn",
-            () => new UnaryOperatorExpr(UnaryOperator.Not, DataType.Boolean),
+            () => new UnaryOperatorExpr(NotDocs.styles.backgroundColor, UnaryOperator.Not, DataType.Boolean),
             InsertActionType.InsertUnaryExpr,
             {
                 operator: UnaryOperator.Not,
@@ -924,6 +1008,7 @@ export class Actions {
             "add-find-method-call-btn",
             () =>
                 new MethodCallModifier(
+                    FindDocs.styles.backgroundColor,
                     "find",
                     [new Argument([DataType.String], "item", false)],
                     DataType.Number,
@@ -940,7 +1025,7 @@ export class Actions {
         const WhileStmt = new EditCodeAction(
             "while --- :",
             "add-while-expr-btn",
-            () => new WhileStatement(),
+            () => new WhileStatement(WhileDocs.styles.backgroundColor),
             InsertActionType.InsertStatement,
             {},
             WhileDocs,
@@ -953,7 +1038,7 @@ export class Actions {
             "break",
             "add-break-stmt-btn",
             () =>
-                new KeywordStmt("break", null, null, (context: Context) => {
+                new KeywordStmt(BreakDocs.styles.backgroundColor, "break", null, null, (context: Context) => {
                     let parent = context.lineStatement.rootNode as Statement | Module;
 
                     while (
@@ -978,7 +1063,7 @@ export class Actions {
         const IfStmt = new EditCodeAction(
             "if --- :",
             "add-if-expr-btn",
-            () => new IfStatement(),
+            () => new IfStatement(IfDocs.styles.backgroundColor),
             InsertActionType.InsertStatement,
             {},
             IfDocs,
@@ -990,7 +1075,7 @@ export class Actions {
         const ElifStmt = new EditCodeAction(
             "elif --- :",
             "add-elif-expr-btn",
-            () => new ElseStatement(true),
+            () => new ElseStatement(ElifDocs.styles.backgroundColor, true),
             InsertActionType.InsertElifStmt,
             {},
             ElifDocs,
@@ -1002,7 +1087,7 @@ export class Actions {
         const ElseStmt = new EditCodeAction(
             "else :",
             "add-else-expr-btn",
-            () => new ElseStatement(false),
+            () => new ElseStatement(ElseDocs.styles.backgroundColor, false),
             InsertActionType.InsertElseStmt,
             {},
             ElseDocs,
@@ -1014,7 +1099,7 @@ export class Actions {
         const ForStmt = new EditCodeAction(
             "for -- in --- :",
             "add-for-expr-btn",
-            () => new ForStatement(),
+            () => new ForStatement(ForDocs.styles.backgroundColor),
             InsertActionType.InsertStatement,
             {},
             ForDocs,
@@ -1026,7 +1111,7 @@ export class Actions {
         const ImportStmt = new EditCodeAction(
             "from --- import ---",
             "add-import-btn",
-            () => new ImportStatement(),
+            () => new ImportStatement(ImportDocs.styles.backgroundColor),
             InsertActionType.InsertStatement,
             {},
             ImportDocs,
@@ -1038,7 +1123,7 @@ export class Actions {
         const ImportRandintStmt = new EditCodeAction(
             "from random import randint",
             "add-import-randint-btn",
-            () => new ImportStatement("random", "randint"),
+            () => new ImportStatement(ImportDocs.styles.backgroundColor, "random", "randint"),
             InsertActionType.InsertStatement,
             {},
             ImportDocs,
@@ -1050,7 +1135,7 @@ export class Actions {
         const ImportChoiceStmt = new EditCodeAction(
             "from random import choice",
             "add-import-choice-btn",
-            () => new ImportStatement("random", "choice"),
+            () => new ImportStatement(ImportDocs.styles.backgroundColor, "random", "choice"),
             InsertActionType.InsertStatement,
             {},
             ImportDocs,
@@ -1062,7 +1147,7 @@ export class Actions {
         const ListLiteralExpr = new EditCodeAction(
             "[]",
             "add-list-literal-btn",
-            () => new ListLiteralExpression(),
+            () => new ListLiteralExpression(ListLiteralDocs.styles.backgroundColor),
             InsertActionType.InsertListLiteral,
             {},
             ListLiteralDocs,
@@ -1074,7 +1159,7 @@ export class Actions {
         const ListCommaItem = new EditCodeAction(
             ", ---",
             "add-list-item-btn",
-            () => new ListComma(),
+            () => new ListComma(ListItemDocs.styles.backgroundColor),
             InsertActionType.InsertListItem,
             {},
             ListItemDocs,
@@ -1086,7 +1171,7 @@ export class Actions {
         const ListIndexAccessor = new EditCodeAction(
             "[---]",
             "add-list-index-btn",
-            () => new ListAccessModifier(),
+            () => new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
             InsertActionType.InsertListIndexAccessor,
             {},
             ListIndexDocs,
@@ -1098,7 +1183,7 @@ export class Actions {
         const AssignmentMod = new EditCodeAction(
             "= ---",
             "add-assign-mod-btn",
-            () => new AssignmentModifier(),
+            () => new AssignmentModifier(AssignDocs.styles.backgroundColor),
             InsertActionType.InsertAssignmentModifier,
             {},
             AssignDocs,
@@ -1110,7 +1195,8 @@ export class Actions {
         const AugAddAssignmentMod = new EditCodeAction(
             "+= ---",
             "add-aug-assign-add-mod-btn",
-            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+            () =>
+                new AugmentedAssignmentModifier(AssignAddDocs.styles.backgroundColor, AugmentedAssignmentOperator.Add),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
             AssignAddDocs,
@@ -1122,7 +1208,11 @@ export class Actions {
         const AugSubAssignmentMod = new EditCodeAction(
             "-= ---",
             "add-aug-assign-sub-mod-btn",
-            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+            () =>
+                new AugmentedAssignmentModifier(
+                    AssignSubDocs.styles.backgroundColor,
+                    AugmentedAssignmentOperator.Subtract
+                ),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
             AssignSubDocs,
@@ -1134,7 +1224,11 @@ export class Actions {
         const AugMulAssignmentMod = new EditCodeAction(
             "*= ---",
             "add-aug-assign-mul-mod-btn",
-            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+            () =>
+                new AugmentedAssignmentModifier(
+                    AssignMultDocs.styles.backgroundColor,
+                    AugmentedAssignmentOperator.Multiply
+                ),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
             AssignMultDocs,
@@ -1146,7 +1240,11 @@ export class Actions {
         const AugDivAssignmentMod = new EditCodeAction(
             "/= ---",
             "add-aug-assign-div-mod-btn",
-            () => new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+            () =>
+                new AugmentedAssignmentModifier(
+                    AssignDivDocs.styles.backgroundColor,
+                    AugmentedAssignmentOperator.Divide
+                ),
             InsertActionType.InsertAugmentedAssignmentModifier,
             {},
             AssignDivDocs,
@@ -1160,6 +1258,7 @@ export class Actions {
             "add-list-append-stmt-btn",
             () =>
                 new MethodCallModifier(
+                    ListAppendDocs.styles.backgroundColor,
                     "append",
                     [new Argument([DataType.Any], "object", false)],
                     DataType.Void,
@@ -1178,6 +1277,7 @@ export class Actions {
             "add-replace-method-call-btn",
             () =>
                 new MethodCallModifier(
+                    ReplaceDocs.styles.backgroundColor,
                     "replace",
                     [new Argument([DataType.String], "old", false), new Argument([DataType.String], "new", false)],
                     DataType.String,
@@ -1196,6 +1296,7 @@ export class Actions {
             "add-join-method-call-btn",
             () =>
                 new MethodCallModifier(
+                    JoinDocs.styles.backgroundColor,
                     "join",
                     [
                         new Argument(
@@ -1232,6 +1333,7 @@ export class Actions {
             "add-split-method-call-btn",
             () =>
                 new MethodCallModifier(
+                    SplitDocs.styles.backgroundColor,
                     "split",
                     [new Argument([DataType.String], "sep", false)],
                     DataType.StringList,
@@ -1248,7 +1350,13 @@ export class Actions {
         const CastStrExpr = new EditCodeAction(
             "str(---)",
             "add-cast-str-btn",
-            () => new FunctionCallExpr("str", [new Argument([DataType.Any], "value", false)], DataType.String),
+            () =>
+                new FunctionCallExpr(
+                    CastToStrDocs.styles.backgroundColor,
+                    "str",
+                    [new Argument([DataType.Any], "value", false)],
+                    DataType.String
+                ),
             InsertActionType.InsertCastStrExpr,
             {},
             CastToStrDocs,
@@ -1260,7 +1368,13 @@ export class Actions {
         const CastIntExpr = new EditCodeAction(
             "int(---)",
             "add-cast-int-btn",
-            () => new FunctionCallExpr("int", [new Argument([DataType.String], "value", false)], DataType.Number),
+            () =>
+                new FunctionCallExpr(
+                    CastToIntDocs.styles.backgroundColor,
+                    "int",
+                    [new Argument([DataType.String], "value", false)],
+                    DataType.Number
+                ),
             InsertActionType.InsertCastStrExpr,
             {},
             CastToIntDocs,
@@ -1272,7 +1386,7 @@ export class Actions {
         const VarAssignStmt = new EditCodeAction(
             "var = ---",
             "add-var-btn",
-            () => new VarAssignmentStmt(),
+            () => new VarAssignmentStmt(AddVarDocs.styles.backgroundColor),
             InsertActionType.InsertNewVariableStmt,
             {},
             AddVarDocs,
@@ -1359,40 +1473,62 @@ export class Actions {
         this.varActionsMap = new Map<DataType, Array<VarAction>>([
             [
                 DataType.Boolean,
-                [new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Set Value")],
+                [
+                    new VarAction(
+                        () => new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor),
+                        "set {VAR_ID} to new value",
+                        "Set Value"
+                    ),
+                ],
             ],
             [
                 DataType.Number,
                 [
-                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Set Value"),
+                    new VarAction(
+                        () => new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor),
+                        "set {VAR_ID} to new value",
+                        "Set Value"
+                    ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
-                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new AugmentedAssignmentModifier(
+                                    AssignAddDocs.styles.backgroundColor,
+                                    AugmentedAssignmentOperator.Add
+                                ),
                             ]),
                         "add value to {VAR_ID}",
                         "Update Value"
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
-                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Subtract),
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new AugmentedAssignmentModifier(
+                                    AssignSubDocs.styles.backgroundColor,
+                                    AugmentedAssignmentOperator.Subtract
+                                ),
                             ]),
                         "subtract value from {VAR_ID}",
                         "Update Value"
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
-                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Multiply),
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new AugmentedAssignmentModifier(
+                                    AssignMultDocs.styles.backgroundColor,
+                                    AugmentedAssignmentOperator.Multiply
+                                ),
                             ]),
                         "multiply {VAR_ID} by value",
                         "Update Value"
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
-                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Divide),
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new AugmentedAssignmentModifier(
+                                    AssignDivDocs.styles.backgroundColor,
+                                    AugmentedAssignmentOperator.Divide
+                                ),
                             ]),
                         "divide {VAR_ID} by value",
                         "Update Value"
@@ -1402,20 +1538,32 @@ export class Actions {
             [
                 DataType.String,
                 [
-                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Set Value"),
+                    new VarAction(
+                        () => new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor),
+                        "set {VAR_ID} to new value",
+                        "Set Value"
+                    ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
-                                new AugmentedAssignmentModifier(AugmentedAssignmentOperator.Add),
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new AugmentedAssignmentModifier(
+                                    AssignAddDocs.styles.backgroundColor,
+                                    AugmentedAssignmentOperator.Add
+                                ),
                             ]),
                         "add text to {VAR_ID}",
                         "Update Value"
                     ),
-                    new VarAction(() => new ForStatement(), "loop through characters of {VAR_ID}", "Loops"),
+                    new VarAction(
+                        () => new ForStatement(ForDocs.styles.backgroundColor),
+                        "loop through characters of {VAR_ID}",
+                        "Loops"
+                    ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(SplitDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    SplitDocs.styles.backgroundColor,
                                     "split",
                                     [new Argument([DataType.String], "sep", false)],
                                     DataType.StringList,
@@ -1427,8 +1575,9 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(JoinDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    JoinDocs.styles.backgroundColor,
                                     "join",
                                     [
                                         new Argument(
@@ -1451,8 +1600,9 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(ReplaceDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    ReplaceDocs.styles.backgroundColor,
                                     "replace",
                                     [
                                         new Argument([DataType.String], "old", false),
@@ -1467,8 +1617,9 @@ export class Actions {
                     ),
                     new VarAction(
                         () =>
-                            new ValueOperationExpr(null, [
+                            new ValueOperationExpr(FindDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    FindDocs.styles.backgroundColor,
                                     "find",
                                     [new Argument([DataType.String], "item", false)],
                                     DataType.Number,
@@ -1484,14 +1635,19 @@ export class Actions {
                 DataType.AnyList,
                 [
                     new VarAction(
-                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        () =>
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                                new AssignmentModifier(AssignDocs.styles.backgroundColor),
+                            ]),
                         "set an index in {VAR_ID} to value",
                         "Update List"
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    ListAppendDocs.styles.backgroundColor,
                                     "append",
                                     [new Argument([DataType.Any], "object", false)],
                                     DataType.Void,
@@ -1501,10 +1657,21 @@ export class Actions {
                         "append value to list {VAR_ID}",
                         "Update List"
                     ),
-                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
-                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
                     new VarAction(
-                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        () => new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor),
+                        "set {VAR_ID} to new value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () => new ForStatement(ForDocs.styles.backgroundColor),
+                        "loop through items of {VAR_ID}",
+                        "Loops"
+                    ),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                            ]),
                         "get item from {VAR_ID} at index",
                         "Get Value"
                     ),
@@ -1514,14 +1681,19 @@ export class Actions {
                 DataType.Boolean,
                 [
                     new VarAction(
-                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        () =>
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                                new AssignmentModifier(AssignDocs.styles.backgroundColor),
+                            ]),
                         "set an index in {VAR_ID} to value",
                         "Update List"
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    ListAppendDocs.styles.backgroundColor,
                                     "append",
                                     [new Argument([DataType.Any], "object", false)],
                                     DataType.Void,
@@ -1531,10 +1703,21 @@ export class Actions {
                         "append value to list {VAR_ID}",
                         "Update List"
                     ),
-                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
-                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
                     new VarAction(
-                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        () => new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor),
+                        "set {VAR_ID} to new value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () => new ForStatement(ForDocs.styles.backgroundColor),
+                        "loop through items of {VAR_ID}",
+                        "Loops"
+                    ),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                            ]),
                         "get item from {VAR_ID} at index",
                         "Get Value"
                     ),
@@ -1544,14 +1727,19 @@ export class Actions {
                 DataType.NumberList,
                 [
                     new VarAction(
-                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        () =>
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                                new AssignmentModifier(AssignDocs.styles.backgroundColor),
+                            ]),
                         "set an index in {VAR_ID} to value",
                         "Update List"
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    ListAppendDocs.styles.backgroundColor,
                                     "append",
                                     [new Argument([DataType.Any], "object", false)],
                                     DataType.Void,
@@ -1561,10 +1749,21 @@ export class Actions {
                         "add value to list {VAR_ID}",
                         "Update List"
                     ),
-                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
-                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
                     new VarAction(
-                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        () => new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor),
+                        "set {VAR_ID} to new value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () => new ForStatement(ForDocs.styles.backgroundColor),
+                        "loop through items of {VAR_ID}",
+                        "Loops"
+                    ),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                            ]),
                         "get item from {VAR_ID} at index",
                         "Get Value"
                     ),
@@ -1574,14 +1773,19 @@ export class Actions {
                 DataType.StringList,
                 [
                     new VarAction(
-                        () => new VarOperationStmt(null, [new ListAccessModifier(), new AssignmentModifier()]),
+                        () =>
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                                new AssignmentModifier(AssignDocs.styles.backgroundColor),
+                            ]),
                         "set an index in {VAR_ID} to value",
                         "Update List"
                     ),
                     new VarAction(
                         () =>
-                            new VarOperationStmt(null, [
+                            new VarOperationStmt(Docs.AddVarDocs.styles.backgroundColor, null, [
                                 new MethodCallModifier(
+                                    ListAppendDocs.styles.backgroundColor,
                                     "append",
                                     [new Argument([DataType.Any], "object", false)],
                                     DataType.Void,
@@ -1591,10 +1795,21 @@ export class Actions {
                         "append value to list {VAR_ID}",
                         "Update List"
                     ),
-                    new VarAction(() => new VarAssignmentStmt(), "set {VAR_ID} to new value", "Update List"),
-                    new VarAction(() => new ForStatement(), "loop through items of {VAR_ID}", "Loops"),
                     new VarAction(
-                        () => new ValueOperationExpr(null, [new ListAccessModifier()]),
+                        () => new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor),
+                        "set {VAR_ID} to new value",
+                        "Update List"
+                    ),
+                    new VarAction(
+                        () => new ForStatement(ForDocs.styles.backgroundColor),
+                        "loop through items of {VAR_ID}",
+                        "Loops"
+                    ),
+                    new VarAction(
+                        () =>
+                            new ValueOperationExpr(ListIndexDocs.styles.backgroundColor, null, [
+                                new ListAccessModifier(ListIndexDocs.styles.backgroundColor),
+                            ]),
                         "get item from {VAR_ID} at index",
                         "Get Value"
                     ),

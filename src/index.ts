@@ -1,4 +1,5 @@
 import "./css/index.css";
+import { retrieveUser } from "./logger/user";
 import { Module } from "./syntax-tree/module";
 
 // @ts-ignore
@@ -24,7 +25,7 @@ self.MonacoEnvironment = {
     },
 };
 
-// retrieveUser();
+retrieveUser();
 const nova = new Module("editor");
 const runBtnToOutputWindow = new Map<string, string>();
 runBtnToOutputWindow.set("runCodeBtn", "outputDiv");
