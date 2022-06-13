@@ -47,12 +47,16 @@ class Menu {
         this.searchBar = document.createElement("input");
         this.htmlElement.appendChild(this.searchBar);
 
+        MenuController.getInstance();
+
         for (const [key, value] of options) {
             const option = new MenuOption(key, false, null, this, null, value);
             option.attachToParentMenu(this);
 
             this.options.push(option);
         }
+
+        this.searchBar.addEventListener("input", () => {});
 
         this.htmlElement.addEventListener("mouseover", () => {
             this.htmlElement.style.visibility = "visible";
