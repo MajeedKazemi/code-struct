@@ -16,5 +16,8 @@
             "example": "a = 5\nb = 7\nc=2\n\nif ((a > c) and (b < c)):\n\tprint(\"Only the first expression is true.\")"
         }
     ],
-    "search-queries": ["conditional", "or", "logical", "boolean", "one of"]
+    "search-queries": ["conditional", "or", "logical", "boolean", "one of"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

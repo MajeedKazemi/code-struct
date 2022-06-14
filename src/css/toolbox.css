@@ -51,6 +51,7 @@ hole1 {
     box-shadow: 0px 0px 1px 1px #0000005e inset;
     margin: 0px 3px;
     display: inline-block;
+    background-color:white;
 }
 
 hole2 {
@@ -60,6 +61,7 @@ hole2 {
     border: dashed 1px #c7c7c7;
     min-width: 12px;
     height: 16px;
+    background-color: white;
 }
 
 #user-variables {

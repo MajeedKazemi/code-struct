@@ -1,6 +1,6 @@
 import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
-import { Actions, InsertActionType } from "../editor/consts";
+import { Actions, Docs, InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
@@ -835,7 +835,8 @@ export class MenuController {
                         .length === 0
                 ) {
                     substringMatchRanges = [[[0, optionText.length - 1]]]; //It will always exactly match the user input.
-                    editAction.getCode = () => new VarAssignmentStmt("", optionText);
+                    editAction.getCode = () =>
+                        new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor, "", optionText);
                     editAction.trimSpacesBeforeTermChar = true;
                 }
                 // for displaying the correct identifier for the ---[---] = --- option

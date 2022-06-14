@@ -11,5 +11,8 @@
             "example": "if False :\n\tprint(\"will not print\")\n\nif True :\n\tprint(\"will print\")"
         }
     ],
-    "search-queries": ["false", "boolean"]
+    "search-queries": ["false", "boolean"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

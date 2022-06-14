@@ -1,9 +1,10 @@
 import { editor, IKeyboardEvent, IScrollEvent, Position } from "monaco-editor";
+
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { AutoCompleteType, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
-import { Actions, EditActionType, InsertActionType, KeyPress } from "./consts";
+import { Actions, Docs, EditActionType, InsertActionType, KeyPress } from "./consts";
 import { EditAction } from "./data-types";
 import { Context } from "./focus";
 
@@ -135,13 +136,17 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
-                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                    if (
+                        this.module.validator.isAugmentedAssignmentModifierStatement(context) ||
+                        this.module.validator.isMethodCallModifierStatement(context)
+                    ) {
                         return new EditAction(EditActionType.DeleteStatement);
                     }
                     if (context.token.rootNode instanceof ast.Expression) {
                         if (this.module.validator.canDeleteExpression(context)) {
                             return new EditAction(EditActionType.DeleteRootNode);
                         }
+
                         return new EditAction(EditActionType.ReplaceExpressionWithItem);
                     }
                     if (context.token.rootNode instanceof ast.Statement) {
@@ -201,7 +206,10 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
-                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
+                    if (
+                        this.module.validator.isAugmentedAssignmentModifierStatement(context) ||
+                        this.module.validator.isMethodCallModifierStatement(context)
+                    ) {
                         return new EditAction(EditActionType.DeleteStatement);
                     }
                     if (context.token.rootNode instanceof ast.Expression) {
@@ -609,7 +617,7 @@ export class EventRouter {
             case InsertActionType.InsertListLiteral: {
                 if (this.module.validator.atLeftOfExpression(context)) {
                     return new EditAction(EditActionType.WrapExpressionWithItem, {
-                        expression: new ast.ListLiteralExpression(),
+                        expression: new ast.ListLiteralExpression(Docs.ListLiteralDocs.styles.backgroundColor),
                         source,
                     });
                 } else if (this.module.validator.atEmptyExpressionHole(context)) {

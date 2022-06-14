@@ -11,5 +11,8 @@
             "example": "from random import randint\na = randint(1, 10)\nb = [1, 2, 3, 4, 5]\nif a in b:\n\tprint(\"a is inside b\")\n\nif a not in b:\n\tprint(\"a is not inside b\")"
         }
     ],
-    "search-queries": ["in list", "inside list", "is inside list", "check inside list", "check list includes"]
+    "search-queries": ["in list", "inside list", "is inside list", "check inside list", "check list includes"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }
