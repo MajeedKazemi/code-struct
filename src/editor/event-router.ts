@@ -1,4 +1,4 @@
-import { editor, Position } from "monaco-editor";
+import { editor, IKeyboardEvent, IScrollEvent, Position } from "monaco-editor";
 
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
