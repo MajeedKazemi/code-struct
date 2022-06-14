@@ -1,4 +1,5 @@
 import { Position, Range } from "monaco-editor";
+
 import { ErrorMessage } from "../messages/error-msg-generator";
 import { ConstructHighlight, ScopeHighlight } from "../messages/messages";
 import {
