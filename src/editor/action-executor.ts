@@ -1419,8 +1419,6 @@ export class ActionExecutor {
 
                 if (flashGreen) this.flashGreen(newLiteral);
 
-                // this.setTokenColor(newLiteral, newLiteral.color);
-
                 if (action.data?.source?.type === "keyboard") {
                     eventType = LogType.InsertCode;
                     eventData.source = "keyboard";

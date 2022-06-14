@@ -1,4 +1,5 @@
 import Fuse from "fuse.js";
+
 import {
     AssignmentModifier,
     AugmentedAssignmentModifier,
@@ -460,6 +461,7 @@ export class Validator {
             if (
                 !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
                 !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                !(rootNode.tokens[i] instanceof IdentifierTkn) &&
                 !(rootNode.tokens[i] instanceof OperatorTkn)
             )
                 return false;

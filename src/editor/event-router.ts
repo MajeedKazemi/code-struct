@@ -1,4 +1,5 @@
 import { editor, IKeyboardEvent, IScrollEvent, Position } from "monaco-editor";
+
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { AutoCompleteType, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
@@ -145,6 +146,7 @@ export class EventRouter {
                         if (this.module.validator.canDeleteExpression(context)) {
                             return new EditAction(EditActionType.DeleteRootNode);
                         }
+
                         return new EditAction(EditActionType.ReplaceExpressionWithItem);
                     }
                     if (context.token.rootNode instanceof ast.Statement) {
