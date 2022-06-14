@@ -1,4 +1,4 @@
-import { editor, IKeyboardEvent, IScrollEvent, Position } from "monaco-editor";
+import { editor, Position } from "monaco-editor";
 
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
@@ -136,10 +136,10 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
-                    if (
-                        this.module.validator.isAugmentedAssignmentModifierStatement(context) ||
-                        this.module.validator.isMethodCallModifierStatement(context)
-                    ) {
+                    if (this.module.validator.isMethodCallModifierStatement(context)) {
+                        return new EditAction(EditActionType.DeleteSelectedModifier);
+                    }
+                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
                         return new EditAction(EditActionType.DeleteStatement);
                     }
                     if (context.token.rootNode instanceof ast.Expression) {
@@ -206,10 +206,10 @@ export class EventRouter {
                         toRight: true,
                     });
                 } else if (this.module.validator.isTknEmpty(context)) {
-                    if (
-                        this.module.validator.isAugmentedAssignmentModifierStatement(context) ||
-                        this.module.validator.isMethodCallModifierStatement(context)
-                    ) {
+                    if (this.module.validator.isMethodCallModifierStatement(context)) {
+                        return new EditAction(EditActionType.DeleteSelectedModifier);
+                    }
+                    if (this.module.validator.isAugmentedAssignmentModifierStatement(context)) {
                         return new EditAction(EditActionType.DeleteStatement);
                     }
                     if (context.token.rootNode instanceof ast.Expression) {
