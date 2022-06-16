@@ -1368,7 +1368,8 @@ export class ActionExecutor {
                 this.openAutocompleteMenu(
                     this.module.actionFilter
                         .getProcessedInsertionsList()
-                        .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid)
+                        .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
+                    true
                 );
                 this.styleAutocompleteMenu(context.position);
 
@@ -1802,10 +1803,10 @@ export class ActionExecutor {
         }
     }
 
-    private openAutocompleteMenu(inserts: EditCodeAction[]) {
+    private openAutocompleteMenu(inserts: EditCodeAction[], isSpotlightSearch = false) {
         if (!this.module.menuController.isMenuOpen()) {
             inserts = inserts.filter((insert) => insert.insertionResult.insertionType !== InsertionType.Invalid);
-            this.module.menuController.buildSingleLevelMenu(inserts);
+            this.module.menuController.buildSingleLevelMenu(inserts, { left: 0, top: 0 }, isSpotlightSearch);
         } else this.module.menuController.removeMenus();
     }
 

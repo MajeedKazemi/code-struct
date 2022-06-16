@@ -1,6 +1,6 @@
 import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
-import { Actions, InsertActionType } from "../editor/consts";
+import { Actions, EditActionType, InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
@@ -36,18 +36,24 @@ class Menu {
 
     private optionsInViewPort;
 
-    constructor(options: Map<string, Function>) {
+    constructor(options: Map<string, Function>, isSpotlightSearch: boolean = false) {
         this.htmlElement = document.createElement("div");
         this.htmlElement.classList.add(MenuController.menuElementClass);
         this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
         document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
 
+        if (isSpotlightSearch) {
+            this.searchBar = document.createElement("input");
+            this.searchBar.classList.add(MenuController.spotlightElementClass);
+            this.htmlElement.appendChild(this.searchBar);
+
+            const menuController = MenuController.getInstance();
+            this.searchBar.addEventListener("keyup", (e: KeyboardEvent) => {
+                menuController.spotlightSearchOnKeyDown(e);
+            });
+        }
+
         Menu.menuCount++;
-
-        this.searchBar = document.createElement("input");
-        this.htmlElement.appendChild(this.searchBar);
-
-        MenuController.getInstance();
 
         for (const [key, value] of options) {
             const option = new MenuOption(key, false, null, this, null, value);
@@ -55,8 +61,6 @@ class Menu {
 
             this.options.push(option);
         }
-
-        this.searchBar.addEventListener("input", () => {});
 
         this.htmlElement.addEventListener("mouseover", () => {
             this.htmlElement.style.visibility = "visible";
@@ -425,6 +429,7 @@ export class MenuController {
     static optionElementClass: string = "suggestionOptionParent";
     static draftModeOptionElementClass: string = "draftModeOptionElementClass";
     static menuElementClass: string = "suggestionMenuParent";
+    static spotlightElementClass: string = "spotlight";
     static optionTextElementClass: string = "suggestionOptionText";
     static selectedOptionElementClass: string = "selectedSuggestionOptionParent";
 
@@ -462,7 +467,11 @@ export class MenuController {
      *
      * @param pos         Starting top-left corner of this menu in the editor.
      */
-    buildSingleLevelMenu(suggestions: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
+    buildSingleLevelMenu(
+        suggestions: EditCodeAction[],
+        pos: any = { left: 0, top: 0 },
+        isSpotlightSearch: boolean = false
+    ) {
         if (this.menus.length > 0) this.removeMenus();
         else if (suggestions.length >= 0) {
             //TODO: Very hacky way of fixing #569
@@ -472,7 +481,7 @@ export class MenuController {
                 suggestions.push(Actions.instance().actionsList[0]); //this does not have to be this specific aciton, just need one to create the option so that the menu is created and then we immediately delete the option
             }
 
-            const menu = this.module.menuController.buildMenu(suggestions, pos);
+            const menu = this.module.menuController.buildMenu(suggestions, pos, isSpotlightSearch);
 
             //TODO: Continuation of very hacky way of fixing #569
             if (suggestions.length === 0) {
@@ -515,7 +524,11 @@ export class MenuController {
      *
      * @returns the constructed menu. Null if no options was empty.
      */
-    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }): Menu {
+    private buildMenu(
+        options: EditCodeAction[],
+        pos: any = { left: 0, top: 0 },
+        isSpotlightSearch: boolean = false
+    ): Menu {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
@@ -531,7 +544,7 @@ export class MenuController {
                 });
             }
 
-            const menu = new Menu(menuOptions);
+            const menu = new Menu(menuOptions, isSpotlightSearch);
 
             //TODO: These are the same values as the ones used for mouse offset by the messages so maybe make them shared in some util file
             menu.htmlElement.style.left = `${pos.left + document.getElementById(EDITOR_DOM_ID).offsetLeft}px`;
@@ -553,6 +566,29 @@ export class MenuController {
         }
 
         return null;
+    }
+
+    spotlightSearchOnKeyDown(e: KeyboardEvent) {
+        const context = this.module.focus.getContext();
+        const action = this.module.eventRouter.getKeyAction(e, context);
+        const target = e.target as HTMLInputElement;
+
+        if (action?.data) action.data.source = { type: "keyboard" };
+
+        this.updateMenuOptions(target.value);
+
+        if (
+            action.type == EditActionType.SelectMenuSuggestion ||
+            action.type == EditActionType.SelectMenuSuggestionAbove ||
+            action.type == EditActionType.SelectMenuSuggestionBelow
+        ) {
+            const preventDefaultEvent = this.module.executer.execute(action, context, e);
+
+            if (preventDefaultEvent) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }
     }
 
     removeMenus() {
