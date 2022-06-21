@@ -1371,7 +1371,7 @@ export class ActionExecutor {
                         .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
                     true
                 );
-                this.styleAutocompleteMenu(context.position);
+                this.styleAutocompleteMenu(context.position, true);
 
                 break;
 
@@ -2137,8 +2137,11 @@ export class ActionExecutor {
         );
     }
 
-    private styleAutocompleteMenu(pos: Position) {
+    private styleAutocompleteMenu(pos: Position, isSpotlightSearch: boolean = false) {
         this.module.menuController.styleMenuOptions();
-        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPositionFromPosition(pos));
+        this.module.menuController.updatePosition(
+            this.module.menuController.getNewMenuPositionFromPosition(pos),
+            isSpotlightSearch
+        );
     }
 }

@@ -33,24 +33,41 @@ class Menu {
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
     searchBar: HTMLInputElement;
+    modal: HTMLDivElement;
 
     private optionsInViewPort;
 
     constructor(options: Map<string, Function>, isSpotlightSearch: boolean = false) {
-        this.htmlElement = document.createElement("div");
-        this.htmlElement.classList.add(MenuController.menuElementClass);
-        this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
-        document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
-
         if (isSpotlightSearch) {
+            this.modal = document.createElement("div");
+            this.modal.classList.add(MenuController.modalClass);
+            document.getElementById(EDITOR_DOM_ID).appendChild(this.modal);
+
+            this.htmlElement = document.createElement("div");
+            this.htmlElement.classList.add(MenuController.menuElementClass);
+            this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
+            this.modal.appendChild(this.htmlElement);
+
             this.searchBar = document.createElement("input");
             this.searchBar.classList.add(MenuController.spotlightElementClass);
             this.htmlElement.appendChild(this.searchBar);
 
             const menuController = MenuController.getInstance();
+
+            window.onclick = (e: MouseEvent) => {
+                if (e.target == this.modal) {
+                    menuController.removeMenus();
+                }
+            };
+
             this.searchBar.addEventListener("keyup", (e: KeyboardEvent) => {
                 menuController.spotlightSearchOnKeyDown(e);
             });
+        } else {
+            this.htmlElement = document.createElement("div");
+            this.htmlElement.classList.add(MenuController.menuElementClass);
+            this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
+            document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
         }
 
         Menu.menuCount++;
@@ -237,7 +254,13 @@ class Menu {
     }
 
     removeFromDOM() {
-        document.getElementById(EDITOR_DOM_ID).removeChild(this.htmlElement);
+        let node = this.htmlElement;
+        let parentNode = node.parentNode;
+        parentNode.removeChild(this.htmlElement);
+
+        if (parentNode == this.modal) {
+            document.getElementById(EDITOR_DOM_ID).removeChild(this.modal);
+        }
     }
 
     getOptionByText(optionText: string) {
@@ -429,6 +452,7 @@ export class MenuController {
     static optionElementClass: string = "suggestionOptionParent";
     static draftModeOptionElementClass: string = "draftModeOptionElementClass";
     static menuElementClass: string = "suggestionMenuParent";
+    static modalClass: string = "spotlightModal";
     static spotlightElementClass: string = "spotlight";
     static optionTextElementClass: string = "suggestionOptionText";
     static selectedOptionElementClass: string = "selectedSuggestionOptionParent";
@@ -577,6 +601,7 @@ export class MenuController {
 
         this.updateMenuOptions(target.value);
 
+        //only enter and arrow keys work in input right now, other autocomplete keys do not work
         if (
             action.type == EditActionType.SelectMenuSuggestion ||
             action.type == EditActionType.SelectMenuSuggestionAbove ||
@@ -985,12 +1010,20 @@ export class MenuController {
         }
     }
 
-    updatePosition(pos: { left: number; top: number }) {
+    updatePosition(pos: { left: number; top: number }, isSpotlightSearch: boolean = false) {
         const element = this.menus[this.focusedMenuIndex]?.htmlElement;
 
         if (element) {
-            element.style.left = `${pos.left}px`;
-            element.style.top = `${pos.top}px`;
+            if (isSpotlightSearch) {
+                //centers the menu on the page
+                element.style.left = "50%";
+                element.style.top = "50%";
+                element.style.marginLeft = -element.offsetWidth / 2 + "px";
+                element.style.marginTop = -element.offsetHeight / 2 + "px";
+            } else {
+                element.style.left = `${pos.left}px`;
+                element.style.top = `${pos.top}px`;
+            }
         }
     }
 
