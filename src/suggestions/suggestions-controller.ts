@@ -1,6 +1,6 @@
 import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
-import { Actions, EditActionType, InsertActionType } from "../editor/consts";
+import { Actions, InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
@@ -37,7 +37,7 @@ class Menu {
 
     private optionsInViewPort;
 
-    constructor(options: Map<string, Function>, isSpotlightSearch: boolean = false) {
+    constructor(options: EditCodeAction[], optionsMap: Map<string, Function>, isSpotlightSearch: boolean = false) {
         if (isSpotlightSearch) {
             this.modal = document.createElement("div");
             this.modal.classList.add(MenuController.modalClass);
@@ -61,7 +61,7 @@ class Menu {
             };
 
             this.searchBar.addEventListener("keyup", (e: KeyboardEvent) => {
-                menuController.spotlightSearchOnKeyDown(e);
+                menuController.spotlightSearchOnKeyUp(e, options);
             });
         } else {
             this.htmlElement = document.createElement("div");
@@ -72,7 +72,7 @@ class Menu {
 
         Menu.menuCount++;
 
-        for (const [key, value] of options) {
+        for (const [key, value] of optionsMap) {
             const option = new MenuOption(key, false, null, this, null, value);
             option.attachToParentMenu(this);
 
@@ -568,7 +568,7 @@ export class MenuController {
                 });
             }
 
-            const menu = new Menu(menuOptions, isSpotlightSearch);
+            const menu = new Menu(options, menuOptions, isSpotlightSearch);
 
             //TODO: These are the same values as the ones used for mouse offset by the messages so maybe make them shared in some util file
             menu.htmlElement.style.left = `${pos.left + document.getElementById(EDITOR_DOM_ID).offsetLeft}px`;
@@ -592,28 +592,30 @@ export class MenuController {
         return null;
     }
 
-    spotlightSearchOnKeyDown(e: KeyboardEvent) {
+    spotlightSearchOnKeyUp(e: KeyboardEvent, options: EditCodeAction[]) {
         const context = this.module.focus.getContext();
-        const action = this.module.eventRouter.getKeyAction(e, context);
         const target = e.target as HTMLInputElement;
+        let prevText = target.value.slice(0, -1);
+        let curText = target.value;
 
-        if (action?.data) action.data.source = { type: "keyboard" };
+        //check match
+        for (const match of options) {
+            if (match.terminatingChars.indexOf(e.key) >= 0) {
+                if (match.trimSpacesBeforeTermChar) prevText = prevText.trim();
 
-        this.updateMenuOptions(target.value);
-
-        //only enter and arrow keys work in input right now, other autocomplete keys do not work
-        if (
-            action.type == EditActionType.SelectMenuSuggestion ||
-            action.type == EditActionType.SelectMenuSuggestionAbove ||
-            action.type == EditActionType.SelectMenuSuggestionBelow
-        ) {
-            const preventDefaultEvent = this.module.executer.execute(action, context, e);
-
-            if (preventDefaultEvent) {
-                e.preventDefault();
-                e.stopPropagation();
+                if (prevText == match.matchString || (match.matchRegex != null && match.matchRegex.test(prevText)))
+                    match.performAction(this.module.executer, this.module.eventRouter, context, {
+                        type: "autocomplete-menu",
+                        precision: this.calculateAutocompleteMatchPrecision(prevText, match.matchString),
+                        length:
+                            match.insertActionType === InsertActionType.InsertNewVariableStmt
+                                ? prevText.length + 1
+                                : match.matchString.length + 1,
+                    });
             }
         }
+
+        this.updateMenuOptions(curText);
     }
 
     removeMenus() {
