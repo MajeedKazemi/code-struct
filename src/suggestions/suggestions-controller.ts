@@ -50,6 +50,7 @@ class Menu {
 
             this.searchBar = document.createElement("input");
             this.searchBar.classList.add(MenuController.spotlightElementClass);
+            this.searchBar.placeholder = "Search for Blocks";
             this.htmlElement.appendChild(this.searchBar);
 
             const menuController = MenuController.getInstance();
