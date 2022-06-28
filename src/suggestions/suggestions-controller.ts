@@ -1,6 +1,6 @@
 import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
-import { Actions, InsertActionType } from "../editor/consts";
+import { Actions, EditActionType, InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
@@ -595,8 +595,24 @@ export class MenuController {
     spotlightSearchOnKeyUp(e: KeyboardEvent, options: EditCodeAction[]) {
         const context = this.module.focus.getContext();
         const target = e.target as HTMLInputElement;
+        const action = this.module.eventRouter.getKeyAction(e, context);
         let prevText = target.value.slice(0, -1);
         let curText = target.value;
+
+        if (
+            action.type == EditActionType.SelectMenuSuggestion ||
+            action.type == EditActionType.SelectMenuSuggestionAbove ||
+            action.type == EditActionType.SelectMenuSuggestionBelow
+        ) {
+            const preventDefaultEvent = this.module.executer.execute(action, context, e);
+
+            if (preventDefaultEvent) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            return;
+        }
 
         //check match
         for (const match of options) {
