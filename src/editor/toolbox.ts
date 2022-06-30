@@ -1,6 +1,7 @@
 import Fuse from "fuse.js";
 import { Position } from "monaco-editor";
-import { nova, runBtnToOutputWindow } from "../index";
+
+import { nova, runBtnToOutputWindow } from "..";
 import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
 import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
 import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
@@ -22,6 +23,8 @@ export class ToolboxController {
     static draftModeButtonClass = "button-draft-mode";
     static invalidButtonClass = "button-invalid";
     static validButtonClass = "button-valid";
+
+    updateToolbox: () => void;
 
     module: Module;
 
@@ -126,6 +129,7 @@ export class ToolboxController {
         container.classList.add("search-box-container");
 
         const searchBox = document.createElement("input");
+        searchBox.id = "toolbox-search-box";
         searchBox.type = "search";
         searchBox.placeholder = "type to search";
         searchBox.classList.add("search-box");
@@ -141,7 +145,7 @@ export class ToolboxController {
 
         const fuse = new Fuse(Actions.instance().actionsList, options);
 
-        searchBox.addEventListener("input", () => {
+        this.updateToolbox = () => {
             let results = fuse.search(searchBox.value);
             let resultActionsId = results.map((result) => result.item.cssId);
 
@@ -165,6 +169,10 @@ export class ToolboxController {
                     document.getElementById(category.id).style.display = "block";
                 }
             }
+        };
+
+        searchBox.addEventListener("input", () => {
+            this.updateToolbox();
         });
 
         return container;

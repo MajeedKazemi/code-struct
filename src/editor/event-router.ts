@@ -1,4 +1,5 @@
 import { editor, IKeyboardEvent, IScrollEvent, Position } from "monaco-editor";
+
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
 import { AutoCompleteType, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
@@ -428,6 +429,10 @@ export class EventRouter {
                 this.incrementButtonClicks(id);
             }
         }
+
+        (document.getElementById("toolbox-search-box") as HTMLInputElement).value = "";
+
+        this.module.toolboxController.updateToolbox();
     }
 
     incrementButtonClicks(id: string) {
