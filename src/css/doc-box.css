@@ -196,6 +196,8 @@ div.doc-body > div.doc-editor:nth-last-child(1) {
     max-height: 0px;
     overflow-y: scroll;
 
+    color: #000;
+
     transition: max-height 0.2s ease-in-out;
     -webkit-transition: max-height 0.2s ease-in-out;
     -moz-transition: max-height 0.2s ease-in-out;
