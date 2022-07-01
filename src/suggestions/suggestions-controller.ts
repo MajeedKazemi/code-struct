@@ -61,8 +61,12 @@ class Menu {
                 }
             };
 
-            this.searchBar.addEventListener("keyup", (e: KeyboardEvent) => {
-                menuController.spotlightSearchOnKeyUp(e, options);
+            this.searchBar.addEventListener("keydown", (e: KeyboardEvent) => {
+                menuController.spotlightSearchOnKeyDown(e, options);
+            });
+
+            this.searchBar.addEventListener("input", (e: Event) => {
+                menuController.spotlightSearchOnChange(e, options);
             });
         } else {
             this.htmlElement = document.createElement("div");
@@ -593,12 +597,9 @@ export class MenuController {
         return null;
     }
 
-    spotlightSearchOnKeyUp(e: KeyboardEvent, options: EditCodeAction[]) {
+    spotlightSearchOnKeyDown(e: KeyboardEvent, options: EditCodeAction[]) {
         const context = this.module.focus.getContext();
-        const target = e.target as HTMLInputElement;
         const action = this.module.eventRouter.getKeyAction(e, context);
-        let prevText = target.value.slice(0, -1);
-        let curText = target.value;
 
         if (
             action.type == EditActionType.SelectMenuSuggestion ||
@@ -611,13 +612,19 @@ export class MenuController {
                 e.preventDefault();
                 e.stopPropagation();
             }
-
-            return;
         }
+    }
+
+    spotlightSearchOnChange(e: Event, options: EditCodeAction[]) {
+        const context = this.module.focus.getContext();
+        const target = e.target as HTMLInputElement;
+        let prevText = target.value.slice(0, -1);
+        let curText = target.value;
+        let lastkey = target.value.slice(-1);
 
         //check match
         for (const match of options) {
-            if (match.terminatingChars.indexOf(e.key) >= 0) {
+            if (match.terminatingChars.indexOf(lastkey) >= 0) {
                 if (match.trimSpacesBeforeTermChar) prevText = prevText.trim();
 
                 if (prevText == match.matchString || (match.matchRegex != null && match.matchRegex.test(prevText)))
