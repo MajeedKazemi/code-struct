@@ -11,5 +11,8 @@
             "example": "a = randint(0, 10)\nprint(a)"
         }
     ],
-    "search-queries": ["random number", "random integer", "randint", "random between"]
+    "search-queries": ["random number", "random integer", "randint", "random between"],
+    "styles":{
+        "backgroundColor": "#a4e6a1"
+    }
 }

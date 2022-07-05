@@ -39,11 +39,11 @@ export class Cursor {
 
         const transform = this.editor.computeBoundingBox(selection);
 
-        this.element.style.top = `${transform.y + 5}px`;
+        this.element.style.top = `${transform.y + 5 + 4}px`;
         this.element.style.left = `${transform.x - leftPadding}px`;
 
         this.element.style.width = `${transform.width + rightPadding}px`;
-        this.element.style.height = `${transform.height - 5 * 2}px`;
+        this.element.style.height = `${transform.height - 5 * 2 - 10}px`;
     }
 
     setSelection(code: CodeConstruct = null) {

@@ -16,5 +16,8 @@
             "example": "a = 5\nb = 7\nc=2\n\nif ((a > c) and (b > c)):\n\tprint(\"Both expressions are true.\")"
         }
     ],
-    "search-queries": ["and", "both", "and operator"]
+    "search-queries": ["and", "both", "and operator"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

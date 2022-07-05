@@ -11,5 +11,8 @@
             "example": "a = \"2\"\nb = \"5\"\ntext_add = a + b\nnumber_add = int(a) + int(b)"
         }
     ],
-    "search-queries": ["integer cast", "number convert", "convert to number", "convert to integer"]
+    "search-queries": ["integer cast", "number convert", "convert to number", "convert to integer"],
+    "styles":{
+        "backgroundColor": "#edafdf"
+    }
 }

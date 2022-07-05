@@ -40,5 +40,8 @@
             ]
         }
     ],
-    "search-queries": ["exit", "loop", "break"]
+    "search-queries": ["exit", "loop", "break"],
+    "styles":{
+        "backgroundColor": "#ebba8a"
+    }
 }

@@ -11,5 +11,8 @@
             "example": "a = 20\nb = 10\nprint((a - b))"
         }
     ],
-    "search-queries": ["subtract numbers", "subtraction", "deduct"]
+    "search-queries": ["subtract numbers", "subtraction", "deduct"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

@@ -11,5 +11,8 @@
             "example": "name  = \"John\"\nname = name.replace(\"oh\", \"a\")\nprint(name)"
         }
     ],
-    "search-queries": ["replace", "replace text", "replace string"]
+    "search-queries": ["replace", "replace text", "replace string"],
+    "styles":{
+        "backgroundColor": "#ebba8a"
+    }
 }

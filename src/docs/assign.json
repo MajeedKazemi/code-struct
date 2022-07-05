@@ -11,5 +11,8 @@
             "example": "a = 123\nprint(a)\na=321\nprint(a)"
         }
     ],
-    "search-queries": ["set", "assign", "assign variable", "set variable", "update value variable"]
+    "search-queries": ["set", "assign", "assign variable", "set variable", "update value variable"],
+    "styles":{
+        "backgroundColor": "#ebba8a"
+    }
 }

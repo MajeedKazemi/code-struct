@@ -40,7 +40,7 @@ import { Reference, Scope } from "./scope";
 import { TypeChecker } from "./type-checker";
 import { VariableController } from "./variable-controller";
 
-const ERROR_HIGHLIGHT_COLOUR: [number, number, number, number] = [255, 153, 153, 0.5];
+const ERROR_HIGHLIGHT_COLOUR: [number, number, number, number] = [255, 153, 153, 0.8];
 
 /**
  * The main body of the code which includes an array of statements.

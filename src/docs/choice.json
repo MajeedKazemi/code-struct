@@ -11,5 +11,8 @@
             "example": "from random import choice\n\nif choice([1, 2, 3, 4, 5, 6]) == 6:\n\tprint(\"Rolled Six!\")"
         }
     ],
-    "search-queries": ["choice", "random choice", "choose randomly from list", "select randomly from array"]
+    "search-queries": ["choice", "random choice", "choose randomly from list", "select randomly from array"],
+    "styles":{
+        "backgroundColor": "#a4e6a1"
+    }
 }
