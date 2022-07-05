@@ -59,6 +59,12 @@
     border: solid #4f4f4f 0.5px;
 }
 
+.settings-btn{
+    box-shadow: none;
+    background-color: #69a;
+    color: #fff !important;
+}
+
 .console-button {
     color: #000;
     cursor: pointer;
