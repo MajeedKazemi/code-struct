@@ -2,7 +2,7 @@ import { editor, IKeyboardEvent, IScrollEvent, Position } from "monaco-editor";
 
 import * as ast from "../syntax-tree/ast";
 import { Module } from "../syntax-tree/module";
-import { Settings } from "../utilities/settings";
+import { SettingsController } from "../utilities/settings";
 import { AutoCompleteType, DataType, IdentifierRegex, InsertionType } from "./../syntax-tree/consts";
 import { EditCodeAction } from "./action-filter";
 import { Actions, Docs, EditActionType, InsertActionType, KeyPress } from "./consts";
@@ -11,14 +11,14 @@ import { Context } from "./focus";
 
 export class EventRouter {
     module: Module;
-    settings: Settings;
+    settings: SettingsController;
     curPosition: Position;
     buttonClicksCount = new Map<string, number>();
 
     constructor(module: Module) {
         this.module = module;
         this.curPosition = module.editor.monaco.getPosition();
-        this.settings = new Settings();
+        this.settings = new SettingsController();
     }
 
     getKeyAction(e: KeyboardEvent, providedContext?: Context): EditAction {
@@ -274,12 +274,7 @@ export class EventRouter {
 
             case KeyPress.Space: {
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                if (
-                    !inTextEditMode &&
-                    e.ctrlKey &&
-                    e.key.length == 1 &&
-                    this.settings.getSettingsObject()["Spotlight Search"]
-                ) {
+                if (!inTextEditMode && e.ctrlKey && e.key.length == 1 && this.settings.config.enabledSpotlightSearch) {
                     return new EditAction(EditActionType.OpenValidInsertMenu);
                 }
 

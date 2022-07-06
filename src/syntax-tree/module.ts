@@ -1,4 +1,5 @@
 import { Position, Range } from "monaco-editor";
+
 import { ActionExecutor } from "../editor/action-executor";
 import { ActionFilter } from "../editor/action-filter";
 import { CodeStatus, EditActionType } from "../editor/consts";
@@ -15,7 +16,7 @@ import { MessageController } from "../messages/message-controller";
 import { ConstructHighlight } from "../messages/messages";
 import { NotificationManager } from "../messages/notifications";
 import { MenuController } from "../suggestions/suggestions-controller";
-import { Settings } from "../utilities/settings";
+import { SettingsController } from "../utilities/settings";
 import { Util } from "../utilities/util";
 import {
     AutocompleteTkn,
@@ -59,7 +60,7 @@ export class Module {
     typeSystem: TypeChecker;
     notificationManager: NotificationManager;
     toolboxController: ToolboxController;
-    settings: Settings;
+    settings: SettingsController;
 
     scope: Scope;
     draftExpressions: DraftRecord[];
@@ -79,7 +80,7 @@ export class Module {
         this.actionFilter = new ActionFilter(this);
         this.notificationManager = new NotificationManager(this);
         this.toolboxController = new ToolboxController(this);
-        this.settings = new Settings();
+        this.settings = new SettingsController();
 
         this.globals = {
             hoveringOverCascadedMenu: false,

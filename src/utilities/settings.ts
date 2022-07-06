@@ -1,7 +1,6 @@
-//Singleton controlling settings for the program
-export class Settings {
-    private static instance: Settings;
-    private settingsObject: any;
+// Singleton controlling settings for the program
+export class SettingsController {
+    private static instance: SettingsController;
 
     private modal: HTMLDivElement;
     private settingsContainer: HTMLDivElement;
@@ -9,24 +8,26 @@ export class Settings {
     private settingsFooter: HTMLDivElement;
     private exitBtn: HTMLDivElement;
 
+    config: {
+        enabledColoredBlocks: false;
+        enabledSpotlightSearch: false;
+        enabledTyping: false;
+    };
+
     constructor() {
-        if (Settings.instance instanceof Settings) {
-            return Settings.instance;
+        if (SettingsController.instance instanceof SettingsController) {
+            return SettingsController.instance;
         }
 
-        this.settingsObject = {
-            "Coloured Blocks": true,
-            "Spotlight Search": true,
-            "Enable Typing": true,
+        this.config = {
+            enabledColoredBlocks: false,
+            enabledSpotlightSearch: false,
+            enabledTyping: false,
         };
 
         this.addEventListeners();
 
-        Settings.instance = this;
-    }
-
-    public getSettingsObject() {
-        return this.settingsObject;
+        SettingsController.instance = this;
     }
 
     private addEventListeners() {
@@ -54,7 +55,7 @@ export class Settings {
         this.settingsHeader.innerHTML = "Settings";
         this.settingsContainer.appendChild(this.settingsHeader);
 
-        Object.keys(this.settingsObject).map((key) => {
+        Object.keys(SettingsController.instance.config).map((key) => {
             const setting = document.createElement("div");
             setting.classList.add("setting");
             this.settingsContainer.appendChild(setting);
@@ -70,7 +71,7 @@ export class Settings {
 
             const toggleBtnCheckbox = document.createElement("input");
             toggleBtnCheckbox.type = "checkbox";
-            toggleBtnCheckbox.checked = this.settingsObject[key];
+            toggleBtnCheckbox.checked = SettingsController.instance.config[key];
             toggleBtn.appendChild(toggleBtnCheckbox);
 
             const toggleBtnSlider = document.createElement("span");
@@ -78,7 +79,7 @@ export class Settings {
             toggleBtn.appendChild(toggleBtnSlider);
 
             toggleBtnCheckbox.addEventListener("change", () => {
-                this.settingsObject[key] = toggleBtnCheckbox.checked;
+                SettingsController.instance.config[key] = toggleBtnCheckbox.checked;
             });
         });
 
