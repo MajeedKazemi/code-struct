@@ -16,5 +16,8 @@
             "example": "from random import randint\nprint(randint(1, 6))"
         }
     ],
-    "search-queries": ["import module", "import random"]
+    "search-queries": ["import module", "import random"],
+    "styles":{
+        "backgroundColor": "#e897aa"
+    }
 }

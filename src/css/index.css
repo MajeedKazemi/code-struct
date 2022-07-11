@@ -33,7 +33,7 @@ body {
 }
 
 .button {
-    color: #0d0c22;
+    color: white;
     cursor: pointer;
     border-radius: 4px;
     display: flex;
@@ -49,7 +49,7 @@ body {
     width: -webkit-fit-content;
     width: -moz-fit-content;
     width: fit-content;
-    border: solid 2px #fff;
+    border: none;
 }
 
 .button.button-invalid {

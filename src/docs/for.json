@@ -58,5 +58,8 @@
             "id": "loop-chars-of-str"
         }
     ],
-    "search-queries": ["for", "loop", "repeat", "go through", "iterate", "list"]
+    "search-queries": ["for", "loop", "repeat", "go through", "iterate", "list"],
+    "styles":{
+        "backgroundColor": "#411b8c"
+    }
 }

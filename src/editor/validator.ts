@@ -1,4 +1,5 @@
 import Fuse from "fuse.js";
+
 import {
     AssignmentModifier,
     AugmentedAssignmentModifier,
@@ -17,6 +18,7 @@ import {
     ImportStatement,
     ListLiteralExpression,
     LiteralValExpr,
+    MethodCallModifier,
     Modifier,
     NonEditableTkn,
     OperatorTkn,
@@ -410,6 +412,20 @@ export class Validator {
     }
 
     /**
+     * logic: checks if rootNode is instanceof MethodCallModifier
+     */
+    isMethodCallModifierStatement(providedContext?: Context): boolean {
+        const context = providedContext ? providedContext : this.module.focus.getContext();
+        const rootNode = context.token.rootNode;
+
+        if (rootNode instanceof MethodCallModifier) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * logic: checks if Statement body is empty and if all tokens of Statement are empty
      */
     canDeleteStatement(providedContext?: Context): boolean {
@@ -445,6 +461,7 @@ export class Validator {
             if (
                 !(rootNode.tokens[i] instanceof TypedEmptyExpr) &&
                 !(rootNode.tokens[i] instanceof NonEditableTkn) &&
+                !(rootNode.tokens[i] instanceof IdentifierTkn) &&
                 !(rootNode.tokens[i] instanceof OperatorTkn)
             )
                 return false;

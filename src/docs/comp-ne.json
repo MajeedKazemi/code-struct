@@ -16,5 +16,8 @@
             "example": "a = 1\nb = 5\nwhile a != b:\n\ta += 1\nprint(a)\nprint(a)"
         }
     ],
-    "search-queries": ["not equal", "compare not equal", "not equal to", "are not equal"]
+    "search-queries": ["not equal", "compare not equal", "not equal to", "are not equal"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

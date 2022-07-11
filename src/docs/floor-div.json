@@ -11,5 +11,8 @@
             "example": "a = 2\nb = 7\nprint((b / a))"
         }
     ],
-    "search-queries": ["divide numbers", "divide integer", "divide floor"]
+    "search-queries": ["divide numbers", "divide integer", "divide floor"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

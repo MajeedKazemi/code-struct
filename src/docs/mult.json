@@ -11,5 +11,8 @@
             "example": "a = 2\nb = 5\nprint((b * a))"
         }
     ],
-    "search-queries": ["multiply numbers", "multiply"]
+    "search-queries": ["multiply numbers", "multiply"],
+    "styles":{
+        "backgroundColor": "#59C059"
+    }
 }

@@ -34,5 +34,8 @@
             "id": "elif-after-elif"
         }
     ],
-    "search-queries": ["else if", "else", "else condition", "choose", "path", "elif"]
+    "search-queries": ["else if", "else", "else condition", "choose", "path", "elif"],
+    "styles":{
+        "backgroundColor": "#FFAB19"
+    }
 }

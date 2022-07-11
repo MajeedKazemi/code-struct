@@ -1,6 +1,6 @@
 import { Position, Selection } from "monaco-editor";
 import { EditCodeAction, InsertionResult } from "../editor/action-filter";
-import { ConstructName, EditActionType } from "../editor/consts";
+import { ConstructName, Docs, EditActionType } from "../editor/consts";
 import { EditAction } from "../editor/data-types";
 import { DraftRecord } from "../editor/draft";
 import { Context, UpdatableContext } from "../editor/focus";
@@ -201,6 +201,7 @@ export abstract class Statement implements CodeConstruct {
     right: number;
     rootNode: Statement | Module = null;
     indexInRoot: number;
+    color: string;
     body = new Array<Statement>();
     scope: Scope = null;
     tokens = new Array<CodeConstruct>();
@@ -220,6 +221,8 @@ export abstract class Statement implements CodeConstruct {
 
     constructor() {
         for (const type in CallbackType) this.callbacks[type] = new Array<Callback>();
+
+        this.color = "transparent";
 
         this.subscribe(
             CallbackType.delete,
@@ -970,8 +973,10 @@ export class WhileStatement extends Statement {
     scope: Scope;
     private conditionIndex: number;
 
-    constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
+    constructor(color: string, root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
+
+        this.color = color;
 
         this.tokens.push(new NonEditableTkn("while ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
@@ -995,8 +1000,10 @@ export class WhileStatement extends Statement {
 export class IfStatement extends Statement {
     private conditionIndex: number;
 
-    constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
+    constructor(color: string, root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
+
+        this.color = color;
 
         this.tokens.push(new NonEditableTkn("if ", this, this.tokens.length));
         this.conditionIndex = this.tokens.length;
@@ -1021,8 +1028,10 @@ export class ElseStatement extends Statement {
     private conditionIndex: number;
     hasCondition: boolean = false;
 
-    constructor(hasCondition: boolean, root?: IfStatement, indexInRoot?: number) {
+    constructor(color: string, hasCondition: boolean, root?: IfStatement, indexInRoot?: number) {
         super();
+
+        this.color = color;
         this.hasCondition = hasCondition;
 
         if (hasCondition) {
@@ -1058,8 +1067,10 @@ export class ElseStatement extends Statement {
 export class ImportStatement extends Statement {
     private moduleNameIndex: number = -1;
     private itemNameIndex: number = -1;
-    constructor(moduleName: string = "", itemName: string = "") {
+    constructor(color: string, moduleName: string = "", itemName: string = "") {
         super();
+
+        this.color = color;
 
         this.tokens.push(new NonEditableTkn("from ", this, this.tokens.length));
         this.moduleNameIndex = this.tokens.length;
@@ -1123,10 +1134,11 @@ export class ForStatement extends Statement implements VariableContainer {
     //TODO: Statements should not have a data type?
     dataType = DataType.Any;
 
-    constructor(root?: CodeConstruct | Module, indexInRoot?: number) {
+    constructor(color: string, root?: CodeConstruct | Module, indexInRoot?: number) {
         super();
 
         this.buttonId = "";
+        this.color = color;
 
         this.tokens.push(new NonEditableTkn("for ", this, this.tokens.length));
         this.identifierIndex = this.tokens.length;
@@ -1155,7 +1167,7 @@ export class ForStatement extends Statement implements VariableContainer {
 
         this.hasEmptyToken = true;
 
-        this.loopVar = new VarAssignmentStmt();
+        this.loopVar = new VarAssignmentStmt(Docs.AddVarDocs.styles.backgroundColor);
         this.loopVar.rootNode = this;
 
         this.subscribe(
@@ -1414,9 +1426,10 @@ export class VarAssignmentStmt extends Statement implements VariableContainer {
     codeConstructName = ConstructName.VarAssignment;
     private oldIdentifier: string;
 
-    constructor(buttonId?: string, id?: string, root?: Statement | Module, indexInRoot?: number) {
+    constructor(color: string, buttonId?: string, id?: string, root?: Statement | Module, indexInRoot?: number) {
         super();
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
@@ -1724,8 +1737,10 @@ export class VariableReferenceExpr extends Expression {
 export class ValueOperationExpr extends Expression {
     isVarSet = false;
 
-    constructor(value: Expression, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
+    constructor(color: string, value: Expression, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
         super(value != null ? value.returns : DataType.Void);
+
+        this.color = color;
 
         if (value != null) {
             value.indexInRoot = this.tokens.length;
@@ -1782,8 +1797,16 @@ export class ValueOperationExpr extends Expression {
 export class VarOperationStmt extends Statement {
     isVarSet = false;
 
-    constructor(ref: VariableReferenceExpr, modifiers?: Array<Modifier>, root?: Statement, indexInRoot?: number) {
+    constructor(
+        color: string,
+        ref: VariableReferenceExpr,
+        modifiers?: Array<Modifier>,
+        root?: Statement,
+        indexInRoot?: number
+    ) {
         super();
+
+        this.color = color;
 
         if (ref != null) {
             ref.indexInRoot = this.tokens.length;
@@ -1852,9 +1875,10 @@ export class ListAccessModifier extends Modifier {
     leftExprTypes = [DataType.AnyList];
     private indexOfIndexTkn: number;
 
-    constructor(root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
+    constructor(color: string, root?: ValueOperationExpr | VarOperationStmt, indexInRoot?: number) {
         super();
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
@@ -1969,6 +1993,7 @@ export class MethodCallModifier extends Modifier {
     returns: DataType;
 
     constructor(
+        color: string,
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
@@ -1978,6 +2003,7 @@ export class MethodCallModifier extends Modifier {
     ) {
         super();
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
@@ -2054,9 +2080,10 @@ export class AssignmentModifier extends Modifier {
     rootNode: VarOperationStmt;
     simpleInvalidTooltip = Tooltip.InvalidAugmentedAssignment;
 
-    constructor(root?: VarOperationStmt, indexInRoot?: number) {
+    constructor(color: string, root?: VarOperationStmt, indexInRoot?: number) {
         super();
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
@@ -2086,9 +2113,10 @@ export class AugmentedAssignmentModifier extends Modifier {
     private operation: AugmentedAssignmentOperator;
     simpleInvalidTooltip = Tooltip.InvalidAugmentedAssignment;
 
-    constructor(operation: AugmentedAssignmentOperator, root?: VarOperationStmt, indexInRoot?: number) {
+    constructor(color: string, operation: AugmentedAssignmentOperator, root?: VarOperationStmt, indexInRoot?: number) {
         super();
 
+        this.color = color;
         this.operation = operation;
 
         this.rootNode = root;
@@ -2131,6 +2159,7 @@ export class FunctionCallExpr extends Expression implements Importable {
     requiredModule: string;
 
     constructor(
+        color: string,
         functionName: string,
         args: Array<Argument>,
         returns: DataType,
@@ -2140,6 +2169,7 @@ export class FunctionCallExpr extends Expression implements Importable {
     ) {
         super(returns);
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
@@ -2305,6 +2335,7 @@ export class FunctionCallStmt extends Statement implements Importable {
     requiredModule: string;
 
     constructor(
+        color: string,
         functionName: string,
         args: Array<Argument>,
         root?: Statement | Module,
@@ -2313,6 +2344,7 @@ export class FunctionCallStmt extends Statement implements Importable {
     ) {
         super();
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.functionName = functionName;
@@ -2449,6 +2481,7 @@ export class KeywordStmt extends Statement {
     validator: (context: Context) => boolean;
 
     constructor(
+        color: string,
         keyword,
         root?: Statement | Expression,
         indexInRoot?: number,
@@ -2456,6 +2489,7 @@ export class KeywordStmt extends Statement {
     ) {
         super();
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.validator = validator;
@@ -2547,9 +2581,16 @@ export class BinaryOperatorExpr extends Expression {
     static originalReturnTypeAdd = DataType.Any;
     static originalReturnTypeArithmetic = DataType.Number;
 
-    constructor(operator: BinaryOperator, returns: DataType, root?: Statement | Expression, indexInRoot?: number) {
+    constructor(
+        color: string,
+        operator: BinaryOperator,
+        returns: DataType,
+        root?: Statement | Expression,
+        indexInRoot?: number
+    ) {
         super(returns);
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.operator = operator;
@@ -2569,7 +2610,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(
+                    new OperatorTkn(Docs.AddDocs.styles.backgroundColor, operator, this, this.tokens.length)
+                );
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(
@@ -2584,7 +2627,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String, ...ListTypes];
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(
+                    new OperatorTkn(Docs.AddDocs.styles.backgroundColor, operator, this, this.tokens.length)
+                );
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([returns], this, this.tokens.length));
@@ -2595,7 +2640,7 @@ export class BinaryOperatorExpr extends Expression {
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Number];
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.keywordIndex = this.tokens.length;
-            this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+            this.tokens.push(new OperatorTkn(Docs.AddDocs.styles.backgroundColor, operator, this, this.tokens.length));
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Number], this, this.tokens.length));
@@ -2608,7 +2653,7 @@ export class BinaryOperatorExpr extends Expression {
             this.typeOfHoles[this.tokens.length - 1] = [DataType.Boolean];
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.keywordIndex = this.tokens.length;
-            this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+            this.tokens.push(new OperatorTkn(Docs.AddDocs.styles.backgroundColor, operator, this, this.tokens.length));
             this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
             this.rightOperandIndex = this.tokens.length;
             this.tokens.push(new TypedEmptyExpr([DataType.Boolean], this, this.tokens.length));
@@ -2622,7 +2667,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(
+                    new OperatorTkn(Docs.AddDocs.styles.backgroundColor, operator, this, this.tokens.length)
+                );
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
@@ -2632,7 +2679,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Any];
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(
+                    new OperatorTkn(Docs.AddDocs.styles.backgroundColor, operator, this, this.tokens.length)
+                );
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(
@@ -2660,7 +2709,9 @@ export class BinaryOperatorExpr extends Expression {
                 this.typeOfHoles[this.tokens.length - 1] = [DataType.Number, DataType.String];
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.keywordIndex = this.tokens.length;
-                this.tokens.push(new OperatorTkn(operator, this, this.tokens.length));
+                this.tokens.push(
+                    new OperatorTkn(Docs.AddDocs.styles.backgroundColor, operator, this, this.tokens.length)
+                );
                 this.tokens.push(new NonEditableTkn(" ", this, this.tokens.length));
                 this.rightOperandIndex = this.tokens.length;
                 this.tokens.push(new TypedEmptyExpr([DataType.Number, DataType.String], this, this.tokens.length));
@@ -3380,6 +3431,7 @@ export class UnaryOperatorExpr extends Expression {
     private operandIndex: number;
 
     constructor(
+        color: string,
         operator: UnaryOperator,
         returns: DataType,
         operatesOn: DataType = DataType.Any,
@@ -3388,6 +3440,7 @@ export class UnaryOperatorExpr extends Expression {
     ) {
         super(returns);
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
         this.operator = operator;
@@ -3496,8 +3549,15 @@ export class OperatorTkn extends Modifier {
     operator: UnaryOperator | BinaryOperator;
     operatorCategory: OperatorCategory;
 
-    constructor(operator: UnaryOperator | BinaryOperator, root?: Statement | Expression, indexInRoot?: number) {
+    constructor(
+        color: string,
+        operator: UnaryOperator | BinaryOperator,
+        root?: Statement | Expression,
+        indexInRoot?: number
+    ) {
         super();
+
+        this.color = color;
 
         this.tokens.push(new NonEditableTkn(operator, this, this.tokens.length));
 
@@ -3516,8 +3576,10 @@ export class OperatorTkn extends Modifier {
 export class LiteralValExpr extends Expression {
     valueTokenIndex: number = 0;
 
-    constructor(returns: DataType, value?: string, root?: Statement | Expression, indexInRoot?: number) {
+    constructor(color: string, returns: DataType, value?: string, root?: Statement | Expression, indexInRoot?: number) {
         super(returns);
+
+        this.color = color;
 
         switch (returns) {
             case DataType.String: {
@@ -3585,8 +3647,10 @@ export class LiteralValExpr extends Expression {
 export class FormattedStringExpr extends Expression {
     valueTokenIndex: number = 0;
 
-    constructor(value?: string, root?: Statement | Expression, indexInRoot?: number) {
+    constructor(color: string, value?: string, root?: Statement | Expression, indexInRoot?: number) {
         super(DataType.String);
+
+        this.color = color;
 
         this.tokens.push(new NonEditableTkn("f", this, this.tokens.length));
         this.tokens.push(new NonEditableTkn("'", this, this.tokens.length));
@@ -3618,8 +3682,10 @@ export class FormattedStringExpr extends Expression {
 export class FormattedStringCurlyBracketsExpr extends Expression {
     valueTokenIndex: number = 0;
 
-    constructor(root?: Statement | Expression, indexInRoot?: number) {
+    constructor(color: string, root?: Statement | Expression, indexInRoot?: number) {
         super(DataType.String);
+
+        this.color = color;
 
         this.tokens.push(new NonEditableTkn("{", this, this.tokens.length));
         this.tokens.push(new TypedEmptyExpr([DataType.Any], this, this.tokens.length));
@@ -3641,9 +3707,10 @@ export class FormattedStringCurlyBracketsExpr extends Expression {
 }
 
 export class ListLiteralExpression extends Expression {
-    constructor(root?: Statement | Expression, indexInRoot?: number) {
+    constructor(color: string, root?: Statement | Expression, indexInRoot?: number) {
         super(DataType.AnyList);
 
+        this.color = color;
         this.rootNode = root;
         this.indexInRoot = indexInRoot;
 
@@ -3756,8 +3823,10 @@ export class ListLiteralExpression extends Expression {
 }
 
 export class ListComma extends Expression {
-    constructor() {
+    constructor(color: string) {
         super(DataType.Void);
+
+        this.color = color;
 
         this.simpleInvalidTooltip = Tooltip.InvalidInsertListComma;
     }
