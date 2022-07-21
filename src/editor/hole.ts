@@ -12,6 +12,7 @@ import { Callback, CallbackType } from "../syntax-tree/callback";
 import { InsertionType } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
+import { SettingsController } from "../utilities/settings";
 import { Editor } from "./editor";
 import { Context } from "./focus";
 import { Validator } from "./validator";
@@ -107,7 +108,11 @@ export class Hole {
         code.subscribe(
             CallbackType.delete,
             new Callback(() => {
-                hole.setTransform(null);
+                if (SettingsController.getInstance().config.enabledColoredBlocks) {
+                    hole.setTransformColor(null);
+                } else {
+                    hole.setTransform(null);
+                }
                 hole.remove();
             })
         );
@@ -115,7 +120,11 @@ export class Hole {
         code.subscribe(
             CallbackType.replace,
             new Callback(() => {
-                hole.setTransform(null);
+                if (SettingsController.getInstance().config.enabledColoredBlocks) {
+                    hole.setTransformColor(null);
+                } else {
+                    hole.setTransform(null);
+                }
                 hole.remove();
             })
         );
@@ -123,16 +132,28 @@ export class Hole {
         code.subscribe(
             CallbackType.fail,
             new Callback(() => {
-                hole.element.style.background = `rgba(255, 0, 0, 0.25)`;
+                if (SettingsController.getInstance().config.enabledColoredBlocks) {
+                    hole.element.style.background = `rgba(255, 0, 0, 0.25)`;
 
-                setTimeout(() => {
-                    hole.element.style.background = `rgba(255, 255, 255, 1)`;
-                }, 1000);
+                    setTimeout(() => {
+                        hole.element.style.background = `rgba(255, 255, 255, 1)`;
+                    }, 1000);
+                } else {
+                    hole.element.style.background = `rgba(255, 0, 0, 0.06)`;
+
+                    setTimeout(() => {
+                        hole.element.style.background = `rgba(255, 255, 255, 0)`;
+                    }, 1000);
+                }
             })
         );
 
         function loop() {
-            hole.setTransform(code);
+            if (SettingsController.getInstance().config.enabledColoredBlocks) {
+                hole.setTransformColor(code);
+            } else {
+                hole.setTransform(code);
+            }
             requestAnimationFrame(loop);
         }
 
@@ -140,6 +161,27 @@ export class Hole {
     }
 
     setTransform(code: CodeConstruct) {
+        let leftPadding = 0;
+        let rightPadding = 0;
+        let transform = { x: 0, y: 0, width: 0, height: 0 };
+
+        if (code) {
+            transform = this.editor.computeBoundingBox(code.getSelection());
+
+            if (transform.width == 0) {
+                transform.x -= 7;
+                transform.width = 14;
+            }
+        }
+
+        this.element.style.top = `${transform.y + 5}px`;
+        this.element.style.left = `${transform.x - leftPadding}px`;
+
+        this.element.style.width = `${transform.width + rightPadding}px`;
+        this.element.style.height = `${transform.height - 5 * 2}px`;
+    }
+
+    setTransformColor(code: CodeConstruct) {
         let leftPadding = 0;
         let rightPadding = 0;
         let transform = { x: 0, y: 0, width: 0, height: 0 };

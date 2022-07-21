@@ -1,6 +1,6 @@
 import { Position } from "monaco-editor";
 import { EditCodeAction } from "../editor/action-filter";
-import { Actions, Docs, InsertActionType } from "../editor/consts";
+import { Actions, Docs, EditActionType, InsertActionType } from "../editor/consts";
 import { Editor } from "../editor/editor";
 import { EDITOR_DOM_ID } from "../editor/toolbox";
 import { Validator } from "../editor/validator";
@@ -32,18 +32,52 @@ class Menu {
     static menuCount = 0;
     static idPrefix = "suggestion-menu-";
     htmlElement: HTMLDivElement;
+    searchBar: HTMLInputElement;
+    modal: HTMLDivElement;
 
     private optionsInViewPort;
 
-    constructor(options: Map<string, Function>) {
-        this.htmlElement = document.createElement("div");
-        this.htmlElement.classList.add(MenuController.menuElementClass);
-        this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
-        document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
+    constructor(options: EditCodeAction[], optionsMap: Map<string, Function>, isSpotlightSearch: boolean = false) {
+        if (isSpotlightSearch) {
+            this.modal = document.createElement("div");
+            this.modal.classList.add(MenuController.modalClass);
+            document.getElementById(EDITOR_DOM_ID).appendChild(this.modal);
+
+            this.htmlElement = document.createElement("div");
+            this.htmlElement.classList.add(MenuController.menuElementClass);
+            this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
+            this.modal.appendChild(this.htmlElement);
+
+            this.searchBar = document.createElement("input");
+            this.searchBar.classList.add(MenuController.spotlightElementClass);
+            this.searchBar.placeholder = "Search for Blocks";
+            this.htmlElement.appendChild(this.searchBar);
+
+            const menuController = MenuController.getInstance();
+
+            window.onclick = (e: MouseEvent) => {
+                if (e.target == this.modal) {
+                    menuController.removeMenus();
+                }
+            };
+
+            this.searchBar.addEventListener("keydown", (e: KeyboardEvent) => {
+                menuController.spotlightSearchOnKeyDown(e, options);
+            });
+
+            this.searchBar.addEventListener("input", (e: Event) => {
+                menuController.spotlightSearchOnChange(e, options);
+            });
+        } else {
+            this.htmlElement = document.createElement("div");
+            this.htmlElement.classList.add(MenuController.menuElementClass);
+            this.htmlElement.id = `${Menu.idPrefix}${Menu.menuCount}`;
+            document.getElementById(EDITOR_DOM_ID).appendChild(this.htmlElement);
+        }
 
         Menu.menuCount++;
 
-        for (const [key, value] of options) {
+        for (const [key, value] of optionsMap) {
             const option = new MenuOption(key, false, null, this, null, value);
             option.attachToParentMenu(this);
 
@@ -225,7 +259,13 @@ class Menu {
     }
 
     removeFromDOM() {
-        document.getElementById(EDITOR_DOM_ID).removeChild(this.htmlElement);
+        let node = this.htmlElement;
+        let parentNode = node.parentNode;
+        parentNode.removeChild(this.htmlElement);
+
+        if (parentNode == this.modal) {
+            document.getElementById(EDITOR_DOM_ID).removeChild(this.modal);
+        }
     }
 
     getOptionByText(optionText: string) {
@@ -417,6 +457,8 @@ export class MenuController {
     static optionElementClass: string = "suggestionOptionParent";
     static draftModeOptionElementClass: string = "draftModeOptionElementClass";
     static menuElementClass: string = "suggestionMenuParent";
+    static modalClass: string = "spotlightModal";
+    static spotlightElementClass: string = "spotlight";
     static optionTextElementClass: string = "suggestionOptionText";
     static selectedOptionElementClass: string = "selectedSuggestionOptionParent";
 
@@ -454,7 +496,11 @@ export class MenuController {
      *
      * @param pos         Starting top-left corner of this menu in the editor.
      */
-    buildSingleLevelMenu(suggestions: EditCodeAction[], pos: any = { left: 0, top: 0 }) {
+    buildSingleLevelMenu(
+        suggestions: EditCodeAction[],
+        pos: any = { left: 0, top: 0 },
+        isSpotlightSearch: boolean = false
+    ) {
         if (this.menus.length > 0) this.removeMenus();
         else if (suggestions.length >= 0) {
             //TODO: Very hacky way of fixing #569
@@ -464,7 +510,7 @@ export class MenuController {
                 suggestions.push(Actions.instance().actionsList[0]); //this does not have to be this specific aciton, just need one to create the option so that the menu is created and then we immediately delete the option
             }
 
-            const menu = this.module.menuController.buildMenu(suggestions, pos);
+            const menu = this.module.menuController.buildMenu(suggestions, pos, isSpotlightSearch);
 
             //TODO: Continuation of very hacky way of fixing #569
             if (suggestions.length === 0) {
@@ -507,7 +553,11 @@ export class MenuController {
      *
      * @returns the constructed menu. Null if no options was empty.
      */
-    private buildMenu(options: EditCodeAction[], pos: any = { left: 0, top: 0 }): Menu {
+    private buildMenu(
+        options: EditCodeAction[],
+        pos: any = { left: 0, top: 0 },
+        isSpotlightSearch: boolean = false
+    ): Menu {
         if (options.length > 0) {
             const menuOptions = new Map<string, Function>();
 
@@ -523,7 +573,7 @@ export class MenuController {
                 });
             }
 
-            const menu = new Menu(menuOptions);
+            const menu = new Menu(options, menuOptions, isSpotlightSearch);
 
             //TODO: These are the same values as the ones used for mouse offset by the messages so maybe make them shared in some util file
             menu.htmlElement.style.left = `${pos.left + document.getElementById(EDITOR_DOM_ID).offsetLeft}px`;
@@ -545,6 +595,51 @@ export class MenuController {
         }
 
         return null;
+    }
+
+    spotlightSearchOnKeyDown(e: KeyboardEvent, options: EditCodeAction[]) {
+        const context = this.module.focus.getContext();
+        const action = this.module.eventRouter.getKeyAction(e, context);
+
+        if (
+            action.type == EditActionType.SelectMenuSuggestion ||
+            action.type == EditActionType.SelectMenuSuggestionAbove ||
+            action.type == EditActionType.SelectMenuSuggestionBelow
+        ) {
+            const preventDefaultEvent = this.module.executer.execute(action, context, e);
+
+            if (preventDefaultEvent) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        }
+    }
+
+    spotlightSearchOnChange(e: Event, options: EditCodeAction[]) {
+        const context = this.module.focus.getContext();
+        const target = e.target as HTMLInputElement;
+        let prevText = target.value.slice(0, -1);
+        let curText = target.value;
+        let lastkey = target.value.slice(-1);
+
+        //check match
+        for (const match of options) {
+            if (match.terminatingChars.indexOf(lastkey) >= 0) {
+                if (match.trimSpacesBeforeTermChar) prevText = prevText.trim();
+
+                if (prevText == match.matchString || (match.matchRegex != null && match.matchRegex.test(prevText)))
+                    match.performAction(this.module.executer, this.module.eventRouter, context, {
+                        type: "autocomplete-menu",
+                        precision: this.calculateAutocompleteMatchPrecision(prevText, match.matchString),
+                        length:
+                            match.insertActionType === InsertActionType.InsertNewVariableStmt
+                                ? prevText.length + 1
+                                : match.matchString.length + 1,
+                    });
+            }
+        }
+
+        this.updateMenuOptions(curText);
     }
 
     removeMenus() {
@@ -942,12 +1037,20 @@ export class MenuController {
         }
     }
 
-    updatePosition(pos: { left: number; top: number }) {
+    updatePosition(pos: { left: number; top: number }, isSpotlightSearch: boolean = false) {
         const element = this.menus[this.focusedMenuIndex]?.htmlElement;
 
         if (element) {
-            element.style.left = `${pos.left}px`;
-            element.style.top = `${pos.top}px`;
+            if (isSpotlightSearch) {
+                //centers the menu on the page
+                element.style.left = "50%";
+                element.style.top = "50%";
+                element.style.marginLeft = -element.offsetWidth / 2 + "px";
+                element.style.marginTop = -element.offsetHeight / 2 + "px";
+            } else {
+                element.style.left = `${pos.left}px`;
+                element.style.top = `${pos.top}px`;
+            }
         }
     }
 

@@ -1,4 +1,5 @@
 import { CodeConstruct, EmptyLineStmt, TypedEmptyExpr } from "../syntax-tree/ast";
+import { SettingsController } from "../utilities/settings";
 import { Editor } from "./editor";
 
 export class Cursor {
@@ -17,7 +18,11 @@ export class Cursor {
         const cursor = this;
 
         function loop() {
-            cursor.setTransform(cursor.code);
+            if (SettingsController.getInstance().config.enabledColoredBlocks) {
+                cursor.setTransformColor(cursor.code);
+            } else {
+                cursor.setTransform(cursor.code);
+            }
 
             requestAnimationFrame(loop);
         }
@@ -26,6 +31,27 @@ export class Cursor {
     }
 
     setTransform(code: CodeConstruct) {
+        let leftPadding = 0;
+        let rightPadding = 0;
+
+        const selection = code != null ? code.getSelection() : this.editor.monaco.getSelection();
+
+        if (code instanceof TypedEmptyExpr) this.element.style.borderRadius = "15px";
+        else this.element.style.borderRadius = "0";
+
+        this.element.style.visibility = "visible";
+        if (!code || code instanceof EmptyLineStmt) this.element.style.visibility = "hidden";
+
+        const transform = this.editor.computeBoundingBox(selection);
+
+        this.element.style.top = `${transform.y + 5}px`;
+        this.element.style.left = `${transform.x - leftPadding}px`;
+
+        this.element.style.width = `${transform.width + rightPadding}px`;
+        this.element.style.height = `${transform.height - 5 * 2}px`;
+    }
+
+    setTransformColor(code: CodeConstruct) {
         let leftPadding = 0;
         let rightPadding = 0;
 

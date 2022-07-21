@@ -1,0 +1,111 @@
+.settingsModal {
+    display: block;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgb(102, 153, 170);
+    background-color: rgba(102, 153, 170, 0.4);
+}
+
+.settingsContainer{
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: fixed;
+    left: 50%;
+    top: 25%;
+    transform: translate(-50%, -50%);
+    width: 300px;
+    height: 300px;
+    border: 1px solid black;
+    background-color: #fff;
+    padding: 10px;
+    font-family: Consolas, "Courier New", monospace;
+    border-radius: 10px;
+}
+
+.settingsHeader{
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: 500;
+    border-bottom: 1px solid black;
+}
+
+.settingsFooter{
+    margin-top: auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.exitBtn{
+    padding: 8px 10px;
+    color: #fff;
+    background-color: rgb(225, 100, 116);
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px, rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+}
+
+.setting{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.toggleBtn{
+    position:relative;
+    display: inline-block;
+    width: 60px;
+    height: 34px;
+}
+
+.toggleBtn input{
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggleBtnSlider{
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 34px;
+}
+
+.toggleBtnSlider:before {
+    position: absolute;
+    content: "";
+    height: 26px;
+    width: 26px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    -webkit-transition: .4s;
+    transition: .4s;
+    border-radius: 50%;
+}
+
+input:checked + .toggleBtnSlider {
+    background-color: #69a;
+}
+
+input:focus + .toggleBtnSlider {
+    box-shadow: 0 0 1px #69a;
+}
+
+input:checked + .toggleBtnSlider:before {
+    -webkit-transform: translateX(26px);
+    -ms-transform: translateX(26px);
+    transform: translateX(26px);
+}

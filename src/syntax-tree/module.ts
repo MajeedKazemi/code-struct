@@ -1,4 +1,5 @@
 import { Position, Range } from "monaco-editor";
+
 import { ActionExecutor } from "../editor/action-executor";
 import { ActionFilter } from "../editor/action-filter";
 import { CodeStatus, EditActionType } from "../editor/consts";
@@ -15,6 +16,7 @@ import { MessageController } from "../messages/message-controller";
 import { ConstructHighlight } from "../messages/messages";
 import { NotificationManager } from "../messages/notifications";
 import { MenuController } from "../suggestions/suggestions-controller";
+import { SettingsController } from "../utilities/settings";
 import { Util } from "../utilities/util";
 import {
     AutocompleteTkn,
@@ -58,6 +60,7 @@ export class Module {
     typeSystem: TypeChecker;
     notificationManager: NotificationManager;
     toolboxController: ToolboxController;
+    settingsController: SettingsController;
 
     scope: Scope;
     draftExpressions: DraftRecord[];
@@ -145,6 +148,9 @@ export class Module {
 
         this.menuController = MenuController.getInstance();
         this.menuController.setInstance(this, this.editor);
+
+        this.settingsController = SettingsController.getInstance();
+        this.settingsController.setInstance(this);
 
         Util.getInstance(this);
     }

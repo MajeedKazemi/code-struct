@@ -54,6 +54,7 @@ import {
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
+import { SettingsController } from "../utilities/settings";
 import { getUserFriendlyType, isImportable } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
@@ -272,7 +273,15 @@ export class ActionExecutor {
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
                 if (statement.hasBody()) {
-                    let scopeHighlight = new ScopeHighlight(this.module.editor, statement, statement.color);
+                    if (SettingsController.getInstance().config.enabledColoredBlocks) {
+                        let scopeHighlight = new ScopeHighlight(this.module.editor, statement, statement.color);
+                    } else {
+                        let scopeHighlight = new ScopeHighlight(
+                            this.module.editor,
+                            statement,
+                            "rgba(75, 200, 255, 0.125)"
+                        );
+                    }
                 } else {
                     this.setTokenColor(action.data?.statement, statement.color);
                 }
@@ -1432,9 +1441,10 @@ export class ActionExecutor {
                 this.openAutocompleteMenu(
                     this.module.actionFilter
                         .getProcessedInsertionsList()
-                        .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid)
+                        .filter((item) => item.insertionResult.insertionType != InsertionType.Invalid),
+                    true
                 );
-                this.styleAutocompleteMenu(context.position);
+                this.styleAutocompleteMenu(context.position, true);
 
                 break;
 
@@ -1735,6 +1745,9 @@ export class ActionExecutor {
     }
 
     private setTokenColor(code: CodeConstruct, color: string) {
+        if (!SettingsController.getInstance().config.enabledColoredBlocks) {
+            return;
+        }
         const aRgbHex = color.substring(1).match(/.{1,2}/g);
         const aRgb = [parseInt(aRgbHex[0], 16), parseInt(aRgbHex[1], 16), parseInt(aRgbHex[2], 16)];
 
@@ -1886,10 +1899,10 @@ export class ActionExecutor {
         }
     }
 
-    private openAutocompleteMenu(inserts: EditCodeAction[]) {
+    private openAutocompleteMenu(inserts: EditCodeAction[], isSpotlightSearch = false) {
         if (!this.module.menuController.isMenuOpen()) {
             inserts = inserts.filter((insert) => insert.insertionResult.insertionType !== InsertionType.Invalid);
-            this.module.menuController.buildSingleLevelMenu(inserts);
+            this.module.menuController.buildSingleLevelMenu(inserts, { left: 0, top: 0 }, isSpotlightSearch);
         } else this.module.menuController.removeMenus();
     }
 
@@ -2225,8 +2238,11 @@ export class ActionExecutor {
         );
     }
 
-    private styleAutocompleteMenu(pos: Position) {
+    private styleAutocompleteMenu(pos: Position, isSpotlightSearch: boolean = false) {
         this.module.menuController.styleMenuOptions();
-        this.module.menuController.updatePosition(this.module.menuController.getNewMenuPositionFromPosition(pos));
+        this.module.menuController.updatePosition(
+            this.module.menuController.getNewMenuPositionFromPosition(pos),
+            isSpotlightSearch
+        );
     }
 }
