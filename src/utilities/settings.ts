@@ -1,3 +1,6 @@
+import { settingsConfigCategories } from "../editor/consts";
+import { Module } from "../syntax-tree/module";
+
 // Singleton controlling settings for the program
 export class SettingsController {
     private static instance: SettingsController;
@@ -8,26 +11,28 @@ export class SettingsController {
     private settingsFooter: HTMLDivElement;
     private exitBtn: HTMLDivElement;
 
-    config: {
-        enabledColoredBlocks: false;
-        enabledSpotlightSearch: false;
-        enabledTyping: false;
-    };
+    public config: any;
+
+    module: Module;
 
     constructor() {
-        if (SettingsController.instance instanceof SettingsController) {
-            return SettingsController.instance;
-        }
-
         this.config = {
-            enabledColoredBlocks: false,
-            enabledSpotlightSearch: false,
-            enabledTyping: false,
+            [settingsConfigCategories.enabledColoredBlocks]: false,
+            [settingsConfigCategories.enabledSpotlightSearch]: false,
+            [settingsConfigCategories.enabledTyping]: false,
         };
 
         this.addEventListeners();
+    }
 
-        SettingsController.instance = this;
+    static getInstance() {
+        if (!SettingsController.instance) SettingsController.instance = new SettingsController();
+
+        return SettingsController.instance;
+    }
+
+    setInstance(module: Module) {
+        this.module = module;
     }
 
     private addEventListeners() {
@@ -55,7 +60,7 @@ export class SettingsController {
         this.settingsHeader.innerHTML = "Settings";
         this.settingsContainer.appendChild(this.settingsHeader);
 
-        Object.keys(SettingsController.instance.config).map((key) => {
+        Object.keys(this.config).map((key) => {
             const setting = document.createElement("div");
             setting.classList.add("setting");
             this.settingsContainer.appendChild(setting);
@@ -71,7 +76,8 @@ export class SettingsController {
 
             const toggleBtnCheckbox = document.createElement("input");
             toggleBtnCheckbox.type = "checkbox";
-            toggleBtnCheckbox.checked = SettingsController.instance.config[key];
+            toggleBtnCheckbox.checked = this.config[key];
+            toggleBtnCheckbox.id = key;
             toggleBtn.appendChild(toggleBtnCheckbox);
 
             const toggleBtnSlider = document.createElement("span");
@@ -79,7 +85,13 @@ export class SettingsController {
             toggleBtn.appendChild(toggleBtnSlider);
 
             toggleBtnCheckbox.addEventListener("change", () => {
-                SettingsController.instance.config[key] = toggleBtnCheckbox.checked;
+                this.config[key] = toggleBtnCheckbox.checked;
+
+                //TODO: update the blocks to be colorless
+                //re-render the toolbox
+                if (toggleBtnCheckbox.id == settingsConfigCategories.enabledColoredBlocks) {
+                    this.module.toolboxController.toggleToolboxColors();
+                }
             });
         });
 

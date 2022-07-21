@@ -60,7 +60,7 @@ export class Module {
     typeSystem: TypeChecker;
     notificationManager: NotificationManager;
     toolboxController: ToolboxController;
-    settings: SettingsController;
+    settingsController: SettingsController;
 
     scope: Scope;
     draftExpressions: DraftRecord[];
@@ -80,7 +80,6 @@ export class Module {
         this.actionFilter = new ActionFilter(this);
         this.notificationManager = new NotificationManager(this);
         this.toolboxController = new ToolboxController(this);
-        this.settings = new SettingsController();
 
         this.globals = {
             hoveringOverCascadedMenu: false,
@@ -149,6 +148,9 @@ export class Module {
 
         this.menuController = MenuController.getInstance();
         this.menuController.setInstance(this, this.editor);
+
+        this.settingsController = SettingsController.getInstance();
+        this.settingsController.setInstance(this);
 
         Util.getInstance(this);
     }

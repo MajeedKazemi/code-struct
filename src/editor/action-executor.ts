@@ -54,6 +54,7 @@ import {
 import { Module } from "../syntax-tree/module";
 import { Reference } from "../syntax-tree/scope";
 import { TypeChecker } from "../syntax-tree/type-checker";
+import { SettingsController } from "../utilities/settings";
 import { getUserFriendlyType, isImportable } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { BinaryOperator, DataType, InsertionType } from "./../syntax-tree/consts";
@@ -272,7 +273,15 @@ export class ActionExecutor {
                 if (flashGreen) this.flashGreen(action.data?.statement);
 
                 if (statement.hasBody()) {
-                    let scopeHighlight = new ScopeHighlight(this.module.editor, statement, statement.color);
+                    if (SettingsController.getInstance().config.enabledColoredBlocks) {
+                        let scopeHighlight = new ScopeHighlight(this.module.editor, statement, statement.color);
+                    } else {
+                        let scopeHighlight = new ScopeHighlight(
+                            this.module.editor,
+                            statement,
+                            "rgba(75, 200, 255, 0.125)"
+                        );
+                    }
                 } else {
                     this.setTokenColor(action.data?.statement, statement.color);
                 }
@@ -1736,6 +1745,9 @@ export class ActionExecutor {
     }
 
     private setTokenColor(code: CodeConstruct, color: string) {
+        if (!SettingsController.getInstance().config.enabledColoredBlocks) {
+            return;
+        }
         const aRgbHex = color.substring(1).match(/.{1,2}/g);
         const aRgb = [parseInt(aRgbHex[0], 16), parseInt(aRgbHex[1], 16), parseInt(aRgbHex[2], 16)];
 

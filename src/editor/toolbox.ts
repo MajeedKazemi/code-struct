@@ -6,6 +6,7 @@ import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodid
 import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
 import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
+import { SettingsController } from "../utilities/settings";
 import { getUserFriendlyType } from "../utilities/util";
 import { LogEvent, Logger, LogType } from "./../logger/analytics";
 import { Accordion, TooltipType } from "./accordion";
@@ -177,7 +178,6 @@ export class ToolboxController {
         const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
 
         const toolboxCategories = Actions.instance().toolboxCategories;
-        const hello = Actions.instance().actionsMap;
 
         for (const constructGroup of toolboxCategories) {
             if (constructGroup) {
@@ -218,6 +218,26 @@ export class ToolboxController {
             toolboxDiv.clientHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
         }px`;
     }
+
+    toggleToolboxColors() {
+        const toolboxCategories = Actions.instance().toolboxCategories;
+        const isColored = SettingsController.getInstance().config.enabledColoredBlocks;
+
+        for (const constructGroup of toolboxCategories) {
+            if (constructGroup) {
+                for (const item of constructGroup.items) {
+                    const button = document.getElementById(item.cssId);
+                    if (isColored) {
+                        button.style.backgroundColor = item.documentation.styles.backgroundColor;
+                        button.style.color = "#fff";
+                    } else {
+                        button.style.backgroundColor = "#fff";
+                        button.style.color = "#0d0c22";
+                    }
+                }
+            }
+        }
+    }
 }
 
 export class ToolboxButton {
@@ -228,8 +248,15 @@ export class ToolboxButton {
         this.container.classList.add("var-button-container");
 
         const button = document.createElement("div");
-        button.style.backgroundColor = btnColor;
         button.classList.add("button");
+
+        if (SettingsController.getInstance().config.enabledColoredBlocks) {
+            button.style.backgroundColor = btnColor;
+            button.style.color = "#fff";
+        } else {
+            button.style.backgroundColor = "#fff";
+            button.style.color = "#0d0c22";
+        }
 
         if (!(code instanceof Expression) && !(code instanceof Modifier)) {
             button.classList.add("statement-button");

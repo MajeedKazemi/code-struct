@@ -287,6 +287,12 @@ export enum InsertActionType {
     InsertOperatorTkn,
 }
 
+export enum settingsConfigCategories {
+    enabledColoredBlocks = "enabledColoredBlocks",
+    enabledSpotlightSearch = "enabledSpotlightSearch",
+    enabledTyping = "enabledTyping",
+}
+
 export const Docs: any = {
     AddVarDocs,
     AddDocs,

@@ -11,14 +11,12 @@ import { Context } from "./focus";
 
 export class EventRouter {
     module: Module;
-    settings: SettingsController;
     curPosition: Position;
     buttonClicksCount = new Map<string, number>();
 
     constructor(module: Module) {
         this.module = module;
         this.curPosition = module.editor.monaco.getPosition();
-        this.settings = new SettingsController();
     }
 
     getKeyAction(e: KeyboardEvent, providedContext?: Context): EditAction {
@@ -274,7 +272,12 @@ export class EventRouter {
 
             case KeyPress.Space: {
                 if (inTextEditMode) return new EditAction(EditActionType.InsertChar);
-                if (!inTextEditMode && e.ctrlKey && e.key.length == 1 && this.settings.config.enabledSpotlightSearch) {
+                if (
+                    !inTextEditMode &&
+                    e.ctrlKey &&
+                    e.key.length == 1 &&
+                    SettingsController.getInstance().config.enabledSpotlightSearch
+                ) {
                     return new EditAction(EditActionType.OpenValidInsertMenu);
                 }
 
@@ -282,7 +285,7 @@ export class EventRouter {
             }
 
             default: {
-                if (e.key.length == 1) {
+                if (e.key.length == 1 && SettingsController.getInstance().config.enabledTyping) {
                     if (inTextEditMode) {
                         switch (e.key) {
                             case KeyPress.C:
