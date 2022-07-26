@@ -1,9 +1,17 @@
 import Fuse from "fuse.js";
 import { Position } from "monaco-editor";
+import * as TrueDocs from "../docs/true.json";
 import { nova, runBtnToOutputWindow } from "../index";
 import { attachPyodideActions, codeString } from "../pyodide-js/pyodide-controller";
 import { addTextToConsole, clearConsole, CONSOLE_ERR_TXT_CLASS } from "../pyodide-ts/pyodide-ui";
-import { CodeConstruct, Expression, Modifier, Statement, VariableReferenceExpr } from "../syntax-tree/ast";
+import {
+    BinaryOperatorExpr,
+    CodeConstruct,
+    Expression,
+    Modifier,
+    Statement,
+    VariableReferenceExpr,
+} from "../syntax-tree/ast";
 import { DataType, InsertionType, Tooltip } from "../syntax-tree/consts";
 import { Module } from "../syntax-tree/module";
 import { getUserFriendlyType } from "../utilities/util";
@@ -177,7 +185,6 @@ export class ToolboxController {
         const staticDummySpace = document.getElementById("static-toolbox-dummy-space");
 
         const toolboxCategories = Actions.instance().toolboxCategories;
-        const hello = Actions.instance().actionsMap;
 
         for (const constructGroup of toolboxCategories) {
             if (constructGroup) {
@@ -211,12 +218,41 @@ export class ToolboxController {
             }
         }
 
+        this.addDiamondBorderToElements();
+
         const searchBox = this.createSearchBox();
         staticToolboxDiv.insertBefore(searchBox, toolboxMenu);
 
         staticDummySpace.style.minHeight = `${
             toolboxDiv.clientHeight - toolboxDiv.children[toolboxDiv.children.length - 2].clientHeight - 20
         }px`;
+    }
+
+    addDiamondBorderToElements() {
+        const binaryOperatorExprArr = document.querySelectorAll(".binary-operator-button") as NodeListOf<HTMLElement>;
+
+        binaryOperatorExprArr.forEach((button) => {
+            const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+            const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
+
+            //create the diamond border
+            const width = button.offsetWidth;
+            const height = button.offsetHeight;
+
+            const point1 = `0,${height / 2}`;
+            const point2 = `${width / 4}, 0`;
+            const point3 = `${width - width / 4}, 0`;
+            const point4 = `${width},${height / 2}`;
+            const point5 = `${width - width / 4},${height}`;
+            const point6 = `${width / 4},${height}`;
+            const points = `${point1} ${point2} ${point3} ${point4} ${point5} ${point6}`;
+
+            polygon.setAttribute("points", points);
+            polygon.style.fill = TrueDocs.styles.backgroundColor;
+
+            svg.appendChild(polygon);
+            button.appendChild(svg);
+        });
     }
 }
 
@@ -230,8 +266,11 @@ export class ToolboxButton {
         const button = document.createElement("div");
         button.style.backgroundColor = btnColor;
         button.classList.add("button");
-
-        if (!(code instanceof Expression) && !(code instanceof Modifier)) {
+        if (code instanceof BinaryOperatorExpr) {
+            button.classList.add("binary-operator-button");
+            button.style.backgroundColor = "transparent";
+            button.style.boxShadow = "none";
+        } else if (!(code instanceof Expression) && !(code instanceof Modifier)) {
             button.classList.add("statement-button");
         } else if (code instanceof Modifier) {
             button.classList.add("modifier-button");
@@ -246,7 +285,7 @@ export class ToolboxButton {
         let htmlText = text.replace(/---/g, "<hole1></hole1>");
         htmlText = htmlText.replace(/--/g, "<hole2></hole2>");
         htmlText = htmlText.trim().replace(/ /g, "&nbsp");
-        button.innerHTML = htmlText;
+        button.innerHTML += htmlText;
     }
 
     getButtonElement(): Element {

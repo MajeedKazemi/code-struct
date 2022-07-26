@@ -22,6 +22,7 @@
 }
 
 #editor-toolbox .button {
+    position: relative;
     font-size: 15px;
     padding: 6px 10px;
 
@@ -42,6 +43,29 @@
 
 #editor-toolbox .button:hover {
     box-shadow: 0px 1px 5px 2px #ccc;
+}
+
+.button svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    z-index: -1;
+
+    -webkit-filter: drop-shadow(0px 1px 5px #ddd);
+    filter: drop-shadow(0px 1px 5px #ddd);
+    
+}
+
+.button svg:hover{
+    -webkit-filter: drop-shadow(0px 1px 5px #ccc);
+    filter: drop-shadow(0px 1px 5px #ccc);
+}
+
+.button svg polygon:hover{
+    stroke: #05c8ac;
+    stroke-width: 2px;
 }
 
 hole1 {
@@ -540,6 +564,11 @@ hole2 {
 
 .modifier-button:hover {
     border-left: solid #05c8ac 3.5px !important;
+}
+
+.binary-operator-button {
+    padding: 10px !important;
+    border: none !important;
 }
 
 .var-type-text {
